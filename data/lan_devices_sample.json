@@ -1,0 +1,57 @@
+[
+  {
+    "ip": "192.168.1.1",
+    "mac": "aa:bb:cc:dd:ee:ff",
+    "hostname": "router.local",
+    "vendor": "TP-Link",
+    "device_type": "Router/Modem",
+    "open_ports": [
+      {
+        "port": 80,
+        "service": "http",
+        "state": "open"
+      },
+      {
+        "port": 443,
+        "service": "https",
+        "state": "open"
+      }
+    ],
+    "last_seen": "2025-07-02T10:30:00",
+    "status": "online",
+    "notes": "Ana router - İnternet bağlantısı sağlar"
+  },
+  {
+    "ip": "192.168.1.10",
+    "mac": "11:22:33:44:55:66",
+    "hostname": "desktop-pc",
+    "vendor": "Dell",
+    "device_type": "Masaüstü Bilgisayar",
+    "open_ports": [
+      {
+        "port": 22,
+        "service": "ssh",
+        "state": "open"
+      },
+      {
+        "port": 3389,
+        "service": "ms-wbt-server",
+        "state": "open"
+      }
+    ],
+    "last_seen": "2025-07-02T10:25:00",
+    "status": "online",
+    "notes": "Ana geliştirme bilgisayarı"
+  },
+  {
+    "ip": "192.168.1.20",
+    "mac": "77:88:99:aa:bb:cc",
+    "hostname": "iphone-john",
+    "vendor": "Apple",
+    "device_type": "Akıllı Telefon",
+    "open_ports": [],
+    "last_seen": "2025-07-02T10:20:00",
+    "status": "online",
+    "notes": ""
+  }
+]

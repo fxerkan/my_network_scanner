@@ -1,0 +1,158 @@
+{
+  "Access Point": {
+    "category": "network",
+    "icon": "📡"
+  },
+  "Air Conditioner": {
+    "category": "appliance",
+    "icon": "❄️"
+  },
+  "Apple Device": {
+    "category": "mobile",
+    "icon": "🍎"
+  },
+  "Desktop": {
+    "category": "computer",
+    "icon": "🖥️"
+  },
+  "Dishwasher": {
+    "category": "appliance",
+    "icon": "🍽️"
+  },
+  "Docker Container": {
+    "category": "iot",
+    "icon": "🐳"
+  },
+  "Gaming Console": {
+    "category": "entertainment",
+    "icon": "🎮"
+  },
+  "Game Console": {
+    "category": "entertainment",
+    "icon": "🕹️"
+  },
+  "IP Camera": {
+    "category": "security",
+    "icon": "📹"
+  },
+  "IoT Device": {
+    "category": "iot",
+    "icon": "🔗"
+  },
+  "Laptop": {
+    "category": "computer",
+    "icon": "💻"
+  },
+  "Modem": {
+    "category": "network",
+    "icon": "📶"
+  },
+  "NAS": {
+    "category": "storage",
+    "icon": "💾"
+  },
+  "Non-Smartphone": {
+    "category": "peripheral",
+    "icon": "☎️"
+  },
+  "Pet Feeder": {
+    "category": "smart_home",
+    "icon": "🐯"
+  },
+  "Pet Water Fountain": {
+    "category": "smart_home",
+    "icon": "💧"
+  },
+  "Printer": {
+    "category": "peripheral",
+    "icon": "🖨️"
+  },
+  "Raspberry Pi Server": {
+    "category": "iot",
+    "icon": "🍇"
+  },
+  "Refrigerator": {
+    "category": "appliance",
+    "icon": "🧊"
+  },
+  "Router": {
+    "category": "network",
+    "icon": "🌐"
+  },
+  "Scanner": {
+    "category": "peripheral",
+    "icon": "📷"
+  },
+  "Security System": {
+    "category": "security",
+    "icon": "🔒"
+  },
+  "Server": {
+    "category": "computer",
+    "icon": "🖧"
+  },
+  "Smart Home": {
+    "category": "smart_home",
+    "icon": "🏠"
+  },
+  "Smart Light": {
+    "category": "smart_home",
+    "icon": "💡"
+  },
+  "Smart Lock": {
+    "category": "smart_home",
+    "icon": "🔐"
+  },
+  "Smart Speaker": {
+    "category": "smart_home",
+    "icon": "🔊"
+  },
+  "Smart TV": {
+    "category": "entertainment",
+    "icon": "📺"
+  },
+  "Smart Thermostat": {
+    "category": "smart_home",
+    "icon": "🌡️"
+  },
+  "Smartphone": {
+    "category": "mobile",
+    "icon": "📱"
+  },
+  "Streaming Device": {
+    "category": "entertainment",
+    "icon": "📡"
+  },
+  "Switch": {
+    "category": "network",
+    "icon": "🔀"
+  },
+  "Tablet": {
+    "category": "mobile",
+    "icon": "📃"
+  },
+  "Unknown": {
+    "category": "unknown",
+    "icon": "❓"
+  },
+  "Vacuum Cleaner": {
+    "category": "appliance",
+    "icon": "🧹"
+  },
+  "Washing Machine": {
+    "category": "appliance",
+    "icon": "🧺"
+  },
+  "Pet Toilet": {
+    "icon": "💩",
+    "category": "smart_home"
+  },
+  "Pet Camera": {
+    "icon": "🐕",
+    "category": "smart_home"
+  },
+  "Pet Tracker": {
+    "icon": "🐾",
+    "category": "smart_home"
+  }
+}

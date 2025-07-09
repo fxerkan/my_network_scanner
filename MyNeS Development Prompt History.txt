@@ -1,0 +1,798 @@
+My Network Scanner (MyNeS) Prompt History
+=========================================
+
+
+1. bulunan cihazları kolaylıkla filtreleyebilmek için bir filtre paneli oluştur. cihaz tipi, online/offline durumu, üretici adı, hostname, ip, mac adresi ve kullanıcı tarafından özel olarak verilen Alias gibi özelliklerin tümü için dropdown listeler içerisinde hızlı ve kolaylıkla seçim yapılarak filtrelenebilir durumda olsun.  
+
+2. bulunan her bir cihazda açık yada erişilebilir olan port numaralarını da birer buton/kutucuk olarak göstersin ve tıklanıp açılabilir durumda olsun. 
+
+3. cihaz türlerini daha kolay görüp anlayabilmek için ikonlar kullan örneğin kamera simgesi, desktop, laptop, oyun konsolu, tablet, telefon, evcil hayvan su sebili, mama makinesi, televizyon, router, switch, klima, çamaşır makinesi, buzdolabı vs. gibi birçok farklı cihaz tipine özgü simgeler olsun. bu simgeyi cihazın IP adresinin hemen solunda kolaylıkla görünüp anlaşılabilecek şekilde konumlandır.
+
+4. Xiaomi, Petkit, TpLink, Zyxel, Dyson, S-Link, Toshiba, Fujitsu, Arçelik, Vestel vb. gibi üreticileri tanımlayacak şekilde OUI veri tabanını genişlet. Üretici adı yada Cihaz adının içinde geçen bilgilerden yola çıkarak tahminleme yapabilecek şekilde de bir yaklaşım oluştur, bilinemeyenler için.
+
+----
+
+
+1. OUI listesini dışarıdan bir dosyadan okuyacak şekilde ayarla. Config/Settings gibi ayrı bir sayfa yada Tab page oluşturup bu bilgileri gerekirse elle girebilme, import export ededilme ve Online olarak internet üzerinden araştırıp otomatik olarak listeyi güncelleyebilme imkanı ekle. detect_device_type_smart metodunda kullanılabilecek kuralları da RegEx pattern olarak tanımlayabilmeli, örnek patternler liste halinde görünmeli.
+
+2. Config/Settings sayfasında yine kullanıcı tarama yapmak istediği IP block, aralık, subneti kendisi belirtebilmeli. belirtmezse default ayarlar olmalı ve onu kullanmalı.
+
+3. Config/Settings sayfasında Cihaz tipleri listesini görebilmeli ve isterse kendisi yeni cihaz tipi ekleyip varolanları değiştirebilmeli (cihaz tipi adını da, simgesini de kategorisini de değiştirebilmeli)
+
+4. Config/Settings sayfasında bulunan cihazlarda arama yapılmak istenen Açık Portaları da ayarlayabilmeli. Default port listesi olmalı ona isterse ekleme, çıkarma yapabilmeli. cihaz türüne göre de özel portlar tanımlayabilmeli.
+
+5. Offline olan cihazlarda taranmalı istenirse listede gösterilmeli ama her zaman öncelikle Online olan cihazlar gösterilmeli.
+
+6. Gelişmiş Filtreler için Göster/Gizle gibi bir butona gerek yok. Bu filtre paneli her zaman görünür halde olsun. Filtrelerden birşey seçildiğinde filtreyi anında uygulasın - Filtreleri Uygula butonuna gerek yok. Filtre paneli, "Bulunan Cihazlar" ve "Cihaz ara" objelerinin altında olacak şekilde yerleşsin.
+
+7. Düzenle butonunun yanında bir de "Açık Portaları Tara" yada "Detaylı Analiz" gibi bir buton olmalı ve istenen cihaz için detaylı olarak bir network analizi yapıp (ping, tracert, telnet gibi) açık ve erişilebilir olan portaları, varsa cihaz üzerindeki uygulamaları gösterecek şekilde bir popup açılıp bu tarama işlemi yapıp sonuçlarını göstermeli.
+
+8. Cihazın adına yada IP adresine tıklandığında ayrıca bir sayfada ilgili adresi açmalı.
+
+9. Tarama işlemi başlattığım cihaz eğer birden çok farklı network bağlantısına sahipse örneğin LAN, WLAN, Bluetooth, VPN vs. gibi bunların üzerinde de tarama yapıp sonuçları gösterebilmeli. bulunan cihazların hangi Network üzerinde bulunduğunu da adresleyebilmeli.
+
+10. Geçmişte yapılmış olan Tarama sonuçları, trendi, kaç cihaz bulunduğu, hangi network subnet ip block arandığı gibi bilgileri görebileceğimiz bir Tarihçe ve istatistik sayfası olsun. yine bunu da ayrıca bir json dosyasında tutsun.
+
+
+---
+
+
+1. Ayarlar sayfasında Cihaz Tipi eklenebiliyor ama var olan Cihaz Tipleri düzenlenemiyor, düzenleme özelliği de olmalı. İkon (Emoji) seçimi için popup vs. ile seçimi kolaylaştırıcı bir arayüz olmalı.
+
+2. OUI database bilgisi için https://standards.ieee.org/products-programs/regauth/ adresinde bulunan CSV dosyalarını indir ve bunlarda bulunan tüm tanımları konsolide edip kullanıcının kolaylıkla ekleme, çıkarma yapabileceği şekilde ayarla ve bu nihai listeyi uygulamada baz olarak kullan. Ayrıca https://www.wireshark.org/tools/oui-lookup.html burada da örnek bir OUI lookup uygulaması var bunun veri setinide al.
+
+3. OUI database, csv dosyalarında olmayan tanımlar için API ile bu bilgiyi internetten hızlıca arayıp getirebilecek şekilde bir lojik ekle, public ve ücretsiz olan servisler olsun sadece. örnek API : 
+https://www.macvendorlookup.com/mac-address-api 
+https://maclookup.app/api-v2/documentation
+https://www.macvendorlookup.com/mac-address-lookup 
+https://www.macvendorlookup.com/mac-address-search 
+https://github.com/4ndyZ/MAC-API
+https://www.macvendorlookup.com/browse
+https://github.com/thatmattlove/oui
+https://mac2vendor.com/
+
+4. "Cihaz Tipine Özgü Portlar" bölümü boş, hiçbirşey yok orada, eğer gereksiz yada kullanılmıyorsa sil yada uygun UI bileşenlerini ekle.
+
+5. "Tanıma Kuralları" bölümündeki "Hostname Pattern'ları" ve "Vendor Pattern'ları" boş görünüyor, hiçbirşey tanımlama yada var olan kuralları değiştirebilme gibi bir özellik yok!
+
+6. "Genel Ayarlar" sayfasında bazı değerler değiştirildikten sonra "Genel Ayarları Kaydet" seçildiğinde değerleri kaydedilmiş gibi gösteriyor ama yapmıyor. Örneğin "Offline cihazları dahil et" seçeneğini tickledim ama ana sayfay geçip geri geldiğimde halen seçili değilmiş olarak gösteriyor. ilgili config.json dosyasında "include_offline": true olsa dahi.
+
+7. Detaylı Cihaz analizi sayfasında ne işlem yaptığını, durumunu, çalışan komut yada uygulamanın çıktıları ile işlemin süresini gösteren bir bölüm olmalı. şu anda sanki hiçbir işlem yapmıyorda askıda da kalıyormuş gibi görünüyor. ayrıca bu açılan popup sayfasını kapatıp analiz çalışmasının arkaplanda devam edebilmesi için "Analize Arkaplan Devam Et" gibi bir buton olmalı.
+
+8. "Cihaz Arama" bölümünü "Tarama İşlemleri" bölümünün yanında olacak şekilde konumlandır.
+Hemen altında da "Filtreler" bölümü olsun ama "Filtreler" gibi bir başlık olmasına gerek yok, direkt olarak Filtre seçimlerini göstersin. Tüm Filtre dropdown listelerindeki itemlar A->Z sıralı olsun.
+
+9. Toplam Cihaz, Online, Farklı Tip ve Farklı Marka gibi Metrik değerlerini gösteren sayılar biraz daha görünür, kutucuklar halinde olup üzerlerine mouse ile gelindiğinde o sayısal değeri oluşturan değerleri tooltip olarak göstersin. aynı Tarihçe sayfasındaki "Toplam Tarama", "Toplam Cihaz" göstergeleri gibi olsunlar.
+
+10. "ONLİNE" yazısı olmadan sadece Yeşil ve Kırmızı ikon olacak şekilde cihazların durumunu göster.
+
+11. Önceden bir cihaz düzenleme bölümünde Notlar girilirse onları da Cardlar içerisinde gösteriyordu, şimdi bu özellik kaybolmuş ! Eğer cihazlara bir not, ekstra bilgi girilirse CARD görünümü içerisinde bunlarıda göstersin, eğer hiçbir değer girilmemişse göstermesin.
+
+12. Uygulamanın adını "LAN Scanner" dan "My Network Scanner (MNS)" olacak şekilde değiştir.
+
+13. Tarihçe sayfasında hiçbir istatistik yada trend göstermiyor, birkaç kez Tarama yaptırmış olmama rağmen.
+
+14. Ana sayfanın en alt kısmına da basit ve sade bir şekilde uygulama adı, versiyon,  Copyright ve https://github.com/fxerkan github linki bilgisi ekle.
+
+
+----
+
+1. index.html içerisindeki CSS, Javascript ve HTML kodlarını ayrı ayrı dosyalar olacak şekilde ayrıştırıp daha modüler ve kolay yönetilebilir hale getir tüm kodu.
+
+2. uygulamanın kendi ihtiyaç duyduğu tüm tanımlar, ayarlar  (config.json, device_types.json, oui_databases.json, oui.csv vs.) gibi bileşenleri de /config adlı bir dizin altında topla.
+
+3. çıktı olarak oluşturulan lan_devices.json ve history.json gibi dosyaları ise /data dizini altında olacak şekilde düzenle.
+
+
+----
+
+
+1. enhanced_oui_manager.py dosyasını mevcut projeye entegre ederek OUI verilerini indirme, güncelleme, bizim oui_database.json yada oui.csv dosyaları içerisinde bulamadığım MAC adreslerini otomatik online olarak arayıp bulacağı şekilde güncelleyebilir misin? 
+
+2. ayrıca IEEE'den sadece oui.csv dosyasını değilde diğer olası CSV dosyalarını da indirip sonrasında nihai tek bir dosya içerisinde (oui_database.json) Tekilleştirilmiş şekilde tutacak şekilde düzenler misin? aşağıda ilgili olası diğer kaynak csv dosyası yada databaseleri bulabilirsin.
+
+http://standards-oui.ieee.org/oui/oui.csv
+http://standards-oui.ieee.org/oui28/mam.csv
+http://standards-oui.ieee.org/oui36/oui36.csv
+http://standards-oui.ieee.org/iab/iab.csv
+http://standards-oui.ieee.org/cid/cid.csv
+http://standards-oui.ieee.org/ethertype/eth.csv
+http://standards-oui.ieee.org/manid/manid.csv
+http://standards-oui.ieee.org/bopid/opid.csv
+https://standards.ieee.org/products-programs/regauth/psid/public/
+https://standards.ieee.org/products-programs/regauth/llc/public/
+https://standards.ieee.org/products-programs/regauth/grpmac/public/
+https://standards.ieee.org/products-programs/regauth/stid/public/
+
+
+1. Ayarlar sayfası açıldığında aşağıdaki gibi bir hata mesajı gösteriyor
+Ayarlar yüklenirken hata oluştu: Cannot set properties of null (setting 'innerHTML')
+
+
+2. Cihaz tipi değiştirilse dahi ana sayfadaki cihaz tipi ikonları halen ? şeklinde görünüyor.
+
+3. Cihazın Online/Offline durumunu gösteen Yeşil Kırmızı ikon dışında birde onun çevresinde başka bir oval rectangle gibi birşey görünüyor, ona gerek yok. sadece yeşil/kırmızı ikon olması yeterli.
+
+4. Cihaz bilgilerini Düzenle ekranında "Cihaz Tipi" seçimi yapılamıyor - düz free text alan görünüyor. orada oysaki daha önce tanımlanmış cihaz tiplerinden birini seçebilmeli sadece.
+
+5. Cihaz Düzenle ekranında ayrıca isterse kullanıcı Hostname, Üretici gibi bilgileri de düzenleyebilmeli.
+
+6. "IEE OUI Database İndir" butonuna tıklayınca şu hatayı alıyoruz - IEEE database indirme hatası: IEEE veritabanı indirilemedi. HTTP 418
+
+7. OUI Database sayfasında oui.csv'de bulunan detaylı bilgilerin tümü görünmüyor burayı daha detaylı bilgi gösterecek şekilde revize edebilir misin?
+Ayrıca varolan OUI kayıtlarını düzenleyemiyoruz !
+
+8. Cihaz tipleri bölümündeki Emoji seç popup biraz dar geliyor tüm simgeleri tek sefer göremiyoruz. oradaki simge sayısını da biraz daha artır, farklı elektronik cihaz türleri de olsun.
+
+
+10. "Detaylı Analiz" butonunu cihaz cardboard'dan kaldır ve en üstteki "Tarama İşlemleri" altında genel bir buton olacak şekilde konumlandır ve bu detaylı analizi tüm cihazlar için arkaplanda yapıp tamamlandığında bilgi verecek şekilde düzenle.
+
+12. bulunan cihazları da IP adresine göre sıralı olarak göster cardboard içerisinde.
+
+13. Ayarlar sayfasındaki Tab'lar arasında geçiş yapılamıyor.
+Uncaught ReferenceError: switchTab is not defined
+    at HTMLButtonElement.onclick (config:378:64)
+
+
+14. Cihazlarda açık portları otomatik olarak bulamasan dahi kullanıcıya elle istediği açık port numaralarını ve açıklamalarını girebilme imkanı verecek şekilde Düzenleme ekranında bir bölüm olmalı. 
+
+
+5. Ana ekrandaki Toplam Cihaz, Online, Farklı Tip olarak görünen kutucukların boyutlarını geniş tut ilgili alanı tümüyle kaplayacak şekilde olsunlar ve farklı renklerde olsun ki ayırt edileb ilsin. bu kutucukların isimlerini de sırasıyla "Toplam Cihaz", "Online Cihaz", "Cihaz Tipi", "Üretici Adedi" olarak değiştir.
+
+3. Bulunan cihazları gösteren Card Layout görünümü istenirse Düz Liste (Tablo) olarak da görünebilmeli bunun için basit bir switch edebilme özelliği olmalı. Görünüm : Card | Table | Map gibi.
+
+Filter-panel, Stat-number ve view-controls bölümleri yerlerini ve şekillerini aşağıdaki sırada olacak şekilde düzenle.
+
+1. Tarama İşlemleri / Cihaz Arama
+2. Stat-numbers
+3. Filter-panel
+4. devicesContainer/tableContainer/mapContainer olsun ve görünümü değiştirmeyi sağlayan "view-controls" butonları bu container içerisinde sağ üst köşede konumlansın.
+
+
+Filtre alanına "Alias" bilgisini de ekle. 
+"Açık Port" filtresi içerisinde ayrıca Manuel eklenen Portlarıda listele ve filtrelenebilir olmasını sağla.
+Üretici filtresi içerisinde "TP-Link Sysmtems Inc." ve "TP-Link Sysmtems Inc" şeklinde aslında aynı olan üreticiden sanki farklı 2 tane varmış gibi görünüyor, bunları da tek bir tane olacakmış şekilde düzenle ve  cihazların vendor bilgilerini de ortak/aynı olacak şekilde güncelle lan_devices.json dosyası içerisinde.
+
+
+lan_devices.json içerisinde daha önceden yapılmış bir tarama sonucu ve cihazlara özel Alias, Not, Manuel Port vs. eklenmiş ise tekrar bir "Tarama" işlemi yapıldığında bu bilgileri **kesinlikle** SİLME, değiştirme. kullanıcı tarafından değiştirilen yada eklenen tüm seçim ve bilgiler olduğu gibi kalmalı.
+
+6. Ayarlar sayfası açıldığında aşağıdaki gibi bir hata mesajı gösteriyor ve config.json dosyasındaki değerleri düzgün şekilde yüklemiyor. Örneğin : "include_offline": true olmasına karşın "Offline cihazları dahil et" adlı checkbox seçili görünmüyor.  "timeout": 5 olmasına karşın UI'da 3 görünüyor. 
+Ayarlar yüklenirken hata oluştu: Cannot set properties of null (setting 'innerHTML')
+
+7. Ayarlar > Cihaz Tipleri bölümünde Yeni Cihaz Tipi ekleme alanı çok geniş olduğu için sağdaki cihaz tipleri bölümü net görünmüyor, kaymalar oluyor ve scrollbar çıkıyor, bunu scroll çıkmayacak şekilde düzenle.
+
+8. Emoji Seç modal'ı içerisinde ki bir çok ikonu � işareti gibi düzgün yüklenememiş halde gösteriyor, birçok ikon/simge eksik. 
+Elektronik cihazlar, Smart Home uygulamaları, Evcil Hayvan araçları, Network, Server, Cloud ve Şirket logoları (Microsoft, Apple, Xiaomi, Hp, Lenovo, vs. gibi) ile ilgili birçok ikonuda barındırıcak şekilde yeni simge/ikonlar ekleyerek  listeyi genişlet.
+hepsinin düzgün görünebilir olduğunu teyit et, � şeklinde görünmesinler.
+
+ '', '🍇', '𝞹', 'Ⓜ️', '₿'
+
+config.html dosyası çok büyük ve uzun olmuş. bunu daha modular css, js scriptleri ayrı ayrı dosyalarda olacak şekilde daha yönetilebilir bir hale dönüştür.
+
+
+device_types.json dosyası içerisinde ki "category" tanımları ile newDeviceCategory selection içerisindeki tanımlar örtüşmüyor daha doğrusu açıklamaları da İngilizce olmalı ve burada farklı deviceCategoryler de tanımlanabilmeli. emoji kategorileri için kullanılan kategori tanımları ile bu cihaz kategorileri aynı olsun. emoji seç ekranı 10xN şeklinde bir matris olsun ki yatay scroll bar çıkmasın.
+
+9. Ayarlar > Tanıma Kuratlları bölümünde hiçbirşey göstermiyor. Oysaki config.json dosyasında aşağıdaki gibi birçok kural mevcut. bunların her birisini gösteriyor ve değiştirip kaydetmeyi sağlıyor olmalı.
+ "detection_rules": {
+    "hostname_patterns": [
+      {
+        "pattern": ".*router.*|.*gateway.*|.*modem.*",
+        "type": "Router"
+      },
+      {
+        "pattern": ".*camera.*|.*cam.*|.*ipcam.*",
+        "type": "IP Camera"
+      },
+      {
+        "pattern": ".*printer.*|.*print.*",
+        "type": "Printer"
+      },
+
+...
+"vendor_patterns": [
+      {
+        "pattern": "Apple.*",
+        "type": "Smartphone",
+        "conditions": [
+          "iphone",
+          "ios"
+        ]
+      },
+      {
+        "pattern": "Apple.*",
+        "type": "Tablet",
+        "conditions": [
+          "ipad"
+        ]
+      },
+
+
+
+
+neden "const deviceEmojis" ve "const emojiCategories" olmak üzere 2 farklı değişken tanımı var? hepsini tek bir değişken tanımı içerisinde birleştirip (merge) hem kategori bazında gösterim hemde tekil emoji seçimi için TEK bir değişken/liste olacak şekilde ayarla. hatta emoji isimleri üzerinden arama yapmak içinde farklı bir değişken "const emojiDescriptions" kullanılmış aslında bunların hepsi birleştirilip bir CSV (emojis.csv) dosyası olarak config dizini altında tutulabilir ve istenirse emoji ekleme ve çıkarma işlemleri buradan kolaylıkla yapılabilir, html dosyası içerisinde de emoji tanımları boş yere hardcoded olarak tutulmamış olur.
+
+
+emoji seç ekranında ki arama özelliği çalışmıyor !
+
+10. Tarihçe sayfasındaki Üretici Dağılımı bölümündeki üretici isimlerinin hepsinin karakter sayısı 150 karakter olacak şekilde boyutta olsun ve sağ tarafta adetleri gösteren çubuklarda bu 150 karakterlik alandan sonra hepsi soldan aynı hizadan başlayacak şekilde hizalansın.
+
+ 1. Cihaz Tipleri Dağılımı ile Üretici Dağılımı bölümlerini yan yana olacak şekilde layoutu değiştir. 2. Cihaz Tipleri piechart'ı için Legend olmasın, onun yerine piechart'ın üzerine hover yapıldığında tooltip/hint olarak ilgili cihaz tipini göstersin. 3. Tarama Trend Grafiğinde de Tarama Sayısını, Toplam Cihaz adedini, Online Cihaz adedi gibi tüm metrikleri göster. Legend olsun ve kullanıcı isterse bu metrikleri tıklayıp gizleyip gösterebilir durumda olsun. chart bileşenini daha dinamik ve esnek olacak şekilde değiştrebilirsin.  
+
+cihaz tipi piechart'ı büyükten küçüğe sıralı olsun. tarama trend grafiği y axis'i 0 dan başlasın ve linechart yerine area chart şeklinde olsun. stat-card içerisindeki number ve label'lar Beyaz ve Açık Gri renklerde olsunlar, siyah değil. 
+
+MAC adresini kolaylıkla koypayalabilmek için Copy butonu (sadece ikon olarak)  ekle ve tıklanınca Clipboard ilgili cihazın MAC adresini kopyala.     
+
+Ayarlar > Cihaz Tipleri sayfasında Mevcut Cihaz Tiplerinde bir değişiklik yaptığımda kayıt etmiyor. örneğin Pet Feeder'ın ikonunu Dog'dan Cat'e çevirdim ve Cihaz Tiplerini Kaydet butonuna tıkladım, kayıt etmiş gibi mesaj göstermesine karşın device_types.json'da bu değişikliği göremedim ki zaten ana sayfada yada diğer ekranlarda da ikon değişmedi.    
+
+UI da Pet Feeder için simgeyi (kaplan ikonu olarak)  değiştirip kayıt etmeme rağmen halen device_types.json'da güncellemiyor ! [Image #1] [Image #2]   
+
+
+Ayarlar > Mevcut Ağ Arayüzleri bölümünde Docker networkü içerisindeki Container'ların kullandığı IP'leri ve Networkleri de ekleyecek şekilde bir yapı geliştir. docker.socket üzerinde de yapabilirsin bunu (eğer docker varsa) yada direkt olarak docker'ın kullandığı subnet'i de tarama için IP aralığınıda ekleyebilirsin.
+
+Docker Container'larına ait network interface'i seçebilmek için Filtre paneline Network Interface filtresi ekle.
+Cihaz Tipi simgelerine Docker Container'larını ayrıştırmak için bir kategori ve uygun bir simge tipi ekle.
+
+uygulamanın adını "My Network Scanner (MyNeS)" olacak şekilde düzenle ve uygulama için bir tane favicon.ico oluştur (dünya simgesi üzerinde bir büyüteç şeklinde olabilir).
+
+
+11. Cihazlar ile ilgili nmap haricinde başka yöntemler ile de eğer toplayabiliyorsan bilgi toplayıp, vendor, mac ve hostnamelerine bakıp cihazın ne olduğunu, seri numarası, marka model, os version, disk drives, network shares, logged users/SIDs, server type, installed apps, domain, etc.  gibi bilgilerini bulup eğer Alias girilmediysa bulduğun bilgilere göre cihaza özgü bir ismi Alias kısmına girip, cihaz türü ve simgesini buna göre ayarlayacak şekilde Smart bir isimlendirme yapısı kur. bu özellikin açılıp kapatılması Config dosyasında parametrik olsun. "Resolve Host Names" by using Relative Distinguished Name (RDN) or lazzy text or any other algorithms available.
+
+
+1. Background Process Indicator bölümünü ekranın sağ alt bölümünde görünecek şekilde ayarla. şu anda Ayarlar ve Tarihçe butonlarının üzerine geliyor ki böyle olmamalı. 
+
+2. Detaylı Analiz işlemini farklı IP blockları için farklı Threadler açarak Paralel bir şekilde yaptır ki daha kısa sürede ve efektif bir şekilde tamamlansın, şu anda çok uzun sürüyor.
+
+3. Detaylı Analiz işlemi sonrasında her bir cihazda bulunan açık portları, uygulama, işletim sistemi vs. gibi tüm detayları cihaz notlarına yada açık portlar, duruma göre alias (eğer elle girilmiş bir alias yoksa) alanlarına güncelle.
+
+
+
+Deatylı tarama sonucunda enhanced_info ve advanced_scan_summary bölümlerinde neredeyse hiçbir ekstra bilgi bulunamamış gibi görünüyor. Burada kullandığın yöntemleri irdele, alternatiflerini araştır ve gerçekten cihazlara ait detaylı bilgileri bulmak için ne gerekiyorsa o metotları ve araçları ekle.
+Örneğin : 192.168.1.62 IP'li cihaz bir Raspberry Pi 5 bundan ötürü bu cihaza ait marka, model, system info, işletim sistemi, network share, ssh vs. gibi bilgilerin hepsini bulabiliyor olmalısın normalde.
+
+Bu tip cihazlara yada network sharing olanlara erişip daha deyaylı analizleri ilgili cihaz üzerinde yapabilmek için Erişim Şekli (ssh, ftp, http, api ) ve Kullanıcı Adı, Şifre gibi bilgilerinde girilebileceği bir arayüz (modal) ekle. Böylelikle cihaz bazında daha detaylı analizler gerçekleştirilebilsin.
+
+
+Cihaz Erişim Bilgileri sayfasındaki "Gelişmiş Analiz" butonuna tıklayınca hiçbirşey yapmıyor. Oysaki SSH erişimi için gerekli kullanıcı adı ve şifresini girdim ve Başarılı bir şekilde Erişim Testi oldu.
+
+Gelişmiz Analize tıklayınca yine arkaplanda detaylı adaniz sürecini yapmalı ve sağl altta toast olarak yapılan detaylı analizi bir notification gibi göstermeli - aynen "Toplu Detaylı Analiz" butonuna tıklandığında olduğu gibi.
+
+SSH erişimi olmasına rağmen cihaz üzerinde hiçbir Gelişmiş Analiz yapmıyor, advanced_scan_summary ve enhanced_info bölümlerinde halen hiçbir yeni bilgi yok ! 
+
+bunları düzelte ve kontrol et.
+
+
+
+ > enhanced_info ve advanced_scan_summary için bulunan sonuçları web UI'da    
+görebilmemiz içinde bir Modal tasarla. "Details" adlı bir butona tıklayınca cihaz
+bazındaki bu bilgileri kolay anlaşılır, tıklanabilir şekilde gösterecek bir
+sayfa/modal olsun. detaylı analiz yapılmayan yada bu bilgileri olmayan cihazlarda
+bu buton görünmesin yada aktif olmasın.      
+
+
+
+Detaylı Tarama yada Tarama gibi işlemler yapıldıktan sonra eğer Cihaz ile ilgili daha önce kullanıcı tarafından girilmiş bilgiler var ise ( örneğin device_type, alias, notes, open_ports )  bunları **KESİNLİKLE** değiştirme !
+Örneğin 192.168.1.62 için ben device_type=Raspberry Pi Server, open_ports=88 gibi değerleri ben girdim. Şimdi tekrardan bir tarama yaptırdığımda bu bilgileri kaybediyor ki kesinlikle değiştirilmemeliydi bunlar.
+
+
+Detaylı Analiz yapılan cihazlarda eğer "Ağ Servisleri" kısmında herhangibir servis, uygulama vs. bulduysan ona ait olen Port numarası ve uygulama tanımlarını, cihaz'ın open_ports kısmına Manual olarak ekle ki sürekli yeniden tarama yapmaya gerek kalmasın ve hızlıca o portlara erişilebilsin.
+Örneğin 192.168.162 için http_8080 portunu qBittorrent WebUI olarak bulmuşsun bunu open_ports a aşağıdaki gibi ekle
+"open_ports": [
+      {
+        "port": 8080,
+        "description": "qBittorrent WebUI",
+        "manual": true
+      }
+]
+
+
+SSH erişimi vs. için aldığın kullanıcı adı, şifre vs. gibi sensitive bilgileri nerede nasıl saklıyorsun? config dizini altında bir dosyada encrypted olarak bu bilgileri tut kesinlikle.
+
+
+------
+
+1. uygulama başlatılırken sürekli bir Master Password soruyor, bunu her defasında sormaması için bir config.json'da bir değişken olarak tut ve oradan kullan yada .env dosyası olarak girilmesini sağla.
+
+2. Cihaz Erişim Bilgileri sayfasındaki "şifre" bilgisi kayboluyor. bu bilgiler kayıt edildikten sonra ******** şeklinde göster o bölümü.
+
+3. Cihaz Erişim Bilgileri sayfasındaki Erişim Testi ve Kaydet butonları düzgün şekilde çalışmıyor. Erişim testini yapamıyor yada kullanıcı, şifre gibi bilgileri kayıt etmiyor. bu bilgileri de yine lan_devices.json dosyası içerisinde birer attribute olarak tut ama encrypted olarak dursun. device_credentials.enc gibi tümüyle encrypted olan bir yapıya gerek yok, daha basit bir şekilde json dosyası üzerinden okunup yazılacak şekilde düzenle.
+
+4. Ayrıca bu sayfadaki "Gelişmiş Analiz" butonuna tıklayınca "Erişim bilgileri kaydedildi!" şeklinde bir toaster message çıkıyor. Oysaki "Toplu Detaylı Analiz" sayfası gibi bir sayfa açıp sadece ilgili/seçilen cihaza özgü olarak detaylı analiz işlemlerini yapmalı ve istenirse bu işlemin arkaplanda devam etmesi sağlanabilmeli.
+ 
+
+5. Cihaz yada port taraması yaptırıldığında "'You requested a scan type which requires root privileges.\nQUITTING!\n'" şeklinde bir hata veriyor bunun çözümü için gerekli yetkileri ve gereksinimleri ayarla.
+
+6. Toplu Detaylı Analiz yada Cihaz bazında Detaylı Analiz yaptırıldığında daha önceden yapılmış olan analiz sonuçlarını siliyor, kaybediyor ki böyle olmamalı. Önceki analiz sonucunda tespit edilen open_ports, analiz detayları durmalı - yeni gelen sonuçlar var ise onlar güncellenmeli sadece.
+
+--------
+
+
+Detaylı Analiz sayfasındaki Tespit Olasılıkları bölümünde şu cihaz tiplerini de göster ve aramalarını ona göre yaptır.
+IP Camera
+Air Conditioner
+Apple Device
+Game Console
+Pet 
+Smart TV
+...
+
+Erişim Testi bölümündeki diğer opsiyonlar için gerekli olan metotlaradı ekle. 
+Aynı zamanda Gelişmiş Analizi de farklı erişim türlerine göre çalışacak şekilde geliştirmesini yap.
+şu anda sadece SSH aktifmiş. HTTP Auth denediğimde aşağıdaki hatayı veriyor.
+❌ Erişim başarısız: HTTP auth test henüz implemente edilmedi
+
+Kayıt hatası: name 'device_credentials' is not defined hatası alıyorum cihaz erişim bilgilerini girdikten sonra kaydetmeye çalışırken, fix this.
+
+----
+
+
+1. oui_database.json dosyası içerisinde aşağıdaki gibi bir tanım var ve benim cihazlarım içerisinde de MAC=68:79:c4:32:ec:dc Vendor=Shanghai MXCHIP Information Technology Co. Ltd bilgilerine sahip bir cihaz olmasına karşın bunun ne tür bir cihaz olduğunu neden tespit edemiyorsun?
+"6879C4": "Shanghai MXCHIP Information Technology Co. Ltd"
+
+
+2. oui, mam, iab gibi CSV dosyalarından gelen verileri birleştirip tuttuğun oui_database.json dosyasında ayrıca ilgili mac, vendor bilgisinin hangi cihaz tiplerine ait olabileceğini de tutabilecek şekilde bir kolon ekle. birden farklı device_type olabileceği göz önünde bulundur.
+
+
+3. Cihazların ne olduğunu (device_type, alias ) otomatik olarak bulmaya çalışan metotlarına artık varsa eğer Detaylı Analiz sonucundan dönen json sonucunu da arayıp anlamlandıracak şekilde bir lojik ekle.
+
+-----
+
+
+
+uygulama başlatıldığında neden aşağıdaki uyarı ve hataları alıyorum, düzelt bunları.
+WARNING: No IPv4 address found on anpi1 !
+WARNING: No IPv4 address found on anpi0 !
+WARNING: more No IPv4 address found on anpi2 !
+/Users/erkanciftci/repo_local/my_lan_scanner/.venv/lib/python3.11/site-packages/scapy/layers/ipsec.py:512: CryptographyDeprecationWarning: TripleDES has been moved to cryptography.hazmat.decrepit.ciphers.algorithms.TripleDES and will be removed from cryptography.hazmat.primitives.ciphers.algorithms in 48.0.0.
+  cipher=algorithms.TripleDES,
+/Users/erkanciftci/repo_local/my_lan_scanner/.venv/lib/python3.11/site-packages/scapy/layers/ipsec.py:516: CryptographyDeprecationWarning: TripleDES has been moved to cryptography.hazmat.decrepit.ciphers.algorithms.TripleDES and will be removed from cryptography.hazmat.primitives.ciphers.algorithms in 48.0.0.
+  cipher=algorithms.TripleDES,
+
+
+'You requested a scan type which requires root privileges.\nQUITTING!\n'
+
+----
+
+
+
+> 1."Tek Cihaz Detaylı Analiz" modalı içerisinde detaylı bir şekilde her bir analizin ne olduğu, hangi port yada uygulamayı analiz ettiği ve detaylı loglarını
+göster (verbose).                                                                                                                                           
+2.ayrıca bu modal'ı da arkaplanda çalışacak şekilde minimize edebilmek için "Detaylı Analizi Başlat" butonun yanında  bir buton ekle, sadece analiz başlatılınca
+aktif olsun ve tıklanınca modal'ı gizleyip sağ alt köşede devam eden analiz işlemini göstersin.                                                             
+3.o minimize edilmiş toasterı tıklayınca kaldığı yerden yapılan işlemleri gösterecek şekilde bu modalı açsın.                                               
+4. analiz işlemi bitince da toaster notification olsun.                                                                                                     
+5. "Tek Cihaz Detaylı Analiz" oldukça uzun süre çalıştı ve işlemin sonunda aşağıdaki gibi bir hata verdi ve ekran açık kaldı analiz sonuçlarını gösteremedi !   
+ [Image #1]                                                                                                                                                 
+File "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/json/encoder.py", line 354, in _iterencode_dict
+      items = sorted(dct.items())
+              ^^^^^^^^^^^^^^^^^^^
+  TypeError: '<' not supported between instances of 'str' and 'int'
+
+
+-----
+
+1. ana sayfadaki Card görünümünde [Image #1] "Tek Cihaz Analizi" butonuna tıklayınca hiçbirşey olmuyor. Oysaki "Cihaz Erişim Bilgileri" sayfasındaki "Gelişmiz Analiz" butonuna tıklandığında (Detaylı Analiz modalını açtığını gibi)  yaptığı işlemin aynısını yapmalı. 
+
+2. Ayrıca bu "Tek Cihaz Analizi" butonunun adını, açıklaması "Gelişmiş Analiz" olacak şekilde değiştir. 
+
+3. aynı zamanda "Toplu Detaylı Analiz" butonuna tıklandığında açılan modal ile "Gelişmiş Analiz" butonuna tıklandığında açılan Modal'lar aynı olsun, ayrı ayrı modallar yada işlem yapılmasına gerek yok - hepsini birleştirip tek bir yapı üzerinden hem Toplu Analiz hemde Tek bir cihaza özgü Detaylı Analiz yapılabilmesini sağla.
+
+en son "Gelişmiş Analiz" butonu tıklandığında açılan Modal'ın yapısı çok daha iyi olduğu için onu baz olarak kullan. Eğer tek bir cihaz seçilirse başlıkta seçilen cihazın IP'sini göstersin, Toplu Detaylı Analiz seçilirse de IP yerine Toplu Analiz olduğunu belirt.
+
+4. Ayrıca modal içerisinde ki başlık (Detaylı Cihaz Analizi) altında kısaca bu detaylı analizin ne yaptığını, hangi portaları uygulamaları vs. taradığını belirtecek şekilde bir açıklama bölümü de ekle.
+
+5. Toplu Detaylı Analiz butonuna tıklanınca halen daha önceden yapılmış olan tek bir cihaz için yada toplu detaylı analiz sonuçlarını tümüyle siliyor, bunları KESİNLİKLE silmemeliydi, sadece değişen bilgileri güncellemeliydi. Bu nedenle "Toplu Detaylı Analiz" in arkaplanında çalışan yapıyı değil de "Gelişmiş Analiz" butonunun arkasında çalışan yapıyı baz kabul et ve geliştirme/düzenlemelerini ona göre yap.
+
+
+-- 
+aşağıdaki maddelerin her birisi için uygun çözümü uygula ve backed & frontend i test et.
+
+1. Ana sayfadaki "Toplu Detaylı Analiz" butonuna tıklayınca hiçbirşey yapmıyor !
+console log:
+device-access.js:593 Uncaught (in promise) TypeError: Cannot read properties of null (reading 'style')
+    at startBulkAnalysis (device-access.js:593:17)
+    at HTMLButtonElement.onclick ((index):29:87)
+
+2. bir cihaz için "Gelişmiş Analiz" işlemi başlatılıp arkaplanda çalışması için Minimize edildikten sonra bir başka cihaz için gelişmiş analiz işlemi başlatılamıyor !
+Oysa ki aynı anda en az 4-5 tane cihaz için gelişmiş analiz işlemi yapılabilmeli ve arkaplanda çalışabilmeli her biri (minimize edilmiş halde)
+
+3. daha önce bir cihaz için girdiğim credentiallar yine görünmüyor ve uygulama şu hatayı veriyor.
+❌ Credential yükleme hatası: 'str' object has no attribute 'items'
+
+ayrıca bu hatayı da veriyor.
+Credential decryption hatası: 'dict' object has no attribute 'encode'.
+
+Bu sorunu **kesinlikle kalıcı olarak çöz artık**.
+
+
+4. Gelişmiş analiz ayrıca şu hatayı da veriyor uygulama loglarında, bunu da düzelt ve yda bu feature yoksa henüz ekle.
+Gelişmiş hostname çözümleme hatası 192.168.1.1: 1 (of 8) futures unfinished
+Gelişmiş hostname çözümleme hatası 192.168.1.62: 1 (of 8) futures unfinished
+
+
+5. sağ alttaki toaster notification bölümünde sanki aynı anda hem tek bir cihaz için gelişmiş analiz yapılıyormuş gibi görünüyor hemde toplu tüm cihazlar için.
+Eğer böyle ise bunların her birisi için ayrı ayrı Toaster olmalı ki ayırt edilebilsin. 
+şu anda ikisinide aynı toaster içerisinde gösterdiği için karışıyor ve tıklanınca hangi analizi açacağı belli olmuyor.
+
+6. Ayrıca gelişmiş analiz modal'ında aktif bir analiz işlemi varken "X" kapatma butonuna tıklanırsa "Minimize" ile aynı şekilde davransın. şu anda modalı kapatıyor ve alttaki toaster da görünmüyor ama oysaki uygulama arkaplanda analiz işlemine devam ediyor.
+
+-----
+
+
+
+1. Gelişmiş Analiz sayfasında ki analiz işlemi başlatıldığında "Gelişmiş Analizi Başlat" butonu Disabled olmalı ve  Durdur isimli yeni bir buton olmalı. kullanıcı isterse analiz işlemini durdurabilsin.
+
+2. "🔌 Gelişmiş Port Analizi: başlatılıyor (1000+ port)" şeklindeki işlem görünüyor ama aşağıdaki Real-Time log ekranında hiçbir detay yok. hangi portu taradığı yada ne işlem yaptığı daha detaylı görünmeli.
+
+	Gelişmiş Port Analizi: başladı (1000+ port)...
+	Ön tanımlı standart portlar taranıyor... (22,80,443,... vs.)
+	Port 20-1000 arası taranıyor...
+	Port 1000-5000 arası taranıyor...
+	SSH session ile cihaza bağlanıyor...
+	SSH ile cihaz üzerinde ki Detaylı Sistem Bilgisi Analizi işlemi yapılıyor...
+	İşletim Sistemi, Disk, Uygulamalar, Kullanıcı vs. gibi bilgileri analiz ediliyor...
+	...
+	...
+	..
+	.
+
+vs. gibi daha detaylı ve adım adım yapılan işlemin tüm detaylarını gösterecek şekilde bir log yapısı olsun ki kullanıcı bu ekranın kilitlenip kaldığını düşünmesin.
+
+
+3. "🔌 Gelişmiş Port Analizi: başlatılıyor (1000+ port)" başlatıldığında Progress Bar, %90'da sabit kalıyor ama arkaplan da uygulama halen birşeyler yapmaya devam ediyor. Yaa Progress Bar'ın güncelleme şeklini yada %'lik dilimlerini düzenle.
+
+4. "Toplu Gelişmiş Analiz" sayfasını açar açmaz detaylı analiz işlemine başlama. "Toplu Gelişmiş Analizi Başlat" butonuna basınca analiz işemlerine başla.
+
+5. Otomatik tarama dışında kullanıcının da kendisinin istediği gibi Cihaz ekleyip yada varolan cihazı silebilmesi içinde bir özellik ve modal ekranı ekle.
+
+6. Web arayüzünü REFRESH ettiğimde eğer aktif bir analiz işlemi varsa ya onu kesiyor, kapatıyor yada ona ait toaster kayboluyor ! ama arkaplanda analiz çalışması devam ediyor. bu şekilde minimize edilmiş ve arkaplanda çalışan işler olduğunda uygulama sayfası yenilendiğinde devam eden o işleme ait toaster'ı da kaldığı yerden gösterebilmeli.
+
+
+
+----
+
+
+1. detaylı analiz bittikten sonra sayfayı yenilersem şu şekilde bir hata veriyor, düzelt bunu.
+"GET /get_active_analyses HTTP/1.1" 500 -
+
+main.js:1946 Aktif analiz restore hatası: SyntaxError: Unexpected token '<', "<!doctype "... is not valid JSON
+restoreActiveAnalyses	@	main.js:1946
+await in restoreActiveAnalyses		
+(anonymous)	@	main.js:25
+
+
+/app.py", line 1618, in get_active_analyses
+    if bulk_analysis_status.get('status') == 'analyzing':
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+NameError: name 'bulk_analysis_status' is not defined
+
+
+2. Cihaz Yönetimi olarak eklediğin sayfada 
+
+2.1 manuel bir şekilde yeni bir cihaz eklemeye çalıştığımda şu hatayı veriyor.
+Cihaz ekleme hatası: 'LANScanner' object has no attribute 'save_devices'
+
+main.js:1817 
+ POST http://localhost:5003/add_manual_device 500 (INTERNAL SERVER ERROR)
+
+2.2 Cihaz Ekle tab page ile Cihaz Yönet aynı anda görünüyor ama seçim yapınca hiçbirşey değişmiyor.
+Mevcut Cihazları Yönet kısmı sayfanın altında görünüyor oysaki Cihaz Yönet tab page seçildiğinde onun içinde gelmeli.
+
+2.3 mevcut cihazları gösteren kısım sadece düz bir tablo şeklinde olsun.
+Edit butonuna tıklanınca, cihaz yönetimi modalını kapatıp, seçilen cihaz için aslında ana ekranda varolan bir cihazın bilgilerini Düzenlendiği modal açılsın, ayrıca bir modal daha olmasına gerek yok.
+Ayrıca bir de cihazı silmek için olan Delete butonu olsun, onay verince cihaz silinsin.
+
+2.4 Cihaz Ekle tab page içerisinde ki Cihaz Tipi seçimleri daha önceden tanımlanmış olan Cihaz Tipi tanımlarından farklı geliyor. device_types.json da ki listenin aynısı olmalı her yerde.
+
+3. Ana sayfadaki "Durdur" butonu sadece "Taramayı Başlat" butonuna tıklandıktan sonra görünür ve aktif olmalı. Tarama işlemi tamamlanınca da yine "durdur" butonu gizlenmeli.
+
+4. Ekranın en altındaki "My Network Scanner (MyNeS) v1.0.0" yazan kısımdaki versiyon numarası dinamik bir şekilde gerçeketen uygulamanın versiyon numarasını alıp gösteriyor olmalı.
+Versiyon bilgisi yapılacak build, deploymenta göre bir yerde tutulup değişikliklere göre arttırılabilir durumda olmalı.
+Şu anki versiyon sabit 1.0.0 olmalı uygulamayı tümüyle production'a açıp deployment yapıncaya kadar.
+
+5. lan_devices.json dosyası içerisine detaylı analiz sonucu dönen tüm verileri yazmışsın ama Image yada Sensitive Data olabilecek verileri yazma.
+
+Örnek 1 : data:image şeklinde ki veriler json'da **kesinlikle olmasın**.
+"data:image/vnd.microsoft.icon;base64,AAABAAIAJTAAAAEAIADIBQAAJgAAACUwAgABAAEAMAMAAO4FAACJUE5HDQoaCgAAAA1JSERSAAAAJQAAADAIBgAAAJaFsysAAAWPSURBVFiF7ZhrbFRFFMd/
+
+Örnek 2: Cookie yada Token gibi sensitve bilgilerde json'da **kesinlikle olmasın**.
+"Set-Cookie": "XSRF-TOKEN=eyJpdiI6IlVpRGVQVGVDQjMrUW1SU0VhN3pML0E9PSIsInZhbHVlIjoiMGo2UzlMRlhsUkxVSVJrblo3S2pzcE9zVDFheEFROEFieDJMcGhRMTczMmY1QkM4bERZaUNSdTEwRlZWaHgvVEF1UFZ5
+
+Örnek 3 : /docker/overlay2 bilgileri de json'da **kesinlikle olmasın**.
+Sadece Docker Container'larının isimleri, dışa açık portlarını bir liste halinde göster ve json içerisine yaz.
+
+
+
+-----
+
+1. ana sayfada cihazların üzerinde ki "Düzenle" butonuna tıklayınca çalışmıyor ve şu hatayı veriyor, bu sorunsuz çalışan ve varolan bir metotdu neden değiştirdin bunu?
+Hata: Edit fonksiyonu bulunamadı!
+
+* herhangibir özellikl ekler yada düzeltirken **kesinlikle** var olan bir özelliği bozma !
+
+
+2. lan_devices.json dosyasında halen "data:image/", "XSRF-TOKEN" şeklindeki veriler var. "data:image/", "XSRF-TOKEN" olan hiçbir tarama sonucunu bu dosyaya **kesinlikle** **yazma**.
+
+Örnek 1 : "links": [
+            "data:image/svg+xml;base64,PHN2ZyB2ZXJzaW9uPSI.....
+
+	"links": [
+		"data:image/vnd.microsoft.icon;base64,AAABA....
+
+Örnek 2 : "Set-Cookie": "XSRF-TOKEN=eyJpdiI6Imk3M....
+
+
+3. Cihaz Yönetimi > Cihaz Yönet sayfasındaki Arama alanı çalışmıyor.
+
+3.1. Cihaz Yönetimi > Cihaz Yönet sayfasındaki Düzenle ve Sil butonları çok büyük görünüyor onları daha küçük yap.
+
+3.2. Cihaz Yönetimi > Cihaz Yönet sayfasında varolan bir cihaz tanımı silindiğinde mevuct cihazları gösteren liste güncellenmiyor, silinen cihaz halen orada görünüyor, bunu düzelt.
+
+4. Ana sayfaki "Export", "Import", "Hassas Verileri Temizle" şeklindeki ayrı ayrı olan tüm butonları tek bir "Tools" adlı tek bir DropdownButton altında toplayacak şekilde düzenle.
+Tools butonuna tıklayınca aşağıda doğru bir liste açılsın ve kullanıcı bu listeden istediği item'ı seçtiğinde o item'a ait Button actionı çalışsın.
+
+5. uygulama ilk başlatıldığında halen bu hatayı veriyor, bu sorunu bul ve düzelte.
+Credential decryption hatası: 'dict' object has no attribute 'encode'
+
+
+-----
+
+
+1. Ekran Refresh edildiğinde varolan aktif bir analiz işlemi varsa onun için sağ alttaki toaster geri yükleniyor, güzel. Ancak toaster'a tıkladığında devam eden işlemin kaldığı yerden ki görüntüsünü değil de sanki sıfırdan yeni bir analiz başlatılacakmış gibi gösteriyor.
+ama uygulama arkplanında analiz işlemleri devam ediyor ve toaster bu güncellemeleri gösteremiyor !
+
+2. bu tip durumlar için geçici (temp) bir dosya oluşturup analiz detaylarını o dosyaya yazacak şekilde bir yapı kur. böylelikle ekran yeniden yüklendiğinde eğer varsa bu temp dosyayı anlık olarak okumaya devam edip, aktif bir analiz işlemi varsa toastera tıklandığında kaldığı yerden gösterecek şekilde ilgili modal'ı açabilir.
+
+3. açılan modalda eğer aktif bir analiz varsa da butonların görünüm ve aktifliğini ona göre düzenle. (örneğin aktif analiz varsa, analizi başlat butonu disabled olup, duru ve minimize butonları aktif olmalı)
+
+4. devam eden analize ait Toaster'a tıklanıp açıldığında "X" butonuna tıklanırsa halen sağ altta durması gereken Toaster'ı da kapatıyor ki bu şekilde olmamalı. Aktif devam eden bir analize ait bir toaster varsa her zaman (X e tıklanıp kapatılsa dahi) sağ altta işlem devam ettiği sürece kalmaya devam etmeli.
+
+----
+
+bir cihaz için detaylı analiz yapılmış ve bu bilgiler hem arayüzde hemde la_devices.json dosyasında görünürken, gidip ana ekranda ki "Taramayı Başlat" butonuna tıklandığında varolan bu detaylı analiz bilgilerini siliyor !!
+
+** kesinlikle ** var olan bu detaylı analiz bilgilerini **silmemeli**
+
+sadece eğer varsa normal analiz sonucunda yeni gelen yada değişen bilgiler onları güncelleyebilir - ama kesinlikle detaylı analiz sonuçlarını, açık portları, girilmiş alias, not vb. gibi bilgileri değiştirmemeli.
+
+
+-----
+
+> lan_devices.json dosyasında ki tüm cihazlar silinmiş görünüyor !!! sadece 192.168.1.62 IP li cihaz kalmış görünüyor. verileri silme koru derken sadece tek bir
+cihaz için değil, varolan tüm cihazlar için bunu yapmanı kast etmiştim - yeni bir tarama başlatıldığında.                                                         bu verileri neden ve nasıl sildin? kod tarafında bir değişiklik yapmamalıydın bu şekilde !!!                                                                      uygulamayı düzelt ve aşağıdaki test adımlarını uygulayıp uygulamanın doğru şekilde çalıştığından, farklı şekillerde analiz işlemleri yapılsa dahi varolan     
+verileri silmediğinden emin olana kadar bu testleri gerçekleştirip kodlarını düzelt.                                                                              
+1. öncelikle normal bir tarama işlemi başlat                                                                                                                  
+2. tarama işlemi bitince lan_Devices.json dosyasını kontrol et                                                                                                
+3. 192.168.1.62 IP'li cihaz için Gelişmiş Analiz başlat                                                                                                       
+4. Gelişmiz Analiz işlemi bitince tekradan normal bir tarama başlat                                                                                           
+5. .62 IP li cihaz gibi diğer tüm cihazların bilgilerinin kayıp olup/olmadığını kontrol et                                                                    
+6. bu şekilde custom open ports eklenen, alias girilen vb. gibi cihazların bilgilerinin silinmediğinden emin ol.                                              
+7. sonrada bir daha bu problemin yaşanmaması için KOD tarafında ilgili şekilde düzenlemeyi yap.                                                               
+8. 1'den 6. ya kadar olan adımları tekrar test et.
+
+------
+
+> maalesef bu Normal Tarama işlemi ile Gelişmiş Analiz işlemleri sonrasındaki verilerin ezilmesi/değiştirilmesi problemi çözülmemiş görünüyor. belli ki bu iki    
+farklı metot farklı format ve içerikle JSON dosyasında verileri tuttukları için sorun oluyor. Bu iki metodun da arkaplanda yaptıkları işler farklı olsa dahi    
+benzer json şemasında veri oluşturup tutacakları ve kullanacakları şekilde birleştir. herhangibir metot çalıştığında diğerinin veri desenini değiştirmesin,     
+silmesin. Ortak olan attributeleri kullanabilsinler yada kendilerine özgü attributeleri ekleyip/değiştirebilsinler sadece.
+
+
+----
+
+
+Minimize edilmiş Gelişmiş Analiz modalına ait toaster'a tıklandığında Modal içerisinde logları gösteren kısım gelmiyor !
+hangi işlemi yaptığı Real-Time olarak görünmüyor.
+
+yada modal açılıp logları gösteren kısım gelse dahi bu seferde butonların durumları doğru olmuyor. "Toplu Gelişmiş Analizi Başlat" aktif geliyor - oysaki devam eden bir analiz işlemi varsa Disabled olmalı.
+Durdur ve Minimize butonları görünmüyor - oysaki devam eden bir analiz işlemi varsa bunlar aktif ve görünür olmalı.
+
+---
+
+Toplu Detaylı Analiz, Gelişmiş Analiz yada Normal Tarama işlemi yapıldığında cihazlarda bulunan açık portlar için Notes bölümüne aşağıdaki gibi birşey eklemene gerek yok.
+🔌 Açık Portlar:
+• Port 22 (ssh)
+• Port 8080 (http-proxy)
+
+
+---
+
+
+> Cihaz Card/Tablo görünümünde görünen Açık Portlar (gelişmiş analiz sonucu tespit edilen) maalesef Cihaz Düzenle ekranında görünmüyor yada düzenlenemiyor ![Image
+#1] Oysaki tespit edilen bu portların her birisi Düzenle ekranında da kolaylıkle eklenip, silinip, değiştirilebilmeli. [Image #2] hatta bu ve bunun gibi  
+sonradan tespit edilen tüm veriler Cihaz Bilgilerini Düzenle ekranında farklı Tab sayfalar olacak şekilde görünmeli ve hepsi Edit işlemine izin vermeli. Örmeğin
+Cihaz Bilgileri Düzenle ekranında sırasıyla Cihaz | Portlar | Cihaz Erişim Bilgileri | Sistem Bilgileri | Donanım | vs. gibi Tablar olmalı. "Cihaz Erişim 
+Bilgileri" nin girildiği ayrıca bir Modal vardı zaten oradaki tüm butonlar ve alanlar "Cihaz Bilgileri Düzenle" modalı içerisine taşınabilir. Cihaz "Details" e 
+tıklandığında açılan Modal'da ki Sistem Bilgileri, Donanum, Ağ Servisleri gibi bölümlerde yine Düzenle modalı içerisine taşınabilir ve kullanıcı tarafından     
+istenildiği gibi değiştirebilir durumda olmalı.
+
+
+
+------
+
+
+> yeni geliştirilen "Gelişmiş Cihaz Düzenleme" sayfasında aşağıdaki gibi hatalar var sırayla düzelt.                                                
+                                                                                                                                                  
+1. Cihaz tipi seçimi kaybolmuş ! [Image #1] device_types.json'ı baz alarak gösteriyordu oysaki bu seçimleri önceden.                              
+                                                                                                                                                  
+2. "Portlar" tabında tüm portlar bir liste halinde kolaylıkla görünmeli ve hızlıca Edit edilebilmeli. şu anda her bir kaydı edit etmeye çalıştığında bir onay   
+ekranı çıkıyor ve değerleri oraya tek tek girmek zor oluyor. düz bir grid/tablo üzerinden Port No | Açıklama | Tip (Manuel/Otomatik) | Edit/Delete şeklinde bir 
+sdece bir yapıda olsun.                                                                                                                           
+                                                                                                                                                  
+3. "Erişim" tabındaki "Bağlantıyı Test Et" ve "Erişim Bilgilerini Kaydet" butonları en üstte görünsün (scrollbar dan ötürü kullanıcı göremiyor). ayrıca bağlantı
+testi ve credential bilgilerini kayıt etme özellikleri çalışmıyor gibi görünüyor, kontrol et ve düzelt.                                           
+                                                                                                                                                  
+4. Sistem ve Donanım bölümlerinde eğer bu bilgiler varsa göster, yoksa "Gelişmiş Analiz" yapmalısınız şeklinde bir uyarı göster, butona gerek yok.
+                                                                                                                                                  
+5. ana sayfada Cihaz kartı üzerinde ki Açık Portları gösteren kutucuklar çok uzun ve alt alta sıra şekline dönüşmüş. [Image #2] Oysaki önceden çok küçük (port  
+numarası ile aynı boyutta) kutucuklar şeklindeydi ve bir sırada 4-5 tane port numarası bir arada oluyor ve az yer kaplıyorda, tekrar bu tasarıma geri dön.
+                                                                                                                                                  
+6. "Cihaz Erişim Bilgileri" olarak görünen ve açılan Modal'a artık gerek yok ( "Gelişmiş Cihaz Düzenleme" altına taşındığı için ) ama bunu test et. tüm   
+foksiyonelitenin aynı şekilde çalıştığından emin olduktan sonra bu Modal'ı kaldır. ana sayfadaki Card/Table view üzerinde de ikon/butona gerek yok artık. [Image
+#3] [Image #4]                                                                                                                                                    
+
+
+
+
+---------
+
+
+> 1. "Gelişmiş Cihaz Düzenleme" modalı açıldığında chrome console da bu hata çıkıyor.  content.js:353 Etikimza extension installed 1.0.8            
+main.js:2370 Uncaught TypeError: Cannot read properties of null (reading 'classList')                                                                             
+    at switchEditTab (main.js:2370:40)                                                                                                                            
+    at openEnhancedEditModal (main.js:2349:5)                                                                                                                     
+    at HTMLButtonElement.onclick ((index):1:1)                                                                                                                    
+switchEditTab @ main.js:2370 
+openEnhancedEditModal @ main.js:2349
+	onclick @ (index):1                                                                                                                           
+2. Gelişmiş Cihaz Düzenleme > Erişim sayfasında "Erişim Bilgilerini Kaydet" çalışmıyor. 192.168.1.62 için SSH (22) Kullanıcı Adı ve Şifresi girdim, kaydet
+butonuna tıkladım UI da toaster çıkıp kayıt yapıldı diye gösteriyor. Ancak modalı kapatıp yeniden açınca bu bilgilerin tümünü BOŞ getiriyor. oysaki       
+lan_devices.json dosyasında encrypted olarak password bilgisi kayıt edilmiş görünüyor. ( "encrypted_credentials": {  "ssh": "gAAAAABobVvU8..... ). Bunu kontrol 
+et birkaç farklı deneme yaparak Bağlantı Test Et, Erişim Bilgilerini Kaydet butonlarını düzelt. Önemli : Erişim Bilgilerini Kaydet dedikten sonra modalın en    
+altındaki "Tüm Değişiklikleri Kaydet" butonuna tıklamaya gerek olmamalı !  ( örnek SSH erişim bilgileri IP : 192.168.1.62, Username : xxxxx , Password : xxxx )  
+                                                                                                                                                  
+3. Bağlantıyı Test Et halen aynı hatayı veriyor - ❌ Test hatası: Unexpected token '<', "×                                                                         
+POST http://localhost:5003/test_device_access 404 (NOT FOUND)                                                                                     
+4. Cihaz Tiplerinin yanında ikon/emojilerini de göster
+
+5. ana sayfadaki Cihaz Tipi filtresi içerisinde tüm cihaz tipleri gösteriliyor. oysaki sadece taranmıi/bulunmuş cihazlara ait tipleri göstermeli sadece.
+
+
+-------
+
+
+❌ Bağlantı başarısız: SSH test hatası: [Errno 49] Can't assign requested address
+
+
+1. SSH erişim hatası problemini çöz. Bağlantı Testi yapmaya çalıştığımda bu hatayı veriyor. 
+	❌ Bağlantı başarısız: SSH test hatası: 'str' object cannot be interpreted as an integer.
+	❌ Bağlantı başarısız: SSH test hatası: [Errno 49] Can't assign requested address.
+                                                                                                              
+2. uygulamada ki tüm logları detaylı (verbose) olacak şekilde aktif UI ve backend için.
+
+
+
+
+
+
+** FX - ToDos **
+================
+
+"Taramayı Başlat" dediğimde, bu uygulamayı çalıştırdığım makineye ait IP'ler ve cihaz bilgilerini bulmuyor. Oysaki bu tarama işlemini başlattığım cihaz da aynı network içerisinde.
+kullandığım MacOS makine için IP ve MAC adresi bilgileri aşağıdaki gibi bunları hiç göstermiyor, bulmuyor !
+Bu problemi düzelt ve tabii ki tarama işleminin yapıldığı makineye ait bilgileri de cihaz listesine ekle.
+
+Taramanın başlatıldığı cihaz bilgilerim:
+Ethernet (LAN) IP : 192.168.1.160
+LAN MAC : 00:e0:4c:68:20:c4
+WiFi IP : 192.168.1.88
+WiFi MAC : 1e:48:ac:87:1c:13
+
+
+
+
+
+
+"Details" sayfasındaki Sistem Bilgileri, Güvenlik, Donanım vs. gibi ekstra bilgiler SSH erişim bilgileri girilmiş olan cihazlarda dahi boş geliyor artık.
+Oysa ki önceden tüm bu sayfalarda çok detaylı bilgiler oluyordu System Info, Disk, OS, RAM, Mounted devices vs. gibi.
+
+
+
+özellikle Apple cihazlar için Bonjour Servislerinin olup olmadığını araştırıp, eğer bir cihazda bu tip servisleri bulursan da device_type bilgisini Apple cihazı olarak değiştirecek şekilde bir geliştirme ekle.
+
+
+
+
+
+ "error": "'TCP/IP fingerprinting (for OS scan) requires root privileges.\\nQUITTING!\\n'"
+
+ "error": "HTTPConnectionPool(host='192.168.1.179', port=80): Max retries exceeded with url: / (Caused by ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x10c852810>, 'Connection to 192.168.1.179 timed out. (connect timeout=10)'))"
+
+"error": "'You requested a scan type which requires root privileges.\\nQUITTING!\\n'"
+
+
+
+
+
+
+
+Plex, Jellyfin gibi UPNP yada DLNA hizmeti sunan uygulama ve servisleride network üzerinde tespit edebilmelisin.
+
+Örneğin 192.168.1.62 IP'li cihaz üzerinde 32400 portunda Plex uygulaması çalışmakta UPNP olarak.
+
+Bu ve bunun gibi bilindik (Qbittorrent, Deluge, Portainer, Radarr, Lidarr, Sonarr, Overseer, Tautulli, Pi-Hole, Home Assistant, NextCloud, Syncthing, CasaOS,  uygulamalara ait portlarıda Detaylı Analiz sürecinde gerçekleştir.
+
+ 
+
+Sadece vendor_match ile cihazların tipini yada özelliklerini bulamazsın. Örneğin Tp-Link olup da Camera olan çok fazla cihaz var benim networkümde şu anda. Bundan yola çıkarak cihazların ne olduğu ve alias gibi bilgilerini daha düzgün tahminleyecek şekilde kurallar geliştir. 
+
+Kullanıcı tarafından daha önce ayarlanmış olan hiçbir Alias, Device_Type, Open_Ports, Notes bilgisini değiştirme.
+
+
+12. add a new dropdown button "Tools" near to "Düzenle" which has several options like below:
+   * Switching On/Off (reboot, shutdown) the selected device
+   * Wake On Lan feature for the selected device.
+   * Remote Desktop Connection via RDP, radmin or RealVNC viewer
+   * ICMP Ping
+   * TCP/IP Port Scanner 
+   * Network Share Scanner 
+   * Ping
+   * SSH
+   * Telnet
+   * Traceroute
+   * Penetration Testing (Yuki-Chan, Masscan, LNScan, Hping3, SSLtest, Rebel Framework, Raccoon-Scanner etc.)
+   * Blueetoth Devices Search
+   * WiFi Scanner , WiFi Signal Stregth analyzer, WiFi SSIDs search
+
+these features should be enabled/disabled in the config and also able to assign which additional or 3rd party tool will be used to, triggered or coded in that application should be configurable.
+so that just add this dropdown list button only right now, do not implement or code these features yet, just implement only enable/disable option from the config only.
+
+
+
+uygulama ilk başlatıldığında Demo amacıyla eğer hiç lan_devices.json dosyası yada içinde veri yoksa, fallback olarak lan_devices_sample.json dosyasındaki verileri alıp kullanacağı şekilde bir yapı geliştir. 
+
+lan_devices_sample.json içerisinde de olası 5-10 farklı cihaz tipini barındıracak şekilde normal bir ev ağında olacak şekilde router, cameras, desktop pc, laptop, smarthpones, pet vs. gibi cihazları barındıracak şekilde bir örnek veri seti oluştur.
+
+--
+
+xx. Network Map görünümü için aslında her bir cihazın Fish Eye olarak birbirine nasıl bağlandığı yada internete çıkarken hangi router, access point üzerinden çıktığını görebileceğimiz şekilde bir topology haritası şeklinde olması gerekiyor.
+https://nmap.org/book/zenmap-topology.html#zenmap-topology-overview da ki yapıya benzer şekilde Ana Router/Modem ve ona bağlanan cihazların her birini birer Node olarak gösterecek şekilde bir grafik olmalı.
+
+xx.2. Kullanıcı istediği gibi hangi cihazın hangi cihaz üzerinden eriştiğini (upstream/downstream) olarak belirtebilmeli.
+
+xx.3. Ayrıca birde Otomatik olarak cihazların birbirine bağlantı durumu yada internete hangi nodelar üzerinden çıktığını anlayabilmek adına tracert ile her bir cihazın adım adım hangi nodelar üzerinden geçtiğini araştırıp bulacak ve topology diyagramını ona göre düzenleyecek bir yapı olmalı.
+
+---
+
+
+README.md dokümanında aşağıdaki bölümler olacak şekilde güncellemeleri yap.
+* Flask API Endpoint, REST API Endpoints ve REST API Usage örnek kodları
+* OUI Manager ve indirilen CSV dosyaları için detaylı bilgi, API Fallback ve OUI Database istatistikleri son güncelleme bilgilerini göster.
+* Lisans bölümünde MIT lisansı olduğunu ve bu uygulamanın AI destekli olarak geliştirildiği belirt. Github Copilot + Claude 4 kullanılarak.
+* Güncelleme geçmişi, Katkıda bulunma, destek bölümlerini sil
+* H1 bölümündeki açıklamadan sonra uygulamanın da ana sayfasının ekran görüntüsünü ekle.
+
+aşağıdaki daha önce geliştirilmiş olan ben LAN Scanner uygulamalarına bakıp onlarda olan ancak şu anda bizim uygulamamızda olmayan, onları öne çıkaran özelliklerin bir analizini yap. Daha sonra Readme.md dosyasına Roadmap bölümü açıp ileride eklenmek istenen bu özellikleri yaz.
+Competitor Tools: 
+* https://github.com/Chleba/netscanner
+* https://github.com/1RandomDev/whosinmylan
+* https://www.fing.com/scan/
+* https://www.advanced-ip-scanner.com/ 
+* https://angryip.org/
+* https://gitlab.com/wireshark/wireshark
+* https://inetapp.de/en/inetx.html 
+
+Sample Roadmap & ToDos / Planned Features: 
+- Visual Network Map, Topology Diagram
+- WiFi networks scanning
+- WiFi signals strength 
+- Exclude network, subnet, ip range or ip option
+- DNS details
+- DNS visual mapping using DNS dumpster
+- WHOIS information
+- Services and scripts scan
+- Detects known WAFs
+- Vulnerability Detection
+- Secret Camera Detection
+- Network Traffic Analyzer - Sniffer
+- 
+

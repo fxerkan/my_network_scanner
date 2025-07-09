@@ -1,0 +1,334 @@
+emoji,category,description,keywords
+💻,tech,laptop bilgisayar computer,laptop bilgisayar computer pc
+🖥️,tech,masaüstü bilgisayar desktop computer,masaüstü bilgisayar desktop computer monitor
+⌨️,tech,klavye keyboard,klavye keyboard input
+🖱️,tech,mouse fare,mouse fare click
+🖨️,tech,yazıcı printer,yazıcı printer print
+💾,storage,disk diskette,disk diskette save floppy
+💿,storage,cd dvd,cd dvd disc optical
+📀,storage,cd dvd blu-ray,cd dvd bluray disc
+💽,storage,minidisc,minidisc disc
+🔌,tech,fiş priz plug socket,fiş priz plug socket power
+🔋,tech,pil batarya battery,pil batarya battery power
+⚡,tech,elektrik güç power,elektrik güç power energy
+💡,smart,ampul lamba ışık light,ampul lamba ışık light bulb
+🔦,tech,el feneri flashlight,el feneri flashlight torch
+📱,mobile,telefon mobil phone mobile,telefon mobil phone mobile smartphone
+📟,mobile,çağrı cihazı pager,çağrı cihazı pager beeper
+☎️,mobile,telefon phone,telefon phone landline
+📞,mobile,telefon handset,telefon handset receiver
+📠,office,faks fax,faks fax machine
+🖲️,tech,trackball,trackball mouse
+🌐,network,internet ağ network web,internet ağ network web global
+📡,network,uydu anteni satellite,uydu anteni satellite dish
+🛰️,network,uydu satellite,uydu satellite space
+🔗,network,bağlantı link,bağlantı link chain
+📶,network,sinyal signal wifi,sinyal signal wifi bars
+📳,mobile,titreşim vibration,titreşim vibration silent
+📴,mobile,kapalı off,kapalı off airplane mode
+🛜,network,wifi wireless,wifi wireless internet
+🏠,smart,ev smart home akıllı,ev smart home akıllı house
+🏡,smart,ev house,ev house home
+🏘️,smart,evler houses,evler houses neighborhood
+🏰,smart,kale castle,kale castle fortress
+🏢,office,ofis building,ofis building office corporate
+🏬,office,alışveriş merkezi mall,alışveriş merkezi mall shopping
+🏭,industrial,fabrika factory,fabrika factory industrial
+🏪,office,dükkan shop,dükkan shop store
+🏨,office,otel hotel,otel hotel accommodation
+🏦,office,banka bank,banka bank financial
+🕯️,smart,mum candle,mum candle light
+🔥,smart,ateş ısıtma heating,ateş ısıtma heating fire
+❄️,smart,soğuk klima ac cooling,soğuk klima ac cooling cold
+🌡️,smart,termometre sıcaklık temperature,termometre sıcaklık temperature sensor
+🌪️,smart,kasırga tornado,kasırga tornado storm
+💨,smart,rüzgar wind,rüzgar wind air
+☀️,smart,güneş sun,güneş sun solar
+🌙,smart,ay moon,ay moon night
+⭐,smart,yıldız star,yıldız star rating
+✨,smart,parıltı sparkles,parıltı sparkles magic
+🔒,security,kilit güvenlik security lock,kilit güvenlik security lock closed
+🔓,security,açık kilit unlocked,açık kilit unlocked open
+🔑,security,anahtar key,anahtar key access
+🗝️,security,eski anahtar old key,eski anahtar old key vintage
+🛡️,security,kalkan güvenlik security shield,kalkan güvenlik security shield protection
+👁️,security,göz eye kamera camera,göz eye kamera camera surveillance
+📹,security,video kamera camera,video kamera camera recording
+📸,security,fotoğraf makinesi camera,fotoğraf makinesi camera photo
+🚨,security,alarm uyarı warning,alarm uyarı warning siren
+🚪,smart,kapı door,kapı door entrance
+🔔,smart,zil bell,zil bell notification
+🔕,smart,sessiz silent,sessiz silent mute
+⏰,smart,çalar saat alarm clock,çalar saat alarm clock time
+⏲️,smart,zamanlayıcı timer,zamanlayıcı timer countdown
+⏱️,smart,kronometre stopwatch,kronometre stopwatch time
+⏳,smart,kum saati hourglass,kum saati hourglass timer
+⌛,smart,kum saati hourglass done,kum saati hourglass done
+🎯,smart,hedef target,hedef target aim
+🧭,smart,pusula compass,pusula compass navigation
+🔍,smart,büyüteç magnifying glass,büyüteç magnifying glass search
+📺,media,televizyon tv,televizyon tv television
+📻,media,radyo radio,radyo radio fm
+🎮,gaming,oyun konsol gaming game,oyun konsol gaming game controller
+🕹️,gaming,joystick,joystick gaming control
+🎤,media,mikrofon microphone,mikrofon microphone audio
+🎧,media,kulaklık headphone,kulaklık headphone audio
+🔊,media,hoparlör speaker ses,hoparlör speaker ses audio loud
+🔉,media,hoparlör speaker orta,hoparlör speaker orta audio medium
+🔈,media,hoparlör speaker düşük,hoparlör speaker düşük audio low
+🔇,media,sessiz mute,sessiz mute audio off
+🎵,media,nota music,nota music sound
+🎶,media,notalar music notes,notalar music notes sound
+🎼,media,müzik score,müzik score sheet
+🎹,media,piyano keyboard,piyano keyboard piano
+🥁,media,davul drums,davul drums percussion
+🎸,media,gitar guitar,gitar guitar string
+📽️,media,projektor projector,projektor projector cinema
+🎬,media,sinema cinema,sinema cinema movie
+🎭,entertainment,tiyatro theater,tiyatro theater drama
+🎨,entertainment,sanat art,sanat art paint
+🖼️,entertainment,resim picture,resim picture frame
+🖌️,entertainment,fırça brush,fırça brush paint
+✏️,office,kalem pencil,kalem pencil write
+✒️,office,dolma kalem pen,dolma kalem pen write
+🖊️,office,tükenmez kalem ballpoint,tükenmez kalem ballpoint pen
+🖋️,office,dolma kalem fountain pen,dolma kalem fountain pen
+📝,office,not note,not note write
+📄,office,sayfa page,sayfa page document
+🎥,media,kamera camera video,kamera camera video recording
+🎙️,media,mikrofon studio microphone,mikrofon studio microphone broadcast
+🚗,transport,araba car otomobil,araba car otomobil vehicle
+🚕,transport,taksi taxi,taksi taxi cab
+🚙,transport,suv,suv car vehicle
+🚌,transport,otobüs bus,otobüs bus public
+🚎,transport,trolleybus,trolleybus bus electric
+🏎️,transport,yarış arabası race car,yarış arabası race car fast
+🚓,transport,polis arabası police car,polis arabası police car law
+🚑,transport,ambulans ambulance,ambulans ambulance medical
+🚒,transport,itfaiye fire truck,itfaiye fire truck emergency
+🚚,transport,kamyon truck,kamyon truck cargo
+🚛,transport,tır semi truck,tır semi truck big
+🚜,transport,traktör tractor,traktör tractor farm
+🏍️,transport,motosiklet motorcycle,motosiklet motorcycle bike
+🛵,transport,scooter,scooter moped bike
+🚲,transport,bisiklet bicycle,bisiklet bicycle bike
+🛴,transport,scooter kick,scooter kick ride
+✈️,transport,uçak airplane,uçak airplane flight
+🛩️,transport,küçük uçak small airplane,küçük uçak small airplane
+🚁,transport,helikopter helicopter,helikopter helicopter
+⛵,transport,yelkenli sailboat,yelkenli sailboat boat
+🚤,transport,sürat teknesi speedboat,sürat teknesi speedboat boat
+🛥️,transport,motor yat motor boat,motor yat motor boat
+🚢,transport,gemi ship,gemi ship cruise
+⚓,transport,çıpa anchor,çıpa anchor ship
+🚂,transport,lokomotif locomotive,lokomotif locomotive train
+🚃,transport,vagon railway car,vagon railway car train
+🚄,transport,hızlı tren high speed train,hızlı tren high speed train
+🚅,transport,bullet train,bullet train fast
+🚆,transport,tren train,tren train railway
+🚇,transport,metro subway,metro subway underground
+📋,office,pano clipboard,pano clipboard document
+📁,office,klasör folder,klasör folder directory
+📂,office,açık klasör open folder,açık klasör open folder files
+🗂️,office,dosya ayırıcı divider,dosya ayırıcı divider tabs
+🗃️,office,dosya kutusu file box,dosya kutusu file box storage
+🗄️,storage,dosya dolabı file cabinet,dosya dolabı file cabinet office
+📊,office,grafik chart analiz,grafik chart analiz data
+📈,office,yükselen grafik trending up,yükselen grafik trending up growth
+📉,office,düşen grafik trending down,düşen grafik trending down decline
+📌,office,raptiye pushpin,raptiye pushpin pin
+📍,office,konum pin,konum pin location
+📎,office,ataş paperclip,ataş paperclip attachment
+🖇️,office,bağlayıcı linked paperclips,bağlayıcı linked paperclips chain
+📏,office,cetvel ruler,cetvel ruler measure
+📐,office,üçgen cetvel triangular ruler,üçgen cetvel triangular ruler
+✂️,office,makas scissors,makas scissors cut
+🗑️,office,çöp kutusu trash,çöp kutusu trash delete
+⛓️,office,zincir chain,zincir chain link
+🔧,office,anahtarı wrench,anahtarı wrench tool
+🔨,office,çekiç hammer,çekiç hammer tool
+⚒️,office,çekiç kazma hammer pick,çekiç kazma hammer pick tools
+🛠️,office,araçlar tools,araçlar tools repair
+⚙️,office,dişli gear ayar config setting,dişli gear ayar config setting
+🏧,office,atm,atm bank cash
+📅,office,takvim calendar,takvim calendar date
+📨,office,gelen kutu inbox,gelen kutu inbox email
+💪,office,güçlü strong,güçlü strong power
+🧊,appliance,buz ice,buz ice cold
+🍽️,appliance,tabak plate,tabak plate dish
+🍳,appliance,tava pan,tava pan cooking
+🥄,appliance,kaşık spoon,kaşık spoon eat
+🔪,appliance,bıçak knife,bıçak knife cut
+🍴,appliance,çatal bıçak fork knife,çatal bıçak fork knife cutlery
+🥢,appliance,çubuk chopsticks,çubuk chopsticks asian
+🧽,appliance,sünger sponge,sünger sponge clean
+🧹,appliance,süpürge vacuum temizlik,süpürge vacuum temizlik clean
+🧺,appliance,sepet basket,sepet basket laundry
+👕,appliance,tişört shirt,tişört shirt clothing
+👔,appliance,gömlek dress shirt,gömlek dress shirt formal
+👗,appliance,elbise dress,elbise dress women
+👖,appliance,pantolon pants,pantolon pants trousers
+🧥,appliance,ceket jacket,ceket jacket coat
+👟,appliance,ayakkabı shoe,ayakkabı shoe sneaker
+👠,appliance,topuklu high heel,topuklu high heel shoe
+💍,appliance,yüzük ring,yüzük ring jewelry
+⌚,mobile,saat watch,saat watch time
+☁️,storage,bulut cloud,bulut cloud storage
+⛅,storage,bulutlu cloudy,bulutlu cloudy weather
+⛈️,storage,fırtına storm,fırtına storm thunder
+🌩️,storage,şimşek lightning,şimşek lightning thunder
+🔄,network,yenile refresh,yenile refresh reload
+🔃,network,saat yönü clockwise,saat yönü clockwise rotate
+🔁,network,tekrar repeat,tekrar repeat loop
+🔂,network,tekrar bir repeat one,tekrar bir repeat one single
+⏩,network,hızlı ileri fast forward,hızlı ileri fast forward
+⏪,network,hızlı geri rewind,hızlı geri rewind backward
+⏫,network,yukarı up,yukarı up arrow
+⏬,network,aşağı down,aşağı down arrow
+⬆️,network,yukarı ok up arrow,yukarı ok up arrow
+⬇️,network,aşağı ok down arrow,aşağı ok down arrow
+⬅️,network,sol ok left arrow,sol ok left arrow
+➡️,network,sağ ok right arrow,sağ ok right arrow
+🔀,network,karıştır shuffle,karıştır shuffle random
+🔂,network,tekrar repeat,tekrar repeat loop
+⤴️,network,yukarı eğri up curve,yukarı eğri up curve
+🌟,tech,parlak yıldız star,parlak yıldız star bright
+🎪,entertainment,sirk circus,sirk circus tent
+🎯,gaming,hedef dartboard,hedef dartboard target
+🎲,gaming,zar dice,zar dice random
+🃏,gaming,joker playing card,joker playing card
+🀄,gaming,mahjong,mahjong tile game
+🎰,gaming,slot machine,slot machine casino
+🏆,gaming,kupa trophy,kupa trophy winner
+🥇,gaming,altın madalya gold medal,altın madalya gold medal first
+🥈,gaming,gümüş madalya silver medal,gümüş madalya silver medal second
+🥉,gaming,bronz madalya bronze medal,bronz madalya bronze medal third
+⚕️,medical,tıp medicine,tıp medicine health
+🩺,medical,stetoskop stethoscope,stetoskop stethoscope doctor
+🩹,medical,yara bandı bandage,yara bandı bandage heal
+🦷,medical,diş tooth,diş tooth dental
+🧬,medical,dna,dna genetic science
+🧪,medical,test tüpü test tube,test tüpü test tube lab
+⚗️,medical,damıtma alembic,damıtma alembic chemistry
+🧫,medical,petri kabı petri dish,petri kabı petri dish bacteria
+🦠,medical,mikrob microbe,mikrob microbe virus
+💊,medical,hap pill,hap pill medicine
+☠️,medical,ölüm kafatası skull,ölüm kafatası skull danger
+⚰️,medical,tabut coffin,tabut coffin death
+⚱️,medical,küldan urn,küldan urn ashes
+🏺,storage,anfora amphora,anfora amphora ancient
+🗿,storage,moai,moai statue easter
+🪦,medical,mezar taşı headstone,mezar taşı headstone grave
+🐕,iot,köpek dog,köpek dog pet animal
+🐈,iot,kedi cat,kedi cat pet animal
+🐹,iot,hamster,hamster pet small
+🐰,iot,tavşan rabbit,tavşan rabbit bunny
+🐻,iot,ayı bear,ayı bear animal
+🐼,iot,panda,panda bear cute
+🐨,iot,koala,koala bear australia
+🐍,iot,yılan snake,yılan snake reptile
+🐯,iot,kaplan tiger,kaplan tiger cat
+🐮,iot,inek cow,inek cow farm
+🐷,iot,domuz pig,domuz pig farm
+🐸,iot,kurbağa frog,kurbağa frog amphibian
+🐵,iot,maymun monkey,maymun monkey primate
+🐔,iot,tavuk chicken,tavuk chicken farm
+🐧,iot,penguen penguin,penguen penguin linux
+🐦,iot,kuş bird,kuş bird fly
+⚠️,security,uyarı warning,uyarı warning caution
+🚫,security,yasak prohibited,yasak prohibited forbidden
+✅,security,onay checkmark,onay checkmark approved
+❌,security,red red cross,red red cross denied
+🆗,security,tamam ok,tamam ok approved
+🆘,security,sos,sos emergency help
+🧩,gaming,puzzle parça puzzle piece,puzzle parça puzzle piece
+🔮,gaming,kristal küre crystal ball,kristal küre crystal ball magic
+💝,entertainment,hediye gift heart,hediye gift heart love
+🎁,entertainment,hediye gift,hediye gift present
+🎀,entertainment,fiyonk bow,fiyonk bow ribbon
+🎊,entertainment,konfeti confetti,konfeti confetti celebration
+🎉,entertainment,parti party,parti party celebration
+🎈,entertainment,balon balloon,balon balloon party
+💩,entertainment,kaka poop,kaka poop funny
+🚦,network,trafik ışığı traffic light,trafik ışığı traffic light signal
+♻️,tech,geri dönüşüm recycle,geri dönüşüm recycle environment
+🦾,tech,robot kol robot arm,robot kol robot arm cyborg
+₿,tech,bitcoin,bitcoin cryptocurrency
+🍎,iot,elma apple,elma apple fruit company
+🍇,iot,üzüm grape,üzüm grape fruit
+🐧,iot,penguen linux,penguen linux open source
+🤖,iot,robot android,robot android google
+👽,iot,uzaylı alien,uzaylı alien space
+🤵,office,takım elbise suit,takım elbise suit formal
+👨‍💻,tech,erkek programcı male programmer,erkek programcı male programmer developer
+👩‍💻,tech,kadın programcı female programmer,kadın programcı female programmer developer
+👨‍🔧,tech,erkek teknisyen male technician,erkek teknisyen male technician repair
+👩‍🔧,tech,kadın teknisyen female technician,kadın teknisyen female technician repair
+🏗️,industrial,inşaat construction,inşaat construction building
+🏚️,industrial,yıkık ev derelict house,yıkık ev derelict house abandoned
+🔩,tech,vida bolt,vida bolt screw
+💎,tech,elmas diamond,elmas diamond precious
+👑,tech,taç crown,taç crown royal
+🎩,tech,silindir şapka top hat,silindir şapka top hat formal
+⛑️,security,kask helmet,kask helmet protection
+📿,tech,tespih prayer beads,tespih prayer beads spiritual
+💄,appliance,ruj lipstick,ruj lipstick makeup
+💋,appliance,öpücük kiss,öpücük kiss lips
+👄,appliance,dudaklar lips,dudaklar lips mouth
+👂,appliance,kulak ear,kulak ear hearing
+👅,appliance,dil tongue,dil tongue taste
+💯,gaming,yüz hundred,yüz hundred perfect
+💢,gaming,öfke anger,öfke anger mad
+💥,gaming,patlama explosion,patlama explosion boom
+💫,gaming,baş dönmesi dizzy,baş dönmesi dizzy confused
+💤,gaming,uyku sleep,uyku sleep zzz
+💨,gaming,hız dash,hız dash fast
+🌪️,gaming,kasırga tornado,kasırga tornado spin
+🌈,entertainment,gökkuşağı rainbow,gökkuşağı rainbow colors
+🎨,entertainment,palet palette,palet palette art
+🖌️,entertainment,boya fırçası paintbrush,boya fırçası paintbrush art
+✏️,entertainment,kurşun kalem pencil,kurşun kalem pencil draw
+🖊️,entertainment,kalem pen,kalem pen write
+📐,entertainment,açıölçer protractor,açıölçer protractor geometry
+🧮,office,abaküs abacus,abaküs abacus calculate
+💰,office,para torbası money bag,para torbası money bag wealth
+💳,office,kredi kartı credit card,kredi kartı credit card payment
+💸,office,uçan para money wings,uçan para money wings expense
+💷,office,pound sterling,pound sterling currency
+💶,office,euro,euro currency
+💵,office,dolar dollar,dolar dollar currency
+💴,office,yen,yen currency
+🏮,entertainment,fener lantern,fener lantern light
+🎭,entertainment,maske mask,maske mask theater
+🎪,entertainment,sirk çadırı circus tent,sirk çadırı circus tent
+🎠,entertainment,atlıkarınca carousel,atlıkarınca carousel horse
+🎡,entertainment,dönme dolap ferris wheel,dönme dolap ferris wheel
+🎢,entertainment,roller coaster,roller coaster ride
+🎳,gaming,bowling,bowling game sport
+⚽,gaming,futbol topu soccer ball,futbol topu soccer ball football
+🏀,gaming,basketbol basketball,basketbol basketball sport
+🏈,gaming,amerikan futbolu american football,amerikan futbolu american football
+⚾,gaming,beyzbol baseball,beyzbol baseball sport
+🎾,gaming,tenis topu tennis ball,tenis topu tennis ball
+🏐,gaming,voleybol volleyball,voleybol volleyball sport
+🏉,gaming,rugby topu rugby ball,rugby topu rugby ball
+🥎,gaming,softball,softball sport
+🏓,gaming,masa tenisi ping pong,masa tenisi ping pong sport
+🏸,gaming,badminton,badminton sport
+🥅,gaming,kale goal,kale goal soccer
+⛳,gaming,golf bayrağı golf flag,golf bayrağı golf flag
+🏌️,gaming,golf oyuncusu golfer,golf oyuncusu golfer sport
+🎣,gaming,balık tutma fishing,balık tutma fishing sport
+🤿,gaming,dalış diving,dalış diving sport
+🏊,gaming,yüzme swimming,yüzme swimming sport
+🚴,gaming,bisiklet cycling,bisiklet cycling sport
+🏇,gaming,at binme horse racing,at binme horse racing sport
+🧗,gaming,kaya tırmanışı climbing,kaya tırmanışı climbing sport
+🏋️,gaming,ağırlık kaldırma weightlifting,ağırlık kaldırma weightlifting sport
+🤸,gaming,jimnastik gymnastics,jimnastik gymnastics sport
+🤼,gaming,güreş wrestling,güreş wrestling sport
+🤺,gaming,eskrim fencing,eskrim fencing sport
+🏆,gaming,kupa trophy,kupa trophy award
+🥇,gaming,altın madalya gold,altın madalya gold first
+🥈,gaming,gümüş madalya silver,gümüş madalya silver second
+🥉,gaming,bronz madalya bronze,bronz madalya bronze third

@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Network Scanner (MyNeS)</title>
+    <link rel="stylesheet" href="/static/css/main.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 My Network Scanner (MyNeS)</h1>
+            <div class="nav-buttons">
+                <a href="/config" class="nav-btn">🔧 Settings</a>
+                <a href="/history" class="nav-btn">📊 History</a>
+            </div>
+        </div>
+
+        <!-- 1. Tarama İşlemleri / Cihaz Arama -->
+        <div class="controls">
+            <div style="display: flex; gap: 30px; align-items: flex-start; flex-wrap: wrap;">
+                <div class="control-section" style="flex: 1; min-width: 400px;">
+                    <div class="section-title">
+                        📡 Device & Scan Operations
+                    </div>
+                    <div class="control-panel">
+                        <button id="scanBtn" class="btn btn-primary" onclick="startScan()">🔍 Scan Network</button>
+                        <button id="stopBtn" class="btn btn-danger" onclick="stopScan()" style="display: none;">⏹️ Stop Scan</button>
+                        <button class="btn btn-warning" onclick="startBulkAnalysis()">🔬 Scan Bulk Analysis</button>
+                        <button class="btn btn-info" onclick="showDeviceManagementModal()">⚙️ Device Management</button>
+                        <div class="dropdown" style="position: relative; display: inline-block;">
+                            <button class="btn btn-secondary dropdown-toggle" onclick="toggleToolsDropdown()" id="toolsDropdown">
+                                🔧 Tools
+                            </button>
+                            <div class="dropdown-menu" id="toolsDropdownMenu" style="display: none; position: absolute; top: 100%; left: 0; background: white; border: 1px solid #ddd; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); min-width: 180px; z-index: 1000;">
+                                <a class="dropdown-item" onclick="exportData(); closeToolsDropdown();" style="display: block; padding: 8px 12px; text-decoration: none; color: #333; cursor: pointer;" onmouseover="this.style.backgroundColor='#f8f9fa'" onmouseout="this.style.backgroundColor='white'">
+                                    📤 Export Devices
+                                </a>
+                                <a class="dropdown-item" onclick="document.getElementById('importFile').click(); closeToolsDropdown();" style="display: block; padding: 8px 12px; text-decoration: none; color: #333; cursor: pointer;" onmouseover="this.style.backgroundColor='#f8f9fa'" onmouseout="this.style.backgroundColor='white'">
+                                    📥 Import Devices
+                                </a>
+                                <div class="dropdown-divider" style="height: 1px; background: #eee; margin: 4px 0;"></div>
+                                <a class="dropdown-item" onclick="sanitizeData(); closeToolsDropdown();" style="display: block; padding: 8px 12px; text-decoration: none; color: #333; cursor: pointer;" onmouseover="this.style.backgroundColor='#f8f9fa'" onmouseout="this.style.backgroundColor='white'">
+                                    🧹 Clean Sensitive Data
+                                </a>
+                            </div>
+                        </div>
+                        <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importData()">
+                    </div>
+                    
+                    <div id="progressContainer" class="progress-container" style="display: none;">
+                        <div class="progress-bar">
+                            <div id="progressFill" class="progress-fill"></div>
+                        </div>
+                        <div id="progressText" class="progress-text">Hazır</div>
+                    </div>
+                </div>
+
+                <div class="control-section" style="flex: 1; min-width: 300px;">
+                    <div class="section-title">
+                        🔍 Device Search
+                    </div>
+                    <div class="search-container">
+                        <input type="text" id="searchInput" class="search-input" 
+                               placeholder="Search by IP, MAC, hostname, vendor, alias or device type..." 
+                               onkeyup="filterDevices()">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Stat-numbers Bölümü -->
+        <div class="stats-bar">
+            <div class="stat-item stat-total">
+                <div class="stat-number" id="totalDevices">0</div>
+                <div class="stat-label">Total Devices</div>
+                <div class="tooltip">Ağda bulunan tüm cihazların sayısı</div>
+            </div>
+            <div class="stat-item stat-online">
+                <div class="stat-number" id="onlineDevices">0</div>
+                <div class="stat-label">Online Devices</div>
+                <div class="tooltip">Şu anda aktif olan cihazların sayısı</div>
+            </div>
+            <div class="stat-item stat-types">
+                <div class="stat-number" id="deviceTypes">0</div>
+                <div class="stat-label">Device Types</div>
+                <div class="tooltip">Bulunan farklı cihaz tiplerinin sayısı</div>
+            </div>
+            <div class="stat-item stat-vendors">
+                <div class="stat-number" id="vendors">0</div>
+                <div class="stat-label">Vendors</div>
+                <div class="tooltip">Tespit edilen farklı üretici markalarının sayısı</div>
+            </div>
+            
+            <!-- View Selector - Dikey Konumlandırma -->
+            <div class="view-controls-stats">
+                <div class="view-selector-vertical">
+                    <button id="viewCard" class="view-btn-vertical active" onclick="switchView('card')" title="Card View">
+                        🗃️
+                    </button>
+                    <button id="viewTable" class="view-btn-vertical" onclick="switchView('table')" title="Table View">
+                        📊
+                    </button>
+                    <button id="viewMap" class="view-btn-vertical" onclick="switchView('map')" title="Network Map View">
+                        🗺️
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Filter-panel Bölümü -->
+        <div class="controls">
+            <div class="control-section">
+                <div class="filter-panel">
+                    <div class="filter-grid">
+                        <div class="filter-group">
+                            <label class="filter-label">Device Type</label>
+                            <select id="deviceTypeFilter" class="filter-select" onchange="filterDevices()">
+                                <option value="">All</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label class="filter-label">Status</label>
+                            <select id="statusFilter" class="filter-select" onchange="filterDevices()">
+                                <option value="">All</option>
+                                <option value="online">Online</option>
+                                <option value="offline">Offline</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label class="filter-label">Vendor</label>
+                            <select id="vendorFilter" class="filter-select" onchange="filterDevices()">
+                                <option value="">All</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label class="filter-label">Alias</label>
+                            <select id="aliasFilter" class="filter-select" onchange="filterDevices()">
+                                <option value="">All</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label class="filter-label">Open Ports</label>
+                            <select id="portFilter" class="filter-select" onchange="filterDevices()">
+                                <option value="">All</option>
+                                <option value="22">SSH (22)</option>
+                                <option value="80">HTTP (80)</option>
+                                <option value="443">HTTPS (443)</option>
+                                <option value="8080">HTTP-Alt (8080)</option>
+                                <option value="3389">RDP (3389)</option>
+                                <option value="554">RTSP (554)</option>
+                                <option value="631">Printer (631)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Ana İçerik Alanı -->
+        <div class="main-content-container">
+            <div id="devicesContainer" class="devices-grid">
+                <!-- Cihazlar JavaScript ile yüklenecek -->
+            </div>
+
+            <!-- Tablo Görünümü (başlangıçta gizli) -->
+            <div id="tableContainer" class="table-container" style="display: none;">
+                <table id="devicesTable" class="devices-table">
+                    <thead>
+                        <tr>
+                            <th class="sortable" data-column="ip" data-type="ip">
+                                🌐 IP <span class="sort-indicator"></span>
+                            </th>
+                            <th class="sortable" data-column="alias" data-type="text">
+                                🏷️ Alias <span class="sort-indicator"></span>
+                            </th>
+                            <th class="sortable" data-column="vendor" data-type="text">
+                                🏢 Vendor <span class="sort-indicator"></span>
+                            </th>
+                            <th class="sortable" data-column="device_type" data-type="text">
+                                📱 Type <span class="sort-indicator"></span>
+                            </th>
+                            <th class="sortable" data-column="mac" data-type="text">
+                                🔌 MAC <span class="sort-indicator"></span>
+                            </th>
+                            <th class="sortable" data-column="open_ports" data-type="ports">
+                                🚪 Ports <span class="sort-indicator"></span>
+                            </th>
+                            <th class="sortable" data-column="last_seen" data-type="date">
+                                ⏰ Last Seen <span class="sort-indicator"></span>
+                            </th>
+                            <th>🔧 Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Tablo verileri JavaScript ile yüklenecek -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Harita Görünümü (başlangıçta gizli) -->
+            <div id="mapContainer" class="map-container" style="display: none;">
+                <div class="map-placeholder">
+                    <div class="map-content">
+                        <h3>🗺️ Network Map</h3>
+                        <p>Ağ haritası görünümü geliştirme aşamasında...</p>
+                        <div class="network-diagram" id="networkDiagram">
+                            <!-- Network diagram buraya gelecek -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cihaz Düzenleme Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Cihaz Bilgilerini Düzenle</h2>
+                <span class="close" onclick="closeEditModal()">&times;</span>
+            </div>
+            <form id="editForm">
+                <div class="form-group">
+                    <label class="form-label">IP Adresi</label>
+                    <input type="text" id="editIpAddress" class="form-input" placeholder="192.168.1.100">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">MAC Adresi</label>
+                    <input type="text" id="editMacAddress" class="form-input" placeholder="aa:bb:cc:dd:ee:ff" style="text-transform: lowercase;">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Alias (Özel Ad)</label>
+                    <input type="text" id="editAlias" class="form-input" placeholder="Cihaza özel bir ad verin">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Hostname</label>
+                    <input type="text" id="editHostname" class="form-input" placeholder="Cihaz hostname'i">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Üretici</label>
+                    <input type="text" id="editVendor" class="form-input" placeholder="Üretici/Marka">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Cihaz Tipi</label>
+                    <select id="editDeviceType" class="form-input">
+                        <option value="">Cihaz tipi seçin</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Notlar</label>
+                    <textarea id="editNotes" class="form-textarea" placeholder="Bu cihaz hakkında notlarınız..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Manuel Port Girişi</label>
+                    <div id="manualPortsContainer">
+                        <div class="port-entry">
+                            <input type="number" placeholder="Port (örn: 80)" class="port-input" min="1" max="65535">
+                            <input type="text" placeholder="Açıklama (örn: HTTP)" class="port-desc-input">
+                            <button type="button" class="btn btn-danger btn-small" onclick="removePortEntry(this)">🗑️</button>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-secondary btn-small" onclick="addPortEntry()">➕ Port Ekle</button>
+                </div>
+                <div class="form-group">
+                    <button type="button" class="btn btn-primary" onclick="saveDevice()">💾 Kaydet</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeEditModal()" style="margin-left: 10px;">❌ İptal</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Enhanced Edit Modal with Tabs -->
+    <div id="enhancedEditModal" class="modal">
+        <div class="modal-content" style="max-width: 90%; max-height: 90%; width: 1000px;">
+            <div class="modal-header">
+                <h2 class="modal-title">📝 Gelişmiş Cihaz Düzenleme</h2>
+                <span class="close" onclick="closeEnhancedEditModal()">&times;</span>
+            </div>
+            
+            <!-- Tab Navigation -->
+            <div class="tab-navigation">
+                <button class="tab-button active" onclick="switchEditTab('device')">
+                    <span class="tab-icon">🖥️</span>
+                    <span>Cihaz</span>
+                </button>
+                <button class="tab-button" onclick="switchEditTab('ports')">
+                    <span class="tab-icon">🔌</span>
+                    <span>Portlar</span>
+                </button>
+                <button class="tab-button" onclick="switchEditTab('access')">
+                    <span class="tab-icon">🔐</span>
+                    <span>Erişim</span>
+                </button>
+            </div>
+            
+            <!-- Tab Content -->
+            <div class="tab-content">
+                <!-- Device Tab -->
+                <div id="device-tab" class="tab-pane active">
+                    <form id="enhancedEditForm">
+                        <div class="form-group">
+                            <label class="form-label">IP Adresi</label>
+                            <input type="text" id="enhancedEditIpAddress" class="form-input" placeholder="192.168.1.100">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">MAC Adresi</label>
+                            <input type="text" id="enhancedEditMacAddress" class="form-input" placeholder="aa:bb:cc:dd:ee:ff" style="text-transform: lowercase;">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Alias (Özel Ad)</label>
+                            <input type="text" id="enhancedEditAlias" class="form-input" placeholder="Cihaza özel bir ad verin">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Hostname</label>
+                            <input type="text" id="enhancedEditHostname" class="form-input" placeholder="Cihaz hostname'i">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Üretici</label>
+                            <input type="text" id="enhancedEditVendor" class="form-input" placeholder="Üretici/Marka">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Cihaz Tipi</label>
+                            <select id="enhancedEditDeviceType" class="form-input">
+                                <option value="">Cihaz tipi seçin</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Notlar</label>
+                            <textarea id="enhancedEditNotes" class="form-textarea" placeholder="Bu cihaz hakkında notlarınız..."></textarea>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Ports Tab -->
+                <div id="ports-tab" class="tab-pane">
+                    <div class="ports-management">
+                        <div class="ports-toolbar">
+                            <button type="button" class="btn btn-primary btn-small" onclick="addNewPortInline()">
+                                ➕ Yeni Port Ekle
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-small" onclick="refreshDetectedPorts()">
+                                🔄 Tespit Edilen Portları Yenile
+                            </button>
+                        </div>
+                        
+                        <div class="ports-table-container">
+                            <table class="ports-table">
+                                <thead>
+                                    <tr>
+                                        <th>Port No</th>
+                                        <th>Servis</th>
+                                        <th>Açıklama</th>
+                                        <th>Tip</th>
+                                        <th>İşlemler</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="portsTableBody">
+                                    <!-- Port verileri buraya yüklenecek -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Access Tab -->
+                <div id="access-tab" class="tab-pane">
+                    <div class="access-management">
+                        <!-- Action Buttons at Top -->
+                        <div class="access-actions" style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; text-align: center;">
+                            <button type="button" class="btn btn-success" onclick="testEnhancedAccess()" style="margin-right: 10px;">
+                                🧪 Bağlantıyı Test Et
+                            </button>
+                            <button type="button" class="btn btn-primary" onclick="saveEnhancedAccess()">
+                                💾 Erişim Bilgilerini Kaydet
+                            </button>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Erişim Türü</label>
+                            <select id="enhancedAccessType" class="form-input" onchange="updateEnhancedAccessForm()">
+                                <option value="ssh">SSH</option>
+                                <option value="ftp">FTP</option>
+                                <option value="telnet">Telnet</option>
+                                <option value="http">HTTP Auth</option>
+                                <option value="snmp">SNMP</option>
+                                <option value="api">API Token</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Port</label>
+                            <input type="number" id="enhancedAccessPort" class="form-input" placeholder="22" min="1" max="65535">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Kullanıcı Adı</label>
+                            <input type="text" id="enhancedAccessUsername" class="form-input" placeholder="admin">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Parola</label>
+                            <input type="password" id="enhancedAccessPassword" class="form-input" placeholder="••••••••">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Ek Bilgiler</label>
+                            <textarea id="enhancedAccessNotes" class="form-textarea" placeholder="Özel komutlar, API endpoint'leri vs."></textarea>
+                        </div>
+                        
+                        <div id="enhancedAccessHints" class="access-hints">
+                            <!-- Hints buraya yüklenecek -->
+                        </div>
+                    </div>
+                </div>
+                
+            </div>
+            
+            <!-- Modal Footer -->
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" onclick="saveEnhancedDevice()">
+                    💾 Tüm Değişiklikleri Kaydet
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="closeEnhancedEditModal()" style="margin-left: 10px;">
+                    ❌ İptal
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cihaz Analizi Modal -->
+    <div id="analysisModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Detaylı Cihaz Analizi</h2>
+                <span class="close" onclick="closeAnalysisModal()">&times;</span>
+            </div>
+            <div id="analysisContent">
+                <!-- Analiz sonuçları buraya yüklenecek -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer style="
+        background: linear-gradient(45deg, #2c3e50, #34495e);
+        color: white;
+        text-align: center;
+        padding: 10px;
+        margin-top: 20px;
+        border-radius: 15px;
+    ">
+        <div style="display: flex; justify-content: center; align-items: center; gap: 20px; flex-wrap: wrap;">
+            <div>
+                <strong>My Network Scanner (MyNeS)</strong> <span id="appVersion">v1.0.0</span>
+            </div>
+            <div>|</div>
+            <div>
+                Your Family's User-Friendly Network Scanner
+            </div>
+            <div>|</div>
+            <div>
+                <a href="https://github.com/fxerkan/my-network-scanner" target="_blank" style="
+                    color: #74b9ff;
+                    text-decoration: none;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 5px;
+                    transition: color 0.3s ease;
+                " onmouseover="this.style.color='#0984e3'" onmouseout="this.style.color='#74b9ff'">
+                    🐙 github.com/fxerkan/my-network-scanner
+                </a>
+            </div>
+        </div>
+    </footer>
+
+
+    <!-- Enhanced Analysis Details Modal -->
+    <div id="enhancedDetailsModal" class="modal" style="display: none;">
+        <div class="modal-content enhanced-details-modal">
+            <div class="modal-header">
+                <h3><span id="detailsDeviceTitle">🔬 Gelişmiş Analiz Detayları</span></h3>
+                <span class="close" onclick="closeEnhancedDetailsModal()">&times;</span>
+            </div>
+            <div class="modal-body enhanced-details-body">
+                <div class="details-tabs">
+                    <button class="tab-button active" onclick="switchDetailsTab('overview')">📊 Genel Bakış</button>
+                    <button class="tab-button" onclick="switchDetailsTab('network')">🌐 Ağ Servisleri</button>
+                    <button class="tab-button" onclick="switchDetailsTab('ports')">🔌 Port Analizi</button>
+                    <button class="tab-button" onclick="switchDetailsTab('system')">💻 Sistem Bilgileri</button>
+                    <button class="tab-button" onclick="switchDetailsTab('security')">🛡️ Güvenlik</button>
+                    <button class="tab-button" onclick="switchDetailsTab('hardware')">🔧 Donanım</button>
+                    <button class="tab-button" onclick="switchDetailsTab('raw')">📄 Ham Veri</button>
+                </div>
+
+                <!-- Tab Contents -->
+                <div id="detailsContent" class="details-content">
+                    <!-- Content will be dynamically loaded -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cihaz Yönetimi Modal -->
+    <div id="deviceManagementModal" class="modal">
+        <div class="modal-content" style="width: 90%; max-width: 800px;">
+            <div class="modal-header">
+                <h2>⚙️ Cihaz Yönetimi</h2>
+                <span class="close" onclick="closeDeviceManagementModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="device-management-tabs">
+                    <button class="tab-button active" onclick="switchDeviceManagementTab('add')">➕ Cihaz Ekle</button>
+                    <button class="tab-button" onclick="switchDeviceManagementTab('manage')">📝 Cihaz Yönet</button>
+                </div>
+                
+                <!-- Cihaz Ekleme Sekmesi -->
+                <div id="addDeviceTab" class="tab-content active" style="display: block;">
+                    <h3>🆕 Yeni Cihaz Ekle</h3>
+                    <form id="addDeviceForm">
+                        <div class="form-group">
+                            <label class="form-label">IP Adresi *</label>
+                            <input type="text" id="addDeviceIP" class="form-input" placeholder="192.168.1.100" required pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$">
+                            <small>Geçerli bir IPv4 adresi girin</small>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">MAC Adresi</label>
+                            <input type="text" id="addDeviceMAC" class="form-input" placeholder="00:11:22:33:44:55" pattern="^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$">
+                            <small>Opsiyonel - format: 00:11:22:33:44:55</small>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Hostname</label>
+                            <input type="text" id="addDeviceHostname" class="form-input" placeholder="my-device.local">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Alias (Özel Ad) *</label>
+                            <input type="text" id="addDeviceAlias" class="form-input" placeholder="Ofis Yazıcısı" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Üretici</label>
+                            <input type="text" id="addDeviceVendor" class="form-input" placeholder="HP, Canon, Raspberry Pi vs.">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Cihaz Tipi</label>
+                            <select id="addDeviceType" class="form-input">
+                                <option value="">Cihaz tipi seçin</option>
+                                <!-- Options will be populated dynamically from device_types.json -->
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Notlar</label>
+                            <textarea id="addDeviceNotes" class="form-textarea" placeholder="Bu cihaz hakkında notlarınız..."></textarea>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">➕ Cihazı Ekle</button>
+                            <button type="button" class="btn btn-secondary" onclick="clearAddDeviceForm()">🗑️ Temizle</button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Cihaz Yönetme Sekmesi -->
+                <div id="manageDeviceTab" class="tab-content" style="display: none;">
+                    <h3>📝 Mevcut Cihazları Yönet</h3>
+                    <div class="device-list-container">
+                        <div class="search-container">
+                            <input type="text" id="deviceSearchInput" class="form-input" placeholder="🔍 Cihaz ara (IP, alias, hostname...)" onkeyup="filterDevicesForManagement()">
+                        </div>
+                        <div id="deviceListForManagement" style="overflow-x: auto;">
+                            <table class="devices-table" style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+                                <thead>
+                                    <tr style="background-color: #f8f9fa;">
+                                        <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">IP Adresi</th>
+                                        <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Alias/Hostname</th>
+                                        <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Cihaz Tipi</th>
+                                        <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Üretici</th>
+                                        <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Durum</th>
+                                        <th style="padding: 10px; border: 1px solid #ddd; text-align: center; width: 120px;">İşlemler</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="deviceTableBody">
+                                    <!-- Cihaz listesi buraya gelecek -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/main.js"></script>
+    <script src="/static/js/device-access.js"></script>
+    <script src="/static/js/enhanced-details.js"></script>
+</body>
+</html>

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Network Scanner (MyNeS) - Tarihçe ve İstatistikler</title>
+    
+    <!-- External CSS Files -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/history.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 My Network Scanner (MyNeS) - Tarihçe ve İstatistikler</h1>
+            <div class="nav-buttons">
+                <a href="/" class="nav-btn">🏠 Home</a>
+                <a href="/config" class="nav-btn">🔧 Settings</a>
+            </div>
+        </div>
+
+        <div class="content">
+            <!-- İstatistik Kartları -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalScans">0</div>
+                    <div class="stat-label">Total Scans</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="totalDevices">0</div>
+                    <div class="stat-label">Detected (Unique) Devices</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="avgDevices">0</div>
+                    <div class="stat-label">Average Devices/Scan</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="lastScanDuration">0s</div>
+                    <div class="stat-label">Last Scan Duration</div>
+                </div>
+            </div>
+
+            <!-- Cihaz Tipleri ve Üretici Dağılımı (Yan Yana) -->
+            <div class="charts-row">
+                <div class="chart-container">
+                    <h3 class="chart-title">📱 Cihaz Tipleri Dağılımı (Son Tarama)</h3>
+                    <div class="device-type-chart" id="deviceTypeChart">
+                        <!-- JavaScript ile doldurulacak -->
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <h3 class="chart-title">🏭 Üretici Dağılımı (Son Tarama)</h3>
+                    <div class="vendor-chart" id="vendorChart">
+                        <!-- JavaScript ile doldurulacak -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tarama Trend Grafiği -->
+            <div class="chart-container">
+                <h3 class="chart-title">📈 Tarama Trend Grafiği (Son 20 Tarama)</h3>
+                <div class="trend-chart-container">
+                    <div class="trend-chart-controls" id="trendChartControls">
+                        <!-- JavaScript ile doldurulacak -->
+                    </div>
+                    <div id="trendChart" class="trend-chart">
+                        <!-- JavaScript ile doldurulacak -->
+                    </div>
+                    <div id="chartTooltip" class="chart-tooltip"></div>
+                </div>
+            </div>
+
+            <!-- Tarama Geçmişi -->
+            <div class="chart-container">
+                <h3 class="chart-title">📋 Tarama Geçmişi</h3>
+                <div style="margin-bottom: 15px;">
+                    <button class="btn btn-secondary" onclick="exportHistory()">📤 Tarihçe Export Et</button>
+                    <button class="btn btn-secondary" onclick="clearHistory()" style="margin-left: 10px;">🗑️ Tarihçe Temizle</button>
+                </div>
+                
+                <table class="history-table">
+                    <thead>
+                        <tr>
+                            <th>Tarih/Saat</th>
+                            <th>IP Aralığı</th>
+                            <th>Toplam Cihaz</th>
+                            <th>Online Cihaz</th>
+                            <th>Süre</th>
+                            <th>Trend</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTableBody">
+                        <!-- JavaScript ile doldurulacak -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Zaman Çizelgesi -->
+            <div class="chart-container">
+                <h3 class="chart-title">⏰ Detaylı Tarama Zaman Çizelgesi</h3>
+                <div class="scan-timeline" id="scanTimeline">
+                    <!-- JavaScript ile doldurulacak -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- External JavaScript Files -->
+    <script src="{{ url_for('static', filename='js/history.js') }}"></script>
+</body>
+</html>

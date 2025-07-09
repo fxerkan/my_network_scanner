@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Network Scanner (MyNeS) - Ayarlar</title>
+    
+    <!-- External CSS Files -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/config.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔧 My Network Scanner (MyNeS) - Ayarlar</h1>
+            <div class="nav-buttons">
+                <a href="/" class="nav-btn">🏠 Home</a>
+                <a href="/history" class="nav-btn">📊 History</a>
+            </div>
+        </div>
+
+        <div class="content">
+            <div id="alertContainer"></div>
+
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('general')">🔧 Genel Ayarlar</button>
+                <button class="tab" onclick="switchTab('oui')">🏭 OUI Database</button>
+                <button class="tab" onclick="switchTab('devices')">📱 Cihaz Tipleri</button>
+                <button class="tab" onclick="switchTab('detection')">🔍 Tanıma Kuralları</button>
+                <button class="tab" onclick="switchTab('networks')">🌐 Ağ Arayüzleri</button>
+                <button class="tab" onclick="switchTab('docker')">🐳 Docker Network</button>
+            </div>
+
+            <!-- Genel Ayarlar -->
+            <div id="general" class="tab-content active">
+                <div class="grid">
+                    <div class="card">
+                        <h3 class="card-title">📡 Tarama Ayarları</h3>
+                        <div class="form-group">
+                            <label class="form-label">Varsayılan IP Aralığı</label>
+                            <input type="text" class="form-input" id="defaultIpRange" placeholder="192.168.1.0/24">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Timeout (saniye)</label>
+                            <input type="number" class="form-input" id="timeout" placeholder="3">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Maksimum Thread Sayısı</label>
+                            <input type="number" class="form-input" id="maxThreads" placeholder="50">
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="includeOffline"> Offline cihazları dahil et
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3 class="card-title">🔌 Port Ayarları</h3>
+                        <div class="form-group">
+                            <label class="form-label">Varsayılan Portlar (virgülle ayrılmış)</label>
+                            <textarea class="form-textarea" id="defaultPorts" placeholder="21,22,23,25,53,80,110,443,993,995,8080,8443"></textarea>
+                        </div>
+                        <div id="devicePortsContainer">
+                            <h4>Cihaz Tipine Özgü Portlar</h4>
+                            <p style="color: #6c757d; margin-bottom: 15px;">
+                                Belirli cihaz tipleri için varsayılan taranacak portları tanımlayın.
+                            </p>
+                            <div id="devicePortsList">
+                                <div class="form-group">
+                                    <label class="form-label">Cihaz Tipi Seçin</label>
+                                    <select class="form-select" id="deviceTypePortSelect">
+                                        <option value="">Port tanımı eklemek için cihaz tipi seçin</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Bu Cihaz Tipi İçin Özel Portlar</label>
+                                    <input type="text" class="form-input" id="deviceTypePorts" placeholder="80,443,8080,8443">
+                                </div>
+                                <button type="button" class="btn btn-small" onclick="addDeviceTypePorts()">➕ Port Kuralı Ekle</button>
+                                
+                                <div id="currentDevicePortRules" style="margin-top: 15px;">
+                                    <!-- Mevcut kurallar burada gösterilecek -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div style="margin-top: 20px;">
+                    <button class="btn" onclick="saveGeneralSettings()">💾 Genel Ayarları Kaydet</button>
+                </div>
+            </div>
+
+            <!-- OUI Database -->
+            <div id="oui" class="tab-content">
+                <div class="card">
+                    <h3 class="card-title">🏭 OUI (Organizationally Unique Identifier) Database</h3>
+                    <p style="margin-bottom: 20px; color: #6c757d;">
+                        MAC adreslerinden üretici firma bilgisi almak için kullanılan OUI database. 
+                        Yeni üreticiler ekleyebilir veya mevcut kayıtları düzenleyebilirsiniz.
+                    </p>
+                    
+                    <div class="grid">
+                        <div>
+                            <h4>🌐 Otomatik Güncelleme</h4>
+                            <div style="margin-bottom: 15px;">
+                                <button class="btn btn-info" onclick="downloadIEEEDatabase()" id="downloadIEEEBtn">
+                                    📥 IEEE OUI Database İndir
+                                </button>
+                                <p style="font-size: 0.8em; color: #6c757d; margin-top: 5px;">
+                                    IEEE.org'dan güncel OUI veritabanını indirir ve mevcut database ile birleştirir.
+                                </p>
+                            </div>
+                            
+                            <h4>➕ Yeni OUI Ekle</h4>
+                            <div class="form-group">
+                                <label class="form-label">OUI (ilk 3 byte, örnek: 001122)</label>
+                                <input type="text" class="form-input" id="newOui" placeholder="001122" maxlength="6">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Üretici Adı</label>
+                                <input type="text" class="form-input" id="newVendor" placeholder="Apple">
+                            </div>
+                            <div style="display: flex; gap: 10px;">
+                                <button class="btn" onclick="addOuiEntry()">➕ Manuel Ekle</button>
+                                <button class="btn btn-warning" onclick="lookupVendorAPI()" id="apiLookupBtn" disabled>
+                                    🔍 API ile Bul
+                                </button>
+                            </div>
+                            <p style="font-size: 0.8em; color: #6c757d; margin-top: 5px;">
+                                API ile Bul: Girdiğiniz OUI için otomatik olarak vendor bilgisini online API'lerden getirir.
+                            </p>
+                        </div>
+                        
+                        <div>
+                            <h4>📋 Mevcut OUI Kayıtları</h4>
+                            <div style="margin-bottom: 10px;">
+                                <input type="text" class="form-input" id="ouiSearchInput" placeholder="OUI veya vendor ile ara..." onkeyup="filterOuiList()">
+                            </div>
+                            <div class="oui-list" id="ouiList"></div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 20px;">
+                        <button class="btn" onclick="saveOuiDatabase()">💾 OUI Database Kaydet</button>
+                        <button class="btn btn-secondary" onclick="exportOuiDatabase()" style="margin-left: 10px;">📤 Export</button>
+                        <input type="file" id="ouiImportFile" accept=".json" style="display: none;" onchange="importOuiDatabase()">
+                        <button class="btn btn-secondary" onclick="document.getElementById('ouiImportFile').click()" style="margin-left: 10px;">📥 Import</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cihaz Tipleri -->
+            <div id="devices" class="tab-content">
+                <div class="card">
+                    <h3 class="card-title">📱 Cihaz Tipleri ve İkonları</h3>
+                    <p style="margin-bottom: 20px; color: #6c757d;">
+                        Tanınan cihaz tiplerini ve bunların görsel simgelerini yönetebilirsiniz.
+                    </p>
+                    
+                    <div class="grid">
+                        <div style="max-width: 350px;">
+                            <h4>Yeni Cihaz Tipi Ekle</h4>
+                            <div class="form-group">
+                                <label class="form-label">Cihaz Tipi Adı</label>
+                                <input type="text" class="form-input" id="newDeviceType" placeholder="Smart Speaker">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">İkon (Emoji)</label>
+                                <div style="display: flex; gap: 10px; align-items: center;">
+                                    <input type="text" class="form-input" id="newDeviceIcon" placeholder="🔊" maxlength="2" style="width: 80px; text-align: center; font-size: 1.2em;">
+                                    <button type="button" class="btn btn-small" onclick="openEmojiPicker('newDeviceIcon')">📋 Seç</button>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Kategori</label>
+                                <select class="form-select" id="newDeviceCategory">
+                                    <option value="unknown">Unknown</option>
+                                    <option value="tech">Technology</option>
+                                    <option value="network">Network</option>
+                                    <option value="smart">Smart Home</option>
+                                    <option value="media">Media</option>
+                                    <option value="security">Security</option>
+                                    <option value="transport">Transport</option>
+                                    <option value="office">Office</option>
+                                    <option value="mobile">Mobile</option>
+                                    <option value="computer">Computer</option>
+                                    <option value="peripheral">Peripheral</option>
+                                    <option value="entertainment">Entertainment</option>
+                                    <option value="appliance">Appliance</option>
+                                    <option value="iot">IoT Device</option>
+                                    <option value="storage">Storage</option>
+                                    <option value="gaming">Gaming</option>
+                                    <option value="medical">Medical</option>
+                                    <option value="industrial">Industrial</option>
+                                </select>
+                            </div>
+                            <button class="btn" onclick="addDeviceType()">➕ Cihaz Tipi Ekle</button>
+                        </div>
+                        
+                        <div>
+                            <h4>Mevcut Cihaz Tipleri</h4>
+                            <div id="deviceTypesList" style="max-height: 350px; overflow-y: auto; border: 1px solid #e9ecef; border-radius: 6px; padding: 10px;"></div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 20px;">
+                        <button class="btn" onclick="saveDeviceTypes()">💾 Cihaz Tiplerini Kaydet</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tanıma Kuralları -->
+            <div id="detection" class="tab-content">
+                <div class="grid">
+                    <div class="card">
+                        <h3 class="card-title">🔍 Hostname Pattern'ları</h3>
+                        <p style="margin-bottom: 15px; color: #6c757d;">
+                            Cihaz hostname'lerinden tip tespiti için RegEx pattern'ları
+                        </p>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Yeni Pattern Ekle</label>
+                            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                                <input type="text" class="form-input" id="newHostnamePattern" placeholder="android|samsung" style="flex: 1;">
+                                <select class="form-select" id="newHostnameDeviceType" style="width: 150px;">
+                                    <option value="">Cihaz Tipi Seç</option>
+                                </select>
+                                <button type="button" class="btn btn-small" onclick="addHostnamePattern()">➕ Ekle</button>
+                            </div>
+                        </div>
+                        
+                        <div class="pattern-list" id="hostnamePatterns"></div>
+                    </div>
+
+                    <div class="card">
+                        <h3 class="card-title">🏭 Vendor Pattern'ları</h3>
+                        <p style="margin-bottom: 15px; color: #6c757d;">
+                            Üretici adlarından cihaz tipi tespiti için pattern'lar
+                        </p>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Yeni Pattern Ekle</label>
+                            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                                <input type="text" class="form-input" id="newVendorPattern" placeholder="Apple|Samsung|Google" style="flex: 1;">
+                                <select class="form-select" id="newVendorDeviceType" style="width: 150px;">
+                                    <option value="">Cihaz Tipi Seç</option>
+                                </select>
+                                <button type="button" class="btn btn-small" onclick="addVendorPattern()">➕ Ekle</button>
+                            </div>
+                        </div>
+                        
+                        <div class="pattern-list" id="vendorPatterns"></div>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 20px;">
+                    <button class="btn" onclick="saveDetectionRules()">💾 Tanıma Kurallarını Kaydet</button>
+                </div>
+            </div>
+
+            <!-- Ağ Arayüzleri -->
+            <div id="networks" class="tab-content">
+                <div class="card">
+                    <h3 class="card-title">🌐 Mevcut Ağ Arayüzleri</h3>
+                    <p style="margin-bottom: 20px; color: #6c757d;">
+                        Sistemde bulunan ağ arayüzleri ve IP aralıkları. Tarama için kullanılacak ağları seçebilirsiniz.
+                    </p>
+                    <div id="networksList"></div>
+                    <button class="btn" onclick="refreshNetworks()" style="margin-top: 15px;">🔄 Ağları Yenile</button>
+                </div>
+            </div>
+
+            <!-- Docker Network -->
+            <div id="docker" class="tab-content">
+                <div class="grid">
+                    <div class="card">
+                        <h3 class="card-title">🐳 Docker Durumu</h3>
+                        <div id="dockerStatus">
+                            <div class="loading">Docker bilgileri yükleniyor...</div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <h3 class="card-title">🌐 Docker Network'ler</h3>
+                        <p style="margin-bottom: 15px; color: #6c757d;">
+                            Docker container'larının kullandığı network'ler ve IP aralıkları
+                        </p>
+                        <div id="dockerNetworksList">
+                            <div class="loading">Network bilgileri yükleniyor...</div>
+                        </div>
+                        <button class="btn" onclick="refreshDockerNetworks()" style="margin-top: 15px;">🔄 Docker Network'leri Yenile</button>
+                    </div>
+                </div>
+
+                <div class="grid" style="margin-top: 20px;">
+                    <div class="card">
+                        <h3 class="card-title">📦 Docker Container'lar</h3>
+                        <p style="margin-bottom: 15px; color: #6c757d;">
+                            Çalışan container'lar ve IP adresleri
+                        </p>
+                        <div id="dockerContainersList">
+                            <div class="loading">Container bilgileri yükleniyor...</div>
+                        </div>
+                        <button class="btn" onclick="refreshDockerContainers()" style="margin-top: 15px;">🔄 Container'ları Yenile</button>
+                    </div>
+                    
+                    <div class="card">
+                        <h3 class="card-title">🎯 Tarama Aralıkları</h3>
+                        <p style="margin-bottom: 15px; color: #6c757d;">
+                            Docker network'lerinden türetilen tarama aralıkları
+                        </p>
+                        <div id="dockerScanRangesList">
+                            <div class="loading">Tarama aralıkları yükleniyor...</div>
+                        </div>
+                        <button class="btn" onclick="refreshDockerScanRanges()" style="margin-top: 15px;">🔄 Tarama Aralıklarını Yenile</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Emoji Picker Modal -->
+    <div id="emojiPickerModal" class="emoji-picker-modal">
+        <div class="emoji-picker-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3>🙂 Emoji Seç</h3>
+                <button type="button" onclick="closeEmojiPicker()" style="background: none; border: none; font-size: 1.5em; cursor: pointer;">✖️</button>
+            </div>
+            
+            <!-- Kategori Filtreleri -->
+            <div style="margin-bottom: 15px;">
+                <div style="display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px;">
+                    <button type="button" class="btn btn-small" onclick="filterEmojiCategory('all')" id="categoryAll">All</button>
+                    <button type="button" class="btn btn-small btn-secondary" onclick="filterEmojiCategory('tech')" id="categoryTech">Tech</button>
+                    <button type="button" class="btn btn-small btn-secondary" onclick="filterEmojiCategory('network')" id="categoryNetwork">Network</button>
+                    <button type="button" class="btn btn-small btn-secondary" onclick="filterEmojiCategory('smart')" id="categorySmart">Smart</button>
+                    <button type="button" class="btn btn-small btn-secondary" onclick="filterEmojiCategory('media')" id="categoryMedia">Media</button>
+                    <button type="button" class="btn btn-small btn-secondary" onclick="filterEmojiCategory('security')" id="categorySecurity">Security</button>
+                    <button type="button" class="btn btn-small btn-secondary" onclick="filterEmojiCategory('transport')" id="categoryTransport">Transport</button>
+                    <button type="button" class="btn btn-small btn-secondary" onclick="filterEmojiCategory('office')" id="categoryOffice">Office</button>
+                    <button type="button" class="btn btn-small btn-secondary" onclick="filterEmojiCategory('mobile')" id="categoryMobile">Mobile</button>
+                    <button type="button" class="btn btn-small btn-secondary" onclick="filterEmojiCategory('computer')" id="categoryComputer">Computer</button>
+                    <button type="button" class="btn btn-small btn-secondary" onclick="filterEmojiCategory('gaming')" id="categoryGaming">Gaming</button>
+                    <button type="button" class="btn btn-small btn-secondary" onclick="filterEmojiCategory('iot')" id="categoryIot">IoT</button>
+                </div>
+                <input type="text" class="form-input" id="emojiSearchInput" placeholder="Emoji ara..." style="margin-bottom: 10px;" oninput="searchEmojisHandler(event)" onkeyup="searchEmojisHandler(event)">
+            </div>
+            
+            <div id="emojiGrid" class="emoji-grid"></div>
+        </div>
+    </div>
+
+    <!-- External JavaScript Files -->
+    <script src="{{ url_for('static', filename='js/config.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/emoji-picker.js') }}"></script>
+</body>
+</html>
