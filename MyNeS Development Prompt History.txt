@@ -669,15 +669,10 @@ POST http://localhost:5003/test_device_access 404 (NOT FOUND)
                                                                                                               
 2. uygulamada ki tüm logları detaylı (verbose) olacak şekilde aktif UI ve backend için.
 
+-----
 
-
-
-
-
-** FX - ToDos **
-================
-
-"Taramayı Başlat" dediğimde, bu uygulamayı çalıştırdığım makineye ait IP'ler ve cihaz bilgilerini bulmuyor. Oysaki bu tarama işlemini başlattığım cihaz da aynı network içerisinde.
+"Scan Network" dediğimde, bu uygulamayı çalıştırdığım makineye ait IP'ler ve cihaz bilgilerini bulmuyor. 
+Oysaki bu tarama işlemini başlattığım cihaz da aynı network içerisinde.
 kullandığım MacOS makine için IP ve MAC adresi bilgileri aşağıdaki gibi bunları hiç göstermiyor, bulmuyor !
 Bu problemi düzelt ve tabii ki tarama işleminin yapıldığı makineye ait bilgileri de cihaz listesine ekle.
 
@@ -690,6 +685,9 @@ WiFi MAC : 1e:48:ac:87:1c:13
 
 
 
+
+** FX - ToDos **
+================
 
 
 "Details" sayfasındaki Sistem Bilgileri, Güvenlik, Donanım vs. gibi ekstra bilgiler SSH erişim bilgileri girilmiş olan cihazlarda dahi boş geliyor artık.

@@ -6,7 +6,7 @@ Modern ve kullanıcı dostu web arayüzü ile ağ yönetimini kolaylaştırır. 
 
 ![Alt text](assets/mynes.png "a title")
 
-> *Bu uygulama tümüyle **AI destekli** olarak (**Agentic Mode**) [Claude Code](https://www.anthropic.com/claude-code)*, [Github Copilot](https://github.com/features/copilot) ve *[Visual Studio Code](https://code.visualstudio.com/) kullanılarak tümüyle **Open-Source** olarak geliştirilmiştir.*
+> *Bu uygulama tümüyle **AI destekli** olarak (**Agentic Mode**) [Claude Code](https://www.anthropic.com/claude-code)*, [Github Copilot](https://github.com/features/copilot) ve *[Visual Studio Code](https://code.visualstudio.com/) kullanılarak **Open-Source** olarak geliştirilmiştir.*
 
 ## ✨ Özellikler
 

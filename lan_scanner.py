@@ -270,10 +270,14 @@ class LANScanner:
         interface_lower = interface.lower()
         if 'docker' in interface_lower or interface_lower.startswith('br-') or 'veth' in interface_lower:
             return 'Docker'
-        elif 'eth' in interface_lower or 'en' in interface_lower:
-            return 'Ethernet'
         elif 'wlan' in interface_lower or 'wifi' in interface_lower or 'wi' in interface_lower:
             return 'WiFi'
+        elif 'eth' in interface_lower or interface_lower.startswith('en'):
+            # MacOS'ta en0 genellikle WiFi, en8 gibi diğerleri Ethernet olabilir
+            if interface_lower == 'en0':
+                return 'WiFi'
+            else:
+                return 'Ethernet'
         elif 'vpn' in interface_lower or 'tun' in interface_lower or 'tap' in interface_lower:
             return 'VPN'
         elif 'bluetooth' in interface_lower or 'bt' in interface_lower:
@@ -338,6 +342,56 @@ class LANScanner:
             return str(network)
         except Exception:
             return "192.168.1.0/24"
+    
+    def get_local_machine_interfaces(self):
+        """Yerel makinenin tüm ağ arayüzlerini tespit eder"""
+        local_interfaces = []
+        try:
+            for interface in netifaces.interfaces():
+                # Sanal ve kullanılmayan interface'leri atla
+                if (interface.startswith('anpi') or interface.startswith('utun') or 
+                    interface.startswith('ipsec') or interface.startswith('llw') or
+                    interface.startswith('awdl') or interface.startswith('lo')):
+                    continue
+                
+                try:
+                    addrs = netifaces.ifaddresses(interface)
+                    if netifaces.AF_INET in addrs:
+                        for addr in addrs[netifaces.AF_INET]:
+                            if 'addr' in addr:
+                                ip = addr['addr']
+                                # Loopback ve link-local adresleri atla
+                                if ip.startswith('127.') or ip.startswith('169.254.'):
+                                    continue
+                                
+                                # MAC adresini al
+                                mac_addr = 'Unknown'
+                                if netifaces.AF_LINK in addrs:
+                                    for link_addr in addrs[netifaces.AF_LINK]:
+                                        if 'addr' in link_addr and link_addr['addr']:
+                                            mac_addr = link_addr['addr']
+                                            break
+                                
+                                local_interfaces.append({
+                                    'interface': interface,
+                                    'ip': ip,
+                                    'mac': mac_addr,
+                                    'type': self._get_interface_type(interface)
+                                })
+                except Exception:
+                    continue
+        except Exception as e:
+            print(f"Yerel interface tarama hatası: {e}")
+        
+        return local_interfaces
+    
+    def get_local_machine_hostname(self):
+        """Yerel makinenin hostname'ini al"""
+        try:
+            import socket
+            return socket.gethostname()
+        except Exception:
+            return "LocalMachine"
     
     def scan_network_arp(self, target_ip):
         """ARP kullanarak hızlı tarama yapar"""
@@ -658,7 +712,7 @@ class LANScanner:
             # Yeni enhanced version kullan
             return self.scan_ports_enhanced(ip, device_type)
 
-    def scan_single_device(self, ip, mac, existing_devices=None, detailed_analysis=False, progress_callback=None):
+    def scan_single_device(self, ip, mac, existing_devices=None, detailed_analysis=False, progress_callback=None, local_interface_info=None):
         """Tek bir cihazı tarar - detailed_analysis=True ise gelişmiş analiz yapar"""
         print(f"Taranıyor: {ip}")
         
@@ -679,7 +733,15 @@ class LANScanner:
         existing_vendor = existing_device.get('vendor', '')
         
         log_operation("🔍 Hostname Çözümleme", "başlatılıyor")
-        if existing_hostname and not detailed_analysis:
+        
+        # Yerel makine için özel hostname belirleme
+        if local_interface_info:
+            hostname = self.get_local_machine_hostname()
+            # Yerel makine hostname'ini interface tipi ile zenginleştir
+            if local_interface_info.get('interface_type'):
+                hostname = f"{hostname} ({local_interface_info['interface_type']})"
+            log_operation("🔍 Hostname Çözümleme", "yerel makine", hostname)
+        elif existing_hostname and not detailed_analysis:
             # Hızlı taramada mevcut hostname'i koru
             hostname = existing_hostname
             log_operation("🔍 Hostname Çözümleme", "korundu", hostname)
@@ -693,7 +755,14 @@ class LANScanner:
                 log_operation("🔍 Hostname Çözümleme", "tamamlandı", hostname or "hostname bulunamadı")
         
         log_operation("🏷️ MAC Vendor Lookup", "başlatılıyor")
-        if existing_vendor and not detailed_analysis:
+        
+        # Yerel makine için özel vendor belirleme
+        if local_interface_info:
+            vendor = self.get_device_vendor_enhanced(mac)
+            if not vendor or vendor == "Bilinmeyen":
+                vendor = "Apple Inc." if mac.startswith(('00:e0:4c', '1e:48:ac')) else "Local Machine"
+            log_operation("🏷️ MAC Vendor Lookup", "yerel makine", vendor)
+        elif existing_vendor and not detailed_analysis:
             # Hızlı taramada mevcut vendor'ı koru
             vendor = existing_vendor
             log_operation("🏷️ MAC Vendor Lookup", "korundu", vendor)
@@ -755,6 +824,17 @@ class LANScanner:
             device_type = existing_device.get('device_type')
             identification_result = {'device_type': device_type, 'confidence': 1.0, 'user_defined': True}
             print(f"Kullanıcı tanımlı device_type korundu: {device_type} ({ip})")
+        elif local_interface_info:
+            # Yerel makine için özel device_type belirleme
+            interface_type = local_interface_info.get('interface_type', 'Other')
+            if interface_type == 'Ethernet':
+                device_type = 'Desktop/Laptop (Ethernet)'
+            elif interface_type == 'WiFi':
+                device_type = 'Desktop/Laptop (WiFi)'
+            else:
+                device_type = f'Local Machine ({interface_type})'
+            identification_result = {'device_type': device_type, 'confidence': 1.0, 'local_machine': True}
+            print(f"Yerel makine device_type: {device_type} ({ip})")
         else:
             # Smart identification kullan (sadece yeni cihazlar veya tanımlanmamış olanlar için)
             if smart_naming_enabled:
@@ -920,6 +1000,13 @@ class LANScanner:
             except Exception as e:
                 log_operation("🏷️ Otomatik Alias Oluşturma", "hata", str(e))
                 print(f"Smart alias oluşturma hatası {ip}: {e}")
+        elif local_interface_info and not device_info['alias']:
+            # Yerel makine için özel alias oluşturma
+            interface_name = local_interface_info.get('interface_name', 'unknown')
+            interface_type = local_interface_info.get('interface_type', 'Other')
+            local_hostname = hostname.split(' (')[0]  # Parantez kısmını çıkar
+            device_info['alias'] = f"{local_hostname} - {interface_type}"
+            print(f"Yerel makine alias oluşturuldu: {device_info['alias']} ({ip})")
         elif device_info['alias']:
             print(f"Kullanıcı tanımlı alias korundu: {device_info['alias']} ({ip})")
         
@@ -987,10 +1074,35 @@ class LANScanner:
         
         # ARP ile hızlı tarama
         arp_devices = self.scan_network_arp(ip_range)
+        
+        # Yerel makinenin interface'lerini de ekle
+        local_interfaces = self.get_local_machine_interfaces()
+        local_hostname = self.get_local_machine_hostname()
+        
+        # Yerel interface'leri ARP sonuçlarına ekle
+        for interface in local_interfaces:
+            # Bu IP zaten ARP taramasında bulunmuş mu kontrol et
+            ip_found = False
+            for arp_device in arp_devices:
+                if arp_device['ip'] == interface['ip']:
+                    ip_found = True
+                    break
+            
+            if not ip_found:
+                # Yerel makine IP'sini ekle
+                arp_devices.append({
+                    'ip': interface['ip'],
+                    'mac': interface['mac'],
+                    'local_interface': True,
+                    'interface_name': interface['interface'],
+                    'interface_type': interface['type']
+                })
+                print(f"🖥️ Yerel makine interface'i eklendi: {interface['ip']} (MAC: {interface['mac']}, Interface: {interface['interface']})")
+        
         total_devices = len(arp_devices)
         
         if progress_callback:
-            progress_callback(f"{total_devices} cihaz bulundu, detaylı tarama başlıyor...")
+            progress_callback(f"{total_devices} cihaz bulundu (yerel makine dahil), detaylı tarama başlıyor...")
         
         # Statistics için
         device_types = {}
@@ -1006,8 +1118,24 @@ class LANScanner:
                 progress_callback(f"Taranıyor: {device['ip']} ({i+1}/{total_devices})")
             
             try:
+                # Yerel makine bilgilerini hazırla
+                local_interface_info = None
+                if device.get('local_interface'):
+                    local_interface_info = {
+                        'interface_name': device.get('interface_name'),
+                        'interface_type': device.get('interface_type'),
+                        'is_local': True
+                    }
+                
                 # Unified model kullanarak cihaz tara
-                new_device_info = self.scan_single_device(device['ip'], device['mac'], existing_devices, detailed_analysis=False, progress_callback=progress_callback)
+                new_device_info = self.scan_single_device(
+                    device['ip'], 
+                    device['mac'], 
+                    existing_devices, 
+                    detailed_analysis=False, 
+                    progress_callback=progress_callback,
+                    local_interface_info=local_interface_info
+                )
                 
                 # MAC+IP kombinasyonu anahtarı
                 current_mac = device['mac'].lower()
@@ -1411,7 +1539,8 @@ class LANScanner:
                     device['mac'], 
                     existing_devices, 
                     detailed_analysis=True,
-                    progress_callback=progress_callback
+                    progress_callback=progress_callback,
+                    local_interface_info=None  # Detaylı analizde yerel makine bilgisi yoktur
                 )
                 
                 # Analiz sonuçlarını cihaz bilgilerine ekle
@@ -1592,7 +1721,8 @@ class LANScanner:
                 target_device['mac'], 
                 existing_devices, 
                 detailed_analysis=True,
-                progress_callback=progress_callback
+                progress_callback=progress_callback,
+                local_interface_info=None  # Tek cihaz detaylı analizde yerel makine bilgisi yoktur
             )
             
             # Analiz sonuçlarını cihaz bilgilerine ekle
