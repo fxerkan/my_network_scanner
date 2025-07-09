@@ -15,6 +15,29 @@ let currentSortDirection = 'asc';
 // Progress tracking için global değişken
 let progressInterval = null;
 
+// Language management
+async function changeLanguage(languageCode) {
+    try {
+        const response = await fetch('/api/language/set', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ language: languageCode })
+        });
+        
+        const result = await response.json();
+        if (result.success) {
+            // Reload the page to apply the new language
+            window.location.reload();
+        } else {
+            console.error('Failed to change language:', result.error);
+        }
+    } catch (error) {
+        console.error('Error changing language:', error);
+    }
+}
+
 // Sayfa yüklendiğinde verileri getir
 window.addEventListener('load', async function() {
     await loadDeviceTypes();

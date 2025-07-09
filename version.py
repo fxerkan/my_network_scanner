@@ -9,7 +9,7 @@ import os
 from datetime import datetime
 
 # Fallback version if git is not available
-FALLBACK_VERSION = "1.0.0"
+FALLBACK_VERSION = "1.0.2"
 
 def get_git_version():
     """Git tag'larından versiyon bilgisini al"""

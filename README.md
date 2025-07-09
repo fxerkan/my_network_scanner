@@ -1,5 +1,7 @@
 # My Network Scanner (MyNeS) 🌐
 
+**Beni Oku (Türkçe)** | [**Readme (English)**](README_ENG.md)
+
 **My Network Scanner (MyNeS)**, "*Y*our Family's User-Friendly Network Scanner" mottosu ile geliştirilmiş, yerel ağınızdaki tüm cihazları (Router/Modem, Laptop, Tablet, Desktop, Server, IP Camera, Gaming Console, Smart Home Appliances, .....) tarayıp, tespit ettiği cihazlar ile ilgili detaylı bilgileri toplayıp, kullanıcı dostu ve kolay bir arayüz üzerinden cihazlarınızı yönetebilmenizi sağlayan profesyonel bir uygulamadır.
 
 Modern ve kullanıcı dostu web arayüzü ile ağ yönetimini kolaylaştırır. Gelişmiş ve detaylı tarama, AI destekli cihaz tanıma ve güvenlik özellikleri sunar.

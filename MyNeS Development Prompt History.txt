@@ -690,6 +690,18 @@ WiFi MAC : 1e:48:ac:87:1c:13
 ================
 
 
+Uygulamayı Multi-Language (multi-lingual) olacak şekilde düzenle.
+Şimdilik sadece "English" ve "Türkçe" versiyonları ve her bir ekran, label için kolaylıkla tanım ve açıklamaların girilip yönetilebileceği şekilde olsun.
+Uygulamanın sağ üst köşesinde bir ikon ile tüm kullanıcı arayüzü dili değiştirilebilmeli.
+
+Ayrıca README.md dosyası Türkçe olarak kalmalı.
+README_ENG.md şeklinde ayrıca bir dosya da README.MD de ki içeriğin tümüyle İngilizce halini bulundurmalı.
+Her iki Readme dosyasının en üst kısmında "Beni Oku (Türkçe)" | "Readme (English)" şeklinde linkeler olmalı.
+
+bu geliştirme sonrasında v1.0.1'den 1.0.2 olarak güncelle.
+
+
+
 "Details" sayfasındaki Sistem Bilgileri, Güvenlik, Donanım vs. gibi ekstra bilgiler SSH erişim bilgileri girilmiş olan cihazlarda dahi boş geliyor artık.
 Oysa ki önceden tüm bu sayfalarda çok detaylı bilgiler oluyordu System Info, Disk, OS, RAM, Mounted devices vs. gibi.
 

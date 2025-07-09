@@ -26,7 +26,7 @@ except ImportError:
     pass
 
 # Flask ve diğer import'lar
-from flask import Flask, render_template, jsonify, request, send_from_directory
+from flask import Flask, render_template, jsonify, request, send_from_directory, session, redirect, url_for
 import threading
 from datetime import datetime
 from lan_scanner import LANScanner
@@ -36,6 +36,7 @@ from credential_manager import get_credential_manager
 from version import get_version, get_version_info
 from data_sanitizer import DataSanitizer
 from unified_device_model import unified_model
+from language_manager import language_manager, _, get_language_manager
 import re
 import requests
 import csv
@@ -62,6 +63,49 @@ bulk_analysis_status = {}
 
 # Secure credential manager
 credential_manager = get_credential_manager()
+
+# Template context processor for language support
+@app.context_processor
+def inject_language_data():
+    """Inject language data into all templates"""
+    return {
+        '_': _,
+        'language_info': language_manager.get_language_info(),
+        'current_language': language_manager.get_current_language(),
+        'translations': language_manager.get_all_translations()
+    }
+
+@app.route('/set-language/<language_code>')
+def set_language(language_code):
+    """Set the current language"""
+    if language_manager.set_language(language_code):
+        # Redirect back to the referring page or home
+        return redirect(request.referrer or url_for('index'))
+    else:
+        return jsonify({'error': _('invalid_language')}), 400
+
+@app.route('/api/language/info')
+def get_language_info():
+    """Get language information"""
+    return jsonify(language_manager.get_language_info())
+
+@app.route('/api/language/set', methods=['POST'])
+def api_set_language():
+    """API endpoint to set language"""
+    data = request.get_json()
+    language_code = data.get('language')
+    
+    if language_manager.set_language(language_code):
+        return jsonify({
+            'success': True,
+            'message': _('language_changed'),
+            'current_language': language_manager.get_current_language()
+        })
+    else:
+        return jsonify({
+            'success': False,
+            'error': _('invalid_language')
+        }), 400
 
 def progress_callback(message):
     """Tarama ilerlemesi için callback fonksiyonu"""

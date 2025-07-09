@@ -1,18 +1,28 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="{{ current_language }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Network Scanner (MyNeS)</title>
+    <title>{{ _('app_title') }}</title>
     <link rel="stylesheet" href="/static/css/main.css">
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🔍 My Network Scanner (MyNeS)</h1>
+            <h1>🔍 {{ _('app_title') }}</h1>
             <div class="nav-buttons">
-                <a href="/config" class="nav-btn">🔧 Settings</a>
-                <a href="/history" class="nav-btn">📊 History</a>
+                <!-- Language Switcher -->
+                <div class="language-switcher" style="display: inline-block; margin-right: 10px;">
+                    <select id="languageSelect" onchange="changeLanguage(this.value)" style="padding: 5px; border-radius: 4px; border: 1px solid #ddd;">
+                        {% for lang_code in language_info.supported %}
+                            <option value="{{ lang_code }}" {% if lang_code == current_language %}selected{% endif %}>
+                                {{ language_info.flags[lang_code] }} {{ language_info.names[lang_code] }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <a href="/config" class="nav-btn">🔧 {{ _('configuration') }}</a>
+                <a href="/history" class="nav-btn">📊 {{ _('history') }}</a>
             </div>
         </div>
 
@@ -21,27 +31,27 @@
             <div style="display: flex; gap: 30px; align-items: flex-start; flex-wrap: wrap;">
                 <div class="control-section" style="flex: 1; min-width: 400px;">
                     <div class="section-title">
-                        📡 Device & Scan Operations
+                        📡 {{ _('scan_network') }} & {{ _('device') }} {{ _('actions') }}
                     </div>
                     <div class="control-panel">
-                        <button id="scanBtn" class="btn btn-primary" onclick="startScan()">🔍 Scan Network</button>
-                        <button id="stopBtn" class="btn btn-danger" onclick="stopScan()" style="display: none;">⏹️ Stop Scan</button>
-                        <button class="btn btn-warning" onclick="startBulkAnalysis()">🔬 Scan Bulk Analysis</button>
-                        <button class="btn btn-info" onclick="showDeviceManagementModal()">⚙️ Device Management</button>
+                        <button id="scanBtn" class="btn btn-primary" onclick="startScan()">🔍 {{ _('scan_network') }}</button>
+                        <button id="stopBtn" class="btn btn-danger" onclick="stopScan()" style="display: none;">⏹️ {{ _('stop_scan') }}</button>
+                        <button class="btn btn-warning" onclick="startBulkAnalysis()">🔬 {{ _('detailed_analysis') }}</button>
+                        <button class="btn btn-info" onclick="showDeviceManagementModal()">⚙️ {{ _('device') }} {{ _('actions') }}</button>
                         <div class="dropdown" style="position: relative; display: inline-block;">
                             <button class="btn btn-secondary dropdown-toggle" onclick="toggleToolsDropdown()" id="toolsDropdown">
                                 🔧 Tools
                             </button>
                             <div class="dropdown-menu" id="toolsDropdownMenu" style="display: none; position: absolute; top: 100%; left: 0; background: white; border: 1px solid #ddd; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); min-width: 180px; z-index: 1000;">
                                 <a class="dropdown-item" onclick="exportData(); closeToolsDropdown();" style="display: block; padding: 8px 12px; text-decoration: none; color: #333; cursor: pointer;" onmouseover="this.style.backgroundColor='#f8f9fa'" onmouseout="this.style.backgroundColor='white'">
-                                    📤 Export Devices
+                                    📤 {{ _('export_data') }}
                                 </a>
                                 <a class="dropdown-item" onclick="document.getElementById('importFile').click(); closeToolsDropdown();" style="display: block; padding: 8px 12px; text-decoration: none; color: #333; cursor: pointer;" onmouseover="this.style.backgroundColor='#f8f9fa'" onmouseout="this.style.backgroundColor='white'">
-                                    📥 Import Devices
+                                    📥 {{ _('import_data') }}
                                 </a>
                                 <div class="dropdown-divider" style="height: 1px; background: #eee; margin: 4px 0;"></div>
                                 <a class="dropdown-item" onclick="sanitizeData(); closeToolsDropdown();" style="display: block; padding: 8px 12px; text-decoration: none; color: #333; cursor: pointer;" onmouseover="this.style.backgroundColor='#f8f9fa'" onmouseout="this.style.backgroundColor='white'">
-                                    🧹 Clean Sensitive Data
+                                    🧹 {{ _('clear_all_data') }}
                                 </a>
                             </div>
                         </div>
@@ -169,27 +179,27 @@
                     <thead>
                         <tr>
                             <th class="sortable" data-column="ip" data-type="ip">
-                                🌐 IP <span class="sort-indicator"></span>
+                                🌐 {{ _('ip_address') }} <span class="sort-indicator"></span>
                             </th>
                             <th class="sortable" data-column="alias" data-type="text">
-                                🏷️ Alias <span class="sort-indicator"></span>
+                                🏷️ {{ _('alias') }} <span class="sort-indicator"></span>
                             </th>
                             <th class="sortable" data-column="vendor" data-type="text">
-                                🏢 Vendor <span class="sort-indicator"></span>
+                                🏢 {{ _('vendor') }} <span class="sort-indicator"></span>
                             </th>
                             <th class="sortable" data-column="device_type" data-type="text">
-                                📱 Type <span class="sort-indicator"></span>
+                                📱 {{ _('device_type') }} <span class="sort-indicator"></span>
                             </th>
                             <th class="sortable" data-column="mac" data-type="text">
-                                🔌 MAC <span class="sort-indicator"></span>
+                                🔌 {{ _('mac_address') }} <span class="sort-indicator"></span>
                             </th>
                             <th class="sortable" data-column="open_ports" data-type="ports">
-                                🚪 Ports <span class="sort-indicator"></span>
+                                🚪 {{ _('open_ports') }} <span class="sort-indicator"></span>
                             </th>
                             <th class="sortable" data-column="last_seen" data-type="date">
-                                ⏰ Last Seen <span class="sort-indicator"></span>
+                                ⏰ {{ _('last_seen') }} <span class="sort-indicator"></span>
                             </th>
-                            <th>🔧 Actions</th>
+                            <th>🔧 {{ _('actions') }}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -217,54 +227,54 @@
     <div id="editModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 class="modal-title">Cihaz Bilgilerini Düzenle</h2>
+                <h2 class="modal-title">{{ _('edit') }} {{ _('device') }} {{ _('details') }}</h2>
                 <span class="close" onclick="closeEditModal()">&times;</span>
             </div>
             <form id="editForm">
                 <div class="form-group">
-                    <label class="form-label">IP Adresi</label>
+                    <label class="form-label">{{ _('ip_address') }}</label>
                     <input type="text" id="editIpAddress" class="form-input" placeholder="192.168.1.100">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">MAC Adresi</label>
+                    <label class="form-label">{{ _('mac_address') }}</label>
                     <input type="text" id="editMacAddress" class="form-input" placeholder="aa:bb:cc:dd:ee:ff" style="text-transform: lowercase;">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Alias (Özel Ad)</label>
-                    <input type="text" id="editAlias" class="form-input" placeholder="Cihaza özel bir ad verin">
+                    <label class="form-label">{{ _('alias') }}</label>
+                    <input type="text" id="editAlias" class="form-input" placeholder="{{ _('alias') }}">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Hostname</label>
-                    <input type="text" id="editHostname" class="form-input" placeholder="Cihaz hostname'i">
+                    <label class="form-label">{{ _('hostname') }}</label>
+                    <input type="text" id="editHostname" class="form-input" placeholder="{{ _('hostname') }}">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Üretici</label>
-                    <input type="text" id="editVendor" class="form-input" placeholder="Üretici/Marka">
+                    <label class="form-label">{{ _('vendor') }}</label>
+                    <input type="text" id="editVendor" class="form-input" placeholder="{{ _('vendor') }}">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Cihaz Tipi</label>
+                    <label class="form-label">{{ _('device_type') }}</label>
                     <select id="editDeviceType" class="form-input">
-                        <option value="">Cihaz tipi seçin</option>
+                        <option value="">{{ _('device_type') }}</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Notlar</label>
-                    <textarea id="editNotes" class="form-textarea" placeholder="Bu cihaz hakkında notlarınız..."></textarea>
+                    <label class="form-label">{{ _('notes') }}</label>
+                    <textarea id="editNotes" class="form-textarea" placeholder="{{ _('notes') }}"></textarea>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Manuel Port Girişi</label>
+                    <label class="form-label">{{ _('manual_ports') }}</label>
                     <div id="manualPortsContainer">
                         <div class="port-entry">
-                            <input type="number" placeholder="Port (örn: 80)" class="port-input" min="1" max="65535">
-                            <input type="text" placeholder="Açıklama (örn: HTTP)" class="port-desc-input">
+                            <input type="number" placeholder="{{ _('port_number') }}" class="port-input" min="1" max="65535">
+                            <input type="text" placeholder="{{ _('port_description') }}" class="port-desc-input">
                             <button type="button" class="btn btn-danger btn-small" onclick="removePortEntry(this)">🗑️</button>
                         </div>
                     </div>
-                    <button type="button" class="btn btn-secondary btn-small" onclick="addPortEntry()">➕ Port Ekle</button>
+                    <button type="button" class="btn btn-secondary btn-small" onclick="addPortEntry()">➕ {{ _('add_port') }}</button>
                 </div>
                 <div class="form-group">
-                    <button type="button" class="btn btn-primary" onclick="saveDevice()">💾 Kaydet</button>
-                    <button type="button" class="btn btn-secondary" onclick="closeEditModal()" style="margin-left: 10px;">❌ İptal</button>
+                    <button type="button" class="btn btn-primary" onclick="saveDevice()">💾 {{ _('save') }}</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeEditModal()" style="margin-left: 10px;">❌ {{ _('cancel') }}</button>
                 </div>
             </form>
         </div>
