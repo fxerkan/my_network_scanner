@@ -17,7 +17,7 @@ async function loadDeviceTypes() {
         const response = await fetch('/api/config/device_types');
         deviceTypes = await response.json();
     } catch (error) {
-        console.error('Cihaz tipleri yüklenirken hata oluştu:', error);
+        console.error(t('device_types_loading_error'), error);
     }
 }
 
@@ -34,18 +34,19 @@ async function loadScanHistory() {
         updateTimeline();
         
     } catch (error) {
-        console.error('Tarihçe yüklenirken hata oluştu:', error);
+        console.error(t('history_loading_error'), error);
     }
 }
 
 function updateStatistics() {
     const totalScans = scanHistory.length;
-    const totalDevices = scanHistory.reduce((sum, scan) => sum + (scan.total_devices || 0), 0);
-    const avgDevices = totalScans > 0 ? Math.round(totalDevices / totalScans) : 0;
+    const totalDevicesAllScans = scanHistory.reduce((sum, scan) => sum + (scan.total_devices || 0), 0);
+    const lastScanDevices = scanHistory.length > 0 ? (scanHistory[scanHistory.length - 1].total_devices || 0) : 0;
+    const avgDevices = totalScans > 0 ? Math.round(totalDevicesAllScans / totalScans) : 0;
     const lastScanDuration = scanHistory.length > 0 ? Math.round(scanHistory[scanHistory.length - 1].scan_duration || 0) : 0;
 
     document.getElementById('totalScans').textContent = totalScans;
-    document.getElementById('totalDevices').textContent = totalDevices;
+    document.getElementById('totalDevices').textContent = lastScanDevices;
     document.getElementById('avgDevices').textContent = avgDevices;
     document.getElementById('lastScanDuration').textContent = lastScanDuration + 's';
 }
@@ -55,7 +56,7 @@ function updateDeviceTypeChart() {
     deviceTypeChart.innerHTML = '';
 
     if (scanHistory.length === 0) {
-        deviceTypeChart.innerHTML = '<p style="text-align: center; color: #6c757d;">Henüz tarama verisi yok</p>';
+        deviceTypeChart.innerHTML = `<p style="text-align: center; color: #6c757d;">${t('no_scan_data')}</p>`;
         return;
     }
 
@@ -89,7 +90,7 @@ function createDeviceTypePieChart(scanDeviceTypes) {
     
     const total = Object.values(scanDeviceTypes).reduce((sum, count) => sum + count, 0);
     if (total === 0) {
-        pieChart.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #6c757d;">Veri yok</div>';
+        pieChart.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #6c757d;">${t('no_data')}</div>`;
         return;
     }
 
@@ -194,7 +195,7 @@ function updateVendorChart() {
     vendorChart.innerHTML = '';
 
     if (scanHistory.length === 0) {
-        vendorChart.innerHTML = '<p style="text-align: center; color: #6c757d;">Henüz tarama verisi yok</p>';
+        vendorChart.innerHTML = `<p style="text-align: center; color: #6c757d;">${t('no_scan_data')}</p>`;
         return;
     }
 
@@ -234,7 +235,7 @@ function updateTrendChart() {
     controlsContainer.innerHTML = '';
 
     if (scanHistory.length === 0) {
-        trendChart.innerHTML = '<p style="text-align: center; color: #6c757d; padding: 60px;">Henüz tarama verisi yok</p>';
+        trendChart.innerHTML = `<p style="text-align: center; color: #6c757d; padding: 60px;">${t('no_scan_data')}</p>`;
         return;
     }
 
@@ -242,15 +243,15 @@ function updateTrendChart() {
     const recentHistory = scanHistory.slice(-20);
     
     if (recentHistory.length < 2) {
-        trendChart.innerHTML = '<p style="text-align: center; color: #6c757d; padding: 60px;">Trend göstermek için en az 2 tarama gerekli</p>';
+        trendChart.innerHTML = `<p style="text-align: center; color: #6c757d; padding: 60px;">${t('min_scans_for_trend')}</p>`;
         return;
     }
 
     // Metrikler tanımı
     const metrics = [
-        { key: 'total_devices', label: 'Toplam Cihaz', color: '#667eea', active: true },
-        { key: 'online_devices', label: 'Online Cihaz', color: '#43e97b', active: true },
-        { key: 'scan_duration', label: 'Tarama Süresi (s)', color: '#f5576c', active: false }
+        { key: 'total_devices', label: t('total_devices'), color: '#667eea', active: true },
+        { key: 'online_devices', label: t('online_devices'), color: '#43e97b', active: true },
+        { key: 'scan_duration', label: t('scan_duration_seconds'), color: '#f5576c', active: false }
     ];
 
     // Kontrol butonlarını oluştur
@@ -295,7 +296,7 @@ function drawTrendChart(data, metrics) {
     const activeMetrics = metrics.filter(m => m.active);
     
     if (activeMetrics.length === 0) {
-        trendChart.innerHTML = '<p style="text-align: center; color: #6c757d; padding: 60px;">En az bir metrik seçin</p>';
+        trendChart.innerHTML = `<p style="text-align: center; color: #6c757d; padding: 60px;">${t('select_at_least_one_metric')}</p>`;
         return;
     }
 
@@ -488,7 +489,7 @@ function updateHistoryTable() {
     historyTableBody.innerHTML = '';
 
     if (scanHistory.length === 0) {
-        historyTableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #6c757d;">Henüz tarama verisi yok</td></tr>';
+        historyTableBody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #6c757d;">${t('no_scan_data')}</td></tr>`;
         return;
     }
 
@@ -501,7 +502,7 @@ function updateHistoryTable() {
         
         // Trend hesapla (bir önceki tarama ile karşılaştır)
         let trendClass = 'trend-stable';
-        let trendText = 'Stabil';
+        let trendText = t('stable');
         
         if (index < recentHistory.length - 1) {
             const prevScan = recentHistory[index + 1];
@@ -536,7 +537,7 @@ function updateTimeline() {
     scanTimeline.innerHTML = '';
 
     if (scanHistory.length === 0) {
-        scanTimeline.innerHTML = '<p style="text-align: center; color: #6c757d;">Henüz tarama verisi yok</p>';
+        scanTimeline.innerHTML = `<p style="text-align: center; color: #6c757d;">${t('no_scan_data')}</p>`;
         return;
     }
 
@@ -561,13 +562,13 @@ function updateTimeline() {
             <div class="timeline-date">${formattedDate}</div>
             <div class="timeline-content">
                 <div class="timeline-title">
-                    ${scan.total_devices || 0} cihaz bulundu (${scan.online_devices || 0} online)
+                    ${scan.total_devices || 0} ${t('devices_found_timeline')} (${scan.online_devices || 0} ${t('online')})
                 </div>
                 <div class="timeline-details">
-                    <strong>IP Aralığı:</strong> ${scan.ip_range || 'N/A'}<br>
-                    <strong>Tarama Süresi:</strong> ${Math.round(scan.scan_duration || 0)} saniye<br>
-                    ${topDeviceType ? `<strong>En Çok Bulunan Tip:</strong> ${topDeviceType[0]} (${topDeviceType[1]} adet)<br>` : ''}
-                    ${topVendor ? `<strong>En Çok Bulunan Marka:</strong> ${topVendor[0]} (${topVendor[1]} adet)` : ''}
+                    <strong>${t('ip_range')}:</strong> ${scan.ip_range || 'N/A'}<br>
+                    <strong>${t('scan_duration')}:</strong> ${Math.round(scan.scan_duration || 0)} ${t('seconds')}<br>
+                    ${topDeviceType ? `<strong>${t('most_common_device_type')}:</strong> ${topDeviceType[0]} (${topDeviceType[1]} ${t('devices_count')})<br>` : ''}
+                    ${topVendor ? `<strong>${t('most_common_vendor')}:</strong> ${topVendor[0]} (${topVendor[1]} ${t('devices_count')})` : ''}
                 </div>
             </div>
         `;
@@ -588,7 +589,7 @@ function exportHistory() {
 }
 
 async function clearHistory() {
-    if (confirm('Tüm tarama geçmişini silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.')) {
+    if (confirm(t('confirm_clear_history'))) {
         try {
             const response = await fetch('/api/clear_history', {
                 method: 'POST',
@@ -607,12 +608,12 @@ async function clearHistory() {
                 updateTrendChart();
                 updateHistoryTable();
                 updateTimeline();
-                alert('Tarihçe temizlendi!');
+                alert(t('history_cleared'));
             } else {
-                alert('Tarihçe temizlenirken hata oluştu: ' + result.error);
+                alert(t('history_clear_error') + ': ' + result.error);
             }
         } catch (error) {
-            alert('Tarihçe temizlenirken hata oluştu: ' + error.message);
+            alert(t('history_clear_error') + ': ' + error.message);
         }
     }
 }
