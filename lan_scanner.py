@@ -22,7 +22,7 @@ logging.getLogger("scapy").setLevel(logging.ERROR)
 
 import nmap
 # import netifaces  # Use network_utils instead for Docker compatibility
-from network_utils import get_network_interfaces, get_default_gateway, get_local_ip_ranges
+from network_utils import get_network_interfaces, get_default_gateway, get_local_ip_ranges, get_host_network_ranges, is_docker_environment
 import json
 import socket
 import re
@@ -287,6 +287,24 @@ class LANScanner:
         try:
             # Config'den default IP range'i kontrol et
             default_range = self.scan_settings.get('default_ip_range', '192.168.1.0/24')
+            
+            # Docker ortamında host network'leri kullan
+            if is_docker_environment():
+                print("🐳 Docker container detected - scanning host networks")
+                host_ranges = get_host_network_ranges()
+                
+                # Host network'leri arasından en uygun olanı seç
+                for range_info in host_ranges:
+                    if range_info.get('is_host_network') and not range_info.get('is_common_range'):
+                        # Gateway bazlı host network'ü tercih et
+                        print(f"🌐 Host network selected: {range_info['cidr']}")
+                        return range_info['cidr']
+                
+                # Gateway bazlı bulunamazsa, common range'lerden birini seç
+                for range_info in host_ranges:
+                    if range_info.get('is_host_network') and range_info.get('is_common_range'):
+                        print(f"🌐 Common host network selected: {range_info['cidr']}")
+                        return range_info['cidr']
             
             if preferred_interface:
                 # Belirli bir interface tercih edilmişse
@@ -1345,8 +1363,14 @@ class LANScanner:
                 self.devices = loaded_devices
                 return True
             else:
-                print(f"Dosya bulunamadı: {filename}")
-                return False
+                # Ana dosya yoksa sample dosyasını yükle
+                sample_filename = 'data/lan_devices_sample.json'
+                if os.path.exists(sample_filename):
+                    print(f"Ana dosya bulunamadı, sample veriler yükleniyor: {sample_filename}")
+                    return self.load_from_json(sample_filename)
+                else:
+                    print(f"Dosya bulunamadı: {filename}")
+                    return False
         except Exception as e:
             print(f"JSON yükleme hatası: {e}")
             return False

@@ -190,3 +190,69 @@ def get_docker_networks():
         pass
     
     return networks
+
+def get_host_network_ranges():
+    """Get host network ranges even from Docker container"""
+    ranges = []
+    
+    if is_docker_environment():
+        # If in Docker, try to detect host networks through gateway analysis
+        try:
+            import subprocess
+            
+            # Try to get host network via default gateway
+            gateway = get_default_gateway()
+            if gateway:
+                # Assume host is on common networks based on gateway
+                gateway_parts = gateway.split('.')
+                if len(gateway_parts) == 4:
+                    # Common network patterns
+                    host_networks = [
+                        f"{gateway_parts[0]}.{gateway_parts[1]}.{gateway_parts[2]}.0/24",  # Most common
+                        f"{gateway_parts[0]}.{gateway_parts[1]}.0.0/16",  # Larger network
+                    ]
+                    
+                    for network in host_networks:
+                        try:
+                            net = ipaddress.IPv4Network(network)
+                            ranges.append({
+                                'interface': 'host-bridge',
+                                'network': str(net),
+                                'cidr': network,
+                                'ip': gateway,
+                                'is_host_network': True
+                            })
+                        except:
+                            continue
+            
+            # Also try to detect networks through environment or common ranges
+            # Add common private network ranges if in Docker
+            common_ranges = [
+                '192.168.1.0/24',
+                '192.168.0.0/24', 
+                '10.0.0.0/24',
+                '172.16.0.0/24'
+            ]
+            
+            for network in common_ranges:
+                try:
+                    net = ipaddress.IPv4Network(network)
+                    ranges.append({
+                        'interface': 'host-common',
+                        'network': str(net),
+                        'cidr': network,
+                        'ip': str(net.network_address + 1),  # Assume gateway is .1
+                        'is_host_network': True,
+                        'is_common_range': True
+                    })
+                except:
+                    continue
+                    
+        except Exception as e:
+            print(f"Error detecting host networks: {e}")
+    
+    # Add local interfaces too
+    local_ranges = get_local_ip_ranges()
+    ranges.extend(local_ranges)
+    
+    return ranges

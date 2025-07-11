@@ -265,6 +265,19 @@ def test_detailed_analysis():
     """Test sayfası"""
     return send_from_directory('.', 'test_detailed_analysis.html')
 
+@app.route('/static/<path:filename>')
+def static_files(filename):
+    """Serve static files with proper cache control"""
+    response = send_from_directory(os.path.join(app.root_path, 'static'), filename)
+    
+    # Prevent aggressive caching for development and dynamic content
+    if filename.endswith('.js') or filename.endswith('.css'):
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+    
+    return response
+
 @app.route('/favicon.ico')
 def favicon():
     """Serve favicon.ico"""

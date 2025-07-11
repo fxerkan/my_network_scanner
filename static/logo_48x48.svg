@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="48" height="48" viewBox="0 0 48 48" 
+     xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <defs>
+        <style>
+            .emoji { 
+                font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Android Emoji", "EmojiSymbols", sans-serif;
+                font-size: 38.400000000000006px;
+                text-anchor: middle;
+                dominant-baseline: central;
+            }
+            .background {
+                fill: #f8f9fa;
+                stroke: #e9ecef;
+                stroke-width: 1;
+            }
+        </style>
+    </defs>
+    
+    <!-- Background circle -->
+    <circle cx="24" cy="24" r="22" class="background"/>
+    
+    <!-- Globe emoji -->
+    <text x="24" y="24" class="emoji">🌐</text>
+</svg>
