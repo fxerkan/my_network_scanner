@@ -461,6 +461,14 @@ class CredentialManager:
             if not creds:
                 return {'success': False, 'error': 'Credential bulunamadı'}
             
+            return self._test_credentials_direct(ip, access_type, creds)
+            
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+    
+    def _test_credentials_direct(self, ip, access_type, creds):
+        """Verilen credential'ları doğrudan test eder"""
+        try:
             if access_type == 'ssh':
                 return self._test_ssh_credentials(ip, creds)
             elif access_type == 'ftp':
@@ -489,7 +497,7 @@ class CredentialManager:
             try:
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 sock.settimeout(5)
-                port = creds.get('port', 22)
+                port = int(creds.get('port', 22))
                 result = sock.connect_ex((ip, port))
                 sock.close()
                 
@@ -595,7 +603,7 @@ class CredentialManager:
             try:
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 sock.settimeout(5)
-                port = creds.get('port', 21)
+                port = int(creds.get('port', 21))
                 result = sock.connect_ex((ip, port))
                 sock.close()
                 
@@ -618,7 +626,7 @@ class CredentialManager:
                     }
             
             ftp = ftplib.FTP()
-            ftp.connect(ip, creds.get('port', 21))
+            ftp.connect(ip, int(creds.get('port', 21)))
             ftp.login(creds.get('username'), creds.get('password'))
             
             # Basit dizin listesi testi
@@ -725,7 +733,7 @@ class CredentialManager:
         try:
             import socket
             
-            port = creds.get('port', 23)
+            port = int(creds.get('port', 23))
             username = creds.get('username')
             password = creds.get('password')
             

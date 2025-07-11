@@ -37,7 +37,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
 fi
 
 echo "🚀 Uygulama başlatılıyor..."
-echo "📱 Web arayüzü: http://localhost:5003"
+echo "📱 Web arayüzü: http://localhost:5883"
 echo "⏹️  Durdurmak için Ctrl+C kullanın"
 echo ""
 

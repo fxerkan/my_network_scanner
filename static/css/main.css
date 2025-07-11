@@ -1899,6 +1899,44 @@ body {
     text-align: right;
 }
 
+/* Enhanced Edit Modal */
+.enhanced-edit-modal {
+    max-width: 1200px;
+    width: 95vw;
+    max-height: 95vh;
+    height: 90vh;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+}
+
+.enhanced-edit-modal .modal-header {
+    padding: 20px 30px;
+    border-bottom: 1px solid #e9ecef;
+    flex-shrink: 0;
+}
+
+.enhanced-edit-modal .tab-navigation {
+    padding: 0 30px;
+    border-bottom: 1px solid #e9ecef;
+    flex-shrink: 0;
+}
+
+.enhanced-edit-modal .tab-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 30px;
+}
+
+.enhanced-edit-modal .modal-footer {
+    border-top: 1px solid #e9ecef;
+    background: #f8f9fa;
+    padding: 15px 30px;
+    flex-shrink: 0;
+    position: sticky;
+    bottom: 0;
+}
+
 /* Modal Footer */
 .modal-footer {
     padding: 20px;

@@ -1,8 +1,8 @@
-# My Network Scanner (MyNeS) 🌐
+# 🌐 My Network Scanner (MyNeS)
 
 [**Beni Oku (Türkçe)**](README.md) | **Readme (English)**
 
-**My Network Scanner (MyNeS)**, developed with the motto "*Your Family's User-Friendly Network Scanner*", is a professional application that scans all devices in your local network (Router/Modem, Laptop, Tablet, Desktop, Server, IP Camera, Gaming Console, Smart Home Appliances, etc.), collects detailed information about detected devices, and allows you to manage your devices through a user-friendly and easy interface.
+**My Network Scanner (MyNeS)**, developed with the motto "***Your Family's User-Friendly Network Scanner***", is a professional application that scans all devices in your local network (Router/Modem, Laptop, Tablet, Desktop, Server, IP Camera, Gaming Console, Smart Home Appliances, etc.), collects detailed information about detected devices, and allows you to manage your devices through a user-friendly and easy interface.
 
 It simplifies network management with a modern and user-friendly web interface. It offers advanced and detailed scanning, AI-powered device identification, and security features.
 
@@ -12,14 +12,17 @@ It simplifies network management with a modern and user-friendly web interface. 
 
 ## ✨ Features
 
-### 🔍 Comprehensive Network Scanning
-
-- **Automatic Network Discovery**: Automatically determines local network range
-- **ARP Scanning**: Uses ARP protocol for fast device discovery
-- **Advanced Port Scanning**: Comprehensive service detection with 1000+ ports
-- **Device Types**: Automatic detection of routers, computers, phones, cameras, etc.
-- **Docker Integration**: Container and virtual network detection
-- **Multi-Protocol Analysis**: SSH, FTP, HTTP, SNMP support
+- 🌐 **Web-based Interface** - Modern, responsive, user friendly web UI
+- **🔍 Automatic Network Discovery**: Automatically determines local network range
+- **🔬 ARP Scanning**: Uses ARP protocol for fast device discovery
+- **🔌 Advanced Port Scanning**: Comprehensive service detection with 1000+ ports
+- **🖥️ Device Type Detection**: Automatic detection of routers, computers, phones, cameras, etc.
+- **🐳 Docker Integration**: Container and virtual network detection
+- **🔐 Multi-Protocol Analysis**: SSH, FTP, HTTP, SNMP support
+- **📝 Device Management**: Edit device information, add custom attributes, manual ports
+- **🎛️ Export/Import**: Easy JSON-based data exchange for detected devices
+- **📊 History Tracking**: View past scans and statistics
+- 🌍 **Multi-language** - Turkish and English language support
 
 ### 📊 Detailed Device Information
 
@@ -54,21 +57,9 @@ The application automatically determines device type using the following informa
 ### 🔐 Enhanced Security Features
 
 - **Encrypted Credential Storage**: Military-grade Fernet symmetric encryption
-- **PBKDF2-HMAC-SHA256**: Key derivation with 100,000 iterations
 - **Multi-Protocol Access**: SSH, FTP, HTTP, SNMP credential management
-- **Master Password Protection**: Environment variable support
 - **Data Sanitization**: Security-focused data cleaning for export
 - **Secure File Permissions**: Hidden key files with restrictive permissions (600)
-
-### 🌐 Web Interface & Usability
-
-- **Modern Web UI**: Responsive design for all devices
-- **Real-time Updates**: Live progress tracking during scans
-- **Advanced Filtering**: Filter by device type, status, vendor
-- **Smart Search**: Search by IP, MAC, hostname, alias
-- **Export/Import**: JSON-based data exchange
-- **Configuration Management**: Easy settings management
-- **Scan History**: Historical data and statistics
 
 ### 🐳 Docker & Virtualization
 
@@ -77,13 +68,156 @@ The application automatically determines device type using the following informa
 - **Container Information**: Detailed container metadata
 - **Network Isolation**: Container network communication analysis
 
-### 🔄 Data Management
+## 🚀 Quick Start - Docker
 
-- **Unified Device Model**: Consistent data structure across all scan types
-- **Legacy Data Migration**: Automatic upgrade from older formats
-- **Data Validation**: Ensures data integrity and consistency
-- **Background Analysis**: Detailed device analysis with command execution
-- **Bulk Operations**: Mass device management capabilities
+[![Docker Hub](https://img.shields.io/docker/pulls/fxerkan/my_network_scanner.svg)](https://hub.docker.com/r/fxerkan/my_network_scanner)
+[![Docker Image Size](https://img.shields.io/docker/image-size/fxerkan/my_network_scanner/latest)](https://hub.docker.com/r/fxerkan/my_network_scanner)
+
+This image supports both `amd64` and `arm64` architectures.
+
+### 🐳 Docker Compose (Recommended)
+
+```yaml
+services:
+  my-network-scanner:
+    image: fxerkan/my_network_scanner:latest
+    container_name: my-network-scanner
+    ports:
+      - "5883:5883"
+    volumes:
+      - ./data:/app/data
+      - ./config:/app/config
+    environment:
+      - FLASK_ENV=production
+      - LAN_SCANNER_PASSWORD=your-secure-password
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    privileged: true
+```
+
+### 🐳 Docker Run
+
+```bash
+# Pull and run the container
+docker run -d \
+  --name my-network-scanner \
+  --privileged \
+  --cap-add=NET_ADMIN \
+  --cap-add=NET_RAW \
+  -p 5883:5883 \
+  -v $(pwd)/data:/app/data \
+  -v $(pwd)/config:/app/config \
+  -e LAN_SCANNER_PASSWORD=your-secure-password \
+  fxerkan/my_network_scanner:latest
+
+# Access the application
+open http://localhost:5883
+```
+
+## 🛠️ Development
+
+- Python 3.7 or higher
+- Nmap (system-wide installation required)
+- Root/Administrator privileges may be required for port scanning
+- Docker (optional - container detection )
+- SSH/FTP/SNMP tools (advanced detections)
+
+### 1. Nmap Installation
+
+**macOS:**
+
+```bash
+brew install nmap
+```
+
+**Ubuntu/Debian:**
+
+```bash
+sudo apt-get update
+sudo apt-get install nmap
+```
+
+**CentOS/RHEL:**
+
+```bash
+sudo yum install nmap
+```
+
+
+### 2. Code Installation
+
+1. **Clone the repository:**
+
+```bash
+git clone https://github.com/fxerkan/my_network_scanner.git
+cd my_network_scanner
+```
+
+2. Create Virtual Environment
+
+   ```
+   python -m venv .venv
+
+   source .venv/bin/activate
+   ```
+3. **Install dependencies:**
+
+```bash
+pip install -r requirements.txt
+```
+
+3. **Run the application:**
+
+```bash
+python app.py
+# or use the startup script
+./start.sh
+```
+
+4. **Access the web interface:**
+   Open your browser and navigate to `http://localhost:5883`
+
+### Quick Commands
+
+```bash
+# Run network scan (command line)
+python lan_scanner.py
+```
+
+### Configuration
+
+The application supports various configuration options:
+
+```bash
+# Set master password for credential encryption
+export LAN_SCANNER_PASSWORD="your_master_password"
+
+# Custom Flask configuration
+export FLASK_SECRET_KEY="your_secret_key"
+```
+
+## 🔧 Configuration Files
+
+```
+config/
+├── config.json              # Main application settings
+├── device_types.json        # Device type definitions
+├── oui_database.json        # Local OUI database
+├── .salt                    # Cryptographic salt (hidden)
+├── .key_info                # Key derivation info (hidden)
+└── *.csv                    # IEEE CSV files (auto-downloaded)
+
+data/
+├── lan_devices.json        # Device scan results
+├── scan_history.json       # Scan history
+└── backups/                # Automatic backups
+
+locales/<language_code>
+├── translations.json        # Language_Code based Translation texts
+└── device_types.json        # Device Types translations
+```
 
 ## 🛠️ Technical Architecture
 
@@ -113,109 +247,13 @@ The application automatically determines device type using the following informa
 - **Translation Management**: JSON-based translation files
 - **Template Integration**: Jinja2 template support
 
-## 🚀 Quick Start
-
-### Prerequisites
-
-- Python 3.7 or higher
-- Nmap (system-wide installation required)
-- Root/Administrator privileges may be required for port scanning
-
-### Installation
-
-1. **Clone the repository:**
-```bash
-git clone https://github.com/fxerkan/my_network_scanner.git
-cd my_network_scanner
-```
-
-2. **Install dependencies:**
-```bash
-pip install -r requirements.txt
-```
-
-3. **Run the application:**
-```bash
-python app.py
-# or use the startup script
-./start.sh
-```
-
-4. **Access the web interface:**
-Open your browser and navigate to `http://localhost:5003`
-
-### Quick Commands
-
-```bash
-# Start the application
-python app.py
-
-# Run network scan (command line)
-python lan_scanner.py
-
-# Use the startup script (recommended)
-./start.sh
-```
-
-### Configuration
-
-The application supports various configuration options:
-
-```bash
-# Set master password for credential encryption
-export LAN_SCANNER_PASSWORD="your_master_password"
-
-# Custom Flask configuration
-export FLASK_SECRET_KEY="your_secret_key"
-```
-
-## 📋 Usage Guide
-
-### Basic Network Scanning
-
-1. **Start a Scan**: Click "Scan Network" button
-2. **Monitor Progress**: Real-time progress tracking
-3. **View Results**: Devices appear in the table automatically
-4. **Filter & Search**: Use filters to find specific devices
-
-### Device Management
-
-1. **Edit Device**: Click on device IP or edit button
-2. **Add Credentials**: Set SSH, FTP, HTTP access credentials
-3. **Manual Ports**: Add custom ports and descriptions
-4. **Enhanced Analysis**: Run detailed analysis on specific devices
-
-### Advanced Features
-
-1. **Bulk Analysis**: Analyze all devices simultaneously
-2. **Export Data**: Download device information as JSON
-3. **Import Data**: Restore from backup files
-4. **Configuration**: Customize scan settings and detection rules
-
-## 🔧 Configuration Files
-
-```
-config/
-├── config.json              # Main application settings
-├── device_types.json        # Device type definitions
-├── oui_database.json        # Local OUI database
-├── .salt                    # Cryptographic salt (hidden)
-├── .key_info               # Key derivation info (hidden)
-└── *.csv                   # IEEE CSV files (auto-downloaded)
-
-data/
-├── lan_devices.json        # Device scan results
-├── scan_history.json       # Scan history
-└── backups/               # Automatic backups
-```
-
 ## 🛡️ Security Best Practices
 
 - **Network Permissions**: Requires appropriate network scanning rights
 - **Firewall Alerts**: May trigger security software alerts
 - **Authorized Scanning**: Only scan networks you own or have permission to scan
 - **Credential Security**: All credentials encrypted with military-grade encryption
-- **Data Protection**: Sensitive data automatically removed during export
+- **Data Protection**: Sensitive data automatically removed after advanced analysis and during export
 
 ## 🤝 Contributing
 
@@ -225,7 +263,55 @@ We welcome contributions! Please feel free to submit a Pull Request.
 2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
 3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
 4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+5. Open a Pull Request (Claude and GitHub CoPilot Actions will review it )
+
+- **Issues**: [GitHub Issues](https://github.com/fxerkan/my-network-scanner/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/fxerkan/my-network-scanner/discussions)
+
+## 🐛 Troubleshooting
+
+### Docker Common Issues
+
+**Port 5883 already in use:**
+
+```bash
+# Check what's using the port
+sudo lsof -i :5883
+
+# Use different port
+docker run -p 8883:5883 fxerkan/my_network_scanner:latest
+```
+
+**Permission denied for network scanning:**
+
+```bash
+# Ensure privileged mode and capabilities
+docker run --privileged --cap-add=NET_ADMIN --cap-add=NET_RAW fxerkan/my_network_scanner:latest
+```
+
+## 🔄 Release History
+
+### v1.0.1 (2025-07-09)
+
+- ✅ AI destekli cihaz tanıma sistemi
+- ✅ Gelişmiş cihaz analizi (SSH, FTP, HTTP, SNMP)
+- ✅ Güvenli credential yönetimi (AES-256 şifreleme)
+- ✅ Docker container tespiti ve network mapping
+- ✅ Birleşik veri modeli ve tutarlılık
+- ✅ Veri temizleme ve güvenlik özellikleri
+- ✅ Dinamik versiyon yönetimi
+- ✅ 1000+ port ile kapsamlı tarama
+- ✅ Güvenlik analizi ve zafiyet tespiti
+- ✅ Raspberry Pi özel tespiti
+
+### v1.0.0 (2025-07-02)
+
+- ✅ İlk sürüm
+- ✅ ARP ve port taraması
+- ✅ Web arayüzü
+- ✅ Cihaz tipı tespiti
+- ✅ JSON veri depolama
+- ✅ Import/Export özelliği
 
 ## 📄 License
 
@@ -239,17 +325,17 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-- **Claude Code**: AI-assisted development
-- **GitHub Copilot**: Code assistance
-- **IEEE**: OUI database
-- **Nmap**: Network scanning engine
-- **Flask**: Web framework
-- **Python Community**: Libraries and tools
-
-## 📞 Support
-
-For support, questions, or feature requests, please open an issue on GitHub.
+- **[Claude Code](https://www.anthropic.com/claude-code)**: AI-assisted development
+- **[GitHub Copilot](https://github.com/features/copilot)**: Code assistance
+- **[IEEE](https://www.ieee.org/)**: OUI database
+- **[Nmap](https://nmap.org/)**: Network scanning engine
+- **[Flask](https://flask.palletsprojects.com/en/stable/)**: Web framework
+- **[Python](https://www.python.org/)**: Libraries and tools
 
 ---
 
-**My Network Scanner (MyNeS)** - *Your Family's User-Friendly Network Scanner* 🌐
+**Made with ❤️ & 🤖 by [fxerkan](https://github.com/fxerkan)**
+
+**Note:** This tool should only be used for training purpuse on your owned network only.
+
+Scanning other people's networks without permission is illegal, and My Network Scanner (MyNeS) does not recommend or support such use.

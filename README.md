@@ -1,8 +1,8 @@
-# My Network Scanner (MyNeS) 🌐
+# 🌐 My Network Scanner (MyNeS)
 
 **Beni Oku (Türkçe)** | [**Readme (English)**](README_ENG.md)
 
-**My Network Scanner (MyNeS)**, "*Y*our Family's User-Friendly Network Scanner" mottosu ile geliştirilmiş, yerel ağınızdaki tüm cihazları (Router/Modem, Laptop, Tablet, Desktop, Server, IP Camera, Gaming Console, Smart Home Appliances, .....) tarayıp, tespit ettiği cihazlar ile ilgili detaylı bilgileri toplayıp, kullanıcı dostu ve kolay bir arayüz üzerinden cihazlarınızı yönetebilmenizi sağlayan profesyonel bir uygulamadır.
+**My Network Scanner (MyNeS)**, "***Ailenizin Kullanıcı Dostu Ağ Tarayıcısı***" mottosu ile geliştirilmiş, yerel ağınızdaki tüm cihazları (Router/Modem, Laptop, Tablet, Desktop, Server, IP Camera, Gaming Console, Smart Home Appliances, .....) tarayıp, tespit ettiği cihazlar ile ilgili detaylı bilgileri kullanıcı dostu ve kolay bir arayüz üzerinden kolaylıkla yönetebilmenizi sağlayan profesyonel bir uygulamadır.
 
 Modern ve kullanıcı dostu web arayüzü ile ağ yönetimini kolaylaştırır. Gelişmiş ve detaylı tarama, AI destekli cihaz tanıma ve güvenlik özellikleri sunar.
 
@@ -12,14 +12,17 @@ Modern ve kullanıcı dostu web arayüzü ile ağ yönetimini kolaylaştırır. 
 
 ## ✨ Özellikler
 
-### 🔍 Kapsamlı Ağ Taraması
-
-- **Otomatik Ağ Keşfi**: Yerel ağ aralığını otomatik olarak belirler
-- **ARP Taraması**: Hızlı cihaz keşfi için ARP protokolü kullanır
-- **Gelişmiş Port Taraması**: 1000+ port ile kapsamlı servis tespiti
-- **Cihaz Tipleri**: Router, bilgisayar, telefon, kamera vb. otomatik tespit
-- **Docker Entegrasyonu**: Container ve virtual network tespiti
-- **Multi-Protocol Analiz**: SSH, FTP, HTTP, SNMP desteği
+- 🌐 **Web-based Interface** - Modern, kullanıcı dostu Web tabanlı arayüz
+- **🔍 Otomatik Ağ Keşfi**: Yerel ağ aralığını otomatik olarak belirler
+- **🔬 ARP Taraması**: Hızlı cihaz keşfi için ARP protokolü kullanır
+- **🔌 Gelişmiş Port Taraması**: 1000+ port ile kapsamlı servis tespiti
+- **🖥️ Cihaz Tipi Tespiti**: Router, bilgisayar, telefon, kamera vb. otomatik tespit
+- **🐳 Docker Entegrasyonu**: Container ve virtual network tespiti
+- **🔐 Multi-Protocol Analiz**: SSH, FTP, HTTP, SNMP desteği
+- **📝 Cihaz Yönetini**: Cihaz bilgilerini elle değiştirebilme, yeni bilgiler ekleyebilme
+- **🎛️ Yedekleme ve Aktarım**: JSON tabanalı basit ve kolay cihaz bilgilerini yedekleme ve geri yükleme
+- **📊 Geçmiş Tarama Analizi**: Geçmiş tarama sonuçlarını ve istatistiklerini takip edebilme
+- 🌍 **Çoklu Dil Desteği** - Türkçe ve İngilizce dil desteği
 
 ### 📊 Detaylı Cihaz Bilgileri
 
@@ -52,33 +55,9 @@ Uygulama aşağıdaki bilgileri kullanarak cihaz tipini otomatik olarak belirler
 - **Akıllı İsimlendirme**: Otomatik alias ve isim üretimi
 - **Kategori Sınıflandırması**: IoT, Sunucu, Router vb. kategoriler
 
-### 🖥️ Modern Web Arayüzü
-
-- **Modular Tasarım**: CSS, JavaScript ve HTML dosyaları ayrılmış
-- **Responsive Tasarım**: Mobil ve masaüstü uyumlu
-- **Gerçek Zamanlı İlerleme**: Tarama sırasında canlı güncellemeler
-- **Arama ve Filtreleme**: Cihazlarda hızlı arama
-- **Düzenleme**: Cihaz bilgilerini manuel olarak düzenleme
-- **Import/Export**: JSON formatında veri alışverişi
-- **Gelişmiş Analiz Arayüzü**: Detaylı cihaz analizi görünümü
-- **Credential Yönetimi**: Güvenli giriş bilgisi yönetimi
-- **Docker Görselleştirmesi**: Container ve network haritası
-
-### 💾 Veri Yönetimi
-
-- **Organize Dosya Yapısı**: Config ve data dosyaları ayrı dizinlerde
-- **JSON Depolama**: Tüm veriler JSON formatında saklanır
-- **Manuel Düzenleme**: Cihaz bilgilerini web arayüzünden düzenleme
-- **Veri Export/Import**: Verileri yedekleme ve geri yükleme
-- **Kalıcı Depolama**: Tarama sonuçları otomatik olarak kaydedilir
-- **Birleşik Veri Modeli**: Tutarlı veri yapısı ve validasyon
-- **Veri Temizleme**: Güvenli export için hassas veri temizleme
-
 ### 🔐 Güvenlik Özellikleri
 
 - **Şifreli Credential Depolama**: Fernet simetrik şifreleme
-- **PBKDF2 Anahtar Türetme**: 100,000 iterasyon ile güçlü koruma
-- **Master Password Koruması**: Çevre değişkeni desteği
 - **Çok Protokol Desteği**: SSH, FTP, HTTP, SNMP credential'ları
 - **Güvenli Dosya İzinleri**: Gizli dosyalar için kısıtlı erişim
 - **Hassas Veri Temizleme**: Export sırasında otomatik temizleme
@@ -89,11 +68,56 @@ Uygulama aşağıdaki bilgileri kullanarak cihaz tipini otomatik olarak belirler
 - **Network Mapping**: Docker network'leri ve IP atamaları
 - **Virtual Interface**: Docker sanal arayüzleri tespiti
 - **Container Detayları**: Metadata ve yapılandırma bilgileri
-- **Network İzolasyonu**: Container iletişim analizi
 
-## 🛠️ Kurulum
+## 🚀 Hızlı Başlangıç - Docker
 
-### Gereksinimler
+[![Docker Hub](https://img.shields.io/docker/pulls/fxerkan/my_network_scanner.svg)](https://hub.docker.com/r/fxerkan/my_network_scanner)
+[![Docker Image Size](https://img.shields.io/docker/image-size/fxerkan/my_network_scanner/latest)](https://hub.docker.com/r/fxerkan/my_network_scanner)
+
+Bu container imajı  `amd64` ve `arm64` mimarilerinin tümünü destekler.
+
+### 🐳 Docker Compose (Tavsiye Edilen)
+
+```yaml
+services:
+  my-network-scanner:
+    image: fxerkan/my_network_scanner:latest
+    container_name: my-network-scanner
+    ports:
+      - "5883:5883"
+    volumes:
+      - ./data:/app/data
+      - ./config:/app/config
+    environment:
+      - FLASK_ENV=production
+      - LAN_SCANNER_PASSWORD=your-secure-password
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    privileged: true
+```
+
+### 🐳 Docker Run
+
+```bash
+# Pull and run the container
+docker run -d \
+  --name my-network-scanner \
+  --privileged \
+  --cap-add=NET_ADMIN \
+  --cap-add=NET_RAW \
+  -p 5883:5883 \
+  -v $(pwd)/data:/app/data \
+  -v $(pwd)/config:/app/config \
+  -e LAN_SCANNER_PASSWORD=your-secure-password \
+  fxerkan/my_network_scanner:latest
+
+# Access the application
+open http://localhost:5883
+```
+
+## 🛠️ Geliştirme
 
 - Python 3.7+
 - Nmap (sistem seviyesinde kurulu olmalı)
@@ -122,181 +146,88 @@ sudo apt-get install nmap
 sudo yum install nmap
 ```
 
-### 2. Python Bağımlılıkları
+### 2. Kodlama
 
-Virtual environment oluşturun (önerilir):
+1. **Kodu klonla:**
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate  # Linux/macOS
-# veya
-.venv\Scripts\activate     # Windows
+git clone https://github.com/fxerkan/my_network_scanner.git
+cd my_network_scanner
 ```
 
-Gerekli paketleri yükleyin:
+2. **Sanal Ortam oluşturun**
+3. ```bash
+   python -m venv .venv
+
+   source .venv/bin/activate
+   ```
+4. **Bağımlılıkları yükleyin:**
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## 🚀 Kullanım
-
-### Web Arayüzü ile Kullanım
-
-1. **Uygulamayı Başlatın:**
+3. **Uygulamayı çalıştırın:**
 
 ```bash
-source .venv/bin/activate
 python app.py
+# or use the startup script
+./start.sh
 ```
 
-2. **Web Arayüzüne Erişin:**
-   Tarayıcınızda `http://localhost:5003` adresine gidin
-3. **Ağı Tarayın:**
+4. **Web arayüzü erişimi:**
+   `http://localhost:5883` adresinden uygulama arayüzüne erişebilirsiniz.
 
-- "Ağı Tara" butonuna tıklayın
-- Tarama ilerlemesini takip edin
-- Sonuçları inceleyin
-
-### 🔐 Master Password Kurulumu
-
-Güvenli credential depolama için master password ayarlayın:
+### Hızlı Komutlar
 
 ```bash
-export LAN_SCANNER_PASSWORD="your_secure_password"
-```
-
-### 🐳 Docker Desteği
-
-Docker container'larını tespit etmek için Docker'ın kurulu ve çalışır durumda olduğundan emin olun:
-
-```bash
-docker --version
-docker info
-```
-
-### Komut Satırı ile Kullanım
-
-```bash
+# Standart Ağ taraması başlatmak için (CLI)
 python lan_scanner.py
 ```
 
-## 📋 Kullanım Kılavuzu
-
-### Web Arayüzü Özellikleri
-
-#### 🔍 Ağ Taraması
-
-- **Ağı Tara**: Yeni bir ağ taraması başlatır
-- **Gelişmiş Analiz**: Detaylı cihaz analizi yapar
-- **Durdur**: Devam eden taramayı durdurur
-- **Yenile**: Mevcut verileri yeniden yükler
-
-#### 📊 İstatistikler
-
-- Toplam cihaz sayısı
-- Çevrimiçi cihaz sayısı
-- Farklı cihaz tipi sayısı
-- Toplam açık port sayısı
-- Docker container sayısı
-- Güvenlik analizi sonuçları
-
-#### 🔎 Arama ve Filtreleme
-
-Arama kutusunu kullanarak cihazları filtreleyebilirsiniz:
-
-- IP adresi ile arama
-- MAC adresi ile arama
-- Hostname ile arama
-- Cihaz tipi ile arama
-- Üretici firma ile arama
-
-#### ✏️ Cihaz Düzenleme
-
-Her cihaz kartında "Düzenle" butonuna tıklayarak:
-
-- Cihaz adını değiştirebilirsiniz
-- Cihaz tipini manuel olarak ayarlayabilirsiniz
-- Üretici bilgisini düzenleyebilirsiniz
-- Notlar ekleyebilirsiniz
-- Credential bilgilerini güncelleyebilirsiniz
-
-#### 🔐 Credential Yönetimi
-
-Cihazlar için güvenli giriş bilgileri saklayabilirsiniz:
-
-- **SSH**: Kullanıcı adı ve şifre
-- **FTP**: FTP erişim bilgileri
-- **HTTP**: Web arayüzü giriş bilgileri
-- **SNMP**: SNMP topluluk stringleri
-- **Şifreli Depolama**: Tüm bilgiler AES-256 ile şifrelenir
-
-#### 💾 Veri Yönetimi
-
-- **Export**: Tüm cihaz verilerini JSON dosyası olarak indirir
-- **Import**: Önceden export edilmiş JSON dosyasını yükler
-- **Veri Temizleme**: Export sırasında hassas veriler otomatik temizlenir
-- **Birleşik Model**: Tutarlı veri yapısı ile güvenilir depolama
-
-### Desteklenen Cihaz Tipleri
-
-Uygulama aşağıdaki cihaz tiplerini otomatik olarak tespit edebilir:
-
-- 🖥️ **Bilgisayarlar**: Masaüstü, Laptop, Sunucu
-- 📱 **Mobil Cihazlar**: Akıllı telefon, Tablet
-- 🌐 **Ağ Cihazları**: Router, Modem, Switch, Hub
-- 📺 **Eğlence**: Smart TV, Medya oynatıcı
-- 📷 **Güvenlik**: IP Kamera, NVR
-- 🖨️ **Ofis**: Yazıcı, Tarayıcı
-- 💾 **Depolama**: NAS, Dosya sunucusu
-- ☎️ **İletişim**: VoIP telefon, Interkom
-- 🔧 **Geliştirme**: Raspberry Pi, Arduino, IoT cihazları
-- 💻 **Sanallaştırma**: VMware, VirtualBox
-- 🐳 **Container**: Docker, Kubernetes pod'ları
-- 🏢 **Kurumsal**: Sunucu, SAN, Load Balancer
-
-## 🔧 Yapılandırma
-
-### Port Tarama Ayarları
-
-Varsayılan olarak şu portlar taranır:
-
-- **22**: SSH
-- **80, 443, 8080, 8443**: Web servisleri
-- **3389**: Remote Desktop
-- **554, 8554**: RTSP (IP kameralar)
-- **631**: IPP (yazıcılar)
-- **5060, 5061**: SIP (VoIP)
-- **161**: SNMP
-- **21**: FTP
-- **23**: Telnet
-- **Gelişmiş Tarama**: 1000+ port analizi
-
-Port listesini `lan_scanner.py` dosyasında `scan_ports` metodunda değiştirebilirsiniz.
-
-### Ağ Aralığı
-
-Uygulama otomatik olarak yerel ağ aralığını tespit eder. Manuel olarak değiştirmek için `get_local_network` metodunu düzenleyebilirsiniz. Docker network'leri de otomatik olarak algılanır.
-
-### Master Password Yapılandırması
-
-Güvenli credential depolama için master password ayarları:
+### Konfigürasyon
 
 ```bash
-# Çevre değişkeni ile
+# Ana şifreyi Ortam değişki olarak atamak için
 export LAN_SCANNER_PASSWORD="your_master_password"
 
-# Veya program başlatıldığında girilir
+# Flask uygulama ayarları
+export FLASK_SECRET_KEY="your_secret_key"
 ```
 
-### Gelişmiş Analiz Ayarları
+## 📁 Dosya Yapısı
 
-Enhanced Device Analyzer için yapılandırma seçenekleri:
-
-- **Timeout**: Bağlantı zaman aşımı (varsayılan: 10 saniye)
-- **Thread Sayısı**: Paralel analiz thread'leri (varsayılan: 5)
-- **Protokol Desteği**: SSH, FTP, HTTP, SNMP, Telnet
-- **Güvenlik Taraması**: Zafiyet tespiti aktif/pasif
+```
+lan_scanner/
+├── app.py                      # Flask web uygulaması
+├── lan_scanner.py              # Ana tarama modülü
+├── enhanced_device_analyzer.py # Gelişmiş cihaz analizi
+├── smart_device_identifier.py  # AI destekli cihaz tanıma
+├── unified_device_model.py     # Birleşik veri modeli
+├── credential_manager.py       # Güvenli credential yönetimi
+├── docker_manager.py           # Docker container tespiti
+├── version.py                  # Dinamik versiyon yönetimi
+├── data_sanitizer.py           # Güvenli veri temizleme
+├── oui_manager.py              # OUI veritabanı yönetimi
+├── config.py                   # Yapılandırma yönetimi
+├── requirements.txt            # Python bağımlılıkları
+├── config/
+│   ├── config.json            # Ana yapılandırma
+│   ├── device_types.json      # Cihaz tipi tanımları
+│   ├── oui_database.json      # OUI veritabanı
+│   ├── .salt                  # Şifreleme salt'ı (gizli)
+│   └── .key_info              # Anahtar türetme bilgisi (gizli)
+├── data/
+│   ├── lan_devices.json       # Cihaz verileri (birleşik model)
+│   └── scan_history.json      # Tarama geçmişi
+├── locales/<language_code>/
+│   ├── translations.json        # Dil bazlı çeviri tanımları
+│   └── device_types.json        # dillere göre cihaz tipi tanımları
+├── templates/
+│   └── index.html             # Web arayüzü template
+├── static/                    # CSS/JS dosyaları
+└── README.md                  # Bu dosya
+```
 
 ## 🛡️ Güvenlik Notları
 
@@ -334,9 +265,9 @@ nmap --version
 
 #### Web Arayüzüne Erişim Problemi
 
-- Port 5003'ün kullanımda olmadığından emin olun
+- Port `5883`'ün kullanımda olmadığından emin olun
 - Güvenlik duvarı kurallarını kontrol edin
-- `http://127.0.0.1:5003` adresini deneyin
+- `http://127.0.0.1:5883` adresini deneyin
 
 #### Master Password Sorunları
 
@@ -355,37 +286,6 @@ nmap --version
 - Master password doğru girildiğinden emin olun
 - Config dizininin yazılabilir olduğunu kontrol edin
 - Encryption key dosyalarını silin ve yeniden oluşturun
-
-## 📁 Dosya Yapısı
-
-```
-lan_scanner/
-├── app.py                      # Flask web uygulaması
-├── lan_scanner.py              # Ana tarama modülü
-├── enhanced_device_analyzer.py # Gelişmiş cihaz analizi
-├── smart_device_identifier.py  # AI destekli cihaz tanıma
-├── unified_device_model.py     # Birleşik veri modeli
-├── credential_manager.py       # Güvenli credential yönetimi
-├── docker_manager.py           # Docker container tespiti
-├── version.py                  # Dinamik versiyon yönetimi
-├── data_sanitizer.py           # Güvenli veri temizleme
-├── oui_manager.py              # OUI veritabanı yönetimi
-├── config.py                   # Yapılandırma yönetimi
-├── requirements.txt            # Python bağımlılıkları
-├── config/
-│   ├── config.json            # Ana yapılandırma
-│   ├── device_types.json      # Cihaz tipi tanımları
-│   ├── oui_database.json      # OUI veritabanı
-│   ├── .salt                  # Şifreleme salt'ı (gizli)
-│   └── .key_info             # Anahtar türetme bilgisi (gizli)
-├── data/
-│   ├── lan_devices.json       # Cihaz verileri (birleşik model)
-│   └── scan_history.json      # Tarama geçmişi
-├── templates/
-│   └── index.html            # Web arayüzü template
-├── static/                    # CSS/JS dosyaları
-└── README.md                  # Bu dosya
-```
 
 ## 🔄 Güncelleme Geçmişi
 
@@ -415,8 +315,25 @@ lan_scanner/
 
 Bu proje MIT lisansı altında lisanslanmıştır.
 
+## 🔗 Linkler
+
+- **GitHub Repository**: [https://github.com/fxerkan/my_network_scanner](https://github.com/fxerkan/my_network_scanner)
+- **Documentation**: [CLAUDE.md](CLAUDE.md)
+- **Turkish README**: [README.md](README.md)
+
+## 🙏 Teşekkürler
+
+- **[Claude Code](https://www.anthropic.com/claude-code)**: AI-assisted development
+- **[GitHub Copilot](https://github.com/features/copilot)**: Code assistance
+- **[IEEE](https://www.ieee.org/)**: OUI database
+- **[Nmap](https://nmap.org/)**: Network scanning engine
+- **[Flask](https://flask.palletsprojects.com/en/stable/)**: Web framework
+- **[Python](https://www.python.org/)**: Libraries and tools
+
 ---
 
-**Not**: Bu araç sadece eğitim ve kendi ağınızdaki cihazlar hakkında bilgi sahibi olmak amacıyla kullanılmalıdır.
+**[fxerkan](https://github.com/fxerkan) tarafında sevgi ve yapay zekas desteği ile geliştirilmiştir - Made with ❤️ & 🤖 by [fxerkan](https://github.com/fxerkan)**
+
+**Not**: Bu araç sadece eğitim amacıyla ve sadece kendi ağınızdaki cihazlar hakkında bilgi sahibi olmak amacıyla kullanılmalıdır.
 
 Başkalarının ağlarını izinsiz taramak yasalara aykırıdır, My Network Scanner (MyNeS) bu tip kullanımları önermez ve desteklemez.

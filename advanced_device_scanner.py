@@ -18,7 +18,8 @@ from ipaddress import ip_address, ip_network
 import dns.resolver
 import dns.reversename
 import psutil
-import netifaces
+# import netifaces  # Use network_utils instead for Docker compatibility
+from network_utils import get_network_interfaces, get_default_gateway
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 class AdvancedDeviceScanner:
@@ -627,18 +628,15 @@ class AdvancedDeviceScanner:
         """Subnet bilgilerini alma"""
         try:
             # Local network interfaces kontrol et
-            for interface in netifaces.interfaces():
-                addrs = netifaces.ifaddresses(interface)
-                if netifaces.AF_INET in addrs:
-                    for addr in addrs[netifaces.AF_INET]:
-                        if 'addr' in addr and 'netmask' in addr:
-                            network = ip_network(f"{addr['addr']}/{addr['netmask']}", strict=False)
-                            if ip_address(ip) in network:
-                                return {
-                                    'network': str(network),
-                                    'interface': interface,
-                                    'local_ip': addr['addr']
-                                }
+            interfaces = get_network_interfaces()
+            for interface_info in interfaces:
+                network = ip_network(f"{interface_info['ip']}/{interface_info['netmask']}", strict=False)
+                if ip_address(ip) in network:
+                    return {
+                        'network': str(network),
+                        'interface': interface_info['name'],
+                        'local_ip': interface_info['ip']
+                    }
         except:
             pass
         return {}
@@ -646,9 +644,7 @@ class AdvancedDeviceScanner:
     def get_gateway_info(self, ip):
         """Gateway bilgilerini alma"""
         try:
-            gateways = netifaces.gateways()
-            if 'default' in gateways and netifaces.AF_INET in gateways['default']:
-                return gateways['default'][netifaces.AF_INET][0]
+            return get_default_gateway()
         except:
             pass
         return None
@@ -656,14 +652,11 @@ class AdvancedDeviceScanner:
     def get_interface_info(self, ip):
         """Interface bilgilerini alma"""
         try:
-            for interface in netifaces.interfaces():
-                addrs = netifaces.ifaddresses(interface)
-                if netifaces.AF_INET in addrs:
-                    for addr in addrs[netifaces.AF_INET]:
-                        if 'addr' in addr and 'netmask' in addr:
-                            network = ip_network(f"{addr['addr']}/{addr['netmask']}", strict=False)
-                            if ip_address(ip) in network:
-                                return interface
+            interfaces = get_network_interfaces()
+            for interface_info in interfaces:
+                network = ip_network(f"{interface_info['ip']}/{interface_info['netmask']}", strict=False)
+                if ip_address(ip) in network:
+                    return interface_info['name']
         except:
             pass
         return None

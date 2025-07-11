@@ -14,7 +14,9 @@ class LanguageManager:
         self.default_language = 'tr'
         self.supported_languages = ['tr', 'en']
         self.translations = {}
+        self.device_types = {}
         self.load_translations()
+        self.load_device_types()
     
     def load_translations(self):
         """Load all translation files"""
@@ -31,6 +33,22 @@ class LanguageManager:
             except Exception as e:
                 print(f"❌ Error loading translations for {lang}: {e}")
                 self.translations[lang] = {}
+    
+    def load_device_types(self):
+        """Load device type translations"""
+        for lang in self.supported_languages:
+            device_types_file = f"locales/{lang}/device_types.json"
+            try:
+                if os.path.exists(device_types_file):
+                    with open(device_types_file, 'r', encoding='utf-8') as f:
+                        self.device_types[lang] = json.load(f)
+                        print(f"✅ {lang.upper()} device types loaded: {len(self.device_types[lang])} entries")
+                else:
+                    print(f"⚠️ Device types file not found: {device_types_file}")
+                    self.device_types[lang] = {}
+            except Exception as e:
+                print(f"❌ Error loading device types for {lang}: {e}")
+                self.device_types[lang] = {}
     
     def get_current_language(self):
         """Get current language from session or browser preference"""
@@ -80,6 +98,21 @@ class LanguageManager:
             language = self.get_current_language()
         
         return self.translations.get(language, {})
+    
+    def get_device_type_translation(self, device_type, language=None):
+        """Get device type translation"""
+        if language is None:
+            language = self.get_current_language()
+        
+        if language in self.device_types:
+            return self.device_types[language].get(device_type, device_type)
+        
+        # Fallback to default language
+        if self.default_language in self.device_types:
+            return self.device_types[self.default_language].get(device_type, device_type)
+        
+        # Last resort: return the original
+        return device_type
     
     def get_language_info(self):
         """Get information about available languages"""

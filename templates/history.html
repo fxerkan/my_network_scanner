@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="{{ current_language }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Network Scanner (MyNeS) - Tarihçe ve İstatistikler</title>
+    <title>{{ _('app_title') }} - {{ _('history_title') }}</title>
     
     <!-- External CSS Files -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
@@ -12,10 +12,20 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>📊 My Network Scanner (MyNeS) - Tarihçe ve İstatistikler</h1>
+            <h1>📊 {{ _('app_title') }} - {{ _('history_title') }}</h1>
             <div class="nav-buttons">
-                <a href="/" class="nav-btn">🏠 Home</a>
-                <a href="/config" class="nav-btn">🔧 Settings</a>
+                <a href="/" class="nav-btn">🌐 {{ _('home') }}</a>
+                <a href="/config" class="nav-btn">🔧 {{ _('settings') }}</a>
+                <!-- Language Switcher -->
+                <div class="language-switcher" style="display: inline-block; margin-left: 10px;">
+                    <select id="languageSelect" onchange="changeLanguage(this.value)" style="padding: 8px 12px; border-radius: 4px; border: 1px solid #ddd; background-color: #343a40; color: white; font-size: 14px;">
+                        {% for lang_code in language_info.supported %}
+                            <option value="{{ lang_code }}" {% if lang_code == current_language %}selected{% endif %}>
+                                {{ language_info.flags[lang_code] }} {{ language_info.names[lang_code] }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
             </div>
         </div>
 
@@ -24,33 +34,33 @@
             <div class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-number" id="totalScans">0</div>
-                    <div class="stat-label">Total Scans</div>
+                    <div class="stat-label">{{ _('total_scans') }}</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-number" id="totalDevices">0</div>
-                    <div class="stat-label">Detected (Unique) Devices</div>
+                    <div class="stat-label">{{ _('detected_unique_devices') }}</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-number" id="avgDevices">0</div>
-                    <div class="stat-label">Average Devices/Scan</div>
+                    <div class="stat-label">{{ _('average_devices_scan') }}</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-number" id="lastScanDuration">0s</div>
-                    <div class="stat-label">Last Scan Duration</div>
+                    <div class="stat-label">{{ _('last_scan_duration') }}</div>
                 </div>
             </div>
 
             <!-- Cihaz Tipleri ve Üretici Dağılımı (Yan Yana) -->
             <div class="charts-row">
                 <div class="chart-container">
-                    <h3 class="chart-title">📱 Cihaz Tipleri Dağılımı (Son Tarama)</h3>
+                    <h3 class="chart-title">📱 {{ _('device_types_distribution') }}</h3>
                     <div class="device-type-chart" id="deviceTypeChart">
                         <!-- JavaScript ile doldurulacak -->
                     </div>
                 </div>
 
                 <div class="chart-container">
-                    <h3 class="chart-title">🏭 Üretici Dağılımı (Son Tarama)</h3>
+                    <h3 class="chart-title">🏭 {{ _('vendor_distribution') }}</h3>
                     <div class="vendor-chart" id="vendorChart">
                         <!-- JavaScript ile doldurulacak -->
                     </div>
@@ -59,7 +69,7 @@
 
             <!-- Tarama Trend Grafiği -->
             <div class="chart-container">
-                <h3 class="chart-title">📈 Tarama Trend Grafiği (Son 20 Tarama)</h3>
+                <h3 class="chart-title">📈 {{ _('scan_trend_chart') }}</h3>
                 <div class="trend-chart-container">
                     <div class="trend-chart-controls" id="trendChartControls">
                         <!-- JavaScript ile doldurulacak -->
@@ -73,21 +83,21 @@
 
             <!-- Tarama Geçmişi -->
             <div class="chart-container">
-                <h3 class="chart-title">📋 Tarama Geçmişi</h3>
+                <h3 class="chart-title">📋 {{ _('scan_history') }}</h3>
                 <div style="margin-bottom: 15px;">
-                    <button class="btn btn-secondary" onclick="exportHistory()">📤 Tarihçe Export Et</button>
-                    <button class="btn btn-secondary" onclick="clearHistory()" style="margin-left: 10px;">🗑️ Tarihçe Temizle</button>
+                    <button class="btn btn-secondary" onclick="exportHistory()">📤 {{ _('export_history') }}</button>
+                    <button class="btn btn-secondary" onclick="clearHistory()" style="margin-left: 10px;">🗑️ {{ _('clear_history') }}</button>
                 </div>
                 
                 <table class="history-table">
                     <thead>
                         <tr>
-                            <th>Tarih/Saat</th>
-                            <th>IP Aralığı</th>
-                            <th>Toplam Cihaz</th>
-                            <th>Online Cihaz</th>
-                            <th>Süre</th>
-                            <th>Trend</th>
+                            <th>{{ _('date_time') }}</th>
+                            <th>{{ _('ip_range') }}</th>
+                            <th>{{ _('total_device') }}</th>
+                            <th>{{ _('online_device') }}</th>
+                            <th>{{ _('duration') }}</th>
+                            <th>{{ _('trend') }}</th>
                         </tr>
                     </thead>
                     <tbody id="historyTableBody">
@@ -98,7 +108,7 @@
 
             <!-- Zaman Çizelgesi -->
             <div class="chart-container">
-                <h3 class="chart-title">⏰ Detaylı Tarama Zaman Çizelgesi</h3>
+                <h3 class="chart-title">⏰ {{ _('detailed_scan_timeline') }}</h3>
                 <div class="scan-timeline" id="scanTimeline">
                     <!-- JavaScript ile doldurulacak -->
                 </div>
@@ -106,7 +116,46 @@
         </div>
     </div>
 
+    <!-- Footer -->
+    <footer style="
+        background: linear-gradient(45deg, #2c3e50, #34495e);
+        color: white;
+        text-align: center;
+        padding: 15px;
+        margin-top: 20px;
+        border-radius: 15px;
+        min-height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    ">
+        <div style="display: flex; justify-content: center; align-items: center; gap: 20px; flex-wrap: wrap;">
+            <div>
+                <strong>My Network Scanner (MyNeS)</strong> <span id="appVersion">v1.0.0</span>
+            </div>
+            <div>|</div>
+            <div>
+                Your Family's User-Friendly Network Scanner
+            </div>
+            <div>|</div>
+            <div>
+                <a href="https://github.com/fxerkan/my-network-scanner" target="_blank" style="
+                    color: #74b9ff;
+                    text-decoration: none;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 5px;
+                    transition: color 0.3s ease;
+                " onmouseover="this.style.color='#0984e3'" onmouseout="this.style.color='#74b9ff'">
+                    🐙 github.com/fxerkan/my-network-scanner
+                </a>
+            </div>
+        </div>
+    </footer>
+
     <!-- External JavaScript Files -->
+    <script src="{{ url_for('static', filename='js/translations.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/shared-footer.js') }}"></script>
     <script src="{{ url_for('static', filename='js/history.js') }}"></script>
 </body>
 </html>
