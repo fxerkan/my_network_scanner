@@ -9,7 +9,15 @@ import os
 from datetime import datetime
 
 # Fallback version if git is not available
-FALLBACK_VERSION = "1.0.2"
+FALLBACK_VERSION = "1.0.4"
+
+def is_docker_environment():
+    """Check if running in Docker container"""
+    try:
+        with open('/proc/1/cgroup', 'r') as f:
+            return 'docker' in f.read() or 'containerd' in f.read()
+    except:
+        return False
 
 def get_git_version():
     """Git tag'larından versiyon bilgisini al"""
@@ -93,6 +101,10 @@ def is_git_dirty():
 
 def get_version():
     """Ana versiyon fonksiyonu - dinamik versiyon döndürür"""
+    # Docker ortamında ve git yoksa direkt fallback kullan
+    if is_docker_environment() and not os.path.exists('.git'):
+        return FALLBACK_VERSION
+    
     git_version = get_git_version()
     
     if git_version:
