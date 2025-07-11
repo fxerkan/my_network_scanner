@@ -78,11 +78,17 @@ Open your browser and navigate to:
 services:
   my-network-scanner:
     build: .
+    image: fxerkan/my_network_scanner:latest
+    container_name: my-network-scanner
     ports:
       - "5883:5883"
     volumes:
       - ./data:/app/data      # Persistent scan data
       - ./config:/app/config  # Configuration files
+    # Use bridge network with privileged mode for scanning
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
     network_mode: host        # Required for network scanning
     privileged: true          # Required for nmap
 ```
@@ -232,7 +238,7 @@ jobs:
         registry: ${{ env.REGISTRY }}
         username: ${{ secrets.DOCKER_HUB_USERNAME }}
         password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
-    
+  
     - name: Extract metadata
       id: meta
       uses: docker/metadata-action@v5
@@ -244,7 +250,7 @@ jobs:
           type=semver,pattern={{version}}
           type=semver,pattern={{major}}.{{minor}}
           type=raw,value=latest,enable={{is_default_branch}}
-      
+    
     - name: Build and push Docker image
       uses: docker/build-push-action@v5
       with:
@@ -360,7 +366,7 @@ http {
     server {
         listen 80;
         server_name your-domain.com;
-    
+  
         location / {
             proxy_pass http://app;
             proxy_set_header Host $host;
