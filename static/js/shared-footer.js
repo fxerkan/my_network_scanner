@@ -62,7 +62,7 @@ class FooterManager {
                     </div>
                     <div>|</div>
                     <div>
-                        <a href="https://github.com/fxerkan/my-network-scanner" target="_blank" style="
+                        <a href="https://github.com/fxerkan/my_network_scanner" target="_blank" style="
                             color: #74b9ff;
                             text-decoration: none;
                             display: inline-flex;
@@ -70,7 +70,7 @@ class FooterManager {
                             gap: 5px;
                             transition: color 0.3s ease;
                         " onmouseover="this.style.color='#0984e3'" onmouseout="this.style.color='#74b9ff'">
-                            🐙 github.com/fxerkan/my-network-scanner
+                            🐙 github.com/fxerkan/my_network_scanner
                         </a>
                     </div>
                 </div>

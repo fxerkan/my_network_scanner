@@ -4,15 +4,14 @@ FROM python:3.11-slim AS base
 # Metadata for Docker Hub
 LABEL maintainer="fxerkan <fxerkan@gmail.com>"
 LABEL description="My Network Scanner (MyNeS) - Your Family's User-Friendly Network Scanner"
-LABEL version="1.0.2"
-LABEL url="https://github.com/fxerkan/my-network-scanner"
+LABEL url="https://github.com/fxerkan/my_network_scanner"
 LABEL license="MIT"
-LABEL homepage="https://github.com/fxerkan/my-network-scanner"
+LABEL homepage="https://github.com/fxerkan/my_network_scanner"
 LABEL org.opencontainers.image.title="My Network Scanner (MyNeS)"
 LABEL org.opencontainers.image.description="A comprehensive LAN scanner application with web interface, device discovery, and analysis capabilities"
 LABEL org.opencontainers.image.authors="fxerkan"
-LABEL org.opencontainers.image.url="https://github.com/fxerkan/my-network-scanner"
-LABEL org.opencontainers.image.source="https://github.com/fxerkan/my-network-scanner"
+LABEL org.opencontainers.image.url="https://github.com/fxerkan/my_network_scanner"
+LABEL org.opencontainers.image.source="https://github.com/fxerkan/my_network_scanner"
 LABEL org.opencontainers.image.licenses="MIT"
 
 # Install system dependencies including build tools
