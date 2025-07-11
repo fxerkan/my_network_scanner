@@ -815,6 +815,20 @@ ama normal şekilde python app.py ile çalıştırınca sorunsuz çalışıyor u
 ** FX - ToDos **
 ================
 
+ > 1.herhangibir PR merge edildiğinde (autobuilds ile)  otomatik olarak Docker Image'nın da hem Latest hemde Versiyon numarası ile (vx.x.x) birlikte oluşturulup Docker Hub'a push edilmesini istiyorum.\                                                                           │
+│   Şu anda ilginç bir şekilde "latest" ve "main" şeklinde 2 tane versiyon atıyor gibi görünüyor ki "main" adlı versiyon nedir, neden böyle birşey oluşturuyor ki? Docker Hub'da eğer zorunlu değilse bu "main" olan versiyona gerek yok.\\                                          │
+│   [Image #3]                                                                                                                                                                                                                                                                       │
+│   \                                                                                                                                                                                                                                                                                │
+│   2. Docker Hub'ın Overview alanında normalde autobuild aktif ise Repo içerisinde ki README.md dosyasını baz alır diyor ama ben şu anda public url'e baktığımda Overiew'da hiçbirşey görünmüyor !, bunu düzelt, eğer Github Reposundaki README.md yi kullanamıyorsa o zaman        │
+│   README_ENG.md dekine benzer şekilde çok daha sadece ve kaynak olarak Github Repo url'ini belirtecek şekilde bir Overview içeriği oluştur ve Docker Hub Overview ı güncelle.\                                                                                                     │
+│   [Image #1] [Image #2]  \                                                                                                                                                                                                                                                         │
+│   3. Eğer herhangibir değişiklik vs. yapman gerekiyorsa bunun için ayrı bir branch aç, değişiklikleri ve kontrollerini yapıp commit mesajını oluşturup PR aç.\                                                                                                                     │
+│   4. Github reposunda da v1.0.3 olacak şekilde bir Release oluşturmak istiyorum ama bu şekilde bir Tag ve Release branch açılmıştı daha önce. Bunun için ne yapabilirim yada v1.0.4 adlı tümüyle yeni bir branch, tag oluşturup mu ilerlemek lazım? tüm değişikliklerini bunu göz  │
+│   önünde bulundururak yap.\                                                                                                                                                                                                                                                        │
+│   5. Readme ve readme_eng.md dosyalarında Docker Image size, pulls sayısı gibi şeyleri gösteren linklerdec "docker pulls" kısmı "por not found" hatası gösteriyor ama repo var, tıklayınca açıyor, sorunu düzelt.    
+
+
+
 1. ***ESKİDEN ÇALIŞAN*** özellikler yine bozulmuş yada çalışmaz olmuş gibi görünüyor. 
 Gelişmiş Cihaz analizi işleminin sonucunda Erişim Bilgileri girilen bir cihaz için açık olan tüm portları bulup eklerdi.
 Ancak şu anda bu işlemi yapmıyor !
