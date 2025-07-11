@@ -1,0 +1,15 @@
+flask==3.0.0
+python-nmap==0.7.1
+requests==2.31.0
+# Using psutil instead of netifaces for network interface detection (Docker-compatible)
+psutil>=5.9.0
+scapy==2.5.0
+mac-vendor-lookup==0.1.12
+dnspython>=2.3.0
+paramiko>=3.0.0
+paho-mqtt>=1.6.0
+pysnmp>=4.4.12
+# Additional dependencies for Docker environment
+cryptography>=3.4.8
+# Optional: Add netifaces if build tools are available
+# netifaces==0.11.0

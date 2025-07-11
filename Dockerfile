@@ -1,0 +1,64 @@
+# Multi-stage Docker build for My Network Scanner (MyNeS)
+FROM python:3.11-slim AS base
+
+# Metadata for Docker Hub
+LABEL maintainer="fxerkan <fxerkan@gmail.com>"
+LABEL description="My Network Scanner (MyNeS) - Your Family's User-Friendly Network Scanner"
+LABEL version="1.0.2"
+LABEL url="https://github.com/fxerkan/my-network-scanner"
+LABEL license="MIT"
+LABEL homepage="https://github.com/fxerkan/my-network-scanner"
+LABEL org.opencontainers.image.title="My Network Scanner (MyNeS)"
+LABEL org.opencontainers.image.description="A comprehensive LAN scanner application with web interface, device discovery, and analysis capabilities"
+LABEL org.opencontainers.image.authors="fxerkan"
+LABEL org.opencontainers.image.url="https://github.com/fxerkan/my-network-scanner"
+LABEL org.opencontainers.image.source="https://github.com/fxerkan/my-network-scanner"
+LABEL org.opencontainers.image.licenses="MIT"
+
+# Install system dependencies including build tools
+RUN apt-get update && apt-get install -y \
+    nmap \
+    iputils-ping \
+    net-tools \
+    iproute2 \
+    curl \
+    git \
+    build-essential \
+    python3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Copy requirements first for better caching
+COPY requirements-docker.txt requirements.txt ./
+
+# Install Python dependencies (try docker-specific first, fallback to regular)
+RUN pip install --no-cache-dir -r requirements-docker.txt || \
+    pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY . .
+
+# Create necessary directories
+RUN mkdir -p config data static/js static/css templates
+
+# Set environment variables
+ENV FLASK_APP=app.py
+ENV FLASK_ENV=production
+ENV PYTHONUNBUFFERED=1
+
+# Create non-root user for security
+RUN useradd -m -u 1000 scanner && \
+    chown -R scanner:scanner /app
+USER scanner
+
+# Expose port
+EXPOSE 5883
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:5883/api/version || exit 1
+
+# Run the application
+CMD ["python", "app.py"]

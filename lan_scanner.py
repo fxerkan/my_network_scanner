@@ -21,7 +21,8 @@ os.environ['SCAPY_VERBOSE'] = '0'
 logging.getLogger("scapy").setLevel(logging.ERROR)
 
 import nmap
-import netifaces
+# import netifaces  # Use network_utils instead for Docker compatibility
+from network_utils import get_network_interfaces, get_default_gateway, get_local_ip_ranges
 import json
 import socket
 import re
@@ -100,37 +101,31 @@ class LANScanner:
         """Mevcut tüm ağ arayüzlerini ve IP aralıklarını döndürür (Docker network'leri dahil)"""
         networks = []
         try:
-            # Standart network interface'leri kontrol et
-            for interface in netifaces.interfaces():
+            # Use network_utils to get interfaces
+            interfaces = get_network_interfaces()
+            for interface_info in interfaces:
+                interface = interface_info['name']
+                ip = interface_info['ip']
+                netmask = interface_info['netmask']
+                
                 # Sanal ve kullanılmayan interface'leri atla
                 if (interface.startswith('anpi') or interface.startswith('utun') or 
                     interface.startswith('ipsec') or interface.startswith('llw') or
                     interface.startswith('awdl')):
                     continue
                 
-                try:
-                    addrs = netifaces.ifaddresses(interface)
-                    if netifaces.AF_INET in addrs:
-                        for addr in addrs[netifaces.AF_INET]:
-                            if 'addr' in addr and 'netmask' in addr:
-                                ip = addr['addr']
-                                netmask = addr['netmask']
-                                
-                                # Loopback ve link-local adresleri atla
-                                if ip.startswith('127.') or ip.startswith('169.254.'):
-                                    continue
-                                
-                                network_range = self._get_network_range(ip, netmask)
-                                networks.append({
-                                    'interface': interface,
-                                    'ip': ip,
-                                    'netmask': netmask,
-                                    'network_range': network_range,
-                                    'type': self._get_interface_type(interface)
-                                })
-                except Exception as interface_error:
-                    # Interface specific hatalarını gizle
-                    pass
+                # Loopback ve link-local adresleri atla
+                if ip.startswith('127.') or ip.startswith('169.254.'):
+                    continue
+                
+                network_range = self._get_network_range(ip, netmask)
+                networks.append({
+                    'interface': interface,
+                    'ip': ip,
+                    'netmask': netmask,
+                    'network_range': network_range,
+                    'type': self._get_interface_type(interface)
+                })
             
             # Docker network'lerini ekle
             docker_networks = self.get_docker_networks()
@@ -301,24 +296,17 @@ class LANScanner:
                         return network.get('network_range', default_range)
             
             # Default gateway'i bul
-            gateways = netifaces.gateways()
-            if 'default' in gateways and netifaces.AF_INET in gateways['default']:
-                gateway_info = gateways['default'][netifaces.AF_INET]
-                if gateway_info and len(gateway_info) > 0:
-                    default_gateway = gateway_info[0]
+            default_gateway = get_default_gateway()
+            if default_gateway:
+                # Aktif network interface'leri kontrol et
+                interfaces = get_network_interfaces()
+                for interface_info in interfaces:
+                    ip = interface_info['ip']
+                    netmask = interface_info['netmask']
                     
-                    # Aktif network interface'leri kontrol et
-                    for interface in netifaces.interfaces():
-                        addrs = netifaces.ifaddresses(interface)
-                        if netifaces.AF_INET in addrs:
-                            for addr in addrs[netifaces.AF_INET]:
-                                if 'addr' in addr and 'netmask' in addr:
-                                    ip = addr['addr']
-                                    netmask = addr['netmask']
-                                    
-                                    # Bu IP aralığında gateway var mı kontrol et
-                                    if self._is_ip_in_range(default_gateway, ip, netmask):
-                                        return self._get_network_range(ip, netmask)
+                    # Bu IP aralığında gateway var mı kontrol et
+                    if self._is_ip_in_range(default_gateway, ip, netmask):
+                        return self._get_network_range(ip, netmask)
             
             return default_range
         except Exception as e:
@@ -347,39 +335,41 @@ class LANScanner:
         """Yerel makinenin tüm ağ arayüzlerini tespit eder"""
         local_interfaces = []
         try:
-            for interface in netifaces.interfaces():
+            # Use network_utils to get interfaces
+            interfaces = get_network_interfaces()
+            for interface_info in interfaces:
+                interface = interface_info['name']
+                ip = interface_info['ip']
+                
                 # Sanal ve kullanılmayan interface'leri atla
                 if (interface.startswith('anpi') or interface.startswith('utun') or 
                     interface.startswith('ipsec') or interface.startswith('llw') or
                     interface.startswith('awdl') or interface.startswith('lo')):
                     continue
                 
-                try:
-                    addrs = netifaces.ifaddresses(interface)
-                    if netifaces.AF_INET in addrs:
-                        for addr in addrs[netifaces.AF_INET]:
-                            if 'addr' in addr:
-                                ip = addr['addr']
-                                # Loopback ve link-local adresleri atla
-                                if ip.startswith('127.') or ip.startswith('169.254.'):
-                                    continue
-                                
-                                # MAC adresini al
-                                mac_addr = 'Unknown'
-                                if netifaces.AF_LINK in addrs:
-                                    for link_addr in addrs[netifaces.AF_LINK]:
-                                        if 'addr' in link_addr and link_addr['addr']:
-                                            mac_addr = link_addr['addr']
-                                            break
-                                
-                                local_interfaces.append({
-                                    'interface': interface,
-                                    'ip': ip,
-                                    'mac': mac_addr,
-                                    'type': self._get_interface_type(interface)
-                                })
-                except Exception:
+                # Loopback ve link-local adresleri atla
+                if ip.startswith('127.') or ip.startswith('169.254.'):
                     continue
+                
+                # MAC adresini al (psutil kullanarak)
+                mac_addr = 'Unknown'
+                try:
+                    import psutil
+                    net_if_addrs = psutil.net_if_addrs()
+                    if interface in net_if_addrs:
+                        for addr in net_if_addrs[interface]:
+                            if addr.family == psutil.AF_LINK:
+                                mac_addr = addr.address
+                                break
+                except:
+                    pass
+                
+                local_interfaces.append({
+                    'interface': interface,
+                    'ip': ip,
+                    'mac': mac_addr,
+                    'type': self._get_interface_type(interface)
+                })
         except Exception as e:
             print(f"Yerel interface tarama hatası: {e}")
         

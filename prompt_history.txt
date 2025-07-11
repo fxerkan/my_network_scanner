@@ -683,11 +683,153 @@ WiFi IP : 192.168.1.88
 WiFi MAC : 1e:48:ac:87:1c:13
 
 
+----
 
+
+Uygulamayı Multi-Language (multi-lingual) olacak şekilde düzenle.
+Şimdilik sadece "English" ve "Türkçe" versiyonları ve her bir ekran, label için kolaylıkla tanım ve açıklamaların girilip yönetilebileceği şekilde olsun.
+Uygulamanın sağ üst köşesinde bir ikon ile tüm kullanıcı arayüzü dili değiştirilebilmeli.
+
+Ayrıca README.md dosyası Türkçe olarak kalmalı.
+README_ENG.md şeklinde ayrıca bir dosya da README.MD de ki içeriğin tümüyle İngilizce halini bulundurmalı.
+Her iki Readme dosyasının en üst kısmında "Beni Oku (Türkçe)" | "Readme (English)" şeklinde linkeler olmalı.
+
+bu geliştirme sonrasında v1.0.1'den 1.0.2 olarak güncelle.
+
+---
+
+
+│ > 1. ana sayfa için multi-lingual desteği eklenmiş ama diğer sayfalarda bu özellik yok. config, history gibi sayfalarda da Dil Seçimi ve multi-lingual desteği olması  │
+│   şart. aynı şekilde açılan Modal (popup window), modal içerisinde tüm TAB pageler, uyarı mesajları, toaster gibi notification alanları da multi-lingual olmalı        │
+│   kesinlikle.                                                                                                                                                          │
+│                                                                                                                                                                        │
+│   2. ana sayfa >  Filtre panelinde ki Dropdown'lar içerisinde halen "All" şeklinde görünen kayıtlar var ki olmamalı. hem UI hem Javascript ve html tarafında seçilen   │
+│   dile göre EN ise "All" , TR ise "Tümü" olacak şekilde ayarlamalısın.                                                                                                 │
+│                                                                                                                                                                        │
+│   3. Türkçe dili seçildiğinde cihazların cihaz tipleri halen İngilizce olarak görünüyor. oysaki device_types için ayrıca bir translation oluşturmuş olmana karşın o    │
+│   tanımları getirmiyorsun, düzelt bunu. Cihaz Tipi filtresi içerisinde ki itemlar da İngilizce olarak görünüyor, Türkçe dil seçilmiş olmasına rağmen, bunu da düzelt.  │
+│                                                                                                                                                                        │
+│   4. Türkçe, English dil seçim listesinin arkaplan rengini, boyutunu "Ayarlar", "Geçmiş" butonları ile aynı olacak şekilde ayarla ve bu butonlardan sonra (en sağda)   │
+│   olacak şekilde konumlandır.                                                                                                                                          │
+│                                                                                                                                                                        │
+│   5. ana sayfanın en altındaki "footer" alanını diğer sayfalarda da (config, settings, ...) görünecek şekilde ekle.
+
+
+----
+
+
+docker container does NOT build !
+
+$ docker compose up                                             
+[+] Building 35.2s (11/14)                                                                                                                                                                                                                                                         
+ => WARN: FromAsCasing: 'as' and 'FROM' keywords' casing do not match (line 2)                                                                                                                                                                                                0.0s
+ => [2/8] RUN apt-get update && apt-get install -y     nmap     iputils-ping     net-tools     iproute2     curl     git     && rm -rf /var/lib/apt/lists/*                                                                                                                   7.3s
+ => [3/8] WORKDIR /app                                                                                                                                                                                                                                                        0.0s 
+ => [4/8] COPY requirements.txt .                                                                                                                                                                                                                                             0.0s 
+ => ERROR [5/8] RUN pip install --no-cache-dir -r requirements.txt
+
+
+Fix these issues:
+* Cihaz tipleri yüklenirken hata oluştu SyntaxError: Unexpected token '<', "<!doctype "... is not valid JSON
+* Failed to load resource: the server responded with a status of 500 (INTERNAL SERVER ERROR)Understand this error
+main.js:235
+"GET /api/device-types/translated HTTP/1.1" 500 -
+File "/Users/erkanciftci/repo_local/my_lan_scanner/app.py", line 120, in get_translated_device_types
+    device_types_config = config_manager.load_device_types()
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+NameError: name 'config_manager' is not defined
+Building wheels for collected packages: python-nmap, netifaces, scapy
+21.65   Building wheel for python-nmap (setup.py): started
+21.87   Building wheel for python-nmap (setup.py): finished with status 'done'
+21.87   Created wheel for python-nmap: filename=python_nmap-0.7.1-py2.py3-none-any.whl size=20635 sha256=752d2b201d947376d715e0a553855add217bb137d9c628b229a84248eddf463e
+21.87   Stored in directory: /tmp/pip-ephem-wheel-cache-7py12k4_/wheels/4a/8c/1a/aaade88fbb18b99e001cea0921931af9c05bca4c4a72868b51
+21.87   Building wheel for netifaces (setup.py): started
+22.01   Building wheel for netifaces (setup.py): finished with status 'error'
+22.01   error: subprocess-exited-with-error
+22.01   
+22.01   × python setup.py bdist_wheel did not run successfully.
+22.01   │ exit code: 1
+22.01   ╰─> [17 lines of output]
+22.01       /usr/local/lib/python3.11/site-packages/setuptools/config/setupcfg.py:508: SetuptoolsDeprecationWarning: The license_file parameter is deprecated, use license_files instead.
+22.01         warnings.warn(msg, warning_class)
+22.01       running bdist_wheel
+22.01       running build
+22.01       running build_ext
+22.01       checking for getifaddrs...not found.
+22.01       checking for getnameinfo...not found.
+22.01       checking for socket IOCTLs...not found.
+22.01       checking for optional header files...none found.
+22.01       checking whether struct sockaddr has a length field...no.
+22.01       checking which sockaddr_xxx structs are defined...none!
+22.01       checking for routing socket support...no.
+22.01       checking for sysctl(CTL_NET...) support...no.
+22.01       checking for netlink support...no.
+22.01       building 'netifaces' extension
+22.01       gcc -Wsign-compare -DNDEBUG -g -fwrapv -O3 -Wall -fPIC -DNETIFACES_VERSION=0.11.0 -I/usr/local/include/python3.11 -c netifaces.c -o build/temp.linux-aarch64-cpython-311/netifaces.o
+22.01       error: command 'gcc' failed: No such file or directory
+22.01       [end of output]
+22.01   
+22.01   note: This error originates from a subprocess, and is likely not a problem with pip.
+22.01   ERROR: Failed building wheel for netifaces
+22.01   Running setup.py clean for netifaces
+22.11   Building wheel for scapy (setup.py): started
+22.41   Building wheel for scapy (setup.py): finished with status 'done'
+22.41   Created wheel for scapy: filename=scapy-2.5.0-py2.py3-none-any.whl size=1444323 sha256=758211c0bd5d7c45e31ece748382ddadbb45595accf1f6b652b4668a8f739b80
+22.41   Stored in directory: /tmp/pip-ephem-wheel-cache-7py12k4_/wheels/11/ff/28/a1348d0c6d006242c053521732bc2951d0c9eca62a11430da1
+22.41 Successfully built python-nmap scapy
+22.41 Failed to build netifaces
+22.41 ERROR: Could not build wheels for netifaces, which is required to install pyproject.toml-based projects
+22.64 
+22.64 [notice] A new release of pip is available: 24.0 -> 25.1.1
+22.64 [notice] To update, run: pip install --upgrade pip
+------
+Dockerfile:21
+--------------------
+  19 |     
+  20 |     # Install Python dependencies
+  21 | >>> RUN pip install --no-cache-dir -r requirements.txt
+  22 |     
+  23 |     # Copy application code
+--------------------
+failed to solve: process "/bin/sh -c pip install --no-cache-dir -r requirements.txt" did not complete successfully: exit code: 1
+
+View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/i6lhhm9fvcapsuz1v9f9f24pd
+
+
+-----
+
+1. docker container build olup başlasa dahi uygulama hiçbir şekilde açılmıyor http://localhost:5003 üzerinden, 
+ama normal şekilde python app.py ile çalıştırınca sorunsuz çalışıyor uygulama.
+
+2. uygulamanın port numarasını 5883 olarak değiştirebilir misin? başka bir uygulama yada port ile çakışıyor mu bu 5883 ? 
+(docker container tarafında da aynı port numarasını kullan)
+
+3. container'ın image ismi "fxerkan/my_network_scanner" olsun kesinlikle.
+şu anda "my_lan_scanner-my-network-scanner" şeklinde görünüyor.
+
+4. docker hub'a register ettiğimde uygulama için kullanılan favicon docker hub'da da aynı şekilde ayarlanacak şekilde bir geliştirme ekle.
+
+----
 
 
 ** FX - ToDos **
 ================
+
+1. ***ESKİDEN ÇALIŞAN*** özellikler yine bozulmuş yada çalışmaz olmuş gibi görünüyor. 
+Gelişmiş Cihaz analizi işleminin sonucunda Erişim Bilgileri girilen bir cihaz için açık olan tüm portları bulup eklerdi.
+Ancak şu anda bu işlemi yapmıyor !
+192.168.1.62 IP'li cihaz için erişim bilgileri var, erişim testi başarılı oluyor, 
+gelişmiş analiz de onlarca farklı açık port buluyor (örneğin 32400, 8080, 88, 8840, 9000, 8888, 7878, 8989, ... )
+Bu problemin bir daha **ASLA** olmaması adına hatayı bul, düzelt ve bir daha çalışan bir kod bloğunu **KESİNLİKLE** değiştirme !
+
+
+
+2. Aynı şekilde SSH erişim bilgileri olduğu için bu cihaz için çok detaylı bir şekilde donanım, sistem bilgilerini de analiz edip
+yakalamış olmasına karşın hiçbirini UI'da göstermiyor !
+
+
+Gelişmiş analiz işlemi sonrasında şu hatayı veriyor !
+⚠️ Status kontrol hatası: currentAnalysisIP is not defined
 
 
 "Details" sayfasındaki Sistem Bilgileri, Güvenlik, Donanım vs. gibi ekstra bilgiler SSH erişim bilgileri girilmiş olan cihazlarda dahi boş geliyor artık.

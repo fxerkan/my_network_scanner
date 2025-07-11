@@ -9,6 +9,7 @@ This is a comprehensive LAN Scanner application built with Python and Flask that
 ## Common Commands
 
 ### Development
+
 ```bash
 # Start the application
 python app.py
@@ -24,6 +25,7 @@ pip install -r requirements.txt
 ```
 
 ### Virtual Environment
+
 ```bash
 # Create virtual environment
 python3 -m venv .venv
@@ -34,6 +36,7 @@ source .venv/bin/activate  # Linux/macOS
 ```
 
 ### System Requirements
+
 - Python 3.7+
 - Nmap (must be installed system-wide)
 - Root/Administrator privileges may be required for port scanning
@@ -43,7 +46,8 @@ source .venv/bin/activate  # Linux/macOS
 ### Core Components
 
 #### 1. Flask Web Application (`app.py`)
-- Main web server running on port 5003
+
+- Main web server running on port `5883`
 - Comprehensive REST API endpoints for device management
 - Real-time progress tracking for scans with WebSocket-like updates
 - Background thread management for scanning operations
@@ -53,6 +57,7 @@ source .venv/bin/activate  # Linux/macOS
 - Smart device naming and alias generation
 
 #### 2. LAN Scanner Engine (`lan_scanner.py`)
+
 - Core scanning functionality using ARP and nmap
 - Network discovery with automatic IP range detection
 - Device classification and port scanning
@@ -63,18 +68,21 @@ source .venv/bin/activate  # Linux/macOS
 - Smart device identification with confidence scoring
 
 #### 3. OUI Manager (`oui_manager.py`)
+
 - IEEE OUI database management
 - Automatic downloads from IEEE CSV sources
 - Online API fallback for unknown MAC addresses
 - Local database caching and vendor name normalization
 
 #### 4. Configuration Manager (`config.py`)
+
 - JSON-based configuration system
 - Device type definitions and detection rules
 - Port scanning configurations
 - Scan history management
 
 #### 5. Enhanced Device Analyzer (`enhanced_device_analyzer.py`)
+
 - Advanced device analysis with SSH, FTP, HTTP, and SNMP access
 - Comprehensive port scanning with service detection
 - Web service analysis and content extraction
@@ -84,6 +92,7 @@ source .venv/bin/activate  # Linux/macOS
 - Real-time progress tracking with detailed logging
 
 #### 6. Smart Device Identifier (`smart_device_identifier.py`)
+
 - AI-powered device identification using pattern matching
 - Confidence scoring for device type predictions
 - Hostname and vendor-based classification
@@ -92,6 +101,7 @@ source .venv/bin/activate  # Linux/macOS
 - Comprehensive device type detection rules
 
 #### 7. Unified Device Model (`unified_device_model.py`)
+
 - Standardized data structure across all scan types
 - Data consistency and validation
 - Legacy format support with migration
@@ -99,6 +109,7 @@ source .venv/bin/activate  # Linux/macOS
 - Comprehensive device data normalization
 
 #### 8. Credential Manager (`credential_manager.py`)
+
 - Fernet symmetric encryption for credential storage
 - PBKDF2-HMAC-SHA256 key derivation with 100,000 iterations
 - Multi-protocol credential support (SSH, FTP, HTTP, SNMP)
@@ -106,6 +117,7 @@ source .venv/bin/activate  # Linux/macOS
 - Secure file permissions and hidden key files
 
 #### 9. Docker Manager (`docker_manager.py`)
+
 - Docker container detection and network mapping
 - Virtual network interface discovery
 - Container IP address tracking
@@ -113,6 +125,7 @@ source .venv/bin/activate  # Linux/macOS
 - Integration with main scanning engine
 
 #### 10. Dynamic Version Management (`version.py`)
+
 - Git-based version tracking
 - Automatic version generation from commits
 - Clean/dirty working directory detection
@@ -120,6 +133,7 @@ source .venv/bin/activate  # Linux/macOS
 - Fallback version support
 
 #### 11. Data Sanitizer (`data_sanitizer.py`)
+
 - Security-focused data cleaning for export
 - Sensitive header and field removal
 - Asset file filtering
@@ -137,7 +151,7 @@ source .venv/bin/activate  # Linux/macOS
    - Enhanced analysis with credential-based access
    - Smart device identification with confidence scoring
    - Docker container detection and mapping
-3. **Data Processing**: 
+3. **Data Processing**:
    - Unified device model standardization
    - Data sanitization for security
    - Credential encryption and secure storage
@@ -230,6 +244,7 @@ The application automatically detects available network interfaces and their IP 
 ## Security Features
 
 ### Encrypted Credential Storage
+
 - **Secure Storage**: All device credentials (SSH, FTP, etc.) are encrypted using Fernet symmetric encryption
 - **Key Derivation**: PBKDF2-HMAC-SHA256 with 100,000 iterations for master password protection
 - **File Security**: Encrypted files stored in `config/` directory with restrictive permissions (600)
@@ -237,6 +252,7 @@ The application automatically detects available network interfaces and their IP 
 - **Multiple Access Types**: Supports SSH, FTP, HTTP authentication per device
 
 ### Security Files
+
 ```
 config/
 ├── .salt                  # Cryptographic salt (hidden)
@@ -244,6 +260,7 @@ config/
 ```
 
 ### Security Best Practices
+
 - Requires network scanning permissions
 - May trigger firewall/security alerts
 - Only scan networks you own or have permission to scan
@@ -289,12 +306,14 @@ The Docker Manager provides container ecosystem visibility:
 ### Data Management
 
 #### Unified Device Model
+
 - **Consistent Structure**: Standardized data format across all scan types
 - **Legacy Support**: Maintains compatibility with older data formats
 - **Data Validation**: Ensures data integrity and consistency
 - **Merge Operations**: Combines data from multiple scan sources
 
 #### Data Sanitization
+
 - **Sensitive Data Removal**: Removes authentication tokens and sensitive headers
 - **Asset Filtering**: Filters out unnecessary asset files and links
 - **Export Security**: Ensures safe data export without exposing credentials
@@ -303,6 +322,7 @@ The Docker Manager provides container ecosystem visibility:
 ### Version Management
 
 Dynamic version tracking system:
+
 - **Git Integration**: Automatic version detection from Git tags and commits
 - **Build Information**: Tracks build timestamps and commit hashes
 - **Development Status**: Indicates clean/dirty working directory status
@@ -311,6 +331,7 @@ Dynamic version tracking system:
 ### Real-time Progress Tracking
 
 Advanced progress monitoring:
+
 - **Detailed Logging**: Comprehensive operation logging with timestamps
 - **Real-time Updates**: Live progress updates during scanning operations
 - **Operation Status**: Detailed status for each scanning phase
@@ -319,6 +340,7 @@ Advanced progress monitoring:
 ## API Endpoints
 
 ### Device Management
+
 - `GET /api/devices` - Get all devices
 - `POST /api/devices/scan` - Start network scan
 - `GET /api/devices/{ip}` - Get specific device information
@@ -326,11 +348,13 @@ Advanced progress monitoring:
 - `POST /api/devices/{ip}/credentials` - Set device credentials
 
 ### Configuration
+
 - `GET /api/config` - Get application configuration
 - `POST /api/config` - Update configuration
 - `GET /api/version` - Get application version information
 
 ### History and Statistics
+
 - `GET /api/history` - Get scan history
 - `GET /api/stats` - Get scanning statistics
 - `POST /api/export` - Export device data (sanitized)
@@ -338,6 +362,7 @@ Advanced progress monitoring:
 ## Dependencies
 
 ### Core Dependencies
+
 - **Flask**: Web framework for API and interface
 - **nmap**: Network scanning and service detection
 - **paramiko**: SSH client for device access
@@ -346,6 +371,7 @@ Advanced progress monitoring:
 - **psutil**: System and network information
 
 ### Optional Dependencies
+
 - **pysnmp**: SNMP protocol support
 - **paho-mqtt**: MQTT client for IoT devices
 - **docker**: Docker API integration (if Docker is available)
@@ -353,13 +379,17 @@ Advanced progress monitoring:
 ## Configuration Options
 
 ### Master Password
+
 Set via environment variable:
+
 ```bash
 export LAN_SCANNER_PASSWORD="your_master_password"
 ```
 
 ### Credential Storage
+
 Device credentials are encrypted and stored per device:
+
 ```json
 {
   "ip": "192.168.1.100",
@@ -376,7 +406,9 @@ Device credentials are encrypted and stored per device:
 ```
 
 ### Device Type Configuration
+
 Device types are defined in `config/device_types.json` with detection rules:
+
 ```json
 {
   "device_types": {

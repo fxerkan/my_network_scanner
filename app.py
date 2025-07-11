@@ -26,7 +26,7 @@ except ImportError:
     pass
 
 # Flask ve diğer import'lar
-from flask import Flask, render_template, jsonify, request, send_from_directory
+from flask import Flask, render_template, jsonify, request, send_from_directory, session, redirect, url_for
 import threading
 from datetime import datetime
 from lan_scanner import LANScanner
@@ -36,6 +36,7 @@ from credential_manager import get_credential_manager
 from version import get_version, get_version_info
 from data_sanitizer import DataSanitizer
 from unified_device_model import unified_model
+from language_manager import language_manager, _, get_language_manager
 import re
 import requests
 import csv
@@ -49,11 +50,11 @@ app.secret_key = os.environ.get('FLASK_SECRET_KEY', os.urandom(24).hex())
 # Global değişkenler
 scanner = LANScanner()
 oui_manager = OUIManager()
-scan_progress = {"status": "idle", "message": "Hazır", "devices_found": 0}
+scan_progress = {"status": "idle", "message": "ready", "devices_found": 0}
 scan_thread = None
 
 # Global değişkenler için background analysis tracking
-background_analysis = {"status": "idle", "message": "Hazır"}
+background_analysis = {"status": "idle", "message": "ready"}
 detailed_analysis_thread = None
 
 # Enhanced analysis tracking
@@ -62,6 +63,74 @@ bulk_analysis_status = {}
 
 # Secure credential manager
 credential_manager = get_credential_manager()
+
+# Template context processor for language support
+@app.context_processor
+def inject_language_data():
+    """Inject language data into all templates"""
+    return {
+        '_': _,
+        'language_info': language_manager.get_language_info(),
+        'current_language': language_manager.get_current_language(),
+        'translations': language_manager.get_all_translations(),
+        'translate_device_type': language_manager.get_device_type_translation
+    }
+
+@app.route('/set-language/<language_code>')
+def set_language(language_code):
+    """Set the current language"""
+    if language_manager.set_language(language_code):
+        # Redirect back to the referring page or home
+        return redirect(request.referrer or url_for('index'))
+    else:
+        return jsonify({'error': _('invalid_language')}), 400
+
+@app.route('/api/language/info')
+def get_language_info():
+    """Get language information"""
+    return jsonify(language_manager.get_language_info())
+
+@app.route('/api/language/set', methods=['POST'])
+def api_set_language():
+    """API endpoint to set language"""
+    data = request.get_json()
+    language_code = data.get('language')
+    
+    if language_manager.set_language(language_code):
+        return jsonify({
+            'success': True,
+            'message': _('language_changed'),
+            'current_language': language_manager.get_current_language()
+        })
+    else:
+        return jsonify({
+            'success': False,
+            'error': _('invalid_language')
+        }), 400
+
+@app.route('/api/language/translations/<language_code>')
+def get_translations(language_code):
+    """Get translations for a specific language"""
+    return jsonify(language_manager.get_all_translations(language_code))
+
+@app.route('/api/device-types/translated')
+def get_translated_device_types():
+    """Get device types translated to current language"""
+    # Config'den device types'ı yükle
+    config_manager = scanner.get_config_manager()
+    device_types_config = config_manager.load_device_types()
+    current_language = language_manager.get_current_language()
+    
+    translated_types = {}
+    for device_type, info in device_types_config.items():
+        translated_name = language_manager.get_device_type_translation(device_type, current_language)
+        translated_types[device_type] = {
+            'name': translated_name,
+            'icon': info.get('icon', '❓'),
+            'category': info.get('category', 'unknown')
+        }
+    
+    return jsonify(translated_types)
 
 def progress_callback(message):
     """Tarama ilerlemesi için callback fonksiyonu"""
@@ -1223,8 +1292,15 @@ def test_device_access(ip):
                 if stored_creds and stored_creds.get('password'):
                     password = stored_creds.get('password')
         
-        # Test sonuçları - tüm access type'lar için credential_manager kullan
-        test_result = credential_manager.test_credentials(ip, access_type)
+        # Test için credentials oluştur
+        test_credentials = {
+            'username': username,
+            'password': password,
+            'port': int(port) if port else (22 if access_type == 'ssh' else 21 if access_type == 'ftp' else 23)
+        }
+        
+        # Test sonuçları - geçici credential'lar ile test yap
+        test_result = credential_manager._test_credentials_direct(ip, access_type, test_credentials)
         
         return jsonify(test_result)
         
@@ -1900,8 +1976,9 @@ if __name__ == '__main__':
     scanner.load_from_json()
     
     print("LAN Scanner Web UI başlatılıyor...")
-    print("Tarayıcınızda http://localhost:5003 adresini açın")
-    print("Config sayfası: http://localhost:5003/config")
-    print("Tarihçe sayfası: http://localhost:5003/history")
+    print("Tarayıcınızda http://localhost:5883 adresini açın")
+    print("Config sayfası: http://localhost:5883/config")
+    print("Tarihçe sayfası: http://localhost:5883/history")
     
-    app.run(debug=True, host='0.0.0.0', port=5003)
+    port = int(os.environ.get('FLASK_PORT', 5883))
+    app.run(debug=True, host='0.0.0.0', port=port)

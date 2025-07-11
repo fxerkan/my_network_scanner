@@ -1,0 +1,43 @@
+services:
+  my-network-scanner:
+    build: .
+    image: fxerkan/my_network_scanner:latest
+    container_name: my-network-scanner
+    ports:
+      - "5883:5883"
+    volumes:
+      # Persistent data storage
+      - ./data:/app/data
+      - ./config:/app/config
+    environment:
+      - FLASK_ENV=production
+      - FLASK_PORT=5883
+      - LAN_SCANNER_PASSWORD=${LAN_SCANNER_PASSWORD:-admin}
+    restart: unless-stopped
+    # Use bridge network with privileged mode for scanning
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    privileged: true  # Required for nmap scanning
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5883/api/version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # # Optional: Reverse proxy with SSL
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: my-network-scanner-nginx
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./nginx.conf:/etc/nginx/nginx.conf:ro
+  #     - ./ssl:/etc/nginx/ssl:ro
+  #   depends_on:
+  #     - my-network-scanner
+  #   restart: unless-stopped
+  #   profiles:
+  #     - production

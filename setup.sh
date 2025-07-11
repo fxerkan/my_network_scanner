@@ -33,7 +33,7 @@ if [ ! -f "config/config.json" ]; then
   "app": {
     "name": "My Network Scanner (MyNeS)",
     "version": "1.0.1",
-    "port": 5003,
+    "port": 5883,
     "host": "0.0.0.0",
     "debug": false
   },
@@ -119,7 +119,7 @@ echo ""
 echo "Next steps:"
 echo "1. Copy .env.example to .env and configure your settings"
 echo "2. Run './start.sh' to start the application"
-echo "3. Open http://localhost:5003 in your browser"
+echo "3. Open http://localhost:5883 in your browser"
 echo ""
 echo "For security features, set your master password:"
 echo "export LAN_SCANNER_PASSWORD='your_secure_password'"
