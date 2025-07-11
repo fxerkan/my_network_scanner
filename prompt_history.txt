@@ -812,6 +812,35 @@ ama normal şekilde python app.py ile çalıştırınca sorunsuz çalışıyor u
 ----
 
 
+1. docker imajı ilk defa açıldığında lan_devices.json dosyasını bulamadığına dair hata veriyor.
+oysaki lan_devices.json yoksa lan_devices_sample.json'ı yükleyip arayüzde birkaç örnek cihaz göstermesi gerekiyordu
+
+2. container "bridge" network üzerinde çalışacak ama NET_ADMIN ve NET_RAW capabilitylerine sahip olacak şekilde ayarlanmış olmasına karşın,
+│ağ taramasını sadece container ın kendi network range'inde yapıyor! ama bağlı olduğu HOST'a ait ip range içerisinde yapmalıydı.
+
+my-network-scanner  | 192.168.1.160 - - [11/Jul/2025 15:12:18] "GET /scan HTTP/1.1" 200
+my-network-scanner  | Taranacak ağ: 172.17.0.0/
+my-network-scanner  | ARP tarama hatası: [Errno 1] Operation not permitted
+my-network-scanner  | 🖥️ Yerel makine interface'i eklendi: 172.17.0.18 (MAC: 8a:5d:be:33:a5:12, Interface: eth0)
+
+3.HTTP 304 hataları var bazı yerlerde, bunlar nedir? 
+Galiba bu hatadan ötürü sayfalarda ki Türkçe/İngilizce içerikler düzgün yüklenemiyor, translationları gösteremiyor!
+
+my-network-scanner  | 192.168.1.160 - - [11/Jul/2025 15:17:24] "GET /static/css/main.css HTTP/1.1" 304
+my-network-scanner  | 192.168.1.160 - - [11/Jul/2025 15:17:24] "GET /static/js/translations.js HTTP/1.1" 304
+my-network-scanner  | 192.168.1.160 - - [11/Jul/2025 15:17:24] "GET /static/js/device-access.js HTTP/1.1" 304
+my-network-scanner  | 192.168.1.160 - - [11/Jul/2025 15:17:24] "GET /static/js/main.js HTTP/1.1" 304
+my-network-scanner  | 192.168.1.160 - - [11/Jul/2025 15:17:24] "GET /static/js/enhanced-details.js HTTP/1.1" 304
+
+4. Git Repo'sun da ve Docker Hub'da release edilen versiyon v1.0.4 olmasına karşın container üzerinden çalıştırılan versiyonda v.1.0.1-a5251f9+ gibi birşey görünüyor !
+
+5. Docker Hub'da halen Overview bölümü boş görünüyor, bu bölümde projenin ne yaptığına dair bir açıklama olmalıydı DOCKER_README.md dosyasını oluşturmuştun ama bu dosya Docker Hub'a yüklenmemiş!
+
+Tüm düzeltme ve değişikliklerini yine yeni bir branch üzerinden yapıp, PR açabilirsin, v1.0.4 versiyonunu bu branch üzerinden release edebilirsin.
+
+---
+
+
 ** FX - ToDos **
 ================
 

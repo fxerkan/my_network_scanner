@@ -40,12 +40,17 @@ async function loadScanHistory() {
 
 function updateStatistics() {
     const totalScans = scanHistory.length;
-    const totalDevices = scanHistory.reduce((sum, scan) => sum + (scan.total_devices || 0), 0);
-    const avgDevices = totalScans > 0 ? Math.round(totalDevices / totalScans) : 0;
+    
+    // Get unique devices from the last scan, not total from all scans
+    const lastScanDevices = scanHistory.length > 0 ? (scanHistory[scanHistory.length - 1].total_devices || 0) : 0;
+    
+    // Calculate average devices per scan
+    const totalDevicesAllScans = scanHistory.reduce((sum, scan) => sum + (scan.total_devices || 0), 0);
+    const avgDevices = totalScans > 0 ? Math.round(totalDevicesAllScans / totalScans) : 0;
     const lastScanDuration = scanHistory.length > 0 ? Math.round(scanHistory[scanHistory.length - 1].scan_duration || 0) : 0;
 
     document.getElementById('totalScans').textContent = totalScans;
-    document.getElementById('totalDevices').textContent = totalDevices;
+    document.getElementById('totalDevices').textContent = lastScanDevices; // Show last scan's unique devices
     document.getElementById('avgDevices').textContent = avgDevices;
     document.getElementById('lastScanDuration').textContent = lastScanDuration + 's';
 }

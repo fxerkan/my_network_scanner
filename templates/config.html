@@ -166,27 +166,27 @@
             <!-- Cihaz Tipleri -->
             <div id="devices" class="tab-content">
                 <div class="card">
-                    <h3 class="card-title">📱 Cihaz Tipleri ve İkonları</h3>
+                    <h3 class="card-title">📱 {{ _('device_types') }}</h3>
                     <p style="margin-bottom: 20px; color: #6c757d;">
-                        Tanınan cihaz tiplerini ve bunların görsel simgelerini yönetebilirsiniz.
+                        {{ _('device_types_desc') }}
                     </p>
                     
                     <div class="grid">
                         <div style="max-width: 350px;">
-                            <h4>Yeni Cihaz Tipi Ekle</h4>
+                            <h4>{{ _('add_device_type') }}</h4>
                             <div class="form-group">
-                                <label class="form-label">Cihaz Tipi Adı</label>
+                                <label class="form-label">{{ _('device_type_name') }}</label>
                                 <input type="text" class="form-input" id="newDeviceType" placeholder="Smart Speaker">
                             </div>
                             <div class="form-group">
-                                <label class="form-label">İkon (Emoji)</label>
+                                <label class="form-label">{{ _('icon_emoji') }}</label>
                                 <div style="display: flex; gap: 10px; align-items: center;">
                                     <input type="text" class="form-input" id="newDeviceIcon" placeholder="🔊" maxlength="2" style="width: 80px; text-align: center; font-size: 1.2em;">
-                                    <button type="button" class="btn btn-small" onclick="openEmojiPicker('newDeviceIcon')">📋 Seç</button>
+                                    <button type="button" class="btn btn-small" onclick="openEmojiPicker('newDeviceIcon')">📋 {{ _('select') }}</button>
                                 </div>
                             </div>
                             <div class="form-group">
-                                <label class="form-label">Kategori</label>
+                                <label class="form-label">{{ _('category') }}</label>
                                 <select class="form-select" id="newDeviceCategory">
                                     <option value="unknown">Unknown</option>
                                     <option value="tech">Technology</option>
@@ -227,19 +227,19 @@
             <div id="detection" class="tab-content">
                 <div class="grid">
                     <div class="card">
-                        <h3 class="card-title">🔍 Hostname Pattern'ları</h3>
+                        <h3 class="card-title">🔍 {{ _('hostname_patterns') }}</h3>
                         <p style="margin-bottom: 15px; color: #6c757d;">
-                            Cihaz hostname'lerinden tip tespiti için RegEx pattern'ları
+                            {{ _('hostname_patterns_desc') }}
                         </p>
                         
                         <div class="form-group">
-                            <label class="form-label">Yeni Pattern Ekle</label>
+                            <label class="form-label">{{ _('add_new_pattern') }}</label>
                             <div style="display: flex; gap: 10px; margin-bottom: 10px;">
                                 <input type="text" class="form-input" id="newHostnamePattern" placeholder="android|samsung" style="flex: 1;">
                                 <select class="form-select" id="newHostnameDeviceType" style="width: 150px;">
-                                    <option value="">Cihaz Tipi Seç</option>
+                                    <option value="">{{ _('select_device_type') }}</option>
                                 </select>
-                                <button type="button" class="btn btn-small" onclick="addHostnamePattern()">➕ Ekle</button>
+                                <button type="button" class="btn btn-small" onclick="addHostnamePattern()">➕ {{ _('add') }}</button>
                             </div>
                         </div>
                         
@@ -247,19 +247,19 @@
                     </div>
 
                     <div class="card">
-                        <h3 class="card-title">🏭 Vendor Pattern'ları</h3>
+                        <h3 class="card-title">🏭 {{ _('vendor_patterns') }}</h3>
                         <p style="margin-bottom: 15px; color: #6c757d;">
-                            Üretici adlarından cihaz tipi tespiti için pattern'lar
+                            {{ _('vendor_patterns_desc') }}
                         </p>
                         
                         <div class="form-group">
-                            <label class="form-label">Yeni Pattern Ekle</label>
+                            <label class="form-label">{{ _('add_new_pattern') }}</label>
                             <div style="display: flex; gap: 10px; margin-bottom: 10px;">
                                 <input type="text" class="form-input" id="newVendorPattern" placeholder="Apple|Samsung|Google" style="flex: 1;">
                                 <select class="form-select" id="newVendorDeviceType" style="width: 150px;">
-                                    <option value="">Cihaz Tipi Seç</option>
+                                    <option value="">{{ _('select_device_type') }}</option>
                                 </select>
-                                <button type="button" class="btn btn-small" onclick="addVendorPattern()">➕ Ekle</button>
+                                <button type="button" class="btn btn-small" onclick="addVendorPattern()">➕ {{ _('add') }}</button>
                             </div>
                         </div>
                         
@@ -275,12 +275,12 @@
             <!-- Ağ Arayüzleri -->
             <div id="networks" class="tab-content">
                 <div class="card">
-                    <h3 class="card-title">🌐 Mevcut Ağ Arayüzleri</h3>
+                    <h3 class="card-title">🌐 {{ _('current_network_interfaces') }}</h3>
                     <p style="margin-bottom: 20px; color: #6c757d;">
-                        Sistemde bulunan ağ arayüzleri ve IP aralıkları. Tarama için kullanılacak ağları seçebilirsiniz.
+                        {{ _('network_interfaces_desc') }}
                     </p>
                     <div id="networksList"></div>
-                    <button class="btn" onclick="refreshNetworks()" style="margin-top: 15px;">🔄 Ağları Yenile</button>
+                    <button class="btn" onclick="refreshNetworks()" style="margin-top: 15px;">🔄 {{ _('refresh_networks') }}</button>
                 </div>
             </div>
 
@@ -288,21 +288,21 @@
             <div id="docker" class="tab-content">
                 <div class="grid">
                     <div class="card">
-                        <h3 class="card-title">🐳 Docker Durumu</h3>
+                        <h3 class="card-title">🐳 {{ _('docker_status') }}</h3>
                         <div id="dockerStatus">
-                            <div class="loading">Docker bilgileri yükleniyor...</div>
+                            <div class="loading">{{ _('loading_docker_info') }}</div>
                         </div>
                     </div>
                     
                     <div class="card">
-                        <h3 class="card-title">🌐 Docker Network'ler</h3>
+                        <h3 class="card-title">🌐 {{ _('docker_networks') }}</h3>
                         <p style="margin-bottom: 15px; color: #6c757d;">
-                            Docker container'larının kullandığı network'ler ve IP aralıkları
+                            {{ _('docker_networks_desc') }}
                         </p>
                         <div id="dockerNetworksList">
-                            <div class="loading">Network bilgileri yükleniyor...</div>
+                            <div class="loading">{{ _('loading_network_info') }}</div>
                         </div>
-                        <button class="btn" onclick="refreshDockerNetworks()" style="margin-top: 15px;">🔄 Docker Network'leri Yenile</button>
+                        <button class="btn" onclick="refreshDockerNetworks()" style="margin-top: 15px;">🔄 {{ _('refresh_docker_networks') }}</button>
                     </div>
                 </div>
 
