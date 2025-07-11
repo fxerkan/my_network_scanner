@@ -24,7 +24,7 @@ This guide provides comprehensive instructions for deploying MyNeS using Docker,
 ### 1. Clone and Build
 
 ```bash
-git clone https://github.com/fxerkan/my-network-scanner.git
+git clone https://github.com/fxerkan/my_network_scanner.git
 cd my-network-scanner
 
 # Build the Docker image
@@ -150,31 +150,31 @@ docker login
 
 # Build multi-architecture image
 docker buildx create --use
-docker buildx build --platform linux/amd64,linux/arm64 -t fxerkan/my-network-scanner:latest .
+docker buildx build --platform linux/amd64,linux/arm64 -t fxerkan/my_network_scanner:latest .
 ```
 
 ### 2. Tagging Strategy
 
 ```bash
 # Version tagging
-docker tag my-network-scanner:latest fxerkan/my-network-scanner:v1.0.0
-docker tag my-network-scanner:latest fxerkan/my-network-scanner:latest
+docker tag my-network-scanner:latest fxerkan/my_network_scanner:v1.0.0
+docker tag my-network-scanner:latest fxerkan/my_network_scanner:latest
 
 # Development builds
-docker tag my-network-scanner:latest fxerkan/my-network-scanner:dev
+docker tag my-network-scanner:latest fxerkan/my_network_scanner:dev
 ```
 
 ### 3. Push to Docker Hub
 
 ```bash
 # Push specific version
-docker push fxerkan/my-network-scanner:v1.0.0
+docker push fxerkan/my_network_scanner:v1.0.0
 
 # Push latest
-docker push fxerkan/my-network-scanner:latest
+docker push fxerkan/my_network_scanner:latest
 
 # Push all tags
-docker push --all-tags fxerkan/my-network-scanner
+docker push --all-tags fxerkan/my_network_scanner
 ```
 
 ### 4. Multi-Architecture Build and Push
@@ -182,8 +182,8 @@ docker push --all-tags fxerkan/my-network-scanner
 ```bash
 # Build and push for multiple architectures
 docker buildx build --platform linux/amd64,linux/arm64 \
-  -t fxerkan/my-network-scanner:latest \
-  -t fxerkan/my-network-scanner:v1.0.0 \
+  -t fxerkan/my_network_scanner:latest \
+  -t fxerkan/my_network_scanner:v1.0.0 \
   --push .
 ```
 
@@ -212,7 +212,7 @@ on:
 
 env:
   REGISTRY: docker.io
-  IMAGE_NAME: fxerkan/my-network-scanner
+  IMAGE_NAME: fxerkan/my_network_scanner
 
 jobs:
   build-and-push:
@@ -221,10 +221,10 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-    
+  
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
-    
+  
     - name: Login to Docker Hub
       if: github.event_name != 'pull_request'
       uses: docker/login-action@v3
@@ -232,7 +232,7 @@ jobs:
         registry: ${{ env.REGISTRY }}
         username: ${{ secrets.DOCKER_HUB_USERNAME }}
         password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
-      
+    
     - name: Extract metadata
       id: meta
       uses: docker/metadata-action@v5
@@ -244,7 +244,7 @@ jobs:
           type=semver,pattern={{version}}
           type=semver,pattern={{major}}.{{minor}}
           type=raw,value=latest,enable={{is_default_branch}}
-        
+      
     - name: Build and push Docker image
       uses: docker/build-push-action@v5
       with:
@@ -276,7 +276,7 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v4
-    
+  
     - name: Create Release
       uses: actions/create-release@v1
       env:
@@ -312,7 +312,7 @@ Create `docker-compose.prod.yml`:
 ```yaml
 services:
   my-network-scanner:
-    image: fxerkan/my-network-scanner:latest
+    image: fxerkan/my_network_scanner:latest
     container_name: my-network-scanner
     ports:
       - "5883:5883"
@@ -360,7 +360,7 @@ http {
     server {
         listen 80;
         server_name your-domain.com;
-      
+    
         location / {
             proxy_pass http://app;
             proxy_set_header Host $host;
@@ -394,7 +394,7 @@ Create `deploy.sh`:
 set -e
 
 # Configuration
-IMAGE_NAME="fxerkan/my-network-scanner"
+IMAGE_NAME="fxerkan/my_network_scanner"
 CONTAINER_NAME="my-network-scanner"
 
 echo "🚀 Deploying My Network Scanner..."
@@ -431,10 +431,10 @@ echo "🌐 Application available at: http://localhost:5883"
 
 ```bash
 # Ensure privileged mode is enabled
-docker run --privileged --network host fxerkan/my-network-scanner:latest
+docker run --privileged --network host fxerkan/my_network_scanner:latest
 
 # Or add specific capabilities
-docker run --cap-add=NET_ADMIN --cap-add=NET_RAW fxerkan/my-network-scanner:latest
+docker run --cap-add=NET_ADMIN --cap-add=NET_RAW fxerkan/my_network_scanner:latest
 ```
 
 #### 2. Cannot Access Host Network
@@ -445,7 +445,7 @@ docker run --cap-add=NET_ADMIN --cap-add=NET_RAW fxerkan/my-network-scanner:late
 
 ```bash
 # Use host network mode
-docker run --network host fxerkan/my-network-scanner:latest
+docker run --network host fxerkan/my_network_scanner:latest
 ```
 
 #### 3. Port Already in Use
@@ -459,7 +459,7 @@ docker run --network host fxerkan/my-network-scanner:latest
 sudo lsof -i :5883
 
 # Use different port
-docker run -p 5004:5883 fxerkan/my-network-scanner:latest
+docker run -p 5004:5883 fxerkan/my_network_scanner:latest
 ```
 
 #### 4. Container Exits Immediately
@@ -473,7 +473,7 @@ docker run -p 5004:5883 fxerkan/my-network-scanner:latest
 docker logs my-network-scanner
 
 # Run interactively for debugging
-docker run -it fxerkan/my-network-scanner:latest /bin/bash
+docker run -it fxerkan/my_network_scanner:latest /bin/bash
 ```
 
 ### Health Checks
@@ -567,7 +567,7 @@ docker run -d --health-cmd="curl -f http://localhost:5883/api/version" \
            --health-interval=30s \
            --health-timeout=10s \
            --health-retries=3 \
-           fxerkan/my-network-scanner:latest
+           fxerkan/my_network_scanner:latest
 ```
 
 ---
