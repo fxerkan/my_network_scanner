@@ -1,8 +1,6 @@
 # 🌐 My Network Scanner (MyNeS) - Docker Hub
 
-[![Docker Hub](https://img.shields.io/docker/pulls/fxerkan/my_network_scanner.svg)](https://hub.docker.com/r/fxerkan/my_network_scanner)
-[![Docker Image Size](https://img.shields.io/docker/image-size/fxerkan/my_network_scanner/latest)](https://hub.docker.com/r/fxerkan/my_network_scanner)
-[![GitHub](https://img.shields.io/github/stars/fxerkan/my_network_scanner?style=social)](https://github.com/fxerkan/my_network_scanner)
+[![Docker Hub](https://img.shields.io/docker/pulls/fxerkan/my_network_scanner.svg)](https://hub.docker.com/r/fxerkan/my_network_scanner) [![Docker Image Size](https://img.shields.io/docker/image-size/fxerkan/my_network_scanner/latest)](https://hub.docker.com/r/fxerkan/my_network_scanner) [![GitHub](https://img.shields.io/github/stars/fxerkan/my_network_scanner?style=social)](https://github.com/fxerkan/my_network_scanner)
 
 **Your Family's User-Friendly Network Scanner** - A comprehensive LAN scanner application with web interface, device discovery, and advanced analysis capabilities.
 
@@ -64,19 +62,22 @@ Access the application at: **http://localhost:5883**
 ## 🏭 Advanced Capabilities
 
 ### AI-Powered Device Identification
+
 - Hostname pattern analysis
-- Vendor-based classification  
+- Vendor-based classification
 - Port signature detection
 - Machine learning confidence scores
 - Smart device naming and aliasing
 
 ### Security Features
+
 - Encrypted credential storage (AES-256)
 - Multi-protocol authentication support
 - Secure file permissions
 - Automatic data sanitization for exports
 
 ### Docker Integration
+
 - Running container detection
 - Docker network mapping
 - Virtual interface discovery
@@ -92,22 +93,23 @@ Access the application at: **http://localhost:5883**
 ## 📋 Supported Architectures
 
 This image supports multiple architectures:
+
 - `linux/amd64` (x86_64)
 - `linux/arm64` (aarch64)
 
 ## 🔧 Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `FLASK_ENV` | Flask environment | `production` |
-| `FLASK_PORT` | Web interface port | `5883` |
-| `LAN_SCANNER_PASSWORD` | Master password for credential encryption | None |
+| Variable                 | Description                               | Default        |
+| ------------------------ | ----------------------------------------- | -------------- |
+| `FLASK_ENV`            | Flask environment                         | `production` |
+| `FLASK_PORT`           | Web interface port                        | `5883`       |
+| `LAN_SCANNER_PASSWORD` | Master password for credential encryption | None           |
 
 ## 📁 Volume Mounts
 
-| Path | Description |
-|------|-------------|
-| `/app/data` | Scan results and device data |
+| Path            | Description                         |
+| --------------- | ----------------------------------- |
+| `/app/data`   | Scan results and device data        |
 | `/app/config` | Configuration files and credentials |
 
 ## 🔗 Links

@@ -840,10 +840,6 @@ Tüm düzeltme ve değişikliklerini yine yeni bir branch üzerinden yapıp, PR 
 
 ---
 
-
-** FX - ToDos **
-================
-
  > 1.herhangibir PR merge edildiğinde (autobuilds ile)  otomatik olarak Docker Image'nın da hem Latest hemde Versiyon numarası ile (vx.x.x) birlikte oluşturulup Docker Hub'a push edilmesini istiyorum.\                                                                           │
 │   Şu anda ilginç bir şekilde "latest" ve "main" şeklinde 2 tane versiyon atıyor gibi görünüyor ki "main" adlı versiyon nedir, neden böyle birşey oluşturuyor ki? Docker Hub'da eğer zorunlu değilse bu "main" olan versiyona gerek yok.\\                                          │
 │   [Image #3]                                                                                                                                                                                                                                                                       │
@@ -856,6 +852,39 @@ Tüm düzeltme ve değişikliklerini yine yeni bir branch üzerinden yapıp, PR 
 │   önünde bulundururak yap.\                                                                                                                                                                                                                                                        │
 │   5. Readme ve readme_eng.md dosyalarında Docker Image size, pulls sayısı gibi şeyleri gösteren linklerdec "docker pulls" kısmı "por not found" hatası gösteriyor ama repo var, tıklayınca açıyor, sorunu düzelt.    
 
+
+----
+
+
+** FX - ToDos **
+================
+
+
+Docker Compose ile bu uygulamayı Raspberry Pi üzerinde koşan CasaOS da çalıştırdım. HOST networke bağlı ve NET_ADMIN, NET_RAW capabilityleri de atanmış halde.
+
+Ancak Rpi içerisinde Docker olmasına ve uygulama Docker Network interfacelerini görmesine ve tarama yapacağı IP range bilgisini aşağıdaki gibi girmiş olmama karşın;
+
+Settings > Scan Settings > Default IP Range : 192.168.1.0/24,172.17.0.0/16,172.18.0.0/16,172.19.0.0/16,172.20.0.0/16,172.21.0.0/16,100.80.41.0/24
+
+1. 192.168.1.0/24 network'ü içerisinde ki hiçbir Cihaz'ı bulMUyor !
+
+2. Docker networkleri içerisinde bulduğu her bir container'ı ayrı bir cihaz gibi gösteriyor 
+ama bunların hostnameleri yada hangi uygulama olduğu bilgiler hep aynı ve yanlış "my-network-scanner (Dcoker)" şeklinde görünüyor ! ama böyle olmamalı.
+Docker Container olarak işaretlenmeli Cihaz Tipleri, hostnameler ne ise onu göstermeli yada N/A kalmalı.
+Cihaz gibi gösterdiği tüm container networklerinde hep aynı portlar açıkmmış gibi gösteriyor ama mümkün değil.
+
+3. Docker Container olarak çalıştırıldığında üzerinde koştuğu Docker ortamının da bilgilerini alabilmesi için 
+Docker.Socket kullanarak Settings > Docker Network sayfasında bu bilgileri gösterebilecek şekilde gerekli metotları ekle. 
+varolan metotlar dursun onlar direkt olarak python uygulamasını çalıştırınca host üzerindeki Docker bilgilerini sorunsuz alıp gösterebiliyordu.
+
+4. Dil ingilizce seçilmiş olsa dahi halen bazı sayfalardaki bazı bölümler Türkçe olarak görünüyor, yada hata mesajları da Türkçe görünüyor, bu şekilde olmamalı !
+her bir HTML sayfa ve JS, CSS kodlarını kontrol et, hardcoded Türkçe metinler görürsen onları LanguageManager yapısını kullanacak ve dinamik olarak seçilen dile göre değişecek şekilde ayarla.
+
+5. Docker Container olarak çalıştırılan bu uygulamanın Footer bölümündeki versiyon numarası garip bir şekilde "v1.0.1-937cc95+" görünüyor.
+Ama mümkün değil çünkü Docker Hub üzerindeki "Latest" versiyon "1.0.4".
+bu v1.0.1-937cc95+ bilgisini nereden ve nasıl alıyor gösteriyor ? 
+bunu düzelt ve python app yada docker container olarak çalıştırıldığıda ilgili imajın yada kod versiyonunun gerçek versiyon numarasını gösterecek şekilde ayarla.
+gerekirse container image içerisinde ki version numarası bilgisini de alıp gösterebilirsin.
 
 
 1. ***ESKİDEN ÇALIŞAN*** özellikler yine bozulmuş yada çalışmaz olmuş gibi görünüyor. 
