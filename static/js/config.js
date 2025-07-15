@@ -321,7 +321,7 @@ function addDeviceType() {
     const category = document.getElementById('newDeviceCategory').value;
     
     if (!typeName || !icon) {
-        showAlert('Cihaz tipi adı ve ikon alanları boş olamaz!', 'error');
+        showAlert(t('device_type_name_icon_required'), 'error');
         return;
     }
     
@@ -336,14 +336,14 @@ function addDeviceType() {
     document.getElementById('newDeviceIcon').value = '';
     document.getElementById('newDeviceCategory').value = 'unknown';
     
-    showAlert('Cihaz tipi eklendi!');
+    showAlert(t('device_type_added'));
 }
 
 function removeDeviceType(typeName) {
-    if (confirm(`${typeName} cihaz tipini silmek istediğinizden emin misiniz?`)) {
+    if (confirm(t('confirm_delete_device_type', {type: typeName}))) {
         delete currentDeviceTypes[typeName];
         displayDeviceTypes();
-        showAlert('Cihaz tipi silindi!');
+        showAlert(t('device_type_deleted'));
     }
 }
 

@@ -268,7 +268,7 @@
                 </div>
                 
                 <div style="margin-top: 20px;">
-                    <button class="btn" onclick="saveDetectionRules()">💾 Tanıma Kurallarını Kaydet</button>
+                    <button class="btn" onclick="saveDetectionRules()">💾 {{ _('save_detection_rules') }}</button>
                 </div>
             </div>
 
@@ -308,25 +308,25 @@
 
                 <div class="grid" style="margin-top: 20px;">
                     <div class="card">
-                        <h3 class="card-title">📦 Docker Container'lar</h3>
+                        <h3 class="card-title">📦 {{ _('docker_containers') }}</h3>
                         <p style="margin-bottom: 15px; color: #6c757d;">
-                            Çalışan container'lar ve IP adresleri
+                            {{ _('running_containers_desc') }}
                         </p>
                         <div id="dockerContainersList">
-                            <div class="loading">Container bilgileri yükleniyor...</div>
+                            <div class="loading">{{ _('loading_container_info') }}</div>
                         </div>
-                        <button class="btn" onclick="refreshDockerContainers()" style="margin-top: 15px;">🔄 Container'ları Yenile</button>
+                        <button class="btn" onclick="refreshDockerContainers()" style="margin-top: 15px;">🔄 {{ _('refresh_containers') }}</button>
                     </div>
                     
                     <div class="card">
-                        <h3 class="card-title">🎯 Tarama Aralıkları</h3>
+                        <h3 class="card-title">🎯 {{ _('scan_ranges') }}</h3>
                         <p style="margin-bottom: 15px; color: #6c757d;">
-                            Docker network'lerinden türetilen tarama aralıkları
+                            {{ _('docker_scan_ranges_desc') }}
                         </p>
                         <div id="dockerScanRangesList">
-                            <div class="loading">Tarama aralıkları yükleniyor...</div>
+                            <div class="loading">{{ _('loading_scan_ranges') }}</div>
                         </div>
-                        <button class="btn" onclick="refreshDockerScanRanges()" style="margin-top: 15px;">🔄 Tarama Aralıklarını Yenile</button>
+                        <button class="btn" onclick="refreshDockerScanRanges()" style="margin-top: 15px;">🔄 {{ _('refresh_scan_ranges') }}</button>
                     </div>
                 </div>
             </div>
@@ -337,7 +337,7 @@
     <div id="emojiPickerModal" class="emoji-picker-modal">
         <div class="emoji-picker-content">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h3>🙂 Emoji Seç</h3>
+                <h3>🙂 {{ _('select_emoji') }}</h3>
                 <button type="button" onclick="closeEmojiPicker()" style="background: none; border: none; font-size: 1.5em; cursor: pointer;">✖️</button>
             </div>
             

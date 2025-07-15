@@ -205,10 +205,18 @@ class LANScanner:
                     
                     if ip and ip != '':
                         # Container için cihaz bilgisi oluştur
+                        container_name = container['name']
+                        # Container name'i temizle (/ karakterini kaldır)
+                        if container_name.startswith('/'):
+                            container_name = container_name[1:]
+                        
+                        # Docker container için hostname'i container name olarak ayarla
+                        hostname = container_name
+                        
                         device = {
                             'ip': ip,
                             'mac': mac or 'Unknown',
-                            'hostname': container['name'],
+                            'hostname': hostname,
                             'vendor': 'Docker',
                             'device_type': 'Docker Container',
                             'status': 'online',
@@ -217,7 +225,7 @@ class LANScanner:
                             'open_ports': self._get_container_ports(container),
                             'docker_info': {
                                 'container_id': container['id'],
-                                'container_name': container['name'],
+                                'container_name': container_name,
                                 'image': container['image'],
                                 'network': network,
                                 'status': container['status']

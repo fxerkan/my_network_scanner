@@ -25,15 +25,23 @@ class DockerManager:
             result = subprocess.run(['docker', '--version'], 
                                   capture_output=True, text=True, timeout=5)
             if result.returncode != 0:
+                # Docker komutu bulunamadıysa, Docker socket'i kontrol et
+                if self._check_docker_socket():
+                    return True
                 return False
                 
             # Docker daemon'un çalışıp çalışmadığını kontrol et
             result = subprocess.run(['docker', 'info'], 
                                   capture_output=True, text=True, timeout=5)
-            return result.returncode == 0
+            if result.returncode == 0:
+                return True
+                
+            # Docker komutu başarısızsa, Docker socket'i kontrol et
+            return self._check_docker_socket()
             
         except (subprocess.TimeoutExpired, FileNotFoundError, Exception):
-            return False
+            # Komut çalışmadıysa, Docker socket'i kontrol et
+            return self._check_docker_socket()
     
     def _check_docker_socket(self):
         """Docker socket'inin erişilebilir olup olmadığını kontrol et"""
@@ -42,11 +50,55 @@ class DockerManager:
         except Exception:
             return False
     
+    def _is_running_in_docker(self):
+        """Docker container içinde çalışıp çalışmadığını kontrol et"""
+        try:
+            with open('/proc/1/cgroup', 'r') as f:
+                content = f.read()
+                return 'docker' in content or 'containerd' in content
+        except:
+            return False
+    
+    def _use_docker_socket_api(self, endpoint):
+        """Docker socket API kullanarak veri al"""
+        try:
+            import requests
+            import json
+            
+            # Docker socket üzerinden HTTP request yap
+            base_url = "http+unix://%2Fvar%2Frun%2Fdocker.sock"
+            response = requests.get(f"{base_url}/{endpoint}", timeout=10)
+            
+            if response.status_code == 200:
+                return response.json()
+            else:
+                return None
+                
+        except Exception as e:
+            print(f"Docker socket API hatası: {e}")
+            return None
+    
     def get_docker_networks(self):
         """Docker network'lerini listele"""
         if not self.docker_available:
             return []
-            
+        
+        # Docker socket API kullanarak dene (container içinde çalışıyorsa)
+        if self._is_running_in_docker() and self._check_docker_socket():
+            try:
+                networks_data = self._use_docker_socket_api("networks")
+                if networks_data:
+                    networks = []
+                    for network_basic in networks_data:
+                        detailed_info = self._get_network_details_from_socket(network_basic['Id'])
+                        if detailed_info:
+                            networks.append(detailed_info)
+                    return networks
+            except Exception as e:
+                print(f"Docker socket API kullanımı başarısız: {e}")
+                # Fallback to docker command
+        
+        # Normal docker komutunu kullan
         try:
             # Docker network'leri al
             result = subprocess.run(['docker', 'network', 'ls', '--format', 'json'], 
@@ -72,6 +124,50 @@ class DockerManager:
         except Exception as e:
             print(f"Docker network bilgileri alınamadı: {e}")
             return []
+    
+    def _get_network_details_from_socket(self, network_id):
+        """Docker socket API kullanarak network detaylarını al"""
+        try:
+            network_data = self._use_docker_socket_api(f"networks/{network_id}")
+            if not network_data:
+                return None
+            
+            # IPAM bilgilerinden subnet'leri çıkar
+            subnets = []
+            if 'IPAM' in network_data and 'Config' in network_data['IPAM']:
+                for config in network_data['IPAM']['Config']:
+                    if 'Subnet' in config:
+                        subnets.append(config['Subnet'])
+            
+            # Container'ları al
+            containers = []
+            if 'Containers' in network_data:
+                for container_id, container_info in network_data['Containers'].items():
+                    containers.append({
+                        'id': container_id[:12],  # Kısa ID
+                        'name': container_info.get('Name', 'Unknown'),
+                        'ipv4_address': container_info.get('IPv4Address', '').split('/')[0],
+                        'ipv6_address': container_info.get('IPv6Address', '').split('/')[0],
+                        'mac_address': container_info.get('MacAddress', '')
+                    })
+            
+            return {
+                'id': network_data['Id'][:12],
+                'name': network_data['Name'],
+                'driver': network_data['Driver'],
+                'scope': network_data['Scope'],
+                'created': network_data.get('Created', ''),
+                'subnets': subnets,
+                'containers': containers,
+                'gateway': self._extract_gateway(network_data),
+                'internal': network_data.get('Internal', False),
+                'attachable': network_data.get('Attachable', False),
+                'ingress': network_data.get('Ingress', False)
+            }
+            
+        except Exception as e:
+            print(f"Socket network {network_id} detayları alınamadı: {e}")
+            return None
     
     def _get_network_details(self, network_id):
         """Belirli bir network'ün detaylı bilgilerini al"""
