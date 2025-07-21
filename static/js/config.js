@@ -13,6 +13,16 @@ window.addEventListener('load', function() {
     loadAllSettings();
 });
 
+// Cleanup when page is unloaded
+window.addEventListener('beforeunload', function() {
+    cleanupDeviceTypeListeners();
+});
+
+// Cleanup when navigating away
+window.addEventListener('pagehide', function() {
+    cleanupDeviceTypeListeners();
+});
+
 /**
  * Tab Management
  */
@@ -204,6 +214,9 @@ function displayDeviceTypes() {
     const deviceTypesList = document.getElementById('deviceTypesList');
     if (!deviceTypesList) return;
     
+    // Clean up any existing listeners before rebuilding
+    cleanupDeviceTypeListeners();
+    
     deviceTypesList.innerHTML = '';
     
     for (const [typeName, typeInfo] of Object.entries(currentDeviceTypes)) {
@@ -244,28 +257,75 @@ function displayDeviceTypes() {
     attachDeviceTypeEventListeners();
 }
 
+// Global array to track active intervals for cleanup
+let activeIntervals = [];
+
+// Cleanup function to clear all intervals and event listeners
+function cleanupDeviceTypeListeners() {
+    // Clear all active intervals
+    activeIntervals.forEach(intervalId => {
+        clearInterval(intervalId);
+    });
+    activeIntervals = [];
+    
+    // Remove existing event listeners by replacing elements
+    const elementsToClean = [
+        '.device-icon-input',
+        '.device-name-input', 
+        '.device-category-select',
+        '.device-remove-btn'
+    ];
+    
+    elementsToClean.forEach(selector => {
+        document.querySelectorAll(selector).forEach(element => {
+            const newElement = element.cloneNode(true);
+            element.parentNode.replaceChild(newElement, element);
+        });
+    });
+}
+
 function attachDeviceTypeEventListeners() {
-    // Icon input event listeners - using polling to detect changes
+    // Clean up previous listeners and intervals
+    cleanupDeviceTypeListeners();
+    
+    // Icon input event listeners - improved without polling
     const iconInputs = document.querySelectorAll('.device-icon-input');
     
     iconInputs.forEach(input => {
         const deviceType = input.getAttribute('data-device-type');
         
-        // Store initial value and monitor for changes
-        let lastValue = input.value;
-        setInterval(() => {
-            if (input.value !== lastValue) {
-                updateDeviceTypeIcon(deviceType, input.value);
-                lastValue = input.value;
-            }
-        }, 200);
+        // Use proper event delegation instead of polling
+        const handleIconChange = function() {
+            updateDeviceTypeIcon(deviceType, this.value);
+        };
         
-        // Also try standard events as backup
-        ['input', 'change', 'blur'].forEach(eventType => {
-            input.addEventListener(eventType, function() {
-                updateDeviceTypeIcon(deviceType, this.value);
+        // Attach events with proper cleanup tracking
+        input.addEventListener('input', handleIconChange, { passive: true });
+        input.addEventListener('change', handleIconChange, { passive: true });
+        input.addEventListener('blur', handleIconChange, { passive: true });
+        
+        // Special handling for emoji picker updates
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'value') {
+                    updateDeviceTypeIcon(deviceType, input.value);
+                } else if (mutation.type === 'characterData' || 
+                          (mutation.type === 'childList' && input.value !== input.defaultValue)) {
+                    updateDeviceTypeIcon(deviceType, input.value);
+                }
             });
         });
+        
+        observer.observe(input, {
+            attributes: true,
+            attributeFilter: ['value'],
+            characterData: true,
+            childList: true,
+            subtree: true
+        });
+        
+        // Store observer for cleanup
+        input._observer = observer;
     });
     
     // Name input event listeners
@@ -274,7 +334,7 @@ function attachDeviceTypeEventListeners() {
             const oldName = this.getAttribute('data-device-type');
             const newName = this.value;
             updateDeviceTypeName(oldName, newName);
-        });
+        }, { passive: true });
     });
     
     // Category select event listeners
@@ -283,7 +343,7 @@ function attachDeviceTypeEventListeners() {
             const deviceType = this.getAttribute('data-device-type');
             const newCategory = this.value;
             updateDeviceTypeCategory(deviceType, newCategory);
-        });
+        }, { passive: true });
     });
     
     // Remove button event listeners
@@ -306,6 +366,7 @@ function updateDeviceTypeName(oldName, newName) {
         currentDeviceTypes[newName] = {...currentDeviceTypes[oldName]};
         delete currentDeviceTypes[oldName];
         displayDeviceTypes();
+        updateDetectionRuleSelects();
     }
 }
 
@@ -331,6 +392,7 @@ function addDeviceType() {
     };
     
     displayDeviceTypes();
+    updateDetectionRuleSelects();
     
     document.getElementById('newDeviceType').value = '';
     document.getElementById('newDeviceIcon').value = '';
@@ -343,6 +405,7 @@ function removeDeviceType(typeName) {
     if (confirm(t('confirm_delete_device_type', {type: typeName}))) {
         delete currentDeviceTypes[typeName];
         displayDeviceTypes();
+        updateDetectionRuleSelects();
         showAlert(t('device_type_deleted'));
     }
 }
