@@ -37,6 +37,7 @@ from version import get_version, get_version_info
 from data_sanitizer import DataSanitizer
 from unified_device_model import unified_model
 from language_manager import language_manager, _, get_language_manager
+from network_utils import is_docker_environment, get_host_network_ranges
 import re
 import requests
 import csv
@@ -1999,10 +2000,42 @@ if __name__ == '__main__':
     # JSON dosyası varsa yükle
     scanner.load_from_json()
     
-    print("LAN Scanner Web UI başlatılıyor...")
-    print("Tarayıcınızda http://localhost:5883 adresini açın")
-    print("Config sayfası: http://localhost:5883/config")
-    print("Tarihçe sayfası: http://localhost:5883/history")
-    
+    # Environment-based configuration
+    is_production = os.environ.get('FLASK_ENV', 'development') == 'production'
     port = int(os.environ.get('FLASK_PORT', 5883))
-    app.run(debug=True, host='0.0.0.0', port=port)
+    debug_mode = not is_production  # Disable debug in production
+    
+    # Docker environment detection
+    in_docker = is_docker_environment()
+    
+    print("🌐 LAN Scanner Web UI başlatılıyor...")
+    print(f"📦 Environment: {'Production' if is_production else 'Development'}")
+    print(f"🐳 Docker Environment: {'Yes' if in_docker else 'No'}")
+    print(f"🔌 Port: {port}")
+    print(f"🌍 Host: 0.0.0.0 (all interfaces)")
+    
+    if in_docker:
+        print("🔍 Docker container detected - discovering host networks...")
+        # Pre-load network ranges for Docker environment
+        try:
+            network_ranges = get_host_network_ranges()
+            print(f"📡 Discovered {len(network_ranges)} network ranges")
+        except Exception as e:
+            print(f"⚠️  Warning: Could not discover all network ranges: {e}")
+    
+    print(f"🚀 Starting web server...")
+    print(f"📱 Web interface: http://localhost:{port}")
+    print(f"⚙️  Configuration: http://localhost:{port}/config")
+    print(f"📊 History: http://localhost:{port}/history")
+    print("⏹️  Press Ctrl+C to stop")
+    
+    try:
+        app.run(debug=debug_mode, host='0.0.0.0', port=port, threaded=True)
+    except Exception as e:
+        print(f"❌ Failed to start application: {e}")
+        if in_docker:
+            print("🐳 Docker troubleshooting tips:")
+            print("  - Ensure port mapping is correct: -p 5883:5883")
+            print("  - Check if privileged mode is enabled: --privileged")
+            print("  - Verify network capabilities: --cap-add=NET_ADMIN --cap-add=NET_RAW")
+        raise

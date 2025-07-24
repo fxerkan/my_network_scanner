@@ -7,6 +7,7 @@ Provides network interface detection with or without netifaces
 import psutil
 import socket
 import ipaddress
+import os
 
 # Try to import netifaces, fall back to psutil if not available
 try:
@@ -169,10 +170,31 @@ def get_local_ip_ranges():
 def is_docker_environment():
     """Check if running in Docker container"""
     try:
+        # Check multiple indicators for Docker environment
+        # 1. Check cgroup
         with open('/proc/1/cgroup', 'r') as f:
-            return 'docker' in f.read() or 'containerd' in f.read()
+            cgroup_content = f.read()
+            if 'docker' in cgroup_content or 'containerd' in cgroup_content:
+                return True
+        
+        # 2. Check for .dockerenv file
+        if os.path.exists('/.dockerenv'):
+            return True
+            
+        # 3. Check environment variables
+        if os.environ.get('container') == 'docker':
+            return True
+            
+        # 4. Check hostname patterns (Docker often uses random hostnames)
+        import socket
+        hostname = socket.gethostname()
+        if len(hostname) == 12 and all(c in '0123456789abcdef' for c in hostname):
+            return True
+            
     except:
-        return False
+        pass
+        
+    return False
 
 def get_docker_networks():
     """Get Docker network information if in Docker environment"""
@@ -200,9 +222,12 @@ def get_host_network_ranges():
         try:
             import subprocess
             
+            print("🐳 Docker environment detected, attempting to discover host networks...")
+            
             # Try to get host network via default gateway
             gateway = get_default_gateway()
             if gateway:
+                print(f"🌐 Default gateway detected: {gateway}")
                 # Assume host is on common networks based on gateway
                 gateway_parts = gateway.split('.')
                 if len(gateway_parts) == 4:
@@ -222,8 +247,19 @@ def get_host_network_ranges():
                                 'ip': gateway,
                                 'is_host_network': True
                             })
+                            print(f"📡 Added host network range: {network}")
                         except:
                             continue
+            
+            # Try to get Docker bridge network information
+            try:
+                result = subprocess.run(['ip', 'route'], capture_output=True, text=True, timeout=5)
+                if result.returncode == 0:
+                    for line in result.stdout.split('\n'):
+                        if 'docker' in line or 'br-' in line:
+                            print(f"🔍 Docker network route found: {line}")
+            except:
+                pass
             
             # Also try to detect networks through environment or common ranges
             # Add common private network ranges if in Docker
@@ -231,7 +267,11 @@ def get_host_network_ranges():
                 '192.168.1.0/24',
                 '192.168.0.0/24', 
                 '10.0.0.0/24',
-                '172.16.0.0/24'
+                '172.16.0.0/24',
+                '172.17.0.0/16',  # Default Docker bridge network
+                '172.18.0.0/16',  # Common Docker custom networks
+                '172.19.0.0/16',
+                '172.20.0.0/16'
             ]
             
             for network in common_ranges:
@@ -249,10 +289,14 @@ def get_host_network_ranges():
                     continue
                     
         except Exception as e:
-            print(f"Error detecting host networks: {e}")
+            print(f"❌ Error detecting host networks: {e}")
     
     # Add local interfaces too
     local_ranges = get_local_ip_ranges()
     ranges.extend(local_ranges)
+    
+    print(f"📊 Total network ranges discovered: {len(ranges)}")
+    for range_info in ranges:
+        print(f"  - {range_info['cidr']} ({range_info['interface']})")
     
     return ranges
