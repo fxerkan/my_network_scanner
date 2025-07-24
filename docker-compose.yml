@@ -13,14 +13,16 @@ services:
       - FLASK_ENV=production
       - FLASK_PORT=5883
       - LAN_SCANNER_PASSWORD=${LAN_SCANNER_PASSWORD:-admin}
+      - container=docker
     restart: unless-stopped
     # Use bridge network with privileged mode for scanning
+    network_mode: bridge
     cap_add:
       - NET_ADMIN
       - NET_RAW
     privileged: true  # Required for nmap scanning
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5883/api/version"]
+      test: ["CMD", "python", "docker-healthcheck.py"]
       interval: 30s
       timeout: 10s
       retries: 3
