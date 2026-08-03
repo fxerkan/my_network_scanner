@@ -10,6 +10,46 @@ Modern ve kullanıcı dostu web arayüzü ile ağ yönetimini kolaylaştırır. 
 
 > *Bu uygulama tümüyle **AI destekli** olarak (**Agentic Mode**) [Claude Code](https://www.anthropic.com/claude-code)*, [Github Copilot](https://github.com/features/copilot) ve *[Visual Studio Code](https://code.visualstudio.com/) kullanılarak **Open-Source** olarak geliştirilmiştir.*
 
+## 🆕 v2'de Yenilikler
+
+**Home Lab için çoklu protokol keşfi** — IP taraması ev ağının yarısını kaçırır.
+MyNeS artık kendini duyuran her şeyi dinliyor:
+
+| Protokol | Bulduğu cihazlar |
+|---|---|
+| **mDNS / Bonjour** | Yazıcılar, NAS, Chromecast, HomeKit, Home Assistant, Raspberry Pi |
+| **Matter** | `_matter._tcp` / `_matterc._udp` üzerinden Matter düğümleri (mDNS ile birlikte gelir) |
+| **SSDP / UPnP** | Router, Smart TV, DLNA, IP kamera, oyun konsolları |
+| **Bluetooth LE** | Takip cihazları, sensörler, kulaklıklar, saatler — *IP'si olmayan cihazlar* |
+| **MQTT** | Zigbee2MQTT, Z-Wave JS, Tasmota, Home Assistant MQTT discovery |
+
+**Periyodik izleme ve bildirim** — Ağı belirli aralıklarla tarar, iki tarama
+arasındaki farkı çıkarır ve önemli olanı bildirir:
+
+- Yeni cihaz, cihaz çevrimdışı, IP değişimi, **MAC değişimi (ARP spoofing)**
+- Yeni açık port (SSH/RDP/SMB gibi hassas portlarda *kritik*)
+- **Düşük voltaj** (Raspberry Pi / Orange Pi güç sorunları), düşük pil,
+  yüksek gecikme, zayıf sinyal
+- Kanallar: ntfy (telefon push), Telegram, Webhook, Slack, Discord, E-posta
+- Tek bir kayıp yanıt bildirim göndermez — eşik ayarlanabilir
+
+**Home Assistant entegrasyonu** — İki yönlü:
+
+- **Push:** MQTT Discovery ile her cihaz otomatik olarak bir HA
+  `device_tracker` + tanılama sensörlerine dönüşür. YAML yok.
+- **Pull:** HA'nın kendi cihaz listesini okuyup MyNeS'in bulduklarıyla
+  karşılaştırır (Zigbee/Z-Wave/Matter cihazları dahil).
+
+**Kökensiz (root'suz) çalışan tarama** — Ham ARP root ister. Yetki yoksa MyNeS
+artık sessizce boş liste döndürmek yerine ping sweep + işletim sistemi ARP
+cache yöntemine düşüyor. Gerçek bir /24 ağda: **2 → 29 cihaz**.
+
+**Her ekranda çalışan arayüz** — Yeni tasarım sistemi (açık/koyu tema),
+PWA (telefona/tablete kurulabilir), 320px telefondan TV'ye kadar duyarlı
+yerleşim, TV kumandası için ok tuşu navigasyonu, erişilebilirlik iyileştirmeleri.
+
+📱 Mobil uygulama (Faz 2) planı: [`docs/PHASE2_MOBILE.md`](docs/PHASE2_MOBILE.md)
+
 ## ✨ Özellikler
 
 - 🌐 **Web-based Interface** - Modern, kullanıcı dostu Web tabanlı arayüz
@@ -116,119 +156,111 @@ docker run -d \
 open http://localhost:5883
 ```
 
-## 🛠️ Geliştirme
+## 🛠️ Kurulum ve Geliştirme
 
-- Python 3.7+
-- Nmap (sistem seviyesinde kurulu olmalı)
-- Root/Administrator yetkileri (port taraması için)
-- Docker (opsiyonel - container tespiti için)
-- SSH/FTP/SNMP araçları (gelişmiş analiz için)
+**Gereksinimler**
 
-### 1. Nmap Kurulumu
+- Python 3.9+
+- Nmap (port/servis tespiti için — yoksa tarama çalışır, port taraması atlanır)
+- Root/Administrator yetkisi *önerilir* (ham ARP taraması için; yoksa MyNeS
+  otomatik olarak ping sweep + işletim sistemi ARP cache yöntemine düşer)
+- Docker (opsiyonel — container tespiti için)
 
-**macOS:**
-
-```bash
-brew install nmap
-```
-
-**Ubuntu/Debian:**
+### 1. Nmap kurulumu
 
 ```bash
-sudo apt-get update
-sudo apt-get install nmap
+brew install nmap                          # macOS
+sudo apt-get install nmap                  # Ubuntu/Debian
+sudo dnf install nmap                      # Fedora/RHEL
+winget install Insecure.Nmap               # Windows
 ```
 
-**CentOS/RHEL:**
-
-```bash
-sudo yum install nmap
-```
-
-### 2. Kodlama
-
-1. **Kodu klonla:**
+### 2. Çalıştırma (Windows / macOS / Linux — tek komut)
 
 ```bash
 git clone https://github.com/fxerkan/my_network_scanner.git
 cd my_network_scanner
+python scripts/run.py
 ```
 
-2. **Sanal Ortam oluşturun**
-3. ```bash
-   python -m venv .venv
+`scripts/run.py` sanal ortamı oluşturur, bağımlılıkları kurar, nmap'i kontrol
+eder ve uygulamayı başlatır. Sadece standart kütüphane kullandığı için hiçbir
+şey kurulu olmadan da çalışır.
 
-   source .venv/bin/activate
-   ```
-4. **Bağımlılıkları yükleyin:**
+**Elle kurulum:**
 
 ```bash
-pip install -r requirements.txt
+python3 -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+pip install -e ".[all]"            # veya: pip install -r requirements.txt
+python -m mynes                    # veya: mynes
 ```
 
-3. **Uygulamayı çalıştırın:**
+Arayüz: `http://localhost:5883`
+
+**Docker:**
 
 ```bash
-python app.py
-# or use the startup script
-./start.sh
+docker compose -f deploy/docker-compose.yml up -d
 ```
 
-4. **Web arayüzü erişimi:**
-   `http://localhost:5883` adresinden uygulama arayüzüne erişebilirsiniz.
+`network_mode: host` ARP/mDNS/SSDP keşfinin LAN'ı gerçekten görebilmesi için
+gereklidir. Docker Desktop'ta (macOS/Windows) host modu kısıtlıdır; compose
+dosyasındaki `ports:` bloğunu açın (keşif kapsamı daralır).
 
-### Hızlı Komutlar
+### 3. Yapılandırma
 
 ```bash
-# Standart Ağ taraması başlatmak için (CLI)
-python lan_scanner.py
+export MYNES_PASSWORD="ana_parolaniz"    # yoksa otomatik üretilir
+export MYNES_PORT=5883
+export MYNES_DATA_DIR=/veri/yolu         # MYNES_CONFIG_DIR, MYNES_HOME de var
+
+# Home Assistant entegrasyonu (opsiyonel)
+export MYNES_HA_URL="http://homeassistant.local:8123"
+export MYNES_HA_TOKEN="uzun_omurlu_erisim_tokeni"
+
+# MQTT / Zigbee2MQTT keşfi ve HA'ya yayın (opsiyonel)
+export MYNES_MQTT_HOST="192.168.1.10"
+export MYNES_MQTT_USERNAME="mynes"
+export MYNES_MQTT_PASSWORD="..."
 ```
 
-### Konfigürasyon
-
-```bash
-# Ana şifreyi Ortam değişki olarak atamak için
-export LAN_SCANNER_PASSWORD="your_master_password"
-
-# Flask uygulama ayarları
-export FLASK_SECRET_KEY="your_secret_key"
-```
+> **Güvenlik:** Ana parolayı `config/config.json` içine **yazmayın**. Bu dosya
+> git'te takiplidir. Parola `MYNES_PASSWORD` ortam değişkeninden ya da git'e
+> girmeyen `config/.master_password` dosyasından okunur.
 
 ## 📁 Dosya Yapısı
 
 ```
-lan_scanner/
-├── app.py                      # Flask web uygulaması
-├── lan_scanner.py              # Ana tarama modülü
-├── enhanced_device_analyzer.py # Gelişmiş cihaz analizi
-├── smart_device_identifier.py  # AI destekli cihaz tanıma
-├── unified_device_model.py     # Birleşik veri modeli
-├── credential_manager.py       # Güvenli credential yönetimi
-├── docker_manager.py           # Docker container tespiti
-├── version.py                  # Dinamik versiyon yönetimi
-├── data_sanitizer.py           # Güvenli veri temizleme
-├── oui_manager.py              # OUI veritabanı yönetimi
-├── config.py                   # Yapılandırma yönetimi
-├── requirements.txt            # Python bağımlılıkları
-├── config/
-│   ├── config.json            # Ana yapılandırma
-│   ├── device_types.json      # Cihaz tipi tanımları
-│   ├── oui_database.json      # OUI veritabanı
-│   ├── .salt                  # Şifreleme salt'ı (gizli)
-│   └── .key_info              # Anahtar türetme bilgisi (gizli)
-├── data/
-│   ├── lan_devices.json       # Cihaz verileri (birleşik model)
-│   └── scan_history.json      # Tarama geçmişi
-├── locales/<language_code>/
-│   ├── translations.json        # Dil bazlı çeviri tanımları
-│   └── device_types.json        # dillere göre cihaz tipi tanımları
-├── templates/
-│   └── index.html             # Web arayüzü template
-├── static/                    # CSS/JS dosyaları
-└── README.md                  # Bu dosya
+my_network_scanner/
+├── mynes/                       # Uygulama paketi
+│   ├── paths.py                 # Dizinler (CWD'den değil paketten çözülür)
+│   ├── core/
+│   │   ├── scanner.py           # Ana tarama motoru
+│   │   ├── arp.py               # Yetkisiz çalışan layer-2 keşif
+│   │   ├── models.py            # Birleşik cihaz modeli
+│   │   ├── network.py           # Arayüz/ağ yardımcıları
+│   │   ├── config.py            # Yapılandırma yönetimi
+│   │   └── version.py           # Dinamik versiyon
+│   ├── discovery/               # Çoklu protokol keşfi
+│   │   ├── mdns.py              # mDNS/Bonjour + Matter
+│   │   ├── ssdp.py              # SSDP/UPnP (sadece stdlib)
+│   │   ├── bluetooth.py         # BLE (bleak, opsiyonel)
+│   │   └── mqtt.py              # Zigbee2MQTT / Z-Wave / Tasmota
+│   ├── analysis/                # Derin analiz, OUI, cihaz tanıma
+│   ├── monitoring/              # Zamanlayıcı, kurallar, bildirimler
+│   ├── integrations/            # Home Assistant, Docker
+│   ├── security/                # Şifreli credential, veri temizleme
+│   └── web/                     # Flask app, API, şablonlar, statikler
+├── config/                      # Yapılandırma + OUI veritabanı
+├── data/                        # Tarama sonuçları, uyarılar, geçmiş
+├── deploy/                      # Dockerfile, docker-compose
+├── scripts/run.py               # Çapraz platform başlatıcı
+├── docs/                        # PHASE2_MOBILE.md ve diğer dokümanlar
+├── tests/                       # Smoke + kural testleri
+└── .claude/skills/              # UI/UX ve full-stack Claude Skills
 ```
 
-## 🛡️ Güvenlik Notları
 
 - **Root Yetkileri**: Port taraması için yönetici yetkileri gerekebilir
 - **Güvenlik Duvarı**: Bazı güvenlik duvarları taramayı engelleyebilir
@@ -242,10 +274,22 @@ lan_scanner/
 
 ### Yaygın Sorunlar
 
+#### "Sadece 2-3 cihaz buluyor"
+
+Neredeyse her zaman ham soket yetkisi eksikliğidir. MyNeS bu durumda ping sweep
++ ARP cache'e düşer; bu yöntem ICMP'ye yanıt vermeyen ve bu makineyle hiç
+konuşmamış cihazları kaçırır. Durumu `GET /api/capabilities` söyler.
+
+```bash
+sudo .venv/bin/python -m mynes          # macOS/Linux
+# Windows: PowerShell'i "Yönetici olarak çalıştır" ile açın
+# Docker: compose dosyası zaten NET_RAW + NET_ADMIN veriyor
+```
+
 #### "Permission denied" Hatası
 
 ```bash
-sudo python app.py
+sudo .venv/bin/python -m mynes
 ```
 
 #### Nmap Bulunamadı

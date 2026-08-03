@@ -1,422 +1,159 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guidance for Claude Code (claude.ai/code) when working in this repository.
 
 ## Overview
 
-This is a comprehensive LAN Scanner application built with Python and Flask that performs network device discovery and analysis. The application provides a web interface for scanning local networks, identifying devices, and managing device information with advanced security features, AI-powered device identification, and enterprise-grade capabilities.
+MyNeS (My Network Scanner) is a Flask application that discovers, identifies and
+monitors every device on a home network — including the ones an IP scan cannot
+see (Bluetooth LE, Zigbee, Z-Wave) — and integrates with Home Assistant.
 
-## Common Commands
+Target users run home labs: Raspberry Pi / Orange Pi clusters, NAS boxes, AI
+workstations, and a Home Assistant install. Design decisions should favour that
+audience: no cloud dependency, works on a LAN, degrades gracefully when an
+optional dependency or privilege is missing.
 
-### Development
-
-```bash
-# Start the application
-python app.py
-
-# Use the startup script (recommended)
-./start.sh
-
-# Run network scan (command line)
-python lan_scanner.py
-
-# Install dependencies
-pip install -r requirements.txt
-```
-
-### Virtual Environment
+## Commands
 
 ```bash
-# Create virtual environment
-python3 -m venv .venv
+# One command, any OS: creates the venv, installs deps, checks nmap, runs.
+python scripts/run.py
 
-# Activate virtual environment
-source .venv/bin/activate  # Linux/macOS
-.venv\Scripts\activate     # Windows
+# Manual
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e ".[all]"
+python -m mynes                      # or: mynes
+
+# Tests
+.venv/bin/python -m pytest tests/ -q
+
+# Individual module self-checks (each is runnable and asserts its own logic)
+.venv/bin/python -m mynes.monitoring.rules
+.venv/bin/python -m mynes.core.arp 192.168.1.0/24
+.venv/bin/python -m mynes.discovery.mdns
+.venv/bin/python -m mynes.integrations.home_assistant
+
+# Docker (host networking is what makes LAN discovery work)
+docker compose -f deploy/docker-compose.yml up -d
 ```
 
-### System Requirements
-
-- Python 3.7+
-- Nmap (must be installed system-wide)
-- Root/Administrator privileges may be required for port scanning
+Default port: **5883** (`MYNES_PORT` to change).
 
 ## Architecture
 
-### Core Components
-
-#### 1. Flask Web Application (`app.py`)
-
-- Main web server running on port `5883`
-- Comprehensive REST API endpoints for device management
-- Real-time progress tracking for scans with WebSocket-like updates
-- Background thread management for scanning operations
-- Configuration and history management
-- Device analysis engine integration
-- Credential management system integration
-- Smart device naming and alias generation
-
-#### 2. LAN Scanner Engine (`lan_scanner.py`)
-
-- Core scanning functionality using ARP and nmap
-- Network discovery with automatic IP range detection
-- Device classification and port scanning
-- Integration with OUI database for vendor identification
-- Support for both online and offline device tracking
-- Unified device model for data consistency
-- Enhanced device analysis integration
-- Smart device identification with confidence scoring
-
-#### 3. OUI Manager (`oui_manager.py`)
-
-- IEEE OUI database management
-- Automatic downloads from IEEE CSV sources
-- Online API fallback for unknown MAC addresses
-- Local database caching and vendor name normalization
-
-#### 4. Configuration Manager (`config.py`)
-
-- JSON-based configuration system
-- Device type definitions and detection rules
-- Port scanning configurations
-- Scan history management
-
-#### 5. Enhanced Device Analyzer (`enhanced_device_analyzer.py`)
-
-- Advanced device analysis with SSH, FTP, HTTP, and SNMP access
-- Comprehensive port scanning with service detection
-- Web service analysis and content extraction
-- System identification through multiple protocols
-- Security analysis and vulnerability assessment
-- IoT and Raspberry Pi specific detection
-- Real-time progress tracking with detailed logging
-
-#### 6. Smart Device Identifier (`smart_device_identifier.py`)
-
-- AI-powered device identification using pattern matching
-- Confidence scoring for device type predictions
-- Hostname and vendor-based classification
-- Smart device naming with alias generation
-- Device category classification (IoT, Server, Router, etc.)
-- Comprehensive device type detection rules
-
-#### 7. Unified Device Model (`unified_device_model.py`)
-
-- Standardized data structure across all scan types
-- Data consistency and validation
-- Legacy format support with migration
-- Merging of multiple scan results
-- Comprehensive device data normalization
-
-#### 8. Credential Manager (`credential_manager.py`)
-
-- Fernet symmetric encryption for credential storage
-- PBKDF2-HMAC-SHA256 key derivation with 100,000 iterations
-- Multi-protocol credential support (SSH, FTP, HTTP, SNMP)
-- Master password protection with environment variable support
-- Secure file permissions and hidden key files
-
-#### 9. Docker Manager (`docker_manager.py`)
-
-- Docker container detection and network mapping
-- Virtual network interface discovery
-- Container IP address tracking
-- Docker network subnet analysis
-- Integration with main scanning engine
-
-#### 10. Dynamic Version Management (`version.py`)
-
-- Git-based version tracking
-- Automatic version generation from commits
-- Clean/dirty working directory detection
-- Build timestamp tracking
-- Fallback version support
-
-#### 11. Data Sanitizer (`data_sanitizer.py`)
-
-- Security-focused data cleaning for export
-- Sensitive header and field removal
-- Asset file filtering
-- Docker overlay path cleanup
-- Sanitization statistics tracking
-
-### Data Flow
-
-1. **Network Discovery**: Uses ARP scanning to find active devices
-2. **Device Analysis**: For each device, performs:
-   - Hostname resolution
-   - MAC address vendor lookup via OUI database
-   - Port scanning with service detection
-   - Device type classification based on rules
-   - Enhanced analysis with credential-based access
-   - Smart device identification with confidence scoring
-   - Docker container detection and mapping
-3. **Data Processing**:
-   - Unified device model standardization
-   - Data sanitization for security
-   - Credential encryption and secure storage
-4. **Data Storage**: Results stored in JSON format with persistent configuration
-5. **Web Interface**: Real-time updates via REST API endpoints
-
-### Key Features
-
-- **Multi-source OUI Database**: Supports OUI, MA-M, OUI-36, IAB, and CID registries
-- **Smart Device Detection**: Pattern-based classification using hostname and vendor rules
-- **Configurable Port Scanning**: Device-specific port lists for efficient scanning
-- **Offline Device Tracking**: Maintains history of previously seen devices
-- **Background Analysis**: Detailed device analysis with command execution
-- **Export/Import**: JSON-based data exchange
-- **AI-Powered Device Identification**: Machine learning-based device classification with confidence scoring
-- **Enhanced Security Analysis**: Multi-protocol access with SSH, FTP, HTTP, and SNMP
-- **Docker Integration**: Container and virtual network detection
-- **Encrypted Credential Storage**: Secure storage of authentication credentials
-- **Real-time Progress Tracking**: Detailed logging and progress updates
-- **Data Sanitization**: Security-focused data cleaning for export
-- **Unified Data Model**: Consistent data structure across all scan types
-- **Dynamic Version Management**: Git-based versioning with automatic updates
-
-### File Structure
-
 ```
-config/           # Configuration files
-├── config.json   # Main application settings
-├── device_types.json  # Device type definitions
-├── oui_database.json  # Local OUI database
-├── .salt         # Cryptographic salt (hidden)
-├── .key_info     # Key derivation information (hidden)
-└── *.csv        # IEEE CSV files (auto-downloaded)
-
-data/            # Runtime data
-├── lan_devices.json    # Device scan results (unified model)
-├── scan_history.json   # Scan history
-└── *_fx.json    # Additional data files
-
-Core Modules:
-├── app.py                      # Main Flask application
-├── lan_scanner.py              # Core scanning engine
-├── enhanced_device_analyzer.py # Advanced device analysis
-├── smart_device_identifier.py  # AI-powered device identification
-├── unified_device_model.py     # Data model standardization
-├── credential_manager.py       # Encrypted credential storage
-├── docker_manager.py           # Docker container detection
-├── version.py                  # Dynamic version management
-├── data_sanitizer.py           # Security data cleaning
-├── oui_manager.py              # OUI database management
-└── config.py                   # Configuration management
-
-Web Interface:
-├── templates/       # HTML templates
-├── static/         # CSS/JS assets
-└── _ex/           # Example/backup files
+mynes/
+├── paths.py              Paths resolved from the package, not the CWD.
+│                         Env overrides: MYNES_HOME/_CONFIG_DIR/_DATA_DIR.
+├── core/
+│   ├── scanner.py        LANScanner: the orchestrator. scan_network() ->
+│   │                     get_devices(). Everything else hangs off this.
+│   ├── arp.py            Layer-2 discovery. Raw ARP when privileged, else
+│   │                     ping sweep + OS ARP cache. See "Privileges" below.
+│   ├── models.py         Unified device model / normalisation
+│   ├── network.py        Interface + gateway detection
+│   ├── config.py         ConfigManager: config/config.json read/write
+│   └── version.py        Git-derived version
+├── discovery/            One module per protocol, all optional, all isolated.
+│   ├── base.py           DiscoveryBackend + DiscoveredDevice. safe_discover()
+│   │                     never raises: a dead protocol yields [] and logs.
+│   ├── mdns.py           mDNS/DNS-SD via zeroconf. Matter arrives here too
+│   │                     (_matter._tcp / _matterc._udp) — there is no separate
+│   │                     Matter stack.
+│   ├── ssdp.py           SSDP/UPnP, stdlib sockets only, zero dependencies
+│   ├── bluetooth.py      BLE via bleak. Devices keyed by BT address, no IP.
+│   └── mqtt.py           Reads Zigbee2MQTT / Z-Wave JS / Tasmota / HA discovery
+│                         retained topics — the only way to see radio devices.
+├── analysis/             oui, identifier, hostname, advanced, enhanced
+├── monitoring/
+│   ├── rules.py          PURE functions: (previous, current) -> [Alert].
+│   │                     No I/O. Test here first; it is the cheapest layer.
+│   ├── notify.py         Channels (stdlib only). Add one = add one function
+│   │                     to SENDERS.
+│   ├── scheduler.py      One daemon thread: scan -> diff -> alert -> notify
+│   └── store.py          Capped JSON alert history + monitor state
+├── integrations/
+│   ├── home_assistant.py MQTT Discovery push + REST pull/compare
+│   └── docker.py         Container/network detection
+├── security/             credentials (Fernet + PBKDF2), sanitizer
+└── web/
+    ├── app.py            Legacy routes + page rendering (large, historic)
+    ├── api.py            v2 blueprint: /api/discovery, /monitoring, /alerts,
+    │                     /notifications, /integrations, /health, /capabilities
+    ├── i18n.py           tr/en translation loader
+    ├── templates/        base.html is the shell; pages extend it
+    └── static/           design-system.css is the single source of style truth
 ```
 
-### Network Interface Detection
+## Conventions
 
-The application automatically detects available network interfaces and their IP ranges. It prioritizes interfaces with active gateways and supports manual IP range specification. Additionally, it detects Docker virtual interfaces and container networks for comprehensive network mapping.
+**Never hardcode a colour in a page stylesheet.** `static/css/design-system.css`
+defines semantic tokens (`--bg-surface`, `--text-primary`, `--severity-*`) for
+light and dark. Page CSS consumes tokens only. Light and dark are both
+first-class; the OS preference is the default and `[data-theme]` on `<html>`
+overrides it in either direction.
 
-### Port Scanning Strategy
+**No emoji as UI icons.** Use the sprite in `templates/_icons.html`:
+`<svg class="ds-icon"><use href="#i-network"/></svg>`. Emoji as *content*
+(device type labels the user picks) is fine.
 
-- **Default Ports**: Common services (SSH, HTTP, HTTPS, etc.)
-- **Device-Specific Ports**: Additional ports based on detected device type
-- **Configurable Timeouts**: Optimized for network performance
-- **Service Detection**: Uses nmap's service fingerprinting
-- **Enhanced Analysis**: Comprehensive port scanning with 1000+ ports
-- **Multi-Protocol Support**: SSH, FTP, HTTP, SNMP, and Telnet access
-- **Credential-Based Access**: Authenticated scanning for detailed information
+**Optional dependencies stay optional.** A missing `bleak` or an unreachable
+MQTT broker must degrade that one feature, never break a scan. Follow the
+`DiscoveryBackend.available()` pattern: return `(False, "why")` rather than
+raising.
 
-### Vendor Identification
+**Tell the user why something is missing.** `/api/capabilities` exists because
+"it only found two devices" is a permissions problem, not a bug report. New
+capability gaps belong there.
 
-1. **Local OUI Database**: First checks local IEEE database
-2. **API Fallback**: Uses multiple online APIs for unknown MACs
-3. **Name Normalization**: Cleans and standardizes vendor names
-4. **Automatic Updates**: Downloads latest IEEE registries
+**Every non-trivial module carries a runnable `demo()`** with asserts, wired
+into `tests/` by a one-line test. No fixtures, no mocks unless unavoidable.
 
-## Web Interface
+**Turkish and English both matter.** UI strings go through `_()` and
+`web/locales/{tr,en}/`. Comments and commit messages are in English; existing
+Turkish comments in legacy modules stay.
 
-- **Main Page**: Device listing with search and filtering
-- **Config Page**: Settings and database management
-- **History Page**: Scan history and statistics
-- **Real-time Updates**: WebSocket-like progress tracking via polling
-- **Enhanced Analysis**: Device-specific detailed analysis interface
-- **Credential Management**: Secure credential storage and management UI
-- **Docker Integration**: Container and network visualization
+## Privileges — read this before touching scanning
 
-## Security Features
+Raw ARP (`scapy.srp`) requires root. Without it MyNeS falls back to a ping sweep
+plus the OS ARP cache, which finds most but not all devices. `core/arp.py`
+handles the choice and reports it through `scanner.last_arp_method` and
+`scanner.privilege_hint`. **Never let a permission failure return an empty list
+silently** — that was a real bug (2 devices reported where 29 existed).
 
-### Encrypted Credential Storage
+`nmap` is likewise optional: without it, port and service detection is skipped
+but discovery still works.
 
-- **Secure Storage**: All device credentials (SSH, FTP, etc.) are encrypted using Fernet symmetric encryption
-- **Key Derivation**: PBKDF2-HMAC-SHA256 with 100,000 iterations for master password protection
-- **File Security**: Encrypted files stored in `config/` directory with restrictive permissions (600)
-- **Environment Support**: Master password can be set via `LAN_SCANNER_PASSWORD` environment variable
-- **Multiple Access Types**: Supports SSH, FTP, HTTP authentication per device
+## Security
 
-### Security Files
+- `config/config.json` is **tracked in git**. Secrets must never be written
+  there. The master password comes from `MYNES_PASSWORD` or
+  `config/.master_password` (gitignored, mode 600), auto-generated if absent.
+  `tests/test_smoke.py` asserts this.
+- Credentials are encrypted with Fernet + PBKDF2-HMAC-SHA256 (100k iterations).
+- `security/sanitizer.py` strips sensitive fields before export.
+- The scanner is a scanner: only scan networks the user owns.
 
-```
-config/
-├── .salt                  # Cryptographic salt (hidden)
-└── .key_info             # Key derivation information (hidden)
-```
+## Claude Skills in this repo
 
-### Security Best Practices
+`.claude/skills/` vendors a curated set (upstream licences alongside them):
 
-- Requires network scanning permissions
-- May trigger firewall/security alerts
-- Only scan networks you own or have permission to scan
-- Uses HTTPS for external API calls where possible
-- Never stores credentials in plain text or memory
-- Data sanitization removes sensitive information before export
-- Secure credential storage with military-grade encryption
+- **UI/UX** (from `nextlevelbuilder/ui-ux-pro-max-skill`): `ui-ux-pro-max`,
+  `design-system`, `design`, `brand`, `ui-styling`. Load `ui-ux-pro-max` before
+  any visual work; its `references/pro-rules.md` is the pre-delivery checklist
+  this project's design system was built against.
+- **Full-stack** (from `jeffallan/claude-skills`): `python-pro`, `api-designer`,
+  `fullstack-guardian`, `code-reviewer`, `security-reviewer`,
+  `monitoring-expert`, `test-master`, `websocket-engineer`, `devops-engineer`,
+  `playwright-expert`, plus `react-native-expert` and `typescript-pro` for
+  Phase 2.
 
-## Advanced Features
+Skill scripts referencing `${CLAUDE_PLUGIN_ROOT}` resolve to the repo root here;
+use `.claude/skills/<name>/scripts/...` directly.
 
-### AI-Powered Device Identification
+## Phase 2
 
-The Smart Device Identifier provides advanced device classification:
-
-- **Pattern-Based Recognition**: Uses hostname and vendor patterns for identification
-- **Confidence Scoring**: Provides confidence levels for device type predictions
-- **Smart Naming**: Generates human-readable device names and aliases
-- **Category Classification**: Classifies devices into categories (IoT, Server, Router, etc.)
-- **Vendor-Specific Rules**: Tailored detection rules for different manufacturers
-
-### Enhanced Device Analysis
-
-The Enhanced Device Analyzer provides deep device inspection:
-
-- **Multi-Protocol Access**: SSH, FTP, HTTP, SNMP, and Telnet support
-- **System Information**: OS detection, system specifications, and running services
-- **Security Analysis**: Vulnerability assessment and security posture evaluation
-- **Web Service Analysis**: Content extraction and link discovery
-- **File System Access**: Directory listing and file analysis (with credentials)
-- **IoT Detection**: Specialized detection for IoT devices and embedded systems
-- **Raspberry Pi Analysis**: Specific analysis for Raspberry Pi devices
-
-### Docker Integration
-
-The Docker Manager provides container ecosystem visibility:
-
-- **Container Detection**: Identifies running Docker containers
-- **Network Mapping**: Maps Docker networks and IP assignments
-- **Virtual Interface Discovery**: Detects Docker virtual network interfaces
-- **Container Information**: Provides detailed container metadata
-- **Network Isolation**: Identifies container network isolation and communication
-
-### Data Management
-
-#### Unified Device Model
-
-- **Consistent Structure**: Standardized data format across all scan types
-- **Legacy Support**: Maintains compatibility with older data formats
-- **Data Validation**: Ensures data integrity and consistency
-- **Merge Operations**: Combines data from multiple scan sources
-
-#### Data Sanitization
-
-- **Sensitive Data Removal**: Removes authentication tokens and sensitive headers
-- **Asset Filtering**: Filters out unnecessary asset files and links
-- **Export Security**: Ensures safe data export without exposing credentials
-- **Docker Path Cleanup**: Removes Docker overlay paths from exported data
-
-### Version Management
-
-Dynamic version tracking system:
-
-- **Git Integration**: Automatic version detection from Git tags and commits
-- **Build Information**: Tracks build timestamps and commit hashes
-- **Development Status**: Indicates clean/dirty working directory status
-- **Fallback Support**: Provides fallback version when Git is unavailable
-
-### Real-time Progress Tracking
-
-Advanced progress monitoring:
-
-- **Detailed Logging**: Comprehensive operation logging with timestamps
-- **Real-time Updates**: Live progress updates during scanning operations
-- **Operation Status**: Detailed status for each scanning phase
-- **Error Tracking**: Captures and reports errors during analysis
-
-## API Endpoints
-
-### Device Management
-
-- `GET /api/devices` - Get all devices
-- `POST /api/devices/scan` - Start network scan
-- `GET /api/devices/{ip}` - Get specific device information
-- `POST /api/devices/{ip}/analyze` - Perform enhanced analysis
-- `POST /api/devices/{ip}/credentials` - Set device credentials
-
-### Configuration
-
-- `GET /api/config` - Get application configuration
-- `POST /api/config` - Update configuration
-- `GET /api/version` - Get application version information
-
-### History and Statistics
-
-- `GET /api/history` - Get scan history
-- `GET /api/stats` - Get scanning statistics
-- `POST /api/export` - Export device data (sanitized)
-
-## Dependencies
-
-### Core Dependencies
-
-- **Flask**: Web framework for API and interface
-- **nmap**: Network scanning and service detection
-- **paramiko**: SSH client for device access
-- **requests**: HTTP client for web analysis
-- **cryptography**: Encryption for credential storage
-- **psutil**: System and network information
-
-### Optional Dependencies
-
-- **pysnmp**: SNMP protocol support
-- **paho-mqtt**: MQTT client for IoT devices
-- **docker**: Docker API integration (if Docker is available)
-
-## Configuration Options
-
-### Master Password
-
-Set via environment variable:
-
-```bash
-export LAN_SCANNER_PASSWORD="your_master_password"
-```
-
-### Credential Storage
-
-Device credentials are encrypted and stored per device:
-
-```json
-{
-  "ip": "192.168.1.100",
-  "ssh": {
-    "username": "admin",
-    "password": "encrypted_password",
-    "port": 22
-  },
-  "http": {
-    "username": "admin",
-    "password": "encrypted_password"
-  }
-}
-```
-
-### Device Type Configuration
-
-Device types are defined in `config/device_types.json` with detection rules:
-
-```json
-{
-  "device_types": {
-    "raspberry_pi": {
-      "patterns": ["raspberrypi", "raspberry"],
-      "vendor_patterns": ["Raspberry Pi Foundation"],
-      "ports": [22, 80, 443, 5000]
-    }
-  }
-}
-```
+Mobile (React Native + Expo, App Store + Play Store) is planned in
+`docs/PHASE2_MOBILE.md`. The server-side prerequisites listed there — token
+auth, CORS, QR pairing, a frozen `/api/devices` contract, SSE progress — are
+the things to get right in Phase 1 so the client does not force a redesign.
