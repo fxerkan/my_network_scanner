@@ -12,6 +12,9 @@
       </p>
     </div>
     <div class="ds-spacer"></div>
+    <button class="ds-btn ds-btn--lg" id="applyBtn" disabled>
+      <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-check"/></svg> Save to devices
+    </button>
     <button class="ds-btn ds-btn--primary ds-btn--lg" id="sweepBtn">
       <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-radar"/></svg> Run sweep
     </button>
@@ -21,6 +24,7 @@
     <div class="ds-card__header">
       <svg class="ds-icon" aria-hidden="true"><use href="#i-plug"/></svg>
       <h2 class="ds-card__title">Protocols</h2>
+      <span class="ds-dim" style="font-size:var(--text-xs)">Tick the ones to sweep</span>
       <div class="ds-spacer"></div>
       <label class="ds-label" for="sweepTimeout">Sweep time</label>
       <select class="ds-select" id="sweepTimeout" style="width:auto">

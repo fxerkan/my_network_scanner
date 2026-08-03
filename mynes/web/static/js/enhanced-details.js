@@ -9,9 +9,12 @@ function openEnhancedDetailsModal(device) {
     currentDevice = device;
     
     // Enhanced info'ya sahip olup olmadığını kontrol et
-    const hasEnhancedInfo = device.enhanced_comprehensive_info || 
-                           device.advanced_scan_summary || 
-                           device.enhanced_info;
+    // Keşif verisi de tek başına modalı açmaya yeter: gelişmiş analiz yapılmamış
+    // bir cihazın SSDP/mDNS bilgisi olabilir.
+    const hasEnhancedInfo = device.enhanced_comprehensive_info ||
+                           device.advanced_scan_summary ||
+                           device.enhanced_info ||
+                           (device.discovery && (device.discovery.sources || []).length);
     
     if (!hasEnhancedInfo) {
         showToast('Bu cihaz için gelişmiş analiz bilgisi bulunamadı!', 'error');
@@ -84,6 +87,9 @@ function loadTabContent(tabName) {
             break;
         case 'hardware':
             content = generateHardwareContent(enhancedInfo);
+            break;
+        case 'discovery':
+            content = generateDiscoveryContent(currentDevice);
             break;
         case 'raw':
             content = generateRawContent(enhancedInfo);
@@ -259,6 +265,48 @@ function generateHardwareContent(enhancedInfo) {
 }
 
 // Ham Veri içeriği
+// Protokol keşfi: SSDP description.xml, mDNS TXT kayıtları, DHCP hostname.
+// Discovery sayfasındaki "Save to devices" bu veriyi cihaza yazar.
+function generateDiscoveryContent(device) {
+    const d = (device && device.discovery) || {};
+    const esc = v => String(v == null ? '' : v).replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
+
+    if (!d.sources || !d.sources.length) {
+        return '<div class="details-section"><h4>📡 Protokol Keşfi</h4>' +
+            '<div class="details-no-data">Bu cihaz için keşif verisi yok. ' +
+            'Discovery sayfasında bir sweep çalıştırıp "Save to devices" deyin.</div></div>';
+    }
+
+    // Her SSDP description.xml belgesi bir kart: üretici, model, seri no, servisler.
+    const descriptions = ((d.attributes || {}).ssdp || {}).descriptions || {};
+    const descCards = Object.entries(descriptions).map(([url, doc]) => `
+        <div class="details-card">
+            <h5>📄 ${esc(url)}</h5>
+            <ul class="details-list">
+                ${Object.entries(doc).map(([k, v]) => `<li>
+                    <span class="details-label">${esc(k)}:</span>
+                    <span class="details-value">${esc(Array.isArray(v) ? v.join(', ') : v)}</span></li>`).join('')}
+            </ul>
+        </div>`).join('');
+
+    return `
+        <div class="details-section">
+            <h4>📡 Protokol Keşfi</h4>
+            <ul class="details-list">
+                <li><span class="details-label">Görüldüğü protokoller:</span><span class="details-value">${esc(d.sources.join(', '))}</span></li>
+                <li><span class="details-label">Model:</span><span class="details-value">${esc(d.model || 'N/A')}</span></li>
+                <li><span class="details-label">Servisler:</span><span class="details-value">${esc((d.services || []).join(', ') || 'N/A')}</span></li>
+            </ul>
+        </div>
+        ${descCards ? `<div class="details-section"><h4>🧾 UPnP Cihaz Tanımı (description.xml)</h4>
+            <div class="details-grid">${descCards}</div></div>` : ''}
+        <div class="details-section">
+            <h4>🗂️ Tüm Keşif Verisi</h4>
+            <div class="details-code">${esc(JSON.stringify(d.attributes || {}, null, 2))}</div>
+        </div>
+    `;
+}
+
 function generateRawContent(enhancedInfo) {
     return `
         <div class="details-section">

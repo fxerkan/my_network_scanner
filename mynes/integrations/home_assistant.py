@@ -298,9 +298,94 @@ class HomeAssistantClient:
             )
         return out
 
+    def device_registry(self) -> list[dict]:
+        """HA's real device list, over the WebSocket API.
+
+        `/api/states` only exposes entities, and a Zigbee bulb's state carries no
+        MAC or IP - so a REST-only comparison silently misses every radio device,
+        which is exactly the set the user cares about. The device registry has
+        manufacturer, model, connections and the owning integration, and it is
+        WebSocket-only.
+
+        Returns [] (not an error) when websocket-client is not installed, so the
+        REST comparison still works.
+        """
+        try:
+            import websocket
+        except ImportError:
+            return []
+
+        ws_url = self.url.replace("https://", "wss://").replace("http://", "ws://") + "/api/websocket"
+        ws = websocket.create_connection(ws_url, timeout=self.timeout)
+        try:
+            json.loads(ws.recv())  # auth_required
+            ws.send(json.dumps({"type": "auth", "access_token": self.token}))
+            if json.loads(ws.recv()).get("type") != "auth_ok":
+                return []
+
+            def request(msg_id, msg_type):
+                ws.send(json.dumps({"id": msg_id, "type": msg_type}))
+                while True:
+                    msg = json.loads(ws.recv())
+                    if msg.get("id") == msg_id and msg.get("type") == "result":
+                        return msg.get("result") or [] if msg.get("success") else []
+
+            devices = request(1, "config/device_registry/list")
+            entities = request(2, "config/entity_registry/list")
+            # Note: `config_entries/get`, NOT `config/config_entries/get` — the
+            # latter is an unknown_command and silently yields no integrations,
+            # leaving every device's protocol as "unknown".
+            entries = request(3, "config_entries/get")
+        finally:
+            ws.close()
+
+        # config_entry_id -> integration name ("zha", "matter", "zwave_js", ...)
+        integration = {e["entry_id"]: e.get("domain") for e in entries if isinstance(e, dict)}
+        entity_count: dict[str, int] = {}
+        for ent in entities:
+            if ent.get("device_id"):
+                entity_count[ent["device_id"]] = entity_count.get(ent["device_id"], 0) + 1
+
+        out = []
+        for d in devices:
+            conns = {c[0]: c[1] for c in (d.get("connections") or []) if len(c) == 2}
+            domains = sorted({integration.get(cid) for cid in (d.get("config_entries") or [])} - {None})
+            name = d.get("name_by_user") or d.get("name")
+            # HA's `generic` integration names devices after their address
+            # ("192_168_1_79"), and adapters after their MAC ("hci0 (D8:3A:..)").
+            # Both are the only identifier those entries carry, so mine them.
+            embedded_ip, embedded_mac = _identifiers_in_name(name)
+            out.append(
+                {
+                    "id": d.get("id"),
+                    "name": name,
+                    "manufacturer": d.get("manufacturer"),
+                    "model": d.get("model"),
+                    "mac": conns.get("mac") or embedded_mac,
+                    "ip": embedded_ip,
+                    "integrations": domains,
+                    "protocol": _protocol_for(domains),
+                    "entity_count": entity_count.get(d.get("id"), 0),
+                    "via_device_id": d.get("via_device_id"),
+                    "disabled": bool(d.get("disabled_by")),
+                }
+            )
+        return out
+
     def compare(self, mynes_devices: list[dict]) -> dict:
-        """Diff HA's view against MyNeS's view."""
-        ha = self.devices()
+        """Diff HA's view against MyNeS's view.
+
+        Uses the device registry when available (it covers Zigbee, Z-Wave,
+        Matter and cloud devices) and falls back to entity states otherwise.
+        """
+        registry = self.device_registry()
+        source = "device_registry" if registry else "states"
+        all_ha = registry or self.devices()
+
+        # Services, helpers and HACS repositories are registry entries but not
+        # devices; diffing them against a network scan produces only noise.
+        excluded = [d for d in all_ha if d.get("protocol") == "Not a device"]
+        ha = [d for d in all_ha if d.get("protocol") != "Not a device"]
 
         def norm(v):
             return str(v).lower().replace("-", ":") if v else None
@@ -310,20 +395,130 @@ class HomeAssistantClient:
         my_macs = {norm(d.get("mac")) for d in mynes_devices if d.get("mac")}
         my_ips = {d.get("ip") for d in mynes_devices if d.get("ip")}
 
-        only_ha = [d for d in ha if norm(d.get("mac")) not in my_macs and d.get("ip") not in my_ips]
-        only_mynes = [
-            d for d in mynes_devices if norm(d.get("mac")) not in ha_macs and d.get("ip") not in ha_ips
-        ]
+        # HA's device registry rarely carries a MAC and never an IP, so an
+        # identifier-only diff under-reports badly. Names are the third signal:
+        # "rpifx" in HA is "rpifx.local" here.
+        ha_names = {n for d in ha for n in _name_keys(d)}
+        my_names = {n for d in mynes_devices for n in _name_keys(d)}
+
+        def matches_ha(d):
+            return (
+                norm(d.get("mac")) in ha_macs
+                or (d.get("ip") and d.get("ip") in ha_ips)
+                or bool(_name_keys(d) & ha_names)
+            )
+
+        def matches_mynes(d):
+            return (
+                norm(d.get("mac")) in my_macs
+                or (d.get("ip") and d.get("ip") in my_ips)
+                or bool(_name_keys(d) & my_names)
+            )
+
+        only_ha = [d for d in ha if not matches_mynes(d)]
+        only_mynes = [d for d in mynes_devices if not matches_ha(d)]
 
         return {
+            "source": source,
             "home_assistant_total": len(ha),
+            "home_assistant_excluded": len(excluded),
             "mynes_total": len(mynes_devices),
-            "in_both": len((my_macs & ha_macs) | (my_ips & ha_ips)),
+            # Count DEVICES that matched, not identifiers - unioning a MAC set
+            # with an IP set double-counts anything matching on both and can
+            # report more matches than there are devices.
+            "in_both": sum(1 for d in mynes_devices if matches_ha(d)),
             "only_in_home_assistant": only_ha,
             "only_in_mynes": only_mynes,
-            "by_source_type": _count(ha, "source_type"),
-            "by_domain": _count(ha, "domain"),
+            "by_source_type": _count(ha, "source_type") if source == "states" else _count(ha, "protocol"),
+            "by_domain": _count(ha, "domain") if source == "states" else _count(ha, "manufacturer"),
+            "by_protocol": _count(ha, "protocol") if source == "device_registry" else {},
         }
+
+
+# HA integration -> the transport it actually speaks. This is the axis that
+# matters for a comparison: it separates "MyNeS could never have seen this"
+# (radio, cloud) from "MyNeS should have seen this and did not" (IP).
+PROTOCOL_BY_INTEGRATION = {
+    # Radio - invisible to any IP scan.
+    "zha": "Zigbee", "zigbee2mqtt": "Zigbee", "deconz": "Zigbee", "zigbee": "Zigbee",
+    "zwave_js": "Z-Wave", "matter": "Matter", "thread": "Thread", "otbr": "Thread",
+    "bluetooth": "Bluetooth", "esphome_ble": "Bluetooth", "xiaomi_ble": "Bluetooth",
+    "govee_ble": "Bluetooth", "switchbot": "Bluetooth", "improv_ble": "Bluetooth",
+    "led_ble": "Bluetooth", "yalexs_ble": "Bluetooth",
+    # On the LAN - MyNeS should find these.
+    "esphome": "IP", "shelly": "IP", "tasmota": "IP", "wled": "IP", "hue": "IP",
+    "tplink": "IP", "tplink_deco": "IP", "samsungtv": "IP", "androidtv_remote": "IP",
+    "androidtv": "IP", "dlna_dmr": "IP", "dlna_dms": "IP", "plex": "IP",
+    "jellyfin": "IP", "kodi": "IP", "roku": "IP", "cast": "IP", "yeelight": "IP",
+    "philips_airpurifier_coap": "IP", "dyson_local": "IP", "generic": "IP",
+    "onvif": "IP", "synology_dsm": "IP", "qnap": "IP", "unifi": "IP",
+    "mikrotik": "IP", "asuswrt": "IP", "fritz": "IP", "nut": "IP", "octoprint": "IP",
+    "homekit_controller": "IP", "homekit": "IP", "mqtt": "MQTT",
+    # Cloud-only - no local footprint at all.
+    "tuya": "Cloud", "smartthings": "Cloud", "cloud": "Cloud", "petkit": "Cloud",
+    "xiaomi_miot": "Cloud", "fujitsu_airstage": "Cloud", "google_assistant": "Cloud",
+    "alexa": "Cloud", "spotify": "Cloud", "withings": "Cloud",
+    # A phone running the HA companion app.
+    "mobile_app": "Companion app",
+}
+
+# Integrations that create registry entries which are not physical devices.
+# Comparing a HACS repository entry against a network scan is pure noise, so
+# these are reported separately and excluded from the diff.
+NON_DEVICE_INTEGRATIONS = {
+    "hacs", "sun", "met", "backup", "systemmonitor", "speedtestdotnet",
+    "google_generative_ai_conversation", "openai_conversation", "conversation",
+    "template", "derivative", "utility_meter", "history_stats", "trend",
+    "statistics", "group", "schedule", "todo", "shopping_list", "calendar",
+    "workday", "holiday", "uptime", "version", "rpi_power", "hassio",
+    "google_translate", "tts", "stt", "wake_word", "assist_pipeline",
+    "waze_travel_time", "moon", "season", "worldclock", "time_date",
+}
+
+
+def _protocol_for(domains: list[str]) -> str:
+    for d in domains:
+        if d in PROTOCOL_BY_INTEGRATION:
+            return PROTOCOL_BY_INTEGRATION[d]
+    if any(d in NON_DEVICE_INTEGRATIONS for d in domains):
+        return "Not a device"
+    return f"Other ({domains[0]})" if domains else "unknown"
+
+
+_IP_IN_NAME = re.compile(r"\b(\d{1,3})[._](\d{1,3})[._](\d{1,3})[._](\d{1,3})\b")
+_MAC_IN_NAME = re.compile(r"\b((?:[0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2})\b")
+
+
+def _identifiers_in_name(name: str | None) -> tuple[str | None, str | None]:
+    """Pull an IP and/or MAC out of a Home Assistant device name."""
+    if not name:
+        return None, None
+    ip = None
+    m = _IP_IN_NAME.search(name)
+    if m and all(int(o) <= 255 for o in m.groups()):
+        ip = ".".join(m.groups())
+    mac_match = _MAC_IN_NAME.search(name)
+    mac = mac_match.group(1).lower().replace("-", ":") if mac_match else None
+    return ip, mac
+
+
+def _name_keys(device: dict) -> set[str]:
+    """Comparable name forms for a device, from either side of the diff.
+
+    Strips `.local`, case and punctuation so `rpifx.local`, `RPiFX` and `rpi-fx`
+    all collapse to `rpifx`. Names shorter than four characters are dropped -
+    "tv" or "pi" would match half the network.
+    """
+    keys = set()
+    for field in ("name", "hostname", "alias", "friendly_name"):
+        value = device.get(field)
+        if not value:
+            continue
+        text = str(value).lower().split(".local")[0]
+        squashed = re.sub(r"[^a-z0-9]", "", text)
+        if len(squashed) >= 4:
+            keys.add(squashed)
+    return keys
 
 
 def _count(rows, key):

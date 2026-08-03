@@ -8,6 +8,9 @@ import os
 from pathlib import Path
 
 PACKAGE_DIR = Path(__file__).resolve().parent
+
+# `.env` is loaded by mynes/__init__.py, which always runs before this module,
+# so os.environ is already populated by the time we read it here.
 BASE_DIR = Path(os.environ.get("MYNES_HOME") or PACKAGE_DIR.parent)
 
 CONFIG_DIR = Path(os.environ.get("MYNES_CONFIG_DIR") or BASE_DIR / "config")

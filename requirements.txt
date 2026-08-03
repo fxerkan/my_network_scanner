@@ -11,3 +11,4 @@ psutil>=5.9
 cryptography>=41.0
 zeroconf>=0.131
 paho-mqtt>=1.6
+websocket-client>=1.7

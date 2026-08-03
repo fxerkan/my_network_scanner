@@ -37,6 +37,21 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
         enabled = [p.strip() for p in protocols.split(",")] if protocols else None
         return jsonify(discover_all(timeout=timeout, enabled=enabled))
 
+    @bp.post("/discovery/apply")
+    def apply_discovery():
+        """Fold sweep results into the saved device list.
+
+        A sweep on its own is ephemeral - this is what makes it stick. Only
+        empty fields are filled: a name the user set by hand always wins.
+        Discovery-only devices (BLE, Zigbee) have no IP and no ARP entry, so
+        they are reported as unmatched rather than invented as devices.
+        """
+        body = request.get_json(silent=True) or {}
+        found = body.get("devices")
+        if found is None:
+            found = discover_all(timeout=min(float(body.get("timeout", 8)), 60))["devices"]
+        return jsonify(_apply_discovery(scanner, found))
+
     @bp.get("/discovery/protocols")
     def discovery_protocols():
         from mynes.discovery import backends
@@ -219,6 +234,44 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
         return jsonify(service.install() if action == "install" else service.uninstall())
 
     return bp, monitor
+
+
+def _apply_discovery(scanner, found: list[dict]) -> dict:
+    """Merge discovery rows into scanner.devices. Pure enough to test directly."""
+    devices = scanner.get_devices()
+    devices = list(devices.values()) if isinstance(devices, dict) else (devices or [])
+    by_ip = {d.get("ip"): d for d in devices if d.get("ip")}
+    by_mac = {d.get("mac", "").lower(): d for d in devices if d.get("mac")}
+
+    updated, unmatched = 0, []
+    for row in found:
+        target = by_mac.get((row.get("mac") or "").lower()) or by_ip.get(row.get("ip"))
+        if target is None:
+            unmatched.append({k: row.get(k) for k in ("name", "ip", "mac", "sources")})
+            continue
+
+        changed = False
+        for src, dst in (("name", "hostname"), ("vendor", "vendor"), ("device_type", "device_type")):
+            if row.get(src) and not target.get(dst):
+                target[dst] = row[src]
+                changed = True
+
+        # Everything the protocols saw, kept verbatim for the device detail page.
+        previous = target.get("discovery") or {}
+        merged = {
+            "sources": sorted(set(previous.get("sources", [])) | set(row.get("sources", []))),
+            "services": sorted(set(previous.get("services", [])) | set(row.get("services", []))),
+            "attributes": {**previous.get("attributes", {}), **row.get("attributes", {})},
+            "model": row.get("model") or previous.get("model"),
+        }
+        if merged != previous:
+            target["discovery"] = merged
+            changed = True
+        updated += changed
+
+    if updated:
+        scanner.save_devices()
+    return {"updated": updated, "matched": len(found) - len(unmatched), "unmatched": unmatched}
 
 
 def _tray_available() -> bool:

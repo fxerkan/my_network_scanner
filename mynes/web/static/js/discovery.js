@@ -11,17 +11,33 @@
     mdns: { label: 'mDNS / Bonjour', icon: '#i-wifi', blurb: 'Printers, NAS, Chromecast, HomeKit, Matter, Raspberry Pi' },
     ssdp: { label: 'SSDP / UPnP',    icon: '#i-router', blurb: 'Routers, smart TVs, DLNA, cameras, consoles' },
     onvif:{ label: 'ONVIF / RTSP',   icon: '#i-scan', blurb: 'IP cameras, doorbells, NVRs — name, model and stream URL' },
+    dhcp: { label: 'DHCP (passive)', icon: '#i-network', blurb: 'Hostnames devices give themselves when they renew a lease' },
     mqtt: { label: 'MQTT',           icon: '#i-cpu',  blurb: 'Zigbee2MQTT, Z-Wave JS, Tasmota, Home Assistant' },
     ble:  { label: 'Bluetooth LE',   icon: '#i-bluetooth', blurb: 'Trackers, sensors, wearables, headphones' }
   };
 
+  /* Which protocols to sweep. Empty selection = all, same as the API default. */
+  var DISABLED_KEY = 'mynes.discovery.disabled';
+  function disabledSet() {
+    try { return new Set(JSON.parse(localStorage.getItem(DISABLED_KEY) || '[]')); }
+    catch (e) { return new Set(); }
+  }
+  function setDisabled(name, off) {
+    var s = disabledSet();
+    if (off) { s.add(name); } else { s.delete(name); }
+    localStorage.setItem(DISABLED_KEY, JSON.stringify(Array.from(s)));
+  }
+
   function esc(v) { var d = document.createElement('div'); d.textContent = v == null ? '' : String(v); return d.innerHTML; }
 
   function renderProtocols(rows) {
+    var off = disabledSet();
     $('protocolGrid').innerHTML = rows.map(function (p) {
       var meta = PROTOCOL_META[p.name] || { label: p.name, icon: '#i-plug', blurb: '' };
       var ok = p.available !== false && p.status !== 'skipped';
       return '<div class="ds-stat ds-row" style="align-items:flex-start">' +
+        '<input type="checkbox" class="protocol-toggle" data-protocol="' + esc(p.name) + '"' +
+          (off.has(p.name) ? '' : ' checked') + ' aria-label="Sweep ' + esc(meta.label) + '">' +
         '<svg class="ds-icon ds-icon--lg" aria-hidden="true" style="color:var(--' + (ok ? 'accent-text' : 'text-tertiary') + ')"><use href="' + meta.icon + '"/></svg>' +
         '<div style="flex:1;min-width:0">' +
           '<div class="ds-row" style="gap:var(--space-2)">' +
@@ -37,6 +53,16 @@
         '</div>' +
       '</div>';
     }).join('');
+
+    Array.prototype.forEach.call($('protocolGrid').querySelectorAll('.protocol-toggle'), function (cb) {
+      cb.addEventListener('change', function () { setDisabled(cb.dataset.protocol, !cb.checked); });
+    });
+  }
+
+  function selectedProtocols() {
+    return Array.prototype.filter.call(
+      $('protocolGrid').querySelectorAll('.protocol-toggle'), function (cb) { return cb.checked; }
+    ).map(function (cb) { return cb.dataset.protocol; });
   }
 
   function renderResults(filter) {
@@ -82,14 +108,17 @@
   function runSweep() {
     var btn = $('sweepBtn');
     var seconds = Number($('sweepTimeout').value);
+    var chosen = selectedProtocols();
+    if (!chosen.length) { toast('Pick at least one protocol.', 'warning'); return; }
     btn.disabled = true;
     btn.innerHTML = '<span class="ds-spinner"></span> Listening ' + seconds + 's…';
     $('resultHost').innerHTML = '<div class="ds-card__body ds-stack">' +
       '<div class="ds-skeleton" style="height:40px"></div>'.repeat(4) + '</div>';
 
-    api('/api/discovery?timeout=' + seconds)
+    api('/api/discovery?timeout=' + seconds + '&protocols=' + encodeURIComponent(chosen.join(',')))
       .then(function (data) {
         lastResults = data.devices || [];
+        $('applyBtn').disabled = !lastResults.length;
         renderProtocols(Object.keys(data.protocols || {}).map(function (name) {
           return Object.assign({ name: name }, data.protocols[name]);
         }));
@@ -101,6 +130,24 @@
         btn.disabled = false;
         btn.innerHTML = '<svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-radar"/></svg> Run sweep';
       });
+  }
+
+  function applyToDevices() {
+    var btn = $('applyBtn');
+    btn.disabled = true;
+    api('/api/discovery/apply', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ devices: lastResults })
+    })
+      .then(function (r) {
+        var extra = r.unmatched.length
+          ? ' ' + r.unmatched.length + ' had no matching device (radio-only or not yet scanned).'
+          : '';
+        toast(r.updated + ' devices enriched.' + extra, r.updated ? 'success' : 'info');
+      })
+      .catch(function (e) { toast('Save failed: ' + e.message, 'critical'); })
+      .finally(function () { btn.disabled = !lastResults.length; });
   }
 
   function loadHomeAssistant() {
@@ -233,6 +280,7 @@
 
   document.addEventListener('DOMContentLoaded', function () {
     $('sweepBtn').addEventListener('click', runSweep);
+    $('applyBtn').addEventListener('click', applyToDevices);
     $('haCompareBtn').addEventListener('click', compareWithHA);
     $('resultSearch').addEventListener('input', function () { renderResults(this.value); });
 

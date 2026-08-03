@@ -34,12 +34,14 @@ dependencies = [
 [project.optional-dependencies]
 # Protocol discovery beyond ARP/IP.
 discovery = ["zeroconf>=0.131", "paho-mqtt>=1.6"]
+# Home Assistant device registry (Zigbee/Z-Wave/Matter) is WebSocket-only.
+homeassistant = ["websocket-client>=1.7"]
 bluetooth = ["bleak>=0.21"]
 # Credentialed deep analysis of a device.
 analysis = ["paramiko>=3.0", "pysnmp>=4.4.12"]
 # System tray / menu bar icon.
 tray = ["pystray>=0.19", "pillow>=10.0"]
-all = ["mynes[discovery,bluetooth,analysis,tray]"]
+all = ["mynes[discovery,bluetooth,analysis,tray,homeassistant]"]
 dev = ["pytest>=7.4", "ruff>=0.5"]
 
 [project.scripts]

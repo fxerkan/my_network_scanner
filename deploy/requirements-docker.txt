@@ -12,3 +12,4 @@ zeroconf>=0.131
 paho-mqtt>=1.6
 paramiko>=3.0
 pysnmp>=4.4.12
+websocket-client>=1.7
