@@ -1246,8 +1246,8 @@ class EnhancedDeviceAnalyzer:
         """Kapsamlı cihaz tipi analizi - tüm cihaz tiplerini değerlendir"""
         try:
             # SmartDeviceIdentifier kullanarak cihaz tipini belirle
-            from smart_device_identifier import SmartDeviceIdentifier
-            from config import ConfigManager
+            from mynes.analysis.identifier import SmartDeviceIdentifier
+            from mynes.core.config import ConfigManager
             
             config_manager = ConfigManager()
             identifier = SmartDeviceIdentifier(config_manager)

@@ -19,7 +19,7 @@ class SmartDeviceIdentifier:
         
         # OUI Manager'ı import et
         try:
-            from oui_manager import OUIManager
+            from mynes.analysis.oui import OUIManager
             self.oui_manager = OUIManager()
         except ImportError:
             self.oui_manager = None

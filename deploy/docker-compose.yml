@@ -1,0 +1,34 @@
+services:
+  mynes:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    image: fxerkan/my_network_scanner:latest
+    container_name: mynes
+    # host networking is what makes ARP/mDNS/SSDP discovery actually see the LAN.
+    # On Docker Desktop (macOS/Windows) host mode is limited - comment it out and
+    # uncomment the `ports:` block below, accepting reduced discovery.
+    network_mode: host
+    # ports:
+    #   - "5883:5883"
+    volumes:
+      - ../data:/app/data
+      - ../config:/app/config
+    environment:
+      MYNES_PORT: 5883
+      # Set in a .env file next to this compose file. Leave unset to auto-generate.
+      MYNES_PASSWORD: ${MYNES_PASSWORD:-}
+      # Optional Home Assistant / MQTT wiring
+      MYNES_MQTT_HOST: ${MYNES_MQTT_HOST:-}
+      MYNES_MQTT_USERNAME: ${MYNES_MQTT_USERNAME:-}
+      MYNES_MQTT_PASSWORD: ${MYNES_MQTT_PASSWORD:-}
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5883/api/version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

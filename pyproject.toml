@@ -1,0 +1,65 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mynes"
+version = "2.0.0"
+description = "MyNeS - My Network Scanner: home-lab network discovery, monitoring and Home Assistant integration"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.9"
+authors = [{ name = "fxerkan", email = "fxerkan@gmail.com" }]
+keywords = ["network", "scanner", "homelab", "home-assistant", "mdns", "matter", "zigbee", "iot"]
+classifiers = [
+  "Environment :: Web Environment",
+  "Framework :: Flask",
+  "Intended Audience :: System Administrators",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Topic :: System :: Networking :: Monitoring",
+]
+
+dependencies = [
+  "flask>=3.0",
+  "requests>=2.31",
+  "psutil>=5.9",
+  "python-nmap>=0.7",
+  "scapy>=2.5",
+  "dnspython>=2.3",
+  "cryptography>=41.0",
+  "mac-vendor-lookup>=0.1.12",
+]
+
+[project.optional-dependencies]
+# Protocol discovery beyond ARP/IP.
+discovery = ["zeroconf>=0.131", "paho-mqtt>=1.6"]
+bluetooth = ["bleak>=0.21"]
+# Credentialed deep analysis of a device.
+analysis = ["paramiko>=3.0", "pysnmp>=4.4.12"]
+all = ["mynes[discovery,bluetooth,analysis]"]
+dev = ["pytest>=7.4", "ruff>=0.5"]
+
+[project.scripts]
+mynes = "mynes.web.app:main"
+
+[project.urls]
+Homepage = "https://github.com/fxerkan/my_network_scanner"
+Issues = "https://github.com/fxerkan/my_network_scanner/issues"
+
+[tool.setuptools.packages.find]
+include = ["mynes*"]
+
+[tool.setuptools.package-data]
+mynes = ["web/templates/*", "web/static/**/*", "web/locales/**/*"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
+ignore = ["E501", "B008"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

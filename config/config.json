@@ -220,6 +220,30 @@
     }
   },
   "security_settings": {
-    "master_password": "123456789"
+    "_note": "Master password buraya YAZILMAZ. MYNES_PASSWORD env var veya config/.master_password (git'e girmez) kullanin."
+  },
+  "monitoring": {
+    "enabled": false,
+    "interval_minutes": 30,
+    "include_offline": true,
+    "run_discovery": true,
+    "discovery_timeout": 6,
+    "publish_to_mqtt": false,
+    "enabled_rules": null,
+    "thresholds": {
+      "offline_scans": 2,
+      "latency_ms": 500,
+      "battery_percent": 20,
+      "voltage_min": 4.7,
+      "rssi_dbm": -85
+    },
+    "notify_channels": []
+  },
+  "discovery": {
+    "mdns": true,
+    "ssdp": true,
+    "mqtt": true,
+    "ble": true,
+    "timeout": 8
   }
 }

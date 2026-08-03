@@ -5,6 +5,7 @@ Güvenli Credential Yöneticisi
 SSH, FTP, API vs. gibi hassas bilgileri encrypted olarak saklar
 """
 
+from mynes.paths import CONFIG_DIR, data_file
 import os
 import json
 import base64
@@ -17,14 +18,16 @@ import getpass
 from datetime import datetime
 
 class CredentialManager:
-    def __init__(self, config_dir='config'):
-        self.config_dir = config_dir
+    def __init__(self, config_dir=None):
+        self.config_dir = str(config_dir or CONFIG_DIR)
+        config_dir = self.config_dir
         # Artık lan_devices.json kullanıyoruz
-        self.devices_file = os.path.join('data', 'lan_devices.json')
+        self.devices_file = data_file('lan_devices.json')
         self.salt_file = os.path.join(config_dir, '.salt')
         self.key_file = os.path.join(config_dir, '.key_info')
         self.config_file = os.path.join(config_dir, 'config.json')
-        
+        self.password_file = os.path.join(config_dir, '.master_password')
+
         # Master password için multiple sources kontrol et
         self.master_password = self._get_master_password_from_sources()
         
@@ -32,8 +35,7 @@ class CredentialManager:
         self.fernet = None
         self._initialize_encryption()
         
-        # Data dizinini oluştur
-        os.makedirs('data', exist_ok=True)
+        os.makedirs(os.path.dirname(self.devices_file), exist_ok=True)
     
     def _initialize_encryption(self):
         """Encryption sistemini başlatır"""
@@ -104,20 +106,45 @@ class CredentialManager:
             os.chmod(self.key_file, 0o600)
     
     def _get_master_password_from_sources(self):
-        """Master password'ü farklı kaynaklardan alır"""
-        # 1. Environment variable kontrol et
-        env_password = os.environ.get('LAN_SCANNER_PASSWORD')
-        if env_password:
-            return env_password
-        
-        # 2. Config.json'dan kontrol et
+        """Master password'ü farklı kaynaklardan alır.
+
+        Sıra: env var -> yerel gizli dosya -> config.json (eski kurulumlar) ->
+        otomatik üretilen rastgele parola. config.json git'te takipli olduğu için
+        parolayı oraya YAZMAYIN; yalnızca geriye dönük uyumluluk için okunur.
+        """
+        for var in ('MYNES_PASSWORD', 'LAN_SCANNER_PASSWORD'):
+            if os.environ.get(var):
+                return os.environ[var]
+
+        if os.path.exists(self.password_file):
+            with open(self.password_file, encoding='utf-8') as f:
+                secret = f.read().strip()
+            if secret:
+                return secret
+
+        # Eski kurulumlar parolayı config.json içinde tutuyordu.
         config_password = self._get_password_from_config()
         if config_password:
+            self._store_master_password(config_password)
             return config_password
-        
-        # 3. Hiçbiri yoksa kullanıcıdan iste
-        return None
-    
+
+        # Headless/Docker kurulumlarda soru sormadan çalışsın diye rastgele üret.
+        generated = secrets.token_urlsafe(32)
+        self._store_master_password(generated)
+        print(f"🔐 Master password üretildi ve {self.password_file} içine kaydedildi.")
+        return generated
+
+    def _store_master_password(self, password):
+        """Parolayı sadece yerelde duran, izinleri kısıtlı bir dosyaya yazar."""
+        try:
+            with open(self.password_file, 'w', encoding='utf-8') as f:
+                f.write(password)
+            if os.name == 'posix':
+                os.chmod(self.password_file, 0o600)
+        except OSError as e:
+            print(f"Master password kaydedilemedi: {e}")
+
+
     def _get_password_from_config(self):
         """Config.json'dan master password'ü okur"""
         try:

@@ -19,7 +19,7 @@ import dns.resolver
 import dns.reversename
 import psutil
 # import netifaces  # Use network_utils instead for Docker compatibility
-from network_utils import get_network_interfaces, get_default_gateway
+from mynes.core.network import get_network_interfaces, get_default_gateway
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 class AdvancedDeviceScanner:

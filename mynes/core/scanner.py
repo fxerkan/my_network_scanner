@@ -6,6 +6,7 @@ Enhanced version with configuration management and OUI integration
 """
 
 # Warnings ve logging ayarları
+from mynes.paths import config_file, data_file
 import warnings
 import logging
 
@@ -22,7 +23,7 @@ logging.getLogger("scapy").setLevel(logging.ERROR)
 
 import nmap
 # import netifaces  # Use network_utils instead for Docker compatibility
-from network_utils import get_network_interfaces, get_default_gateway, get_local_ip_ranges, get_host_network_ranges, is_docker_environment
+from mynes.core.network import get_network_interfaces, get_default_gateway, get_local_ip_ranges, get_host_network_ranges, is_docker_environment
 import json
 import socket
 import re
@@ -46,19 +47,19 @@ finally:
     sys.stdout = old_stdout
     sys.stderr = old_stderr
 from mac_vendor_lookup import MacLookup
-from config import ConfigManager
-from oui_manager import OUIManager
-from docker_manager import docker_manager
-from credential_manager import get_credential_manager
-from advanced_device_scanner import AdvancedDeviceScanner
-from smart_device_identifier import SmartDeviceIdentifier
-from hostname_resolver import AdvancedHostnameResolver
-from enhanced_device_analyzer import EnhancedDeviceAnalyzer
-from data_sanitizer import DataSanitizer
+from mynes.core.config import ConfigManager
+from mynes.analysis.oui import OUIManager
+from mynes.integrations.docker import docker_manager
+from mynes.security.credentials import get_credential_manager
+from mynes.analysis.advanced import AdvancedDeviceScanner
+from mynes.analysis.identifier import SmartDeviceIdentifier
+from mynes.analysis.hostname import AdvancedHostnameResolver
+from mynes.analysis.enhanced import EnhancedDeviceAnalyzer
+from mynes.security.sanitizer import DataSanitizer
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
 import base64
-from unified_device_model import unified_model
+from mynes.core.models import unified_model
 
 class LANScanner:
     def __init__(self):
@@ -1056,9 +1057,9 @@ class LANScanner:
         
         # Mevcut cihaz bilgilerini korumak için önce yükle (unified model kullanarak)
         existing_devices = {}
-        if os.path.exists('data/lan_devices.json'):
+        if os.path.exists(data_file('lan_devices.json')):
             try:
-                with open('data/lan_devices.json', 'r', encoding='utf-8') as f:
+                with open(data_file('lan_devices.json'), 'r', encoding='utf-8') as f:
                     old_devices = json.load(f)
                     # MAC+IP kombinasyonuna göre mevcut cihazları dizinle ve unified format'a migrate et
                     for device in old_devices:
@@ -1306,7 +1307,7 @@ class LANScanner:
         """Taramayı durdurur"""
         self.scanning = False
     
-    def save_to_json(self, filename='data/lan_devices.json'):
+    def save_to_json(self, filename=data_file('lan_devices.json')):
         """Cihaz bilgilerini JSON dosyasına kaydeder (credential'ları encrypted olarak)"""
         try:
             # Dizin yoksa oluştur
@@ -1337,11 +1338,11 @@ class LANScanner:
             print(f"JSON kaydetme hatası: {e}")
             return False
     
-    def save_devices(self, filename='data/lan_devices.json'):
+    def save_devices(self, filename=data_file('lan_devices.json')):
         """Cihazları kaydet - save_to_json'a yönlendirme"""
         return self.save_to_json(filename)
     
-    def load_from_json(self, filename='data/lan_devices.json'):
+    def load_from_json(self, filename=data_file('lan_devices.json')):
         """JSON dosyasından cihaz bilgilerini yükler (encrypted credential'ları decode eder)"""
         try:
             if os.path.exists(filename):
@@ -1372,7 +1373,7 @@ class LANScanner:
                 return True
             else:
                 # Ana dosya yoksa sample dosyasını yükle
-                sample_filename = 'data/lan_devices_sample.json'
+                sample_filename = data_file('lan_devices_sample.json')
                 if os.path.exists(sample_filename):
                     print(f"Ana dosya bulunamadı, sample veriler yükleniyor: {sample_filename}")
                     return self.load_from_json(sample_filename)
@@ -1518,9 +1519,9 @@ class LANScanner:
         
         # Mevcut cihaz bilgilerini korumak için önce yükle
         existing_devices = {}
-        if os.path.exists('data/lan_devices.json'):
+        if os.path.exists(data_file('lan_devices.json')):
             try:
-                with open('data/lan_devices.json', 'r', encoding='utf-8') as f:
+                with open(data_file('lan_devices.json'), 'r', encoding='utf-8') as f:
                     old_devices = json.load(f)
                     for device in old_devices:
                         mac = device.get('mac', '').lower()
@@ -1720,9 +1721,9 @@ class LANScanner:
         
         # Mevcut cihaz bilgilerini korumak için yükle
         existing_devices = {}
-        if os.path.exists('data/lan_devices.json'):
+        if os.path.exists(data_file('lan_devices.json')):
             try:
-                with open('data/lan_devices.json', 'r', encoding='utf-8') as f:
+                with open(data_file('lan_devices.json'), 'r', encoding='utf-8') as f:
                     old_devices = json.load(f)
                     for device in old_devices:
                         mac = device.get('mac', '').lower()

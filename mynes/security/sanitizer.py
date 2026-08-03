@@ -4,6 +4,7 @@
 Data sanitizer for LAN Scanner - removes sensitive information from device data
 """
 
+from mynes.paths import config_file, data_file
 import json
 import re
 import copy
@@ -255,8 +256,8 @@ def main():
     sanitizer = DataSanitizer()
     
     # Test için lan_devices.json dosyasını temizle
-    input_file = 'data/lan_devices.json'
-    backup_file = 'data/lan_devices_backup.json'
+    input_file = data_file('lan_devices.json')
+    backup_file = data_file('lan_devices_backup.json')
     
     # Önce backup al
     import shutil

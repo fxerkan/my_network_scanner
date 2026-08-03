@@ -4,16 +4,17 @@
 LAN Scanner Configuration Manager
 """
 
+from mynes.paths import config_file, data_file
 import json
 import os
 from datetime import datetime
 
 class ConfigManager:
     def __init__(self):
-        self.config_file = 'config/config.json'
-        self.oui_file = 'config/oui_database.json'
-        self.device_types_file = 'config/device_types.json'
-        self.scan_history_file = 'data/scan_history.json'
+        self.config_file = config_file('config.json')
+        self.oui_file = config_file('oui_database.json')
+        self.device_types_file = config_file('device_types.json')
+        self.scan_history_file = data_file('scan_history.json')
         
         self.default_config = {
             'scan_settings': {

@@ -268,3 +268,31 @@ hs_err_pid*
 nmap_*
 scan_results_*
 device_backup_*
+# --- MyNeS ---
+# Secrets: never commit these.
+config/.salt
+config/.key_info
+config/.master_password
+config/*.key
+.env
+
+# Runtime data & auto-downloaded IEEE registries (regenerated on demand).
+data/*.json
+!data/lan_devices_sample.json
+config/oui.csv
+config/mam.csv
+config/oui36.csv
+config/iab.csv
+config/cid.csv
+config/enhanced_oui_database.json
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/

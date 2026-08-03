@@ -9,6 +9,8 @@ import json
 import os
 from flask import session, request
 
+from mynes.paths import LOCALES_DIR
+
 class LanguageManager:
     def __init__(self):
         self.default_language = 'tr'
@@ -21,7 +23,7 @@ class LanguageManager:
     def load_translations(self):
         """Load all translation files"""
         for lang in self.supported_languages:
-            translation_file = f"locales/{lang}/translations.json"
+            translation_file = str(LOCALES_DIR / lang / "translations.json")
             try:
                 if os.path.exists(translation_file):
                     with open(translation_file, 'r', encoding='utf-8') as f:
@@ -37,7 +39,7 @@ class LanguageManager:
     def load_device_types(self):
         """Load device type translations"""
         for lang in self.supported_languages:
-            device_types_file = f"locales/{lang}/device_types.json"
+            device_types_file = str(LOCALES_DIR / lang / "device_types.json")
             try:
                 if os.path.exists(device_types_file):
                     with open(device_types_file, 'r', encoding='utf-8') as f:

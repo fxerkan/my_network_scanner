@@ -1,0 +1,14 @@
+# Container image deps: core + discovery + analysis.
+# Bluetooth (bleak) is omitted - containers have no BLE adapter.
+flask>=3.0
+python-nmap>=0.7
+requests>=2.31
+scapy>=2.5
+mac-vendor-lookup>=0.1.12
+dnspython>=2.3
+psutil>=5.9
+cryptography>=41.0
+zeroconf>=0.131
+paho-mqtt>=1.6
+paramiko>=3.0
+pysnmp>=4.4.12
