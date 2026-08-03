@@ -301,6 +301,37 @@ def favicon():
     """Serve favicon.ico"""
     return send_from_directory(os.path.join(app.root_path, 'static'), 'favicon.ico', mimetype='image/vnd.microsoft.icon')
 
+@app.route('/manifest.webmanifest')
+def manifest():
+    """PWA manifest. Served from root so `scope: /` is valid."""
+    return send_from_directory(
+        os.path.join(app.root_path, 'static'), 'manifest.webmanifest',
+        mimetype='application/manifest+json')
+
+
+@app.route('/service-worker.js')
+def service_worker():
+    """Service worker must be root-scoped to control every page."""
+    response = send_from_directory(
+        os.path.join(app.root_path, 'static'), 'service-worker.js',
+        mimetype='application/javascript')
+    response.headers['Service-Worker-Allowed'] = '/'
+    response.headers['Cache-Control'] = 'no-cache'
+    return response
+
+
+@app.route('/discovery')
+def discovery_page():
+    """Multi-protocol discovery: mDNS/Matter, SSDP, BLE, MQTT/Zigbee."""
+    return render_template('discovery.html', active_page='discovery')
+
+
+@app.route('/alerts')
+def alerts_page():
+    """Scheduled monitoring, alert history and notification channels."""
+    return render_template('alerts.html', active_page='alerts')
+
+
 @app.route('/')
 def index():
     """Ana sayfa"""

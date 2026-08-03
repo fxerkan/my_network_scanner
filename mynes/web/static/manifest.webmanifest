@@ -1,0 +1,27 @@
+{
+  "name": "MyNeS - My Network Scanner",
+  "short_name": "MyNeS",
+  "description": "Discover, monitor and get alerted about every device on your home network.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "browser"],
+  "orientation": "any",
+  "background_color": "#0d1017",
+  "theme_color": "#0d1017",
+  "categories": ["utilities", "productivity"],
+  "lang": "en",
+  "dir": "ltr",
+  "icons": [
+    { "src": "/static/logo_96x96.svg",  "sizes": "96x96",   "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/static/logo_128x128.svg","sizes": "128x128", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/static/logo_256x256.svg","sizes": "256x256", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/static/logo_256x256.svg","sizes": "any",     "type": "image/svg+xml", "purpose": "maskable" },
+    { "src": "/static/logo.png",        "sizes": "512x512", "type": "image/png",     "purpose": "any" }
+  ],
+  "shortcuts": [
+    { "name": "Devices",   "url": "/",          "icons": [{ "src": "/static/logo_96x96.svg", "sizes": "96x96" }] },
+    { "name": "Discovery", "url": "/discovery", "icons": [{ "src": "/static/logo_96x96.svg", "sizes": "96x96" }] },
+    { "name": "Alerts",    "url": "/alerts",    "icons": [{ "src": "/static/logo_96x96.svg", "sizes": "96x96" }] }
+  ]
+}

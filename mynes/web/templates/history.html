@@ -1,36 +1,12 @@
-<!DOCTYPE html>
-<html lang="{{ current_language }}">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ _('app_title') }} - {{ _('history_title') }}</title>
-    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
-    <link rel="icon" type="image/x-icon" href="/favicon.ico">
-    <link rel="apple-touch-icon" sizes="96x96" href="/static/logo_96x96.svg">
-    
-    <!-- External CSS Files -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/history.css') }}">
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>📊 {{ _('app_title') }} - {{ _('history_title') }}</h1>
-            <div class="nav-buttons">
-                <a href="/" class="nav-btn">🌐 {{ _('home') }}</a>
-                <a href="/config" class="nav-btn">🔧 {{ _('settings') }}</a>
-                <!-- Language Switcher -->
-                <div class="language-switcher" style="display: inline-block; margin-left: 10px;">
-                    <select id="languageSelect" onchange="changeLanguage(this.value)" style="padding: 8px 12px; border-radius: 4px; border: 1px solid #ddd; background-color: #343a40; color: white; font-size: 14px;">
-                        {% for lang_code in language_info.supported %}
-                            <option value="{{ lang_code }}" {% if lang_code == current_language %}selected{% endif %}>
-                                {{ language_info.flags[lang_code] }} {{ language_info.names[lang_code] }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
-        </div>
+{% extends "base.html" %}
+{% set active_page = "history" %}
+
+{% block styles %}
+<link rel="stylesheet" href="/static/css/history.css">
+{% endblock %}
+
+{% block content %}
+</div>
 
         <div class="content">
             <!-- İstatistik Kartları -->
@@ -118,47 +94,9 @@
             </div>
         </div>
     </div>
+{% endblock %}
 
-    <!-- Footer -->
-    <footer style="
-        background: linear-gradient(45deg, #2c3e50, #34495e);
-        color: white;
-        text-align: center;
-        padding: 15px;
-        margin-top: 20px;
-        border-radius: 15px;
-        min-height: 60px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    ">
-        <div style="display: flex; justify-content: center; align-items: center; gap: 20px; flex-wrap: wrap;">
-            <div>
-                <strong>My Network Scanner (MyNeS)</strong> <span id="appVersion">v1.0.0</span>
-            </div>
-            <div>|</div>
-            <div>
-                Your Family's User-Friendly Network Scanner
-            </div>
-            <div>|</div>
-            <div>
-                <a href="https://github.com/fxerkan/my_network_scanner" target="_blank" style="
-                    color: #74b9ff;
-                    text-decoration: none;
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 5px;
-                    transition: color 0.3s ease;
-                " onmouseover="this.style.color='#0984e3'" onmouseout="this.style.color='#74b9ff'">
-                    🐙 github.com/fxerkan/my_network_scanner
-                </a>
-            </div>
-        </div>
-    </footer>
-
-    <!-- External JavaScript Files -->
-    <script src="{{ url_for('static', filename='js/translations.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/shared-footer.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/history.js') }}"></script>
-</body>
-</html>
+{% block scripts %}
+<script src="/static/js/translations.js"></script>
+<script src="/static/js/history.js"></script>
+{% endblock %}

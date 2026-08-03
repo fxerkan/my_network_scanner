@@ -1,38 +1,17 @@
-<!DOCTYPE html>
-<html lang="{{ current_language }}">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ _('app_title') }}</title>
-    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
-    <link rel="icon" type="image/x-icon" href="/favicon.ico">
-    <link rel="apple-touch-icon" sizes="96x96" href="/static/logo_96x96.svg">
-    <link rel="stylesheet" href="/static/css/main.css">
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>🌐 {{ _('app_title') }}</h1>
-            <div class="nav-buttons">
-                <a href="/config" class="nav-btn">🔧 {{ _('configuration') }}</a>
-                <a href="/history" class="nav-btn">📊 {{ _('history') }}</a>
-                <!-- Language Switcher -->
-                <div class="language-switcher" style="display: inline-block; margin-left: 10px;">
-                    <select id="languageSelect" onchange="changeLanguage(this.value)" style="padding: 8px 12px; border-radius: 4px; border: 1px solid #ddd; background-color: #343a40; color: white; font-size: 14px;">
-                        {% for lang_code in language_info.supported %}
-                            <option value="{{ lang_code }}" {% if lang_code == current_language %}selected{% endif %}>
-                                {{ language_info.flags[lang_code] }} {{ language_info.names[lang_code] }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
-        </div>
+{% extends "base.html" %}
+{% set active_page = "devices" %}
+
+{% block styles %}
+<link rel="stylesheet" href="/static/css/main.css">
+{% endblock %}
+
+{% block content %}
+</div>
 
         <!-- 1. Tarama İşlemleri / Cihaz Arama -->
         <div class="controls">
             <div style="display: flex; gap: 30px; align-items: flex-start; flex-wrap: wrap;">
-                <div class="control-section" style="flex: 1; min-width: 400px;">
+                <div class="control-section" style="flex: 1; min-width: min(400px, 100%);">
                     <div class="section-title">
                         📡 {{ _('scan_network') }} & {{ _('device') }} {{ _('actions') }}
                     </div>
@@ -45,15 +24,15 @@
                             <button class="btn btn-secondary dropdown-toggle" onclick="toggleToolsDropdown()" id="toolsDropdown">
                                 🔧 {{ _('tools') }}
                             </button>
-                            <div class="dropdown-menu" id="toolsDropdownMenu" style="display: none; position: absolute; top: 100%; left: 0; background: white; border: 1px solid #ddd; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); min-width: 180px; z-index: 1000;">
-                                <a class="dropdown-item" onclick="exportData(); closeToolsDropdown();" style="display: block; padding: 8px 12px; text-decoration: none; color: #333; cursor: pointer;" onmouseover="this.style.backgroundColor='#f8f9fa'" onmouseout="this.style.backgroundColor='white'">
+                            <div class="dropdown-menu" id="toolsDropdownMenu" style="display: none; position: absolute; top: 100%; left: 0; background: var(--bg-surface); border: 1px solid var(--border-default); border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); min-width: min(180px, 100%); z-index: 1000;">
+                                <a class="dropdown-item" onclick="exportData(); closeToolsDropdown();" style="display: block; padding: 8px 12px; text-decoration: none; color: var(--text-primary); cursor: pointer;" onmouseover="this.style.backgroundColor='var(--bg-surface-sunken)'" onmouseout="this.style.backgroundColor='white'">
                                     📤 {{ _('export_devices') }}
                                 </a>
-                                <a class="dropdown-item" onclick="document.getElementById('importFile').click(); closeToolsDropdown();" style="display: block; padding: 8px 12px; text-decoration: none; color: #333; cursor: pointer;" onmouseover="this.style.backgroundColor='#f8f9fa'" onmouseout="this.style.backgroundColor='white'">
+                                <a class="dropdown-item" onclick="document.getElementById('importFile').click(); closeToolsDropdown();" style="display: block; padding: 8px 12px; text-decoration: none; color: var(--text-primary); cursor: pointer;" onmouseover="this.style.backgroundColor='var(--bg-surface-sunken)'" onmouseout="this.style.backgroundColor='white'">
                                     📥 {{ _('import_devices') }}
                                 </a>
-                                <div class="dropdown-divider" style="height: 1px; background: #eee; margin: 4px 0;"></div>
-                                <a class="dropdown-item" onclick="sanitizeData(); closeToolsDropdown();" style="display: block; padding: 8px 12px; text-decoration: none; color: #333; cursor: pointer;" onmouseover="this.style.backgroundColor='#f8f9fa'" onmouseout="this.style.backgroundColor='white'">
+                                <div class="dropdown-divider" style="height: 1px; background: var(--border-subtle); margin: 4px 0;"></div>
+                                <a class="dropdown-item" onclick="sanitizeData(); closeToolsDropdown();" style="display: block; padding: 8px 12px; text-decoration: none; color: var(--text-primary); cursor: pointer;" onmouseover="this.style.backgroundColor='var(--bg-surface-sunken)'" onmouseout="this.style.backgroundColor='white'">
                                     🧹 {{ _('clean_sensitive_data') }}
                                 </a>
                             </div>
@@ -69,7 +48,7 @@
                     </div>
                 </div>
 
-                <div class="control-section" style="flex: 1; min-width: 300px;">
+                <div class="control-section" style="flex: 1; min-width: min(300px, 100%);">
                     <div class="section-title">
                         🔍 {{ _('device_search') }}
                     </div>
@@ -380,7 +359,7 @@
                 <div id="access-tab" class="tab-pane">
                     <div class="access-management">
                         <!-- Action Buttons at Top -->
-                        <div class="access-actions" style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; text-align: center;">
+                        <div class="access-actions" style="margin-bottom: 20px; padding: 15px; background: var(--bg-surface-sunken); border-radius: 8px; text-align: center;">
                             <button type="button" class="btn btn-success" onclick="testEnhancedAccess()" style="margin-right: 10px;">
                                 🧪 {{ _('test_connection') }}
                             </button>
@@ -453,43 +432,6 @@
             </div>
         </div>
     </div>
-
-    <!-- Footer -->
-    <footer style="
-        background: linear-gradient(45deg, #2c3e50, #34495e);
-        color: white;
-        text-align: center;
-        padding: 15px;
-        margin-top: 20px;
-        border-radius: 15px;
-        min-height: 60px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    ">
-        <div style="display: flex; justify-content: center; align-items: center; gap: 20px; flex-wrap: wrap;">
-            <div>
-                <strong>My Network Scanner (MyNeS)</strong> <span id="appVersion">v1.0.0</span>
-            </div>
-            <div>|</div>
-            <div>
-                Your Family's User-Friendly Network Scanner
-            </div>
-            <div>|</div>
-            <div>
-                <a href="https://github.com/fxerkan/my_network_scanner" target="_blank" style="
-                    color: #74b9ff;
-                    text-decoration: none;
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 5px;
-                    transition: color 0.3s ease;
-                " onmouseover="this.style.color='#0984e3'" onmouseout="this.style.color='#74b9ff'">
-                    🐙 github.com/fxerkan/my_network_scanner
-                </a>
-            </div>
-        </div>
-    </footer>
 
 
     <!-- Enhanced Analysis Details Modal -->
@@ -585,13 +527,13 @@
                         <div id="deviceListForManagement" style="overflow-x: auto;">
                             <table class="devices-table" style="width: 100%; border-collapse: collapse; margin-top: 15px;">
                                 <thead>
-                                    <tr style="background-color: #f8f9fa;">
-                                        <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">{{ _('ip_address_label') }}</th>
-                                        <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">{{ _('device_alias_hostname') }}</th>
-                                        <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">{{ _('device_type_label') }}</th>
-                                        <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">{{ _('vendor_label') }}</th>
-                                        <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">{{ _('status') }}</th>
-                                        <th style="padding: 10px; border: 1px solid #ddd; text-align: center; width: 120px;">{{ _('operations') }}</th>
+                                    <tr style="background-color: var(--bg-surface-sunken);">
+                                        <th style="padding: 10px; border: 1px solid var(--border-default); text-align: left;">{{ _('ip_address_label') }}</th>
+                                        <th style="padding: 10px; border: 1px solid var(--border-default); text-align: left;">{{ _('device_alias_hostname') }}</th>
+                                        <th style="padding: 10px; border: 1px solid var(--border-default); text-align: left;">{{ _('device_type_label') }}</th>
+                                        <th style="padding: 10px; border: 1px solid var(--border-default); text-align: left;">{{ _('vendor_label') }}</th>
+                                        <th style="padding: 10px; border: 1px solid var(--border-default); text-align: left;">{{ _('status') }}</th>
+                                        <th style="padding: 10px; border: 1px solid var(--border-default); text-align: center; width: 120px;">{{ _('operations') }}</th>
                                     </tr>
                                 </thead>
                                 <tbody id="deviceTableBody">
@@ -604,10 +546,11 @@
             </div>
         </div>
     </div>
+{% endblock %}
 
-    <script src="/static/js/translations.js"></script>
-    <script src="/static/js/main.js"></script>
-    <script src="/static/js/device-access.js"></script>
-    <script src="/static/js/enhanced-details.js"></script>
-</body>
-</html>
+{% block scripts %}
+<script src="/static/js/translations.js"></script>
+<script src="/static/js/main.js"></script>
+<script src="/static/js/device-access.js"></script>
+<script src="/static/js/enhanced-details.js"></script>
+{% endblock %}

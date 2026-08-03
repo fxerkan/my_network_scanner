@@ -1,100 +1,24 @@
-// Shared Footer functionality for MyNeS
-// Loads version information and creates consistent footer across all pages
+// Footer version stamp. The footer markup itself lives in base.html - this file
+// only fills in the version, so there is one footer instead of three.
+(function () {
+  'use strict';
 
-class FooterManager {
-    constructor() {
-        this.versionInfo = null;
-    }
+  function render(info) {
+    var el = document.getElementById('appVersion');
+    if (!el || !info || !info.version) return;
+    el.textContent = 'v' + info.version;
+    el.title = [
+      'Version: ' + info.version,
+      info.commit_hash ? 'Commit: ' + String(info.commit_hash).slice(0, 7) : '',
+      info.build_time ? 'Built: ' + new Date(info.build_time).toLocaleString() : '',
+      info.is_dirty ? 'Working tree modified' : ''
+    ].filter(Boolean).join('\n');
+  }
 
-    async loadVersion() {
-        try {
-            const response = await fetch('/api/version');
-            this.versionInfo = await response.json();
-            this.updateFooter();
-        } catch (error) {
-            console.error('Version loading error:', error);
-            // Use default version in case of error
-            this.versionInfo = { version: '1.0.0' };
-            this.updateFooter();
-        }
-    }
-
-    updateFooter() {
-        const versionElement = document.getElementById('appVersion');
-        if (versionElement && this.versionInfo && this.versionInfo.version) {
-            versionElement.textContent = `v${this.versionInfo.version}`;
-            
-            // Add detailed info as tooltip
-            if (this.versionInfo.commit) {
-                const tooltip = [
-                    `Version: ${this.versionInfo.version}`,
-                    this.versionInfo.commit ? `Commit: ${this.versionInfo.commit.slice(0, 7)}` : '',
-                    this.versionInfo.build_time ? `Built: ${new Date(this.versionInfo.build_time).toLocaleString()}` : '',
-                    this.versionInfo.is_dirty ? 'Modified' : ''
-                ].filter(Boolean).join('\n');
-                
-                versionElement.title = tooltip;
-            }
-        }
-    }
-
-    createFooter() {
-        return `
-            <footer style="
-                background: linear-gradient(45deg, #2c3e50, #34495e);
-                color: white;
-                text-align: center;
-                padding: 15px;
-                margin-top: 20px;
-                border-radius: 15px;
-                min-height: 60px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            ">
-                <div style="display: flex; justify-content: center; align-items: center; gap: 20px; flex-wrap: wrap;">
-                    <div>
-                        <strong>My Network Scanner (MyNeS)</strong> <span id="appVersion">v1.0.0</span>
-                    </div>
-                    <div>|</div>
-                    <div>
-                        Your Family's User-Friendly Network Scanner
-                    </div>
-                    <div>|</div>
-                    <div>
-                        <a href="https://github.com/fxerkan/my_network_scanner" target="_blank" style="
-                            color: #74b9ff;
-                            text-decoration: none;
-                            display: inline-flex;
-                            align-items: center;
-                            gap: 5px;
-                            transition: color 0.3s ease;
-                        " onmouseover="this.style.color='#0984e3'" onmouseout="this.style.color='#74b9ff'">
-                            🐙 github.com/fxerkan/my_network_scanner
-                        </a>
-                    </div>
-                </div>
-            </footer>
-        `;
-    }
-
-    async initializeFooter() {
-        // Create footer if it doesn't exist
-        let footer = document.querySelector('footer');
-        if (!footer) {
-            const container = document.querySelector('.container') || document.body;
-            container.insertAdjacentHTML('beforeend', this.createFooter());
-        }
-        
-        // Load version information
-        await this.loadVersion();
-    }
-}
-
-// Global footer manager instance
-const footerManager = new FooterManager();
-
-// Initialize footer when DOM is loaded
-document.addEventListener('DOMContentLoaded', async function() {
-    await footerManager.initializeFooter();
-});
+  document.addEventListener('DOMContentLoaded', function () {
+    fetch('/api/version')
+      .then(function (r) { return r.json(); })
+      .then(render)
+      .catch(function () { render({ version: 'unknown' }); });
+  });
+})();

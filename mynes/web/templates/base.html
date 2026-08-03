@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="{{ current_language }}" data-theme="{{ request.cookies.get('mynes-theme', '') }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="description" content="{{ _('app_title') }} - network discovery, monitoring and Home Assistant integration for your home lab">
+    <meta name="color-scheme" content="light dark">
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#0d1017" media="(prefers-color-scheme: dark)">
+    <title>{% block title %}{{ _('app_title') }}{% endblock %}</title>
+
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="apple-touch-icon" href="/static/logo_256x256.svg">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="MyNeS">
+
+    <!-- Set the theme before first paint so there is no white flash in dark mode. -->
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem('mynes-theme');
+          if (saved === 'light' || saved === 'dark') {
+            document.documentElement.setAttribute('data-theme', saved);
+          } else {
+            document.documentElement.removeAttribute('data-theme');
+          }
+        } catch (e) { /* private mode: fall back to the OS preference */ }
+      })();
+    </script>
+
+    <link rel="stylesheet" href="/static/css/design-system.css">
+    {% block styles %}{% endblock %}
+</head>
+<body class="ds-shell">
+    {% include '_icons.html' %}
+
+    <a class="ds-skip-link" href="#main">{{ _('skip_to_content') if _('skip_to_content') != 'skip_to_content' else 'Skip to content' }}</a>
+
+    <header class="ds-header">
+        <div class="ds-container ds-header__inner">
+            <a class="ds-brand" href="/">
+                <svg class="ds-brand__logo" aria-hidden="true"><use href="#i-network"/></svg>
+                <span>MyNeS<span class="ds-brand__sub"> · {{ _('app_title') }}</span></span>
+            </a>
+
+            <div class="ds-spacer"></div>
+
+            <nav class="ds-nav" aria-label="{{ _('navigation') if _('navigation') != 'navigation' else 'Main' }}">
+                <a class="ds-nav__link" href="/" {% if active_page == 'devices' %}aria-current="page"{% endif %}>
+                    <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-network"/></svg>
+                    <span class="ds-nav__label">{{ _('devices') if _('devices') != 'devices' else 'Devices' }}</span>
+                </a>
+                <a class="ds-nav__link" href="/discovery" {% if active_page == 'discovery' %}aria-current="page"{% endif %}>
+                    <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-radar"/></svg>
+                    <span class="ds-nav__label">{{ _('discovery') if _('discovery') != 'discovery' else 'Discovery' }}</span>
+                </a>
+                <a class="ds-nav__link" href="/alerts" {% if active_page == 'alerts' %}aria-current="page"{% endif %} id="navAlerts">
+                    <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-bell"/></svg>
+                    <span class="ds-nav__label">{{ _('alerts') if _('alerts') != 'alerts' else 'Alerts' }}</span>
+                    <span class="ds-badge ds-badge--critical" id="alertBadge" hidden>0</span>
+                </a>
+                <a class="ds-nav__link" href="/history" {% if active_page == 'history' %}aria-current="page"{% endif %}>
+                    <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-history"/></svg>
+                    <span class="ds-nav__label">{{ _('history') }}</span>
+                </a>
+                <a class="ds-nav__link" href="/config" {% if active_page == 'config' %}aria-current="page"{% endif %}>
+                    <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-settings"/></svg>
+                    <span class="ds-nav__label">{{ _('configuration') }}</span>
+                </a>
+            </nav>
+
+            <button type="button" class="ds-btn ds-btn--ghost ds-btn--icon" id="themeToggle"
+                    aria-label="{{ _('toggle_theme') if _('toggle_theme') != 'toggle_theme' else 'Toggle dark mode' }}">
+                <svg class="ds-icon" aria-hidden="true" data-theme-icon><use href="#i-moon"/></svg>
+            </button>
+
+            <label class="ds-visually-hidden" for="languageSelect">{{ _('language') if _('language') != 'language' else 'Language' }}</label>
+            <select id="languageSelect" class="ds-select" style="width:auto;min-width:64px"
+                    onchange="changeLanguage(this.value)">
+                {% for lang_code in language_info.supported %}
+                    <option value="{{ lang_code }}" {% if lang_code == current_language %}selected{% endif %}>
+                        {{ language_info.flags[lang_code] }} {{ lang_code|upper }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+    </header>
+
+    <main id="main" class="ds-main" tabindex="-1">
+        <div class="ds-container">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <footer class="ds-footer">
+        <div class="ds-container ds-row" style="justify-content:center;gap:var(--space-4)">
+            <span><strong>MyNeS</strong> <span id="appVersion" class="ds-dim">—</span></span>
+            <span class="ds-dim" aria-hidden="true">·</span>
+            <span class="ds-muted">Your family's user-friendly network scanner</span>
+            <span class="ds-dim" aria-hidden="true">·</span>
+            <a href="https://github.com/fxerkan/my_network_scanner" target="_blank" rel="noopener noreferrer">
+                github.com/fxerkan/my_network_scanner
+                <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-external"/></svg>
+            </a>
+        </div>
+    </footer>
+
+    <div class="ds-toasts" id="toastHost" role="status" aria-live="polite" aria-atomic="false"></div>
+
+    <script src="/static/js/mynes-ui.js"></script>
+    <script src="/static/js/shared-footer.js"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>
