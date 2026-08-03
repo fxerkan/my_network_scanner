@@ -75,6 +75,13 @@ mynes/
 ├── integrations/
 │   ├── home_assistant.py MQTT Discovery push + REST pull/compare
 │   └── docker.py         Container/network detection
+├── platform/             Desktop OS integration. Nothing here runs a
+│   ├── privileges.py     privileged command without an explicit --apply.
+│   │                     Linux setcap / macOS ChmodBPF+access_bpf / Win Npcap.
+│   ├── service.py        launchd LaunchAgent | systemd --user | Scheduled Task.
+│   │                     All USER-level: no sudo, uninstall = delete one file.
+│   └── files/            ChmodBPF script + its LaunchDaemon plist
+├── tray.py               pystray menu bar / notification area icon (optional)
 ├── security/             credentials (Fernet + PBKDF2), sanitizer
 └── web/
     ├── app.py            Legacy routes + page rendering (large, historic)
@@ -123,6 +130,22 @@ silently** — that was a real bug (2 devices reported where 29 existed).
 
 `nmap` is likewise optional: without it, port and service detection is skipped
 but discovery still works.
+
+`platform/privileges.py` offers the narrow, permanent fix per OS instead of
+"run everything as root" — a web app parsing network input should not be root.
+It prints commands by default and only executes them on `--apply`, so the OS
+password prompt appears in the user's own terminal. **A web request must never
+be able to escalate privileges silently.**
+
+Two traps already hit and fixed here, do not reintroduce them:
+
+- `service.py` must launch `sys.executable`, **not** `os.path.realpath(...)`.
+  Resolving a venv's `bin/python` lands on the base interpreter where `mynes`
+  is not installed, and the service exits 1 on every start.
+- `launchctl list` exits 0 for a job that is loaded but dead, and `unload`
+  returns before the child is gone. Status is read from the PID field, and
+  uninstall waits for the process to actually exit — otherwise an orphan keeps
+  holding port 5883.
 
 ## Security
 

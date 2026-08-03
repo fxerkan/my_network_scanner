@@ -6,150 +6,161 @@
 {% endblock %}
 
 {% block content %}
-</div>
-
-        <!-- 1. Tarama İşlemleri / Cihaz Arama -->
-        <div class="controls">
-            <div style="display: flex; gap: 30px; align-items: flex-start; flex-wrap: wrap;">
-                <div class="control-section" style="flex: 1; min-width: min(400px, 100%);">
-                    <div class="section-title">
-                        📡 {{ _('scan_network') }} & {{ _('device') }} {{ _('actions') }}
-                    </div>
-                    <div class="control-panel">
-                        <button id="scanBtn" class="btn btn-primary" onclick="startScan()">🔍 {{ _('scan_network') }}</button>
-                        <button id="stopBtn" class="btn btn-danger" onclick="stopScan()" style="display: none;">⏹️ {{ _('stop_scan') }}</button>
-                        <button class="btn btn-warning" onclick="startBulkAnalysis()">🔬 {{ _('detailed_analysis') }}</button>
-                        <button class="btn btn-info" onclick="showDeviceManagementModal()">⚙️ {{ _('device') }} {{ _('actions') }}</button>
-                        <div class="dropdown" style="position: relative; display: inline-block;">
-                            <button class="btn btn-secondary dropdown-toggle" onclick="toggleToolsDropdown()" id="toolsDropdown">
-                                🔧 {{ _('tools') }}
-                            </button>
-                            <div class="dropdown-menu" id="toolsDropdownMenu" style="display: none; position: absolute; top: 100%; left: 0; background: var(--bg-surface); border: 1px solid var(--border-default); border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); min-width: min(180px, 100%); z-index: 1000;">
-                                <a class="dropdown-item" onclick="exportData(); closeToolsDropdown();" style="display: block; padding: 8px 12px; text-decoration: none; color: var(--text-primary); cursor: pointer;" onmouseover="this.style.backgroundColor='var(--bg-surface-sunken)'" onmouseout="this.style.backgroundColor='white'">
-                                    📤 {{ _('export_devices') }}
-                                </a>
-                                <a class="dropdown-item" onclick="document.getElementById('importFile').click(); closeToolsDropdown();" style="display: block; padding: 8px 12px; text-decoration: none; color: var(--text-primary); cursor: pointer;" onmouseover="this.style.backgroundColor='var(--bg-surface-sunken)'" onmouseout="this.style.backgroundColor='white'">
-                                    📥 {{ _('import_devices') }}
-                                </a>
-                                <div class="dropdown-divider" style="height: 1px; background: var(--border-subtle); margin: 4px 0;"></div>
-                                <a class="dropdown-item" onclick="sanitizeData(); closeToolsDropdown();" style="display: block; padding: 8px 12px; text-decoration: none; color: var(--text-primary); cursor: pointer;" onmouseover="this.style.backgroundColor='var(--bg-surface-sunken)'" onmouseout="this.style.backgroundColor='white'">
-                                    🧹 {{ _('clean_sensitive_data') }}
-                                </a>
-                            </div>
-                        </div>
-                        <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importData()">
-                    </div>
-                    
-                    <div id="progressContainer" class="progress-container" style="display: none;">
-                        <div class="progress-bar">
-                            <div id="progressFill" class="progress-fill"></div>
-                        </div>
-                        <div id="progressText" class="progress-text">Hazır</div>
-                    </div>
-                </div>
-
-                <div class="control-section" style="flex: 1; min-width: min(300px, 100%);">
-                    <div class="section-title">
-                        🔍 {{ _('device_search') }}
-                    </div>
-                    <div class="search-container">
-                        <input type="text" id="searchInput" class="search-input" 
-                               placeholder="{{ _('search_by_ip_mac') }}" 
-                               onkeyup="filterDevices()">
-                    </div>
+        <!-- 1. Primary actions. One row on desktop, a wrapping grid on a phone;
+             the scan button is always the widest and first. -->
+        <div class="page-actions">
+            <button id="scanBtn" class="btn btn-primary page-actions__primary" onclick="startScan()">
+                <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-search"/></svg>
+                <span>{{ _('scan_network') }}</span>
+            </button>
+            <button id="stopBtn" class="btn btn-danger" onclick="stopScan()" style="display:none">
+                <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-stop"/></svg>
+                <span>{{ _('stop_scan') }}</span>
+            </button>
+            <button class="btn btn-warning" onclick="startBulkAnalysis()">
+                <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-microscope"/></svg>
+                <span>{{ _('detailed_analysis') }}</span>
+            </button>
+            <button class="btn btn-info" onclick="showDeviceManagementModal()">
+                <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-settings"/></svg>
+                <span>{{ _('device') }} {{ _('actions') }}</span>
+            </button>
+            <div class="dropdown">
+                <button class="btn btn-secondary dropdown-toggle" onclick="toggleToolsDropdown()"
+                        id="toolsDropdown" aria-haspopup="true" aria-expanded="false">
+                    <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-wrench"/></svg>
+                    <span>{{ _('tools') }}</span>
+                    <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+                </button>
+                <div class="dropdown-menu" id="toolsDropdownMenu" style="display:none">
+                    <button type="button" class="dropdown-item" onclick="exportData(); closeToolsDropdown();">
+                        <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-download"/></svg>
+                        {{ _('export_devices') }}
+                    </button>
+                    <button type="button" class="dropdown-item" onclick="document.getElementById('importFile').click(); closeToolsDropdown();">
+                        <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-upload"/></svg>
+                        {{ _('import_devices') }}
+                    </button>
+                    <div class="dropdown-divider"></div>
+                    <button type="button" class="dropdown-item" onclick="sanitizeData(); closeToolsDropdown();">
+                        <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-trash"/></svg>
+                        {{ _('clean_sensitive_data') }}
+                    </button>
                 </div>
             </div>
+            <input type="file" id="importFile" accept=".json" hidden onchange="importData()">
         </div>
 
-        <!-- 2. Stat-numbers Bölümü -->
+        <div id="progressContainer" class="progress-container" style="display:none">
+            <div class="progress-bar">
+                <div id="progressFill" class="progress-fill"></div>
+            </div>
+            <div id="progressText" class="progress-text">Hazır</div>
+        </div>
+
+        <!-- 2. KPIs. Two-up on a phone, four-up from tablet. -->
         <div class="stats-bar">
             <div class="stat-item stat-total">
                 <div class="stat-number" id="totalDevices">0</div>
                 <div class="stat-label">{{ _('total_devices') }}</div>
-                <div class="tooltip">{{ _('total_devices') }}</div>
             </div>
             <div class="stat-item stat-online">
                 <div class="stat-number" id="onlineDevices">0</div>
                 <div class="stat-label">{{ _('online_devices') }}</div>
-                <div class="tooltip">{{ _('online_devices') }}</div>
             </div>
             <div class="stat-item stat-types">
                 <div class="stat-number" id="deviceTypes">0</div>
                 <div class="stat-label">{{ _('device_types') }}</div>
-                <div class="tooltip">{{ _('device_types') }}</div>
             </div>
             <div class="stat-item stat-vendors">
                 <div class="stat-number" id="vendors">0</div>
                 <div class="stat-label">{{ _('vendors') }}</div>
-                <div class="tooltip">{{ _('vendors') }}</div>
-            </div>
-            
-            <!-- View Selector - Dikey Konumlandırma -->
-            <div class="view-controls-stats">
-                <div class="view-selector-vertical">
-                    <button id="viewCard" class="view-btn-vertical active" onclick="switchView('card')" title="Card View">
-                        🗃️
-                    </button>
-                    <button id="viewTable" class="view-btn-vertical" onclick="switchView('table')" title="Table View">
-                        📊
-                    </button>
-                    <button id="viewMap" class="view-btn-vertical" onclick="switchView('map')" title="Network Map View">
-                        🗺️
-                    </button>
-                </div>
             </div>
         </div>
 
-        <!-- 3. Filter-panel Bölümü -->
-        <div class="controls">
-            <div class="control-section">
-                <div class="filter-panel">
-                    <div class="filter-grid">
-                        <div class="filter-group">
-                            <label class="filter-label">{{ _('device_type') }}</label>
-                            <select id="deviceTypeFilter" class="filter-select" onchange="filterDevices()">
-                                <option value="">{{ _('all') }}</option>
-                            </select>
-                        </div>
-                        <div class="filter-group">
-                            <label class="filter-label">{{ _('status') }}</label>
-                            <select id="statusFilter" class="filter-select" onchange="filterDevices()">
-                                <option value="">{{ _('all') }}</option>
-                                <option value="online">{{ _('online') }}</option>
-                                <option value="offline">{{ _('offline') }}</option>
-                            </select>
-                        </div>
-                        <div class="filter-group">
-                            <label class="filter-label">{{ _('vendor') }}</label>
-                            <select id="vendorFilter" class="filter-select" onchange="filterDevices()">
-                                <option value="">{{ _('all') }}</option>
-                            </select>
-                        </div>
-                        <div class="filter-group">
-                            <label class="filter-label">{{ _('alias') }}</label>
-                            <select id="aliasFilter" class="filter-select" onchange="filterDevices()">
-                                <option value="">{{ _('all') }}</option>
-                            </select>
-                        </div>
-                        <div class="filter-group">
-                            <label class="filter-label">{{ _('open_ports') }}</label>
-                            <select id="portFilter" class="filter-select" onchange="filterDevices()">
-                                <option value="">{{ _('all') }}</option>
-                                <option value="22">SSH (22)</option>
-                                <option value="80">HTTP (80)</option>
-                                <option value="443">HTTPS (443)</option>
-                                <option value="8080">HTTP-Alt (8080)</option>
-                                <option value="3389">RDP (3389)</option>
-                                <option value="554">RTSP (554)</option>
-                                <option value="631">Printer (631)</option>
-                            </select>
-                        </div>
+        <!-- 3. Sticky toolbar: search plus the layout switch, always reachable
+             while a long list scrolls. -->
+        <div class="ds-toolbar">
+            <div class="ds-search ds-toolbar__grow">
+                <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-search"/></svg>
+                <label class="ds-visually-hidden" for="searchInput">{{ _('device_search') }}</label>
+                <input type="search" id="searchInput" class="ds-input"
+                       placeholder="{{ _('search_by_ip_mac') }}" onkeyup="filterDevices()">
+            </div>
+            <div class="ds-segmented" role="group" aria-label="{{ _('view') if _('view') != 'view' else 'View' }}">
+                <button type="button" id="viewCard" class="ds-segmented__btn view-btn active"
+                        onclick="switchView('card')" aria-pressed="true" title="{{ _('card_view') if _('card_view') != 'card_view' else 'Cards' }}">
+                    <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-grid"/></svg>
+                    <span class="ds-visually-hidden">Cards</span>
+                </button>
+                <button type="button" id="viewTable" class="ds-segmented__btn view-btn"
+                        onclick="switchView('table')" aria-pressed="false" title="{{ _('table_view') if _('table_view') != 'table_view' else 'Table' }}">
+                    <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-table"/></svg>
+                    <span class="ds-visually-hidden">Table</span>
+                </button>
+                <button type="button" id="viewMap" class="ds-segmented__btn view-btn"
+                        onclick="switchView('map')" aria-pressed="false" title="{{ _('map_view') if _('map_view') != 'map_view' else 'Map' }}">
+                    <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-map"/></svg>
+                    <span class="ds-visually-hidden">Map</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 4. Filters. Collapsed on a phone (five selects would bury the list),
+             always open from 1024px up - see the inline script at the bottom. -->
+        <details class="ds-disclosure filters" id="filterPanel">
+            <summary>
+                <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-filter"/></svg>
+                <span>{{ _('filter') if _('filter') != 'filter' else 'Filters' }}</span>
+                <span class="ds-badge" id="activeFilterCount" hidden>0</span>
+                <svg class="ds-icon ds-icon--sm ds-disclosure__chevron" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+            </summary>
+            <div class="ds-disclosure__body">
+                <div class="filter-grid">
+                    <div class="filter-group">
+                        <label class="filter-label" for="deviceTypeFilter">{{ _('device_type') }}</label>
+                        <select id="deviceTypeFilter" class="filter-select" onchange="filterDevices()">
+                            <option value="">{{ _('all') }}</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label" for="statusFilter">{{ _('status') }}</label>
+                        <select id="statusFilter" class="filter-select" onchange="filterDevices()">
+                            <option value="">{{ _('all') }}</option>
+                            <option value="online">{{ _('online') }}</option>
+                            <option value="offline">{{ _('offline') }}</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label" for="vendorFilter">{{ _('vendor') }}</label>
+                        <select id="vendorFilter" class="filter-select" onchange="filterDevices()">
+                            <option value="">{{ _('all') }}</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label" for="aliasFilter">{{ _('alias') }}</label>
+                        <select id="aliasFilter" class="filter-select" onchange="filterDevices()">
+                            <option value="">{{ _('all') }}</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label" for="portFilter">{{ _('open_ports') }}</label>
+                        <select id="portFilter" class="filter-select" onchange="filterDevices()">
+                            <option value="">{{ _('all') }}</option>
+                            <option value="22">SSH (22)</option>
+                            <option value="80">HTTP (80)</option>
+                            <option value="443">HTTPS (443)</option>
+                            <option value="8080">HTTP-Alt (8080)</option>
+                            <option value="3389">RDP (3389)</option>
+                            <option value="554">RTSP (554)</option>
+                            <option value="631">Printer (631)</option>
+                        </select>
                     </div>
                 </div>
             </div>
-        </div>
+        </details>
 
-        <!-- 4. Ana İçerik Alanı -->
+        <!-- 5. Ana İçerik Alanı -->
         <div class="main-content-container">
             <div id="devicesContainer" class="devices-grid">
                 <!-- Cihazlar JavaScript ile yüklenecek -->
@@ -203,7 +214,6 @@
                 </div>
             </div>
         </div>
-    </div>
 
     <!-- Cihaz Düzenleme Modal -->
     <div id="editModal" class="modal">
@@ -553,4 +563,26 @@
 <script src="/static/js/main.js"></script>
 <script src="/static/js/device-access.js"></script>
 <script src="/static/js/enhanced-details.js"></script>
+<script>
+  // Filters: a drawer on a phone, always-open panel from 1024px up. <details>
+  // owns the state, so this is the whole implementation.
+  (function () {
+    var panel = document.getElementById('filterPanel');
+    var wide = window.matchMedia('(min-width: 1024px)');
+    var apply = function (m) { if (m.matches) panel.open = true; };
+    apply(wide);
+    wide.addEventListener('change', apply);
+
+    // Badge the summary with how many filters are actually narrowing the list,
+    // so a collapsed panel never hides the reason a device is missing.
+    var selects = panel.querySelectorAll('select');
+    var badge = document.getElementById('activeFilterCount');
+    panel.addEventListener('change', function () {
+      var n = 0;
+      selects.forEach(function (s) { if (s.value) n++; });
+      badge.textContent = n;
+      badge.hidden = n === 0;
+    });
+  })();
+</script>
 {% endblock %}

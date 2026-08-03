@@ -10,73 +10,126 @@
    base.html. main.css only styles the device-list content below it. */
 
 
-.controls {
-    padding: 20px 30px;
-    background: var(--bg-surface-sunken);
-    border-bottom: 1px solid var(--border-subtle);
+/* ---------- Primary action bar -------------------------------------------
+   Phone: the scan button owns a full row, the rest pair up two-per-row.
+   Tablet and up: one row that wraps only if it has to. */
+.page-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-2);
+    margin-bottom: var(--space-4);
+}
+.page-actions__primary { grid-column: 1 / -1; }
+
+@media (min-width: 768px) {
+    .page-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-3);
+        align-items: center;
+    }
+    .page-actions .btn { flex: 0 0 auto; }
 }
 
-.control-section {
-    margin-bottom: 0px;
-}
+/* The dropdown is a grid/flex item, so it must not collapse to zero width. */
+.dropdown { position: relative; display: flex; min-width: 0; }
+.dropdown > .btn { width: 100%; }
 
-.section-title {
-    font-size: 1.2em;
-    font-weight: 600;
+.dropdown-menu {
+    position: absolute;
+    top: calc(100% + var(--space-1));
+    left: 0;
+    min-width: max(100%, 220px);
+    padding: var(--space-1);
+    background: var(--bg-surface-raised);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    z-index: var(--z-dropdown);
+}
+/* Right-align when the trigger sits in the right half, so the menu cannot
+   push the page sideways. */
+.page-actions .dropdown:last-of-type .dropdown-menu { left: auto; right: 0; }
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    width: 100%;
+    min-height: 44px;
+    padding: var(--space-2) var(--space-3);
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
     color: var(--text-primary);
-    margin-bottom: 15px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
+    font: inherit;
+    font-size: var(--text-sm);
+    text-align: left;
+    cursor: pointer;
 }
-
-.control-panel {
-    display: flex;
-    gap: 15px;
-    align-items: center;
-    flex-wrap: wrap;
-    margin-bottom: 20px;
-}
+.dropdown-item:hover { background: var(--bg-hover); }
+.dropdown-divider { height: 1px; background: var(--border-subtle); margin: var(--space-1) 0; }
 
 .btn {
-    padding: 10px 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    min-height: 44px;              /* touch target, phone and TV alike */
+    padding: var(--space-2) var(--space-4);
     border: none;
-    border-radius: 6px;
-    font-size: 14px;
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
     font-weight: 500;
+    line-height: 1.2;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: filter var(--duration-fast) var(--ease-out),
+                box-shadow var(--duration-fast) var(--ease-out);
     text-decoration: none;
-    display: inline-block;
+    min-width: 0;
 }
+/* Labels ellipsis rather than overflow their button. */
+.btn > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.btn > .ds-icon { flex: none; }
 
 .btn-primary {
-    background: linear-gradient(45deg, var(--accent-bg), var(--accent-bg-hover));
+    background: var(--accent-bg);
     color: white;
 }
 
 .btn-primary:hover {
-    transform: translateY(-2px);
+    filter: brightness(1.08);
 }
 
 .btn-danger {
-    background: linear-gradient(45deg, var(--danger-bg), #c0392b);
-    color: white;
+    background: var(--danger-bg);
+    color: #fff;
 }
 
 .btn-success {
-    background: linear-gradient(45deg, #27ae60, #229954);
-    color: white;
+    background: var(--success-bg);
+    color: #fff;
 }
 
+/* Secondary and warning are surfaces, not shouts: they read the same in light
+   and dark because both sides come from tokens. */
 .btn-secondary {
-    background: var(--text-secondary);
-    color: white;
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    border: 1px solid var(--border-default);
 }
+.btn-secondary:hover { background: var(--bg-hover); }
 
 .btn-warning {
-    background: var(--warning-bg);
-    color: var(--text-primary);
+    background: var(--severity-warning-bg);
+    color: var(--severity-warning-fg);
+    border: 1px solid var(--severity-warning-border);
+}
+
+.btn-info {
+    background: var(--severity-info-bg);
+    color: var(--severity-info-fg);
+    border: 1px solid var(--severity-info-border);
 }
 
 .btn:disabled {
@@ -115,59 +168,50 @@
     margin-bottom: 20px;
 }
 
-.search-input {
-    width: 100%;
-    padding: 12px 40px 12px 15px;
-    border: 2px solid var(--border-subtle);
-    border-radius: 8px;
-    font-size: 16px;
-    transition: border-color 0.3s ease;
-}
-
-.search-input:focus {
-    outline: none;
-    border-color: var(--accent-bg);
-}
-
-.filter-panel {
-    background: var(--bg-surface);
-    border-radius: 10px;
-    padding: 20px;
-    margin-bottom: 0px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-}
+/* ---------- Filters ------------------------------------------------------- */
+.filters { margin-bottom: var(--space-4); }
 
 .filter-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
-    gap: 15px;
+    gap: var(--space-3);
 }
 
 .filter-group {
     display: flex;
     flex-direction: column;
+    gap: var(--space-1);
+    min-width: 0;
 }
 
 .filter-label {
-    font-weight: 600;
+    font-weight: 500;
     color: var(--text-secondary);
-    margin-bottom: 5px;
-    font-size: 0.9em;
+    font-size: var(--text-xs);
 }
 
 .filter-select {
-    padding: 8px 12px;
-    border: 2px solid var(--border-subtle);
-    border-radius: 6px;
-    font-size: 14px;
+    width: 100%;
+    min-height: 44px;                    /* tappable, not just clickable */
+    padding: var(--space-2) var(--space-8) var(--space-2) var(--space-3);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    font: inherit;
+    font-size: var(--text-sm);
+    color: var(--text-primary);
     background: var(--bg-surface);
     cursor: pointer;
-    transition: border-color 0.3s ease;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7689' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right var(--space-3) center;
+    transition: border-color var(--duration-fast) var(--ease-out);
 }
 
 .filter-select:focus {
     outline: none;
-    border-color: var(--accent-bg);
+    border-color: var(--accent-border);
+    box-shadow: 0 0 0 3px var(--accent-bg-subtle);
 }
 
 .devices-grid {
@@ -256,14 +300,18 @@
 .detail-value {
     color: var(--text-primary);
     font-weight: 600;
-    word-break: break-all;
+    /* break-all splits words mid-syllable; `anywhere` only breaks a long
+       token (a MAC, a vendor string) when it genuinely will not fit. */
+    overflow-wrap: anywhere;
+    text-align: right;
+    min-width: 0;
 }
 
 .device-alias {
-    background: #e3f2fd;
-    color: #1565c0;
+    background: var(--severity-info-bg);
+    color: var(--severity-info-fg);
     padding: 5px 10px;
-    border-radius: 15px;
+    border-radius: var(--radius-full);
     font-size: 0.85em;
     font-weight: 500;
     display: inline-block;
@@ -271,14 +319,14 @@
 }
 
 .device-notes {
-    background: #fff3e0;
-    color: #e65100;
+    background: var(--severity-warning-bg);
+    color: var(--severity-warning-fg);
     padding: 8px 12px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     font-size: 0.85em;
     line-height: 1.4;
     margin-bottom: 10px;
-    border-left: 3px solid #ff9800;
+    border-left: 3px solid var(--severity-warning-border);
 }
 
 .ports-container {
@@ -321,102 +369,64 @@
 
 .device-actions {
     display: flex;
-    gap: 8px;
+    gap: var(--space-2);
     flex-wrap: wrap;
-}
-
-.btn-small {
-    padding: 6px 12px;
-    font-size: 12px;
-    border-radius: 4px;
-}
-
-.stats-bar {
-    background: linear-gradient(135deg, var(--bg-surface-sunken) 0%, var(--border-subtle) 100%);
-    padding: 20px 30px;
-    border-bottom: 2px solid var(--border-subtle);
-    display: flex;
-    justify-content: center;
     align-items: center;
-    flex-wrap: wrap;
-    gap: 20px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+.device-actions .btn { flex: 1 1 auto; }
+
+/* ---------- KPI tiles ------------------------------------------------------
+   Two-up on a phone, four-up from 640px. Compact enough that the device list
+   is still visible above the fold instead of four screens down. */
+.stats-bar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-2);
+    margin-bottom: var(--space-4);
+}
+
+@media (min-width: 640px) {
+    .stats-bar { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-3); }
 }
 
 .stat-item {
-    text-align: center;
+    text-align: left;
     background: var(--bg-surface);
-    padding: 25px 30px;
-    border-radius: 15px;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
-    transition: all 0.3s ease;
-    cursor: pointer;
-    position: relative;
-    flex: 1;
-    min-width: 180px;
-    min-height: 120px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    border-left: 5px solid;
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--border-subtle);
+    border-left: 3px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xs);
+    min-width: 0;
 }
 
-.stat-item:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.2);
-}
-
-/* Farklı renkler için özel sınıflar */
-.stat-total {
-    border-left-color: var(--accent-bg);
-    background: var(--bg-surface);
-}
-
-.stat-total:hover {
-    background: var(--bg-hover);
-}
-
-.stat-online {
-    border-left-color: var(--success-bg);
-    background: var(--bg-surface);
-}
-
-.stat-online:hover {
-    background: var(--bg-surface);
-}
-
-.stat-types {
-    border-left-color: var(--warning-bg);
-    background: var(--bg-surface);
-}
-
-.stat-types:hover {
-    background: var(--bg-surface);
-}
-
-.stat-vendors {
-    border-left-color: var(--danger-bg);
-    background: var(--bg-surface);
-}
-
-.stat-vendors:hover {
-    background: var(--bg-surface);
-}
+/* Colour is a secondary cue only - the label always says what the number is. */
+.stat-total   { border-left-color: var(--accent-bg); }
+.stat-online  { border-left-color: var(--status-online-dot); }
+.stat-online .stat-number { color: var(--status-online-fg); }
+.stat-types   { border-left-color: var(--severity-warning-border); }
+.stat-vendors { border-left-color: var(--violet-500); }
 
 .stat-number {
-    font-size: 2.5em;
-    font-weight: 700;
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-bold);
     color: var(--text-primary);
-    margin-bottom: 8px;
-    line-height: 1;
+    line-height: var(--leading-2xl);
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
 }
 
 .stat-label {
-    font-size: 1em;
+    margin-top: 2px;
+    font-size: var(--text-xs);
     color: var(--text-secondary);
-    font-weight: 600;
+    font-weight: var(--weight-medium);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.04em;
+    /* Two words must not blow the tile open on a 320px phone. */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 /* Tooltip Styles */
@@ -489,14 +499,14 @@
 }
 
 .close {
-    color: #aaa;
+    color: var(--text-tertiary);
     font-size: 28px;
     font-weight: bold;
     cursor: pointer;
 }
 
 .close:hover {
-    color: #000;
+    color: var(--text-primary);
 }
 
 .form-group {
@@ -607,106 +617,10 @@
     margin-bottom: 10px;
 }
 
-/* View toggle styles */
-.view-toggle {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    margin-bottom: 20px;
-}
-
-.view-btn {
-    padding: 8px 16px;
-    border: 1px solid var(--border-default);
-    background: var(--bg-surface);
-    border-radius: 4px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.view-btn.active {
-    background: var(--accent-bg);
-    color: white;
-    border-color: var(--accent-bg);
-}
-
-/* Main Content Container Styles */
+/* The page container already supplies gutters and a max width. */
 .main-content-container {
-    padding: 30px;
-    background: var(--bg-surface-sunken);
-    min-height: 400px;
-}
-
-/* View Controls in Stats Bar - Compact Layout */
-.view-controls-stats {
-    text-align: center;
-    background: var(--bg-surface);
-    padding: 25px 10px;
-    border-radius: 15px;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
-    transition: all 0.3s ease;
-    cursor: pointer;
-    position: relative;
-    min-width: 80px;
-    max-width: 100px;
-    min-height: 120px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    border-left: 5px solid var(--accent-bg);
-}
-
-.view-controls-stats:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.2);
-    background: var(--bg-surface);
-}
-
-.view-selector-vertical {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-items: center;
-    gap: 4px;
-    width: 100%;
-    height: 100%;
-}
-
-.view-selector-title {
-    font-size: 0.9em;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin-bottom: 5px;
-    text-align: center;
-}
-
-.view-btn-vertical {
-    background: var(--bg-surface-sunken);
-    border: 2px solid var(--border-subtle);
-    padding: 4px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 0.9em;
-    width: 28px;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s ease;
-    color: var(--text-secondary);
-}
-
-.view-btn-vertical:hover {
-    background: var(--border-subtle);
-    border-color: var(--border-subtle);
-    transform: scale(1.1);
-}
-
-.view-btn-vertical.active {
-    background: linear-gradient(45deg, var(--accent-bg), var(--blue-800));
-    border-color: var(--accent-bg);
-    color: white;
-    box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
+    padding-top: var(--space-4);
+    min-height: 320px;
 }
 
 /* Table View Styles */
@@ -1167,32 +1081,24 @@
 
 /* Responsive Design for Views */
 @media (max-width: 768px) {
-    .view-selector {
-        flex-direction: column;
-        width: 100%;
-    }
-    
-    .view-btn {
-        width: 100%;
-        justify-content: center;
-    }
-    
     .device-grid {
         grid-template-columns: 1fr;
     }
-    
+
+    /* Eight columns will never fit a phone. The table scrolls inside its own
+       box - the page itself must not move sideways. */
     .table-container {
-        margin: 10px;
         overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
     }
-    
+
     .devices-table {
-        min-width: 800px;
+        min-width: 760px;
     }
 
     .filter-grid {
         grid-template-columns: 1fr;
-        gap: 10px;
+        gap: var(--space-3);
     }
 }
 
@@ -1267,25 +1173,12 @@
 }
 
 .btn-small {
-    font-size: 0.8em;
-    padding: 4px 8px;
+    font-size: var(--text-xs);
+    min-height: 36px;
+    padding: var(--space-1) var(--space-3);
 }
 
-.btn-info {
-    background: var(--cyan-600);
-    color: white;
-    border: none;
-}
 
-.btn-info:hover {
-    background: var(--cyan-600);
-}
-
-.device-actions {
-    display: flex;
-    gap: 5px;
-    align-items: center;
-}
 
 /* Enhanced Details Modal Styles */
 .enhanced-details-modal {
@@ -1492,11 +1385,11 @@
 }
 
 .probability-high {
-    background: linear-gradient(90deg, var(--success-bg), #20c997);
+    background: var(--success-bg);
 }
 
 .probability-medium {
-    background: linear-gradient(90deg, var(--warning-bg), #fd7e14);
+    background: var(--warning-bg);
 }
 
 .probability-low {
@@ -1529,7 +1422,7 @@
 
 .vulnerability-item {
     background: var(--severity-warning-bg);
-    border: 1px solid #ffeaa7;
+    border: 1px solid var(--severity-warning-border);
     border-radius: 6px;
     padding: 10px;
     margin-bottom: 10px;
@@ -1537,17 +1430,17 @@
 
 .vulnerability-high {
     background: var(--severity-critical-bg);
-    border-color: #f5c6cb;
+    border-color: var(--severity-critical-border);
 }
 
 .vulnerability-medium {
     background: var(--severity-warning-bg);
-    border-color: #ffeaa7;
+    border-color: var(--severity-warning-border);
 }
 
 .vulnerability-low {
     background: var(--severity-success-bg);
-    border-color: #c3e6cb;
+    border-color: var(--severity-success-border);
 }
 
 .expandable-content {
@@ -1706,7 +1599,7 @@
 
 .ports-table td {
     padding: 10px 15px;
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid var(--border-subtle);
     vertical-align: middle;
 }
 
@@ -1728,13 +1621,13 @@
 }
 
 .ports-table .port-type.auto {
-    background: #e3f2fd;
-    color: #1976d2;
+    background: var(--severity-info-bg);
+    color: var(--severity-info-fg);
 }
 
 .ports-table .port-type.manual {
-    background: #f3e5f5;
-    color: #7b1fa2;
+    background: var(--accent-bg-subtle);
+    color: var(--accent-text);
 }
 
 .ports-table .port-actions {
@@ -1836,7 +1729,7 @@
     display: flex;
     justify-content: space-between;
     padding: 5px 0;
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid var(--border-subtle);
 }
 
 .info-list li:last-child {
@@ -1932,34 +1825,55 @@
    adapt the same markup down to a 320px phone and up to a 10-foot TV.
    ========================================================================== */
 
-/* Phones: stack the control columns, let filters go one-per-row, and make
-   every tappable control clear the 44px minimum. */
+/* Phones: one card per row, and device cards lose the desktop padding so the
+   content, not the chrome, gets the width. */
 @media (max-width: 640px) {
-  .controls > div[style*="display: flex"] { flex-direction: column; gap: var(--space-4) !important; }
-  .control-section { min-width: 0 !important; width: 100%; }
-  .control-panel { display: flex; flex-wrap: wrap; gap: var(--space-2); }
-  .control-panel .btn { flex: 1 1 calc(50% - var(--space-2)); min-height: 44px; }
-  .filter-grid { grid-template-columns: 1fr !important; }
-  .stats-bar { flex-wrap: wrap; }
-  .stat-item { flex: 1 1 calc(50% - var(--space-2)); min-width: 0; }
-  .device-grid { grid-template-columns: 1fr !important; }
-  /* Wide tables scroll inside their own box instead of pushing the page. */
-  table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  /* The layout switch gets its own full-width row rather than dangling to one
+     side of the search field. */
+  .ds-toolbar .ds-segmented { width: 100%; }
+  .ds-toolbar .ds-segmented__btn { flex: 1; }
+
+  .devices-grid { grid-template-columns: 1fr; gap: var(--space-3); }
+  .device-card { padding: var(--space-4); }
+  .device-icon { width: 40px; height: 40px; font-size: 24px; }
+  .device-ip { font-size: var(--text-md); }
+  .detail-row { gap: var(--space-3); }
+  .detail-value { text-align: right; }
+  .device-actions .btn { flex: 1 1 calc(50% - var(--space-2)); }
+
+  /* Modals become sheets: full width, anchored to the bottom, thumb-reachable. */
+  .modal-content {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: var(--space-4);
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    max-height: 92dvh;
+    position: absolute;
+    inset: auto 0 0 0;
+    padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom));
+  }
+  .enhanced-edit-modal, .enhanced-details-modal { width: 100%; height: 92dvh; max-height: 92dvh; }
+  .modal-footer, .form-actions { flex-wrap: wrap; }
+  .modal-footer .btn, .form-actions .btn { flex: 1 1 140px; }
 }
 
-/* Tablets: two-up cards, filters two-up. */
+/* Tablets: filters two-up, cards two-up. */
 @media (min-width: 641px) and (max-width: 1024px) {
-  .filter-grid { grid-template-columns: repeat(2, 1fr) !important; }
+  .filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 /* TV / 10-foot: fewer, larger cards so text stays readable across a room. */
 @media (min-width: 1920px) {
-  .device-grid { grid-template-columns: repeat(auto-fill, minmax(min(420px, 100%), 1fr)) !important; }
+  .devices-grid { grid-template-columns: repeat(auto-fill, minmax(min(420px, 100%), 1fr)); }
   .btn { min-height: 48px; font-size: 1rem; }
 }
 
 /* Touch devices: no hover-only affordances, and bigger hit areas. */
 @media (hover: none) and (pointer: coarse) {
-  .btn, .nav-btn, .view-btn-vertical, .device-card button { min-height: 44px; min-width: 44px; }
+  .btn, .nav-btn, .device-card button, .port-badge { min-height: 44px; min-width: 44px; }
+  .port-badge { display: inline-flex; align-items: center; justify-content: center; padding-inline: var(--space-3); }
+  /* A tooltip that only appears on hover is unreachable here. */
   .tooltip { display: none; }
+  .device-card:hover, .table-row:hover { transform: none; }
 }

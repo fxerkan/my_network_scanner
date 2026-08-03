@@ -271,8 +271,15 @@ html {
   scroll-behavior: smooth;
 }
 
+html {
+  /* `clip`, not `hidden`: hidden would make <html> a scroll container and
+     silently break every `position: sticky` on the page. */
+  overflow-x: clip;
+}
+
 body {
   margin: 0;
+  overflow-x: clip;
   font-family: var(--font-sans);
   font-size: var(--text-base);
   line-height: var(--leading-base);
@@ -366,14 +373,23 @@ hr { border: 0; border-top: 1px solid var(--border-subtle); margin: var(--space-
 }
 
 .ds-header__inner {
-  display: flex; align-items: center; gap: var(--space-4);
+  display: flex; align-items: center; gap: var(--space-3);
   min-height: var(--header-height);
+  min-width: 0;   /* lets the brand truncate instead of pushing the nav off-screen */
+}
+@media (min-width: 768px) { .ds-header__inner { gap: var(--space-4); } }
+
+/* Tablets run the full top nav next to the brand. Something has to give, and
+   a truncated wordmark ("M…") reads as broken - the logo alone does not. */
+@media (min-width: 768px) and (max-width: 1099px) {
+  .ds-brand > span { display: none; }
 }
 
 .ds-brand {
   display: inline-flex; align-items: center; gap: var(--space-2);
   font-size: var(--text-md); font-weight: var(--weight-bold);
   color: var(--text-primary); letter-spacing: -0.01em; white-space: nowrap;
+  min-width: 0; overflow: hidden;
 }
 .ds-brand:hover { text-decoration: none; }
 .ds-brand__logo { width: 28px; height: 28px; flex: none; }
@@ -393,9 +409,52 @@ hr { border: 0; border-top: 1px solid var(--border-subtle); margin: var(--space-
 .ds-nav__link[aria-current="page"] { background: var(--accent-bg-subtle); color: var(--accent-text); }
 .ds-nav__link .ds-icon { flex: none; }
 
+/* Phones: five top-level destinations do not fit next to a brand in a 360px
+   bar, so the same <nav> becomes a bottom tab bar. Thumb-reachable, labelled,
+   and nothing is ever pushed off-screen. */
 @media (max-width: 767px) {
-  .ds-nav__label { display: none; }
-  .ds-nav__link { padding-inline: var(--space-3); }
+  .ds-brand__sub { display: none; }
+
+  /* backdrop-filter makes an element a containing block for its fixed-position
+     descendants, which would pin the tab bar to the header instead of the
+     viewport. Solid header on phones; the blur stays on the tab bar itself. */
+  .ds-header { backdrop-filter: none; background: var(--bg-surface); }
+
+  .ds-nav {
+    position: fixed; inset: auto 0 0 0; z-index: var(--z-sticky);
+    display: grid; grid-auto-flow: column; grid-auto-columns: 1fr;
+    gap: 0;
+    padding: var(--space-1) var(--space-2) calc(var(--space-1) + env(safe-area-inset-bottom));
+    background: color-mix(in srgb, var(--bg-surface) 92%, transparent);
+    backdrop-filter: saturate(1.6) blur(12px);
+    border-top: 1px solid var(--border-subtle);
+  }
+  @supports not (backdrop-filter: blur(1px)) { .ds-nav { background: var(--bg-surface); } }
+
+  .ds-nav__link {
+    position: relative;
+    flex-direction: column; gap: 2px; justify-content: center;
+    min-height: 52px; padding: var(--space-1) 2px;
+    font-size: 10px; line-height: 1.2; text-align: center;
+  }
+  .ds-nav__link .ds-icon--sm { width: 22px; height: 22px; }
+  .ds-nav__label {
+    display: block; max-width: 100%;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .ds-nav__link[aria-current="page"] { background: transparent; color: var(--accent-text); }
+  /* The active tab is marked by a bar as well as by colour. */
+  .ds-nav__link[aria-current="page"]::before {
+    content: ""; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+    width: 26px; height: 3px; border-radius: var(--radius-full); background: var(--accent-bg);
+  }
+  .ds-nav .ds-badge { position: absolute; top: 2px; right: calc(50% - 22px); }
+
+  /* The footer is the last thing on the page, so it carries the clearance
+     that keeps the tab bar from covering content. */
+  .ds-main { padding-block: var(--space-4) var(--space-6); }
+  .ds-footer { padding-bottom: calc(var(--space-5) + 64px + env(safe-area-inset-bottom)); }
+  .ds-toasts { bottom: calc(var(--space-3) + 64px + env(safe-area-inset-bottom)); }
 }
 
 .ds-footer {
@@ -447,6 +506,63 @@ hr { border: 0; border-top: 1px solid var(--border-subtle); margin: var(--space-
   width: 44px; height: 44px; transform: translate(-50%, -50%);
 }
 .ds-btn--icon { position: relative; }
+
+/* ---------- 8b. Segmented control ---------------------------------------- */
+/* One control, mutually exclusive options (list / table / map). Reads as one
+   object instead of three loose buttons, and stays 44px tall for a thumb. */
+.ds-segmented {
+  display: inline-flex; gap: 2px; padding: 3px; flex: none;
+  background: var(--bg-surface-sunken);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+.ds-segmented__btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
+  min-height: 38px; min-width: 44px; padding-inline: var(--space-3);
+  border: 0; border-radius: calc(var(--radius-md) - 3px);
+  background: transparent; color: var(--text-secondary);
+  font: inherit; font-size: var(--text-sm); font-weight: var(--weight-medium);
+  cursor: pointer; white-space: nowrap;
+  transition: background var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
+}
+.ds-segmented__btn:hover { color: var(--text-primary); }
+.ds-segmented__btn.active,
+.ds-segmented__btn[aria-pressed="true"] {
+  background: var(--bg-surface); color: var(--accent-text); box-shadow: var(--shadow-xs);
+}
+
+/* ---------- 8c. Sticky page toolbar --------------------------------------- */
+/* Search / view / filters stay reachable while a long device list scrolls. */
+.ds-toolbar {
+  position: sticky;
+  top: calc(var(--header-height) + env(safe-area-inset-top));
+  z-index: calc(var(--z-sticky) - 1);
+  display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;
+  padding-block: var(--space-3);
+  margin-inline: calc(var(--space-4) * -1);
+  padding-inline: var(--space-4);
+  background: var(--bg-canvas);
+  border-bottom: 1px solid var(--border-subtle);
+}
+@media (min-width: 768px)  { .ds-toolbar { margin-inline: calc(var(--space-6) * -1); padding-inline: var(--space-6); } }
+@media (min-width: 1280px) { .ds-toolbar { margin-inline: calc(var(--space-8) * -1); padding-inline: var(--space-8); } }
+.ds-toolbar__grow { flex: 1 1 220px; min-width: 0; }
+
+/* ---------- 8d. Disclosure (native <details>) ----------------------------- */
+/* A filter panel that is open on desktop and collapsed on a phone, with no JS.
+   ponytail: <details> over a custom accordion — the browser owns the state. */
+.ds-disclosure { border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); background: var(--bg-surface); }
+.ds-disclosure > summary {
+  display: flex; align-items: center; gap: var(--space-2);
+  min-height: 44px; padding: var(--space-2) var(--space-4);
+  cursor: pointer; list-style: none;
+  font-size: var(--text-sm); font-weight: var(--weight-medium); color: var(--text-secondary);
+}
+.ds-disclosure > summary::-webkit-details-marker { display: none; }
+.ds-disclosure > summary .ds-disclosure__chevron { margin-left: auto; transition: transform var(--duration-base) var(--ease-out); }
+.ds-disclosure[open] > summary .ds-disclosure__chevron { transform: rotate(180deg); }
+.ds-disclosure[open] > summary { border-bottom: 1px solid var(--border-subtle); }
+.ds-disclosure__body { padding: var(--space-4); }
 
 /* ---------- 9. Cards & panels -------------------------------------------- */
 .ds-card {

@@ -16,6 +16,7 @@ from mynes.discovery.base import DiscoveredDevice, DiscoveryBackend
 from mynes.discovery.bluetooth import BluetoothBackend
 from mynes.discovery.mdns import MDNSBackend
 from mynes.discovery.mqtt import MQTTBackend
+from mynes.discovery.onvif import ONVIFBackend
 from mynes.discovery.ssdp import SSDPBackend
 
 __all__ = [
@@ -24,6 +25,7 @@ __all__ = [
     "BluetoothBackend",
     "MDNSBackend",
     "MQTTBackend",
+    "ONVIFBackend",
     "SSDPBackend",
     "backends",
     "discover_all",
@@ -31,7 +33,8 @@ __all__ = [
 
 
 def backends(enabled: list[str] | None = None) -> list[DiscoveryBackend]:
-    all_backends = [MDNSBackend(), SSDPBackend(), MQTTBackend(), BluetoothBackend()]
+    all_backends = [MDNSBackend(), SSDPBackend(), ONVIFBackend(), MQTTBackend(),
+                    BluetoothBackend()]
     if enabled is None:
         return all_backends
     return [b for b in all_backends if b.name in enabled]

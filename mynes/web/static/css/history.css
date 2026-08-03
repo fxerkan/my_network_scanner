@@ -35,37 +35,43 @@
     background: rgba(255,255,255,0.3);
 }
 
+/* Horizontal gutters come from .ds-container in the page shell. */
 .content {
-    padding: 30px;
+    padding-block: var(--space-2) var(--space-6);
 }
 
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(250px, 100%), 1fr));
-    gap: 20px;
-    margin-bottom: 30px;
+    grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr));
+    gap: var(--space-3);
+    margin-bottom: var(--space-6);
 }
 
 .stat-card {
     background: linear-gradient(135deg, var(--accent-bg), var(--blue-800));
     color: white;
-    padding: 20px;
-    border-radius: 10px;
+    padding: var(--space-4);
+    border-radius: var(--radius-lg);
     text-align: center;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    box-shadow: var(--shadow-sm);
+    min-width: 0;
 }
 
 .stat-number {
-    font-size: 2.5em;
-    font-weight: bold;
-    margin-bottom: 5px;
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-bold);
+    line-height: var(--leading-2xl);
+    margin-bottom: 2px;
     color: white;
+    font-variant-numeric: tabular-nums;
 }
 
 .stat-label {
-    font-size: 0.9em;
-    color: var(--bg-surface-sunken);
-    opacity: 0.95;
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    /* The tile is always the blue gradient, so the label is always light. */
+    color: rgba(255, 255, 255, 0.88);
 }
 
 .chart-container {
@@ -83,8 +89,12 @@
     margin-bottom: 15px;
 }
 
+/* The table keeps its columns and scrolls inside the card. */
+.chart-container { overflow-x: auto; }
+
 .history-table {
     width: 100%;
+    min-width: 560px;
     border-collapse: collapse;
     margin-top: 10px;
 }
@@ -281,9 +291,9 @@
 /* Side by side layout for charts */
 .charts-row {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    margin-bottom: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
+    gap: var(--space-5);
+    margin-bottom: var(--space-5);
 }
 
 /* Pie Chart Styles */

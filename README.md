@@ -208,7 +208,56 @@ docker compose -f deploy/docker-compose.yml up -d
 gereklidir. Docker Desktop'ta (macOS/Windows) host modu kısıtlıdır; compose
 dosyasındaki `ports:` bloğunu açın (keşif kapsamı daralır).
 
-### 3. Yapılandırma
+### 3. Tam tarama yetkisi (önerilir)
+
+Ham ARP taraması root ister. MyNeS yetki yoksa ping sweep'e düşer ve ICMP'ye
+yanıt vermeyen cihazları kaçırır. Her platformda, **her şeyi root olarak
+çalıştırmadan** kalıcı çözüm var:
+
+```bash
+python -m mynes.platform.privileges            # ne gerektiğini söyler
+python -m mynes.platform.privileges --apply    # komutları çalıştırır (parola sorar)
+```
+
+| Platform | Yöntem |
+|---|---|
+| **Linux** | Python ikilisine `setcap cap_net_raw,cap_net_admin+eip` — sadece iki yetenek, root yok |
+| **macOS** | `access_bpf` grubu + açılışta çalışan ChmodBPF LaunchDaemon (Wireshark ile aynı mekanizma) |
+| **Windows** | Npcap sürücüsü, "Administrators only" seçeneği **kapalı** kurulur |
+
+macOS'ta grup üyeliği **yeni oturumda** geçerli olur — çıkış yapıp tekrar girin.
+Durum arayüzde de görünür: **Discovery → System setup**.
+
+### 4. Arka planda çalıştırma
+
+Zamanlanmış tarama tarayıcı açık olmadan da sürsün:
+
+```bash
+python -m mynes.platform.service install     # oturum açılışında başlar
+python -m mynes.platform.service status
+python -m mynes.platform.service uninstall
+```
+
+macOS'ta LaunchAgent, Linux'ta systemd *user* unit, Windows'ta Zamanlanmış
+Görev kurar. Üçü de kullanıcı seviyesindedir — sudo istemez, kaldırmak tek
+dosya silmektir. Gerçek bir açılış servisi (headless sunucu) için Docker imajını
+kullanın.
+
+Linux'ta oturumu kapattığınızda da çalışması için: `sudo loginctl enable-linger $USER`
+
+### 5. Sistem tepsisi / menü çubuğu ikonu
+
+```bash
+pip install "mynes[tray]"
+python -m mynes.tray                              # sunucuyu da başlatır
+python -m mynes.tray --connect http://nas.local:5883   # sadece ikon
+```
+
+Cihaz sayısı ve okunmamış uyarı rozeti simgede görünür; menüden "Scan now",
+"Open MyNeS" ve "Mark alerts read" var. İkon rengi durumu taşır (yeşil / sarı /
+kırmızı / gri).
+
+### 6. Yapılandırma
 
 ```bash
 export MYNES_PASSWORD="ana_parolaniz"    # yoksa otomatik üretilir

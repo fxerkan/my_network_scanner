@@ -25,6 +25,7 @@ logging.getLogger("scapy").setLevel(logging.ERROR)
 import nmap
 # import netifaces  # Use network_utils instead for Docker compatibility
 from mynes.core.network import get_network_interfaces, get_default_gateway, get_local_ip_ranges, get_host_network_ranges, is_docker_environment
+from mynes.analysis import fingerprint
 import json
 import socket
 import re
@@ -439,29 +440,59 @@ class LANScanner:
         """Gelişmiş üretici firma tespiti using OUI Manager"""
         return self.oui_manager.get_vendor(mac_address)
     
-    def detect_device_type_smart_enhanced(self, ip, mac, hostname, vendor, open_ports):
-        """Akıllı cihaz tipi tespiti - Config tabanlı"""
+    def get_gateway_ip(self):
+        """Default gateway, looked up once. The only hard proof of a router."""
+        if not hasattr(self, '_gateway_ip'):
+            try:
+                self._gateway_ip = get_default_gateway()
+            except Exception:
+                self._gateway_ip = None
+        return self._gateway_ip
+
+    def detect_device_type_smart_enhanced(self, ip, mac, hostname, vendor,
+                                          open_ports, signals=None):
+        """Cihaz tipi tespiti.
+
+        Order matters. Evidence the device gave us about *itself* (an RTSP
+        handshake, an HTTP Server header, an SSH banner, being the gateway)
+        outranks the config's regex rules, which in turn outrank a guess made
+        from port numbers alone.
+
+        The old port heuristic returned 'Router' for anything with SSH plus a
+        web page - which is every Raspberry Pi, NAS and home server on a LAN.
+        """
         hostname_lower = hostname.lower() if hostname else ""
         vendor_lower = vendor.lower() if vendor else ""
-        
-        # Config'den hostname pattern'larını kontrol et
+        port_numbers = [p['port'] if isinstance(p, dict) else p for p in (open_ports or [])]
+
+        if signals is None:
+            signals = {
+                'ip': ip, 'open_ports': port_numbers, 'vendor': vendor or '',
+                'hostname': hostname or '', 'rtsp': None, 'http': [], 'ssh': None,
+                'is_gateway': ip == self.get_gateway_ip(),
+            }
+
+        # 1. Strong, self-reported evidence wins outright.
+        verdict = fingerprint.classify(signals)
+        if verdict['confidence'] >= 0.8:
+            return verdict['device_type']
+
+        # 2. Config rules the user can edit.
         hostname_patterns = self.detection_rules.get('hostname_patterns', [])
         for rule in hostname_patterns:
             try:
-                if re.search(rule['pattern'], hostname_lower, re.IGNORECASE):
+                if hostname_lower and re.search(rule['pattern'], hostname_lower, re.IGNORECASE):
                     return rule['type']
             except Exception:
                 continue
-        
-        # Config'den vendor pattern'larını kontrol et
+
         vendor_patterns = self.detection_rules.get('vendor_patterns', [])
         for rule in vendor_patterns:
             try:
                 if re.search(rule['pattern'], vendor_lower, re.IGNORECASE):
-                    # Ek koşulları kontrol et
                     if 'conditions' in rule:
                         conditions_met = any(
-                            condition in hostname_lower or condition in vendor_lower 
+                            condition in hostname_lower or condition in vendor_lower
                             for condition in rule['conditions']
                         )
                         if conditions_met:
@@ -470,54 +501,73 @@ class LANScanner:
                         return rule['type']
             except Exception:
                 continue
-        
-        # Port tabanlı tahmin
-        if open_ports:
-            if any(port in [80, 443, 8080, 8443] for port in open_ports):
-                if any(port in [22, 23] for port in open_ports):
-                    return 'Router'
-                elif 554 in open_ports or 8554 in open_ports:
-                    return 'IP Camera'
-                elif 631 in open_ports:
-                    return 'Printer'
-            
-            if 22 in open_ports and hostname_lower:
-                if 'pi' in hostname_lower or 'raspberry' in hostname_lower:
-                    return 'Raspberry Pi'
-                else:
-                    return 'Server'
-            
-            if 3389 in open_ports:
-                return 'Desktop'
-        
-        return 'Unknown'
-    
-    def scan_ports_basic(self, ip):
-        """Hızlı temel port taraması - sadece yaygın portlar"""
+
+        # 3. Whatever the weaker fingerprint rules concluded, or Unknown.
+        return verdict['device_type']
+
+    def refresh_onvif_cache(self, timeout=3.0):
+        """One multicast ONVIF probe per scan -> {ip: {name, model, vendor}}.
+
+        Cameras answer this without credentials with the name their owner
+        configured ("C212"), which beats anything we could invent.
+        """
+        self._onvif_cache = {}
         try:
-            # Hızlı tarama için sadece en yaygın portlar
-            basic_ports = [22, 23, 80, 443, 8080]
-            
-            nm = nmap.PortScanner()
-            port_range = ','.join(map(str, basic_ports))
-            result = nm.scan(ip, port_range, arguments='-sT -T4 --max-retries 1 --host-timeout 10s')
-            
-            open_ports = []
-            if ip in result['scan']:
-                if 'tcp' in result['scan'][ip]:
-                    for port, info in result['scan'][ip]['tcp'].items():
-                        if info['state'] == 'open':
-                            service = info.get('name', 'unknown')
-                            open_ports.append({
-                                'port': port,
-                                'service': service,
-                                'state': info['state']
-                            })
-            
-            return open_ports
+            from mynes.discovery.onvif import discover as onvif_discover
+
+            for dev in onvif_discover(timeout):
+                if dev.ip:
+                    self._onvif_cache[dev.ip] = {
+                        'name': dev.name, 'model': dev.model, 'vendor': dev.vendor,
+                        'port': (dev.attributes.get('onvif') or {}).get('port'),
+                    }
+        except Exception as e:
+            print(f"ONVIF keşif hatası: {e}")
+        return self._onvif_cache
+
+    def fingerprint_device(self, ip, open_ports, vendor='', hostname=''):
+        """Talk to the open services and return the signal dict.
+
+        Never raises and never blocks a scan: a device that ignores us simply
+        contributes no signals.
+        """
+        port_numbers = [p['port'] if isinstance(p, dict) else p for p in (open_ports or [])]
+        try:
+            signals = fingerprint.gather(
+                ip,
+                open_ports=port_numbers,
+                vendor=vendor,
+                hostname=hostname,
+                is_gateway=(ip == self.get_gateway_ip()),
+            )
+            signals['onvif'] = getattr(self, '_onvif_cache', {}).get(ip)
+            return signals
+        except Exception as e:
+            print(f"Fingerprint hatası {ip}: {e}")
+            return {
+                'ip': ip, 'open_ports': port_numbers, 'vendor': vendor or '',
+                'hostname': hostname or '', 'rtsp': None, 'http': [], 'ssh': None,
+                'is_gateway': ip == self.get_gateway_ip(),
+            }
+
+
+    def scan_ports_basic(self, ip):
+        """Hızlı temel port taraması.
+
+        Was: nmap on [22, 23, 80, 443, 8080] - which is why not one RTSP camera
+        was ever found; 554 was never in the list. Now a stdlib connect scan
+        over `fingerprint.SCAN_PORTS`, which includes the camera and NAS ports.
+        Also drops the nmap requirement from the fast path entirely.
+        """
+        try:
+            ports = fingerprint.scan_tcp(ip)
         except Exception as e:
             print(f"Hızlı port tarama hatası {ip}: {e}")
             return []
+
+        return [{'port': port,
+                 'service': fingerprint.service_name(port),
+                 'state': 'open'} for port in ports]
 
     def scan_ports_enhanced(self, ip, device_type=None):
         """Gelişmiş port taraması - cihaz tipine özgü"""
@@ -816,7 +866,20 @@ class LANScanner:
             log_operation("🔌 Hızlı Port Tarama", "tamamlandı", f"{len(open_ports)} port bulundu")
         
         port_numbers = [port['port'] if isinstance(port, dict) else port for port in open_ports]
-        
+
+        # Ask the open services what they are. This is what makes an RTSP
+        # camera identifiable at all, and what stops a Pi from being a router.
+        log_operation("🧬 Servis Parmak İzi", "başlatılıyor", f"{len(port_numbers)} port")
+        signals = self.fingerprint_device(ip, port_numbers, vendor, hostname)
+        if signals.get('rtsp'):
+            log_operation("🧬 Servis Parmak İzi", "tamamlandı",
+                          f"RTSP {signals['rtsp']['url']}")
+        else:
+            evidence = [b.get('server') or b.get('title') for b in signals.get('http') or []]
+            evidence = [e for e in evidence if e] or ([signals['ssh']] if signals.get('ssh') else [])
+            log_operation("🧬 Servis Parmak İzi", "tamamlandı",
+                          '; '.join(evidence)[:120] or "yanıt yok")
+
         # Gelişmiş cihaz bilgisi toplama (Sadece detaylı analizde)
         enhanced_info = None
         if smart_naming_enabled and self.smart_naming_config.get('advanced_scanning', True):
@@ -829,9 +892,10 @@ class LANScanner:
                 log_operation("🔬 Gelişmiş Cihaz Analizi", "hata", str(e))
                 print(f"Gelişmiş cihaz analizi hatası {ip}: {e}")
         
-        # Cihaz tipini belirle - Kullanıcı tarafından ayarlanmış device_type'ı HER ZAMAN koru
-        if existing_device.get('device_type'):
-            # Mevcut device_type'ı koru (kullanıcı tarafından girilmiş)
+        # Cihaz tipini belirle. Only a type the *user* picked is preserved - a
+        # type we guessed on an earlier scan gets re-derived, otherwise one bad
+        # guess is permanent.
+        if existing_device.get('device_type') and existing_device.get('device_type_source') == 'user':
             device_type = existing_device.get('device_type')
             identification_result = {'device_type': device_type, 'confidence': 1.0, 'user_defined': True}
             print(f"Kullanıcı tanımlı device_type korundu: {device_type} ({ip})")
@@ -870,7 +934,7 @@ class LANScanner:
                     if identification_result.get('confidence', 0) < confidence_threshold:
                         # Düşük güven skoru, eski yöntemi kullan
                         log_operation("🔄 Fallback Analizi", "başlatılıyor", "düşük güven skoru")
-                        device_type = self.detect_device_type_smart_enhanced(ip, mac, hostname, vendor, port_numbers)
+                        device_type = self.detect_device_type_smart_enhanced(ip, mac, hostname, vendor, port_numbers, signals)
                         identification_result['device_type'] = device_type
                         identification_result['fallback'] = True
                         log_operation("🔄 Fallback Analizi", "tamamlandı", device_type)
@@ -878,12 +942,12 @@ class LANScanner:
                 except Exception as e:
                     log_operation("🤖 Akıllı Cihaz Tanımlama", "hata", str(e))
                     print(f"Smart identification hatası {ip}: {e}")
-                    device_type = self.detect_device_type_smart_enhanced(ip, mac, hostname, vendor, port_numbers)
+                    device_type = self.detect_device_type_smart_enhanced(ip, mac, hostname, vendor, port_numbers, signals)
                     identification_result = {'device_type': device_type, 'confidence': 0.5, 'error': str(e)}
             else:
                 # Basit yöntem
                 log_operation("🔍 Basit Cihaz Tanımlama", "başlatılıyor")
-                device_type = self.detect_device_type_smart_enhanced(ip, mac, hostname, vendor, port_numbers)
+                device_type = self.detect_device_type_smart_enhanced(ip, mac, hostname, vendor, port_numbers, signals)
                 identification_result = {'device_type': device_type, 'confidence': 0.5}
                 log_operation("🔍 Basit Cihaz Tanımlama", "tamamlandı", device_type)
         
@@ -962,7 +1026,37 @@ class LANScanner:
             'alias': existing_device.get('alias', ''),
             'notes': existing_device.get('notes', '')
         }
-        
+
+        # What the services told us, kept so the UI can show *why* a device was
+        # typed the way it was, and so a camera's stream URL is one click away.
+        # Mark where the type came from, so the merge on the next scan knows
+        # whether it may refresh it.
+        device_info['device_type_source'] = (
+            'user' if identification_result.get('user_defined') else 'auto')
+
+        device_info['fingerprint'] = {
+            'rtsp': signals.get('rtsp'),
+            'http': signals.get('http'),
+            'ssh': signals.get('ssh'),
+            'is_gateway': signals.get('is_gateway', False),
+            'reasons': fingerprint.classify(signals).get('reasons', []),
+        }
+        if signals.get('rtsp'):
+            device_info['stream_url'] = signals['rtsp']['url']
+
+        # Auto-name. A name the *user* typed is never touched; a name we
+        # generated earlier is refreshed, because a later scan knows more.
+        alias_source = existing_device.get('alias_source', '')
+        if not device_info['alias'] or alias_source == 'auto':
+            suggested = fingerprint.suggest_name(signals, device_type)
+            if suggested:
+                device_info['alias'] = suggested
+                device_info['alias_source'] = 'auto'
+                log_operation("🏷️ Otomatik İsimlendirme", "tamamlandı", suggested)
+        elif alias_source:
+            device_info['alias_source'] = alias_source
+
+
         # Mevcut enhanced analiz bilgilerini her durumda koru
         if existing_device.get('enhanced_comprehensive_info'):
             device_info['enhanced_comprehensive_info'] = existing_device['enhanced_comprehensive_info']
@@ -1079,7 +1173,17 @@ class LANScanner:
             include_offline = self.scan_settings.get('include_offline', False)
         
         print(f"Taranacak ağ: {ip_range}")
-        
+
+        # One ONVIF probe for the whole sweep: cameras answer with the name
+        # their owner configured, which no port scan can tell us.
+        if progress_callback:
+            progress_callback("ONVIF kamera keşfi...")
+        onvif_found = self.refresh_onvif_cache()
+        if onvif_found:
+            print(f"ONVIF: {len(onvif_found)} kamera bulundu -> "
+                  + ', '.join(f"{ip} ({info.get('name') or '?'})"
+                              for ip, info in onvif_found.items()))
+
         if progress_callback:
             progress_callback("ARP taraması başlıyor...")
         

@@ -465,7 +465,7 @@ function displayDevicesCard() {
 
             <div class="device-actions">
                 <button class="btn btn-primary btn-small" onclick="openEnhancedEditModal('${device.ip}')">✏️ ${t('edit')}</button>
-                <button class="btn btn-warning btn-small" onclick="openSingleDeviceAnalysisPage('${device.ip}')" title="${t('advanced_analysis')}">🔬</button>
+                <button class="btn btn-warning btn-small" onclick="openSingleDeviceAnalysisPage('${device.ip}')" title="${t('advanced_analysis')}" aria-label="${t('advanced_analysis')}">🔬</button>
                 ${hasEnhancedInfo(device) ? 
                     `<button class="btn btn-success btn-small" onclick="openEnhancedDetailsModal(${JSON.stringify(device).replace(/"/g, '&quot;')})" title="${t('details')}">📊 ${t('details')}</button>` : 
                     ''
@@ -1609,10 +1609,15 @@ let currentView = 'card'; // Varsayılan görünüm
 
 function switchView(view) {
     // Önceki aktif butondan active class'ını kaldır (hem eski hem yeni butonlar için)
-    document.querySelectorAll('.view-btn, .view-btn-vertical').forEach(btn => btn.classList.remove('active'));
-    
+    document.querySelectorAll('.view-btn, .view-btn-vertical').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.hasAttribute('aria-pressed')) btn.setAttribute('aria-pressed', 'false');
+    });
+
     // Yeni aktif butona active class'ı ekle
-    document.getElementById(`view${view.charAt(0).toUpperCase() + view.slice(1)}`).classList.add('active');
+    const activeBtn = document.getElementById(`view${view.charAt(0).toUpperCase() + view.slice(1)}`);
+    activeBtn.classList.add('active');
+    if (activeBtn.hasAttribute('aria-pressed')) activeBtn.setAttribute('aria-pressed', 'true');
     
     // Görünümleri gizle/göster
     document.getElementById('devicesContainer').style.display = view === 'card' ? 'grid' : 'none';
@@ -1697,10 +1702,10 @@ function displayDevicesTable() {
                 </td>
                 <td class="table-cell">
                     <div class="device-actions">
-                        <button class="btn btn-primary btn-small" onclick="openEnhancedEditModal('${device.ip}'); event.stopPropagation();" title="Edit">✏️</button>
-                        <button class="btn btn-warning btn-small" onclick="openSingleDeviceAnalysisPage('${device.ip}'); event.stopPropagation();" title="Gelişmiş Analiz">🔬</button>
+                        <button class="btn btn-primary btn-small" onclick="openEnhancedEditModal('${device.ip}'); event.stopPropagation();" title="${t('edit')}" aria-label="${t('edit')}">✏️</button>
+                        <button class="btn btn-warning btn-small" onclick="openSingleDeviceAnalysisPage('${device.ip}'); event.stopPropagation();" title="${t('advanced_analysis')}" aria-label="${t('advanced_analysis')}">🔬</button>
                         ${hasEnhancedInfo(device) ? 
-                            `<button class="btn btn-success btn-small" onclick="openEnhancedDetailsModal(${JSON.stringify(device).replace(/"/g, '&quot;')}); event.stopPropagation();" title="Detaylı Analiz Sonuçları">📊</button>` : 
+                            `<button class="btn btn-success btn-small" onclick="openEnhancedDetailsModal(${JSON.stringify(device).replace(/"/g, '&quot;')}); event.stopPropagation();" title="${t('details')}" aria-label="${t('details')}">📊</button>` : 
                             ''
                         }
                     </div>

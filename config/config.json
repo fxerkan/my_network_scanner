@@ -11,7 +11,34 @@
     "include_offline": true
   },
   "port_settings": {
-    "default_ports": [],
+    "default_ports": [
+      21,
+      22,
+      23,
+      25,
+      53,
+      80,
+      139,
+      443,
+      445,
+      515,
+      554,
+      631,
+      1883,
+      2020,
+      3389,
+      5000,
+      5001,
+      5900,
+      8000,
+      8008,
+      8080,
+      8443,
+      8554,
+      8899,
+      9100,
+      10554
+    ],
     "device_specific_ports": {
       "Camera": [
         80,
@@ -40,6 +67,20 @@
         443,
         8080,
         88
+      ],
+      "IP Camera": [
+        80,
+        443,
+        554,
+        2020,
+        8000,
+        8080,
+        8443,
+        8554,
+        8899,
+        10554,
+        34567,
+        37777
       ]
     }
   },
@@ -150,15 +191,42 @@
       },
       {
         "pattern": "TP-Link.*|TpLink.*",
-        "type": "Router"
+        "type": "Router",
+        "conditions": [
+          "router",
+          "gateway",
+          "archer",
+          "deco",
+          "modem",
+          "ap",
+          "wifi"
+        ]
       },
       {
         "pattern": "Asus.*",
-        "type": "Router"
+        "type": "Router",
+        "conditions": [
+          "router",
+          "gateway",
+          "archer",
+          "deco",
+          "modem",
+          "ap",
+          "wifi"
+        ]
       },
       {
         "pattern": "Netgear.*",
-        "type": "Router"
+        "type": "Router",
+        "conditions": [
+          "router",
+          "gateway",
+          "archer",
+          "deco",
+          "modem",
+          "ap",
+          "wifi"
+        ]
       },
       {
         "pattern": "Dyson.*",
@@ -166,7 +234,13 @@
       },
       {
         "pattern": "Xiaomi.*",
-        "type": "Smartphone"
+        "type": "Smartphone",
+        "conditions": [
+          "redmi",
+          "mi phone",
+          "poco",
+          "android"
+        ]
       },
       {
         "pattern": "Petkit.*",

@@ -115,17 +115,30 @@ class UnifiedDeviceModel:
             if field in new_device and new_device[field]:
                 merged[field] = new_device[field]
         
-        # User-defined fields'ı koru - Mevcut değerleri ÖNCELİKLE koru
-        user_fields = ["alias", "notes", "device_type"]
-        for field in user_fields:
-            if field in existing_device and existing_device[field]:
-                # Mevcut değer varsa onu koru (kullanıcı tanımlı)
+        # notes are only ever written by a human, so they are always kept.
+        if existing_device.get("notes"):
+            merged["notes"] = existing_device["notes"]
+        elif new_device.get("notes"):
+            merged["notes"] = new_device["notes"]
+        else:
+            merged["notes"] = ""
+
+        # alias and device_type may come from the user OR from the scanner.
+        # Blindly keeping the existing value froze every wrong guess forever -
+        # a Raspberry Pi typed as "Router" once stayed a router through every
+        # later scan. Keep what the user set; refresh what we generated.
+        for field, marker in (("alias", "alias_source"),
+                              ("device_type", "device_type_source")):
+            user_owned = existing_device.get(marker) == "user"
+            if user_owned and existing_device.get(field):
                 merged[field] = existing_device[field]
-            elif field in new_device and new_device[field]:
-                # Mevcut değer yoksa yeni değeri kullan
+                merged[marker] = "user"
+            elif new_device.get(field):
                 merged[field] = new_device[field]
+                merged[marker] = new_device.get(marker, "auto")
+            elif existing_device.get(field):
+                merged[field] = existing_device[field]
             else:
-                # Her ikisinde de değer yoksa boş string
                 merged[field] = ""
         
         # Analysis data'yı güncelle

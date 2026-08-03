@@ -152,6 +152,127 @@ tablet right is the gate.
 
 ---
 
+## 5b. Permissions — the exact declarations
+
+A network scanner asks for the permissions malware asks for. Both stores reject
+vague justifications, so these strings are part of the product, not paperwork.
+Every one of them must say *what the user gets*, not *what the app does*.
+
+### iOS — `app.json` → `ios.infoPlist`
+
+```jsonc
+{
+  "ios": {
+    "bundleIdentifier": "com.fxerkan.mynes",
+    "infoPlist": {
+      // Required on iOS 14+ for ANY LAN traffic, including talking to your own
+      // MyNeS server. Without it every request silently fails.
+      "NSLocalNetworkUsageDescription":
+        "MyNeS connects to your MyNeS server and finds devices on your Wi-Fi network so it can show you what is connected.",
+
+      // Every mDNS service type the app browses must be declared up front.
+      // Browsing an undeclared type fails silently — no error, just no results.
+      "NSBonjourServices": [
+        "_mynes._tcp", "_home-assistant._tcp", "_http._tcp", "_https._tcp",
+        "_ipp._tcp", "_ipps._tcp", "_printer._tcp", "_smb._tcp",
+        "_googlecast._tcp", "_airplay._tcp", "_raop._tcp",
+        "_hap._tcp", "_matter._tcp", "_matterc._udp",
+        "_esphomelib._tcp", "_workstation._tcp", "_ssh._tcp", "_device-info._tcp"
+      ],
+
+      "NSBluetoothAlwaysUsageDescription":
+        "MyNeS scans for nearby Bluetooth devices — trackers, sensors, headphones — that do not appear on your Wi-Fi network.",
+
+      // Only if BLE scanning is ever moved to the background. Skip in v1.
+      "UIBackgroundModes": ["bluetooth-central"]
+    }
+  }
+}
+```
+
+**Privacy manifest** (`PrivacyInfo.xcprivacy`) — required since spring 2024:
+
+```xml
+<key>NSPrivacyTracking</key><false/>
+<key>NSPrivacyCollectedDataTypes</key><array/>   <!-- genuinely nothing -->
+<key>NSPrivacyAccessedAPITypes</key>
+<array>
+  <dict>
+    <key>NSPrivacyAccessedAPIType</key>
+    <string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+    <key>NSPrivacyAccessedAPITypeReasons</key><array><string>CA92.1</string></array>
+  </dict>
+</array>
+```
+
+iOS gotchas worth knowing before writing the client:
+
+- The local-network prompt appears on the **first** LAN request and cannot be
+  triggered on demand. Show an explainer screen first, then make a harmless
+  request — a denied prompt is only recoverable through Settings.
+- There is no API to re-prompt. Detect the failure and deep-link to
+  `UIApplication.openSettingsURLString`.
+- Background BLE scanning without a service-UUID filter is not permitted.
+  Foreground-only in v1.
+
+### Android — `app.json` → `android.permissions`
+
+```jsonc
+{
+  "android": {
+    "package": "com.fxerkan.mynes",
+    "permissions": [
+      "android.permission.INTERNET",
+      "android.permission.ACCESS_NETWORK_STATE",
+      "android.permission.ACCESS_WIFI_STATE",
+      "android.permission.CHANGE_WIFI_MULTICAST_STATE",  // mDNS/SSDP need multicast
+      "android.permission.BLUETOOTH_SCAN",
+      "android.permission.BLUETOOTH_CONNECT",
+      "android.permission.POST_NOTIFICATIONS"            // Android 13+
+    ],
+    "blockedPermissions": [
+      "android.permission.ACCESS_FINE_LOCATION",         // see below
+      "android.permission.ACCESS_COARSE_LOCATION"
+    ]
+  }
+}
+```
+
+The location permission is the decision that matters. On Android 11 and below,
+BLE scanning required `ACCESS_FINE_LOCATION`, and asking a network app for
+location reads as spyware. Android 12+ allows opting out:
+
+```xml
+<uses-permission android:name="android.permission.BLUETOOTH_SCAN"
+                 android:usesPermissionFlags="neverForLocation"
+                 tools:targetApi="s" />
+```
+
+**Set `minSdkVersion` to 31 (Android 12)** so `neverForLocation` always applies
+and the app never requests location at all. That costs a small slice of old
+devices and buys a clean Data Safety form plus a much easier review. Home-lab
+users are not running Android 11 phones.
+
+Also required:
+
+- `CHANGE_WIFI_MULTICAST_STATE` alone is not enough — you must acquire a
+  `MulticastLock` at runtime or mDNS returns nothing on most devices.
+- Foreground scanning only. Android's background execution limits make periodic
+  background scanning unreliable; the *server* does the scheduled scanning and
+  notifies, which is the design in §2 anyway.
+
+### Permission UX
+
+One rule: **never** show a system permission dialog cold. Each one gets a
+preceding screen explaining what it unlocks, with a "not now" that leaves the
+app usable:
+
+| Permission | Shown when | If denied |
+|---|---|---|
+| Local network (iOS) | First launch, before pairing | Pairing screen explains it and links to Settings |
+| Bluetooth | User opens the Discovery tab's BLE section | BLE section shows "enable to see nearby devices"; everything else works |
+| Notifications | After the first alert is generated, not at launch | Alerts still visible in-app |
+
 ## 6. Store readiness checklist
 
 Both stores reject network-scanning apps that look like attack tools. The

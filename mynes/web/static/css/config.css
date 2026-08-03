@@ -31,24 +31,42 @@
     background: rgba(255,255,255,0.3);
 }
 
+/* Horizontal gutters come from .ds-container in the page shell. */
 .content {
-    padding: 30px;
+    padding-block: var(--space-2) var(--space-6);
 }
 
+ /* Six tabs never fit a phone. They scroll sideways inside their own strip
+    rather than stacking into a six-row wall or pushing the page. */
 .tabs {
     display: flex;
+    gap: var(--space-1);
     border-bottom: 2px solid var(--border-subtle);
-    margin-bottom: 30px;
+    margin-bottom: var(--space-6);
+    overflow-x: auto;
+    scrollbar-width: none;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
 }
+.tabs::-webkit-scrollbar { display: none; }
 
 .tab {
-    padding: 15px 25px;
+    flex: none;
+    scroll-snap-align: start;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: 48px;
+    padding: var(--space-3) var(--space-4);
     background: none;
     border: none;
-    font-size: 16px;
+    color: var(--text-secondary);
+    font: inherit;
+    font-size: var(--text-sm);
     font-weight: 500;
+    white-space: nowrap;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: color var(--duration-fast) var(--ease-out);
     border-bottom: 3px solid transparent;
 }
 
@@ -290,7 +308,7 @@
 
 .emoji-grid {
     display: grid;
-    grid-template-columns: repeat(10, 1fr);
+    grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
     gap: 6px;
     margin-top: 15px;
     max-height: 400px;

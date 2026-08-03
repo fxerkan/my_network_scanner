@@ -1,0 +1,20 @@
+#!/bin/sh
+# Grant the access_bpf group read/write on the BPF devices.
+#
+# macOS resets /dev/bpf* to root-only (0600) on every boot, so this runs from a
+# LaunchDaemon at startup. Same mechanism Wireshark uses; MyNeS installs its own
+# copy so the two do not fight over one file.
+
+syslog -s -l notice "MyNeS ChmodBPF: setting permissions on /dev/bpf*"
+
+if ! dscl . -read /Groups/access_bpf > /dev/null 2>&1; then
+    # Pick a free gid below 500 so the group stays hidden from the login window.
+    free_gid=$(dscl . -list /Groups PrimaryGroupID | awk '$2 < 500 { print $2 }' | sort -n | awk '
+        BEGIN { want = 240 }
+        { if ($1 == want) want++ }
+        END { print want }')
+    dseditgroup -q -o create -r "MyNeS/Wireshark packet capture" -i "$free_gid" access_bpf
+fi
+
+chgrp access_bpf /dev/bpf*
+chmod g+rw /dev/bpf*

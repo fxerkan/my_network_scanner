@@ -37,11 +37,16 @@ discovery = ["zeroconf>=0.131", "paho-mqtt>=1.6"]
 bluetooth = ["bleak>=0.21"]
 # Credentialed deep analysis of a device.
 analysis = ["paramiko>=3.0", "pysnmp>=4.4.12"]
-all = ["mynes[discovery,bluetooth,analysis]"]
+# System tray / menu bar icon.
+tray = ["pystray>=0.19", "pillow>=10.0"]
+all = ["mynes[discovery,bluetooth,analysis,tray]"]
 dev = ["pytest>=7.4", "ruff>=0.5"]
 
 [project.scripts]
 mynes = "mynes.web.app:main"
+mynes-tray = "mynes.tray:main"
+mynes-service = "mynes.platform.service:main"
+mynes-privileges = "mynes.platform.privileges:main"
 
 [project.urls]
 Homepage = "https://github.com/fxerkan/my_network_scanner"
@@ -51,7 +56,7 @@ Issues = "https://github.com/fxerkan/my_network_scanner/issues"
 include = ["mynes*"]
 
 [tool.setuptools.package-data]
-mynes = ["web/templates/*", "web/static/**/*", "web/locales/**/*"]
+mynes = ["web/templates/*", "web/static/**/*", "web/locales/**/*", "platform/files/*"]
 
 [tool.ruff]
 line-length = 120

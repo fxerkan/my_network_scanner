@@ -15,6 +15,7 @@ from mynes.discovery import discover_all
 from mynes.integrations.home_assistant import HomeAssistantClient, publish_devices
 from mynes.monitoring import notify, store
 from mynes.monitoring.scheduler import MonitorScheduler
+from mynes.platform import privileges, service
 
 log = logging.getLogger(__name__)
 
@@ -189,7 +190,38 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
                     {"name": b.name, "available": b.available()[0], "detail": b.available()[1]}
                     for b in backends()
                 ],
+                "privileges": privileges.plan().to_dict(),
+                "service": service.status(),
+                "tray": {"available": _tray_available()},
             }
         )
 
+    # -- platform integration ---------------------------------------------
+    @bp.post("/platform/privileges/apply")
+    def apply_privileges():
+        """Run the platform's privilege fix.
+
+        Deliberately opt-in: the UI shows the exact commands first, and the OS
+        password prompt appears in the terminal MyNeS was started from - a web
+        page must never be able to silently escalate.
+        """
+        body = request.get_json(silent=True) or {}
+        return jsonify(privileges.apply(dry_run=bool(body.get("dry_run"))))
+
+    @bp.get("/platform/service")
+    def service_status():
+        return jsonify(service.status())
+
+    @bp.post("/platform/service/<action>")
+    def service_action(action):
+        if action not in ("install", "uninstall"):
+            return jsonify({"ok": False, "detail": "action must be install or uninstall"}), 400
+        return jsonify(service.install() if action == "install" else service.uninstall())
+
     return bp, monitor
+
+
+def _tray_available() -> bool:
+    import importlib.util
+
+    return all(importlib.util.find_spec(m) is not None for m in ("pystray", "PIL"))

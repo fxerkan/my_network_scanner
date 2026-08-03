@@ -10,6 +10,7 @@
   var PROTOCOL_META = {
     mdns: { label: 'mDNS / Bonjour', icon: '#i-wifi', blurb: 'Printers, NAS, Chromecast, HomeKit, Matter, Raspberry Pi' },
     ssdp: { label: 'SSDP / UPnP',    icon: '#i-router', blurb: 'Routers, smart TVs, DLNA, cameras, consoles' },
+    onvif:{ label: 'ONVIF / RTSP',   icon: '#i-scan', blurb: 'IP cameras, doorbells, NVRs — name, model and stream URL' },
     mqtt: { label: 'MQTT',           icon: '#i-cpu',  blurb: 'Zigbee2MQTT, Z-Wave JS, Tasmota, Home Assistant' },
     ble:  { label: 'Bluetooth LE',   icon: '#i-bluetooth', blurb: 'Trackers, sensors, wearables, headphones' }
   };
@@ -139,6 +140,97 @@
       .finally(function () { btn.disabled = false; });
   }
 
+
+  /* ---------------- System setup ------------------------------------------ */
+  function renderSystem(caps) {
+    var priv = caps.privileges || {};
+    var svc = caps.service || {};
+    var rows = [];
+
+    // Scanning depth: the single most common cause of "it only finds 3 devices".
+    var rawOk = caps.raw_sockets && caps.raw_sockets.available;
+    rows.push(
+      '<div class="ds-alert ds-alert--' + (rawOk ? 'success' : 'warning') + '">' +
+        '<svg class="ds-alert__icon ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-' + (rawOk ? 'check' : 'alert') + '"/></svg>' +
+        '<div style="flex:1">' +
+          '<strong>Scanning depth: ' + (rawOk ? 'full (raw ARP)' : 'limited (ping sweep)') + '</strong>' +
+          '<div class="ds-muted" style="margin-top:var(--space-1)">' + esc(priv.summary || '') + '</div>' +
+          (!rawOk && (priv.commands || []).length
+            ? '<details style="margin-top:var(--space-2)">' +
+                '<summary style="cursor:pointer">Show the commands to fix this permanently</summary>' +
+                '<pre class="ds-scroll-x" style="background:var(--bg-surface-sunken);padding:var(--space-3);' +
+                  'border-radius:var(--radius-md);margin-top:var(--space-2);font-size:var(--text-xs)">' +
+                  esc(priv.commands.join('\n')) + '</pre>' +
+                (priv.needs_logout ? '<div class="ds-dim">Takes effect after you log out and back in.</div>' : '') +
+                (priv.notes || []).map(function (n) { return '<div class="ds-dim">! ' + esc(n) + '</div>'; }).join('') +
+              '</details>'
+            : '') +
+        '</div>' +
+      '</div>'
+    );
+
+    if (!caps.nmap || !caps.nmap.available) {
+      rows.push(
+        '<div class="ds-alert ds-alert--warning">' +
+          '<svg class="ds-alert__icon ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-alert"/></svg>' +
+          '<div><strong>nmap not installed.</strong> ' + esc(caps.nmap.detail) + '</div></div>'
+      );
+    }
+
+    rows.push(
+      '<div class="ds-row" style="padding:var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md)">' +
+        '<svg class="ds-icon" aria-hidden="true"><use href="#i-refresh"/></svg>' +
+        '<div style="flex:1;min-width:0">' +
+          '<strong>Background service</strong>' +
+          '<div class="ds-muted">' + esc(svc.detail || '') + '</div>' +
+          '<div class="ds-dim" style="font-size:var(--text-xs)">Keeps scheduled scanning running without a browser open.</div>' +
+        '</div>' +
+        '<span class="ds-badge ds-badge--' + (svc.running ? 'success' : 'offline') + '">' +
+          '<span class="ds-dot' + (svc.running ? ' ds-dot--online' : '') + '"></span>' +
+          (svc.running ? 'running' : svc.installed ? 'stopped' : 'not installed') + '</span>' +
+        '<button class="ds-btn ds-btn--sm" id="svcToggle">' + (svc.installed ? 'Uninstall' : 'Install') + '</button>' +
+      '</div>'
+    );
+
+    rows.push(
+      '<div class="ds-row" style="padding:var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md)">' +
+        '<svg class="ds-icon" aria-hidden="true"><use href="#i-network"/></svg>' +
+        '<div style="flex:1;min-width:0">' +
+          '<strong>Tray / menu bar icon</strong>' +
+          '<div class="ds-muted">' + (caps.tray && caps.tray.available
+            ? 'Available. Start it with <code>python -m mynes.tray</code>.'
+            : 'Not installed. <code>pip install "mynes[tray]"</code>') + '</div>' +
+        '</div>' +
+        '<span class="ds-badge ds-badge--' + (caps.tray && caps.tray.available ? 'success' : 'offline') + '">' +
+          (caps.tray && caps.tray.available ? 'available' : 'missing') + '</span>' +
+      '</div>'
+    );
+
+    $('systemBody').innerHTML = rows.join('');
+
+    var toggle = $('svcToggle');
+    if (toggle) {
+      toggle.addEventListener('click', function () {
+        var action = svc.installed ? 'uninstall' : 'install';
+        toggle.disabled = true;
+        api('/api/platform/service/' + action, { method: 'POST' })
+          .then(function (r) {
+            toast(r.detail || (r.ok ? 'Done.' : 'Failed.'), r.ok ? 'success' : 'critical');
+            return loadSystem();
+          })
+          .catch(function (e) { toast('Failed: ' + e.message, 'critical'); toggle.disabled = false; });
+      });
+    }
+  }
+
+  function loadSystem() {
+    return api('/api/capabilities').then(renderSystem).catch(function (e) {
+      $('systemBody').innerHTML = '<div class="ds-alert ds-alert--critical">' +
+        '<svg class="ds-alert__icon ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-alert"/></svg>' +
+        '<span>' + esc(e.message) + '</span></div>';
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     $('sweepBtn').addEventListener('click', runSweep);
     $('haCompareBtn').addEventListener('click', compareWithHA);
@@ -146,5 +238,6 @@
 
     api('/api/discovery/protocols').then(function (d) { renderProtocols(d.protocols); });
     loadHomeAssistant();
+    loadSystem();
   });
 })();

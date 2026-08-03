@@ -1804,7 +1804,14 @@ def save_device():
                     'notes': data.get('notes', device.get('notes', '')),
                     'last_modified': datetime.now().isoformat()
                 }
-                
+
+                # An alias the user typed here outranks the scanner's generated
+                # one, and must survive every later scan.
+                if 'alias' in data and data.get('alias') != device.get('alias'):
+                    updates['alias_source'] = 'user'
+                if 'device_type' in data and data.get('device_type') != device.get('device_type'):
+                    updates['device_type_source'] = 'user'
+
                 # Encrypted credentials'ı koru
                 if 'encrypted_credentials' in device:
                     updates['encrypted_credentials'] = device['encrypted_credentials']
