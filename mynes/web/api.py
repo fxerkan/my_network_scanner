@@ -150,6 +150,45 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
                 "devices": len(_devices()),
                 "monitoring": monitor.status()["running"],
                 "alerts": store.summary(),
+                "scan_method": getattr(scanner, "last_arp_method", None),
+                "privilege_hint": getattr(scanner, "privilege_hint", None),
+            }
+        )
+
+    @bp.get("/capabilities")
+    def capabilities():
+        """What this install can actually do - drives the UI's warnings.
+
+        The common support question is "why does it only find two devices?",
+        which is almost always missing raw-socket privileges or a missing nmap.
+        Answer it in the product instead of in an issue thread.
+        """
+        import shutil
+
+        from mynes.core.arp import has_raw_socket_privilege
+        from mynes.discovery import backends
+
+        elevated = has_raw_socket_privilege()
+        return jsonify(
+            {
+                "raw_sockets": {
+                    "available": elevated,
+                    "detail": "full layer-2 ARP scan"
+                    if elevated
+                    else "falling back to ping sweep + OS ARP cache; run elevated "
+                         "(sudo / Administrator, or Docker with NET_RAW) to find "
+                         "devices that ignore ICMP",
+                },
+                "nmap": {
+                    "available": bool(shutil.which("nmap")),
+                    "detail": "port and service detection"
+                    if shutil.which("nmap")
+                    else "nmap is not installed - port scanning is skipped",
+                },
+                "protocols": [
+                    {"name": b.name, "available": b.available()[0], "detail": b.available()[1]}
+                    for b in backends()
+                ],
             }
         )
 

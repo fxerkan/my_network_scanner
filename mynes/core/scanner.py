@@ -7,6 +7,7 @@ Enhanced version with configuration management and OUI integration
 
 # Warnings ve logging ayarları
 from mynes.paths import config_file, data_file
+from mynes.core import arp as arp_discovery
 import warnings
 import logging
 
@@ -63,6 +64,8 @@ from mynes.core.models import unified_model
 
 class LANScanner:
     def __init__(self):
+        self.last_arp_method = None
+        self.privilege_hint = None
         self.devices = []
         self.mac_lookup = MacLookup()
         self.oui_manager = OUIManager()
@@ -411,27 +414,18 @@ class LANScanner:
             return "LocalMachine"
     
     def scan_network_arp(self, target_ip):
-        """ARP kullanarak hızlı tarama yapar"""
-        try:
-            # ARP request oluştur
-            arp = ARP(pdst=target_ip)
-            ether = Ether(dst="ff:ff:ff:ff:ff:ff")
-            packet = ether / arp
-            
-            # Paketleri gönder ve cevapları al
-            result = srp(packet, timeout=3, verbose=0)[0]
-            
-            devices = []
-            for sent, received in result:
-                devices.append({
-                    'ip': received.psrc,
-                    'mac': received.hwsrc
-                })
-            
-            return devices
-        except Exception as e:
-            print(f"ARP tarama hatası: {e}")
-            return []
+        """Layer-2 tarama.
+
+        Raw ARP root ister; yetki yoksa ping sweep + OS ARP cache'e düşer,
+        böylece normal kullanıcıda da cihazlar bulunur. Kullanılan yöntem
+        `self.last_arp_method` / `self.privilege_hint` üzerinden UI'ya taşınır.
+        """
+        result = arp_discovery.discover(target_ip, timeout=3)
+        self.last_arp_method = result['method']
+        self.privilege_hint = result['hint']
+        if result['hint']:
+            print(f"⚠️  {result['hint']}")
+        return [{'ip': d['ip'], 'mac': d['mac']} for d in result['devices']]
 
     def get_hostname(self, ip):
         """IP adresinden hostname alır"""
