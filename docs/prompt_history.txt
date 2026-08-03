@@ -1,6 +1,41 @@
 My Network Scanner (MyNeS) Prompt History
 =========================================
 
+/goal geçen sene geliştirmiş olduğum bu Network Scanner uygulamasını çok daha popüler, kullanıcı dostu hale getirmek istiyorum.
+  ultrathink Özellikle kendi Home Lab ortamları olan, Raspberry Pi, Orange Pi veya Nvidia Dgx Spark gibi AI workspace'i olan kullanıcılar tarafından
+  da tercih edilebilecek, Home Asistant gibi araçlar ile entegre olabilecek bir yapıya getirmeni istiyorum.
+
+  ultracode hem windows, hem mac, hem linux platformların tümünde çalışabileceği gibi, Mobil cihazlar telefon, tablet ve TV gibi cihazlar üzerinde de
+  çalıştırılıp kullanılabilecek hale gelmesi gerekiyor.
+
+  bu nedenle birde Mobil uygulama versiyonunu geliştirip App Store, Play Store'da yayınlanacak seviyede olması şart.
+
+  mobil uygulamayı Faz 2 olarak planla.
+
+  Faz 1'de web uygulamasının çok daha iyi, kaliteli, profesyonel, kullanıcı dostu, tutarlı olmasını sağla. Network'u belirli periyotlarda tarayıp
+  herhangibir cihazda anormallik olması, disconnected olması, düşük voltaj vb. gibi problemlerde bildirim gönderebilmesi gibi özellikler de ekle.
+
+  ve tabii ki repoyu da toparla, şu anda çok karmaşık ve herşey root
+  folder da görünüyor.
+
+  * UI/UX Design konusunda uzmanlaşmış yada önerilen özel Claude
+  Skills'lerini bu repoya ekleyerek UI/UX konusunda bambaşka bir kalite
+  seviyesine getirmeni istiyorum bu uygulamayı. (örneğin
+  https://github.com/nextlevelbuilder/ui-ux-pro-max-skill)
+  * Full Stack Developer olarak tüm bu repo bileşenleri backend,
+  frontend, middleware, ui/ux arayüzlerini de düzenleyecek şekilde
+  uygun skills'leri bulup bu repo içerisinde kullanılacak şekilde
+  onları da kurmanı istiyorum.
+  (https://github.com/jeffallan/claude-skills)
+
+  şu anda lokal networküm içerisindeki tüm cihazları, tüm özellikleri
+  ile arayıp bulup entegre olunabilecek araç/uygulamaları da tespit
+  etmeni istiyorum. (home assistant kurulu rpifx adlı raspberry pi
+  içerisinde şu anda o da network içerisindeki birçok cihazı buluyor,
+  senin tespitlerini onunki ile de kıyasla. bluettooh, zigbee, matter
+  gibi farklı protokol ve cihazlrı da tespit et)
+
+---------
 
 1. bulunan cihazları kolaylıkla filtreleyebilmek için bir filtre paneli oluştur. cihaz tipi, online/offline durumu, üretici adı, hostname, ip, mac adresi ve kullanıcı tarafından özel olarak verilen Alias gibi özelliklerin tümü için dropdown listeler içerisinde hızlı ve kolaylıkla seçim yapılarak filtrelenebilir durumda olsun.  
 
