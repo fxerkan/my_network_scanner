@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="color-scheme" content="light dark">
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#0d1017" media="(prefers-color-scheme: dark)">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Sign in · MyNeS</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <script>
+      try {
+        var t = localStorage.getItem('mynes-theme');
+        if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+      } catch (e) {}
+    </script>
+    <link rel="stylesheet" href="/static/css/design-system.css">
+</head>
+<body style="display:grid;place-items:center;min-height:100dvh;padding:var(--space-4)">
+    {% include '_icons.html' %}
+
+    <main class="ds-card" style="width:min(400px,100%);box-shadow:var(--shadow-lg)">
+        <div class="ds-card__body ds-stack" style="gap:var(--space-5)">
+
+            <div style="text-align:center">
+                <svg class="ds-icon ds-icon--xl" aria-hidden="true" style="color:var(--accent-bg)">
+                    <use href="#i-network"/>
+                </svg>
+                <h1 style="margin:var(--space-3) 0 var(--space-1);font-size:var(--text-xl)">MyNeS</h1>
+                <p class="ds-muted" style="margin:0;font-size:var(--text-sm)">Sign in to view your network</p>
+            </div>
+
+            {% if error %}
+            <div class="ds-alert ds-alert--critical" role="alert">
+                <svg class="ds-alert__icon ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-alert"/></svg>
+                <span>{{ error }}</span>
+            </div>
+            {% endif %}
+
+            <form method="post" class="ds-stack" autocomplete="on">
+                <input type="hidden" name="next" value="{{ next }}">
+
+                <div class="ds-field">
+                    <label class="ds-label" for="username">Username</label>
+                    <input class="ds-input" id="username" name="username" type="text"
+                           autocomplete="username" required autofocus
+                           {% if error %}aria-invalid="true"{% endif %}>
+                </div>
+
+                <div class="ds-field">
+                    <label class="ds-label" for="password">Password</label>
+                    <input class="ds-input" id="password" name="password" type="password"
+                           autocomplete="current-password" required
+                           {% if error %}aria-invalid="true"{% endif %}>
+                </div>
+
+                <label class="ds-switch">
+                    <input type="checkbox" name="remember" value="1" checked>
+                    <span class="ds-switch__track"></span>
+                    <span class="ds-label" style="margin:0">Stay signed in for {{ remember_days }} days</span>
+                </label>
+
+                <button class="ds-btn ds-btn--primary ds-btn--lg ds-btn--block" type="submit">
+                    Sign in
+                </button>
+            </form>
+
+            <p class="ds-dim" style="margin:0;font-size:var(--text-xs);text-align:center">
+                Credentials live in <code>.env</code> on the server
+                (<code>MYNES_AUTH_USERNAME</code> / <code>MYNES_AUTH_PASSWORD</code>).
+            </p>
+        </div>
+    </main>
+</body>
+</html>

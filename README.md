@@ -259,7 +259,30 @@ Cihaz sayısı ve okunmamış uyarı rozeti simgede görünür; menüden "Scan n
 "Open MyNeS" ve "Mark alerts read" var. İkon rengi durumu taşır (yeşil / sarı /
 kırmızı / gri).
 
-### 6. Yapılandırma
+### 6. Giriş (login) koruması
+
+MyNeS ağındaki tüm cihazları listeler; portu görebilen herkese bu haritayı
+vermemek için basit bir oturum girişi var. **Varsayılan olarak kapalıdır.**
+
+1. `.env` içine kullanıcı adı ve parolayı yazın:
+   ```
+   MYNES_AUTH_USERNAME=admin
+   MYNES_AUTH_PASSWORD=uzun-bir-parola
+   ```
+   Parolayı düz metin yerine hash olarak tutmak isterseniz:
+   `python -m mynes.web.auth --hash`
+2. MyNeS'i yeniden başlatın.
+3. **Settings → Access control → Require sign-in** anahtarını açın.
+
+Giriş sayfasında "30 gün boyunca oturumu açık tut" seçeneği vardır. Kimlik
+bilgisi tanımlı değilken anahtar açılamaz — kendinizi kilitlemezsiniz.
+Parolayı unutursanız sunucudaki `.env` dosyasına bakın.
+
+> Ard arda 8 hatalı denemeden sonra o IP 5 dakika kilitlenir.
+> Oturum çerezi `MYNES_SECRET_KEY` ile imzalanır; HTTPS arkasındaysanız
+> `MYNES_HTTPS=true` yapın (çerez `Secure` olur).
+
+### 7. Yapılandırma
 
 ```bash
 export MYNES_PASSWORD="ana_parolaniz"    # yoksa otomatik üretilir

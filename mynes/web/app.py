@@ -46,7 +46,30 @@ import os
 
 app = Flask(__name__)
 # Use environment variable or generate a random secret key
-app.secret_key = os.environ.get('FLASK_SECRET_KEY', os.urandom(24).hex())
+def _secret_key():
+    """Stable across restarts, otherwise every restart signs everyone out.
+
+    Order: env var -> a generated key kept beside the other local secrets.
+    """
+    from mynes.paths import CONFIG_DIR
+
+    env = os.environ.get('MYNES_SECRET_KEY') or os.environ.get('FLASK_SECRET_KEY')
+    if env:
+        return env
+
+    key_path = CONFIG_DIR / '.secret_key'
+    if key_path.exists():
+        return key_path.read_text().strip()
+
+    import secrets as _secrets
+    key = _secrets.token_hex(32)
+    key_path.write_text(key)
+    if os.name == 'posix':
+        os.chmod(key_path, 0o600)
+    return key
+
+
+app.secret_key = _secret_key()
 
 # Disable caching for all requests (for development and translation updates)
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
@@ -81,6 +104,12 @@ from mynes.web.api import create_api  # noqa: E402  (needs `scanner` above)
 
 api_v2, monitor = create_api(scanner, scanner.get_config_manager())
 app.register_blueprint(api_v2)
+
+# Optional login gate. Off unless config enables it AND credentials exist in the
+# environment, so an existing install can never lock itself out on upgrade.
+from mynes.web import auth as _auth  # noqa: E402
+
+auth_bp = _auth.install(app, scanner.get_config_manager())
 
 # Template context processor for language support
 @app.context_processor

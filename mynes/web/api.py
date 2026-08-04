@@ -203,6 +203,52 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
         topology.save_state(state)
         return jsonify({"traced": traced, "checked": len(devices)})
 
+    # -- authentication ---------------------------------------------------
+    @bp.get("/auth/status")
+    def auth_status():
+        from mynes.web import auth
+
+        settings = (config_manager.config or {}).get("security_settings", {}) or {}
+        username, _ = auth.credentials()
+        return jsonify(
+            {
+                "login_required": bool(settings.get("login_required")),
+                "credentials_configured": auth.credentials_configured(),
+                "username": username,
+                "active": bool(settings.get("login_required")) and auth.credentials_configured(),
+                "hint": (
+                    "Set MYNES_AUTH_USERNAME and MYNES_AUTH_PASSWORD in .env, then reload."
+                    if not auth.credentials_configured()
+                    else None
+                ),
+            }
+        )
+
+    @bp.post("/auth/status")
+    def auth_toggle():
+        """Turn the login gate on or off.
+
+        Refuses to turn on without credentials — that would lock everyone out
+        of a LAN app with no recovery path short of editing JSON on the server.
+        """
+        from mynes.web import auth
+
+        want = bool((request.get_json(silent=True) or {}).get("login_required"))
+        if want and not auth.credentials_configured():
+            return jsonify({
+                "ok": False,
+                "error": "No credentials configured. Set MYNES_AUTH_USERNAME and "
+                         "MYNES_AUTH_PASSWORD in .env first, or you would lock yourself out.",
+            }), 400
+
+        settings = config_manager.config.setdefault("security_settings", {})
+        settings["login_required"] = want
+        # Belt and braces: the password must never land in the tracked config.
+        settings.pop("master_password", None)
+        settings.pop("password", None)
+        config_manager.save_config()
+        return jsonify({"ok": True, "login_required": want, "active": want})
+
     # -- health -----------------------------------------------------------
     @bp.get("/health")
     def health():

@@ -74,6 +74,28 @@
                         </div>
                     </div>
                 </div>
+                <!-- Access control -->
+                <div class="ds-card" style="margin-top: 20px;">
+                    <div class="ds-card__header">
+                        <svg class="ds-icon" aria-hidden="true"><use href="#i-shield"/></svg>
+                        <h3 class="ds-card__title">Access control</h3>
+                        <div class="ds-spacer"></div>
+                        <span class="ds-badge" id="authBadge">—</span>
+                    </div>
+                    <div class="ds-card__body ds-stack">
+                        <p class="ds-muted" style="margin:0">
+                            MyNeS lists every device on your network. With this on, the site asks
+                            for a username and password before showing anything.
+                        </p>
+                        <label class="ds-switch">
+                            <input type="checkbox" id="loginRequired">
+                            <span class="ds-switch__track"></span>
+                            <span class="ds-label" style="margin:0">Require sign-in</span>
+                        </label>
+                        <div id="authHint"></div>
+                    </div>
+                </div>
+
                 <div style="margin-top: 20px;">
                     <button class="btn" onclick="saveGeneralSettings()">💾 {{ _('save_general_settings') }}</button>
                 </div>

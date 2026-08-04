@@ -1170,3 +1170,86 @@ function addToScanRange(subnet, networkName) {
         }
     }, 100);
 }
+/* ---------------- Access control (login gate) ----------------------------
+   Kept at the end of config.js so it does not disturb the existing settings
+   code. Credentials themselves live in .env and are never sent from here. */
+(function () {
+  'use strict';
+
+  function esc(v) { var d = document.createElement('div'); d.textContent = v == null ? '' : String(v); return d.innerHTML; }
+
+  function render(s) {
+    var box = document.getElementById('loginRequired');
+    var badge = document.getElementById('authBadge');
+    var hint = document.getElementById('authHint');
+    if (!box) return;
+
+    box.checked = !!s.login_required;
+    // Cannot enable a gate with no key: that locks everyone out of a LAN app.
+    box.disabled = !s.credentials_configured && !s.login_required;
+
+    badge.textContent = s.active ? 'sign-in required' : 'open to anyone on the network';
+    badge.className = 'ds-badge ' + (s.active ? 'ds-badge--success' : 'ds-badge--warning');
+
+    if (!s.credentials_configured) {
+      hint.innerHTML =
+        '<div class="ds-alert ds-alert--warning">' +
+          '<svg class="ds-alert__icon ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-alert"/></svg>' +
+          '<div>No credentials set. Add these to <code>.env</code> in the project root and restart MyNeS:' +
+          '<pre style="background:var(--bg-surface-sunken);padding:var(--space-3);border-radius:var(--radius-md);' +
+            'margin:var(--space-2) 0 0;font-size:var(--text-xs)">' +
+            'MYNES_AUTH_USERNAME=admin\nMYNES_AUTH_PASSWORD=choose-a-long-one</pre>' +
+          '<div class="ds-dim" style="margin-top:var(--space-2)">Prefer a hash? Run ' +
+          '<code>python -m mynes.web.auth --hash</code> and put the result in ' +
+          '<code>MYNES_AUTH_PASSWORD</code> instead.</div></div></div>';
+    } else {
+      hint.innerHTML =
+        '<div class="ds-dim">Signed in as <b>' + esc(s.username) + '</b> when enabled. ' +
+        'Change the credentials in <code>.env</code>, then restart MyNeS.' +
+        (s.active ? ' <a href="/logout">Sign out now</a>.' : '') + '</div>';
+    }
+  }
+
+  function load() {
+    return fetch('/api/auth/status').then(function (r) { return r.json(); }).then(render);
+  }
+
+  function init() {
+    var box = document.getElementById('loginRequired');
+    if (!box) return;
+
+    box.addEventListener('change', function () {
+      fetch('/api/auth/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ login_required: box.checked })
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (r) {
+          if (!r.ok) {
+            box.checked = !box.checked;
+            if (window.MyNeS) window.MyNeS.toast(r.error, 'critical');
+            else window.alert(r.error);
+            return;
+          }
+          if (window.MyNeS) {
+            window.MyNeS.toast(r.login_required
+              ? 'Sign-in is now required. You stay signed in on this browser.'
+              : 'Sign-in disabled — anyone on the network can open MyNeS.',
+              r.login_required ? 'success' : 'warning');
+          }
+          return load();
+        });
+    });
+
+    load();
+  }
+
+  // Guard on readyState: if this file is served from cache after the document
+  // has already parsed, a bare DOMContentLoaded listener never fires.
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
