@@ -735,8 +735,8 @@
 }
 
 .mac-address {
-    font-family: 'Courier New', monospace;
-    font-size: 0.85em;
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
     color: var(--text-secondary);
     background: var(--bg-surface-sunken);
     padding: 2px 6px;
@@ -750,24 +750,25 @@
 }
 
 .copy-mac-btn {
-    background: var(--accent-bg);
-    color: white;
-    border: none;
-    padding: 4px 6px;
-    border-radius: 3px;
-    cursor: pointer;
-    font-size: 0.75em;
-    transition: all 0.2s ease;
     display: inline-flex;
     align-items: center;
-    gap: 2px;
-    opacity: 0.7;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background: var(--bg-surface-sunken);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background var(--duration-fast) var(--ease-out),
+                color var(--duration-fast) var(--ease-out);
 }
 
 .copy-mac-btn:hover {
-    background: var(--accent-bg-hover);
-    opacity: 1;
-    transform: translateY(-1px);
+    background: var(--accent-bg-subtle);
+    color: var(--accent-text);
+    border-color: var(--accent-border);
 }
 
 .copy-mac-btn:active {
@@ -775,7 +776,9 @@
 }
 
 .copy-mac-btn.copied {
-    background: var(--success-bg);
+    background: var(--severity-success-bg);
+    color: var(--severity-success-fg);
+    border-color: var(--severity-success-border);
     animation: copySuccess 0.3s ease;
 }
 

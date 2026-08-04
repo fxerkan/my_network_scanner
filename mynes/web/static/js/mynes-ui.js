@@ -156,10 +156,54 @@
     if (!('serviceWorker' in navigator)) return;
     // Only over HTTPS or localhost - a LAN http:// origin cannot register one.
     if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') return;
-    navigator.serviceWorker.register('/service-worker.js').catch(function (e) {
+
+    navigator.serviceWorker.register('/service-worker.js').then(function (reg) {
+      // A waiting worker means this tab is running the previous release's code.
+      // Activate it and reload once, rather than leaving the user on a stale UI
+      // that only a hard reload fixes.
+      function promote(worker) {
+        if (!worker) return;
+        worker.postMessage('skip-waiting');
+      }
+
+      if (reg.waiting) promote(reg.waiting);
+
+      reg.addEventListener('updatefound', function () {
+        var incoming = reg.installing;
+        if (!incoming) return;
+        incoming.addEventListener('statechange', function () {
+          if (incoming.state === 'installed' && navigator.serviceWorker.controller) {
+            promote(incoming);
+          }
+        });
+      });
+
+      var reloading = false;
+      navigator.serviceWorker.addEventListener('controllerchange', function () {
+        if (reloading) return;  // controllerchange can fire more than once
+        reloading = true;
+        window.location.reload();
+      });
+
+      // Check for a new release when the tab regains focus, so a long-lived
+      // dashboard tab does not sit on yesterday's build.
+      document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) reg.update().catch(function () {});
+      });
+    }).catch(function (e) {
       console.warn('[MyNeS] service worker registration failed:', e.message);
     });
   }
+
+  // Escape hatch for support: MyNeS.resetCache() in the console.
+  MyNeS.resetCache = function () {
+    if (!('serviceWorker' in navigator)) return Promise.resolve();
+    return navigator.serviceWorker.getRegistrations()
+      .then(function (regs) { return Promise.all(regs.map(function (r) { return r.unregister(); })); })
+      .then(function () { return caches.keys(); })
+      .then(function (keys) { return Promise.all(keys.map(function (k) { return caches.delete(k); })); })
+      .then(function () { window.location.reload(true); });
+  };
 
   /* ---------------- Boot -------------------------------------------------- */
   function init() {

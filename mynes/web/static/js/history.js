@@ -6,10 +6,27 @@
 let scanHistory = [];
 let deviceTypes = {};
 
+/** Dates used to be hardcoded to tr-TR, so the English page showed Turkish. */
+function pageLocale() {
+    const lang = document.documentElement.lang || 'en';
+    return lang === 'tr' ? 'tr-TR' : 'en-GB';
+}
+
 // Sayfa yüklendiğinde verileri getir
 window.addEventListener('load', function() {
     loadDeviceTypes();
     loadScanHistory();
+});
+
+// translations.js fetches its table asynchronously, so the first render can
+// beat it and paint raw keys ("total_devices") into the chart legend.
+window.addEventListener('translationsLoaded', function () {
+    if (scanHistory.length) {
+        updateDeviceTypeChart();
+        updateTrendChart();
+        updateHistoryTable();
+        updateTimeline();
+    }
 });
 
 async function loadDeviceTypes() {
@@ -17,7 +34,7 @@ async function loadDeviceTypes() {
         const response = await fetch('/api/config/device_types');
         deviceTypes = await response.json();
     } catch (error) {
-        console.error('Cihaz tipleri yüklenirken hata oluştu:', error);
+        console.error('device types failed to load:', error);
     }
 }
 
@@ -34,7 +51,7 @@ async function loadScanHistory() {
         updateTimeline();
         
     } catch (error) {
-        console.error('Tarihçe yüklenirken hata oluştu:', error);
+        console.error('scan history failed to load:', error);
     }
 }
 
@@ -60,7 +77,7 @@ function updateDeviceTypeChart() {
     deviceTypeChart.innerHTML = '';
 
     if (scanHistory.length === 0) {
-        deviceTypeChart.innerHTML = '<p style="text-align: center; color: #6c757d;">Henüz tarama verisi yok</p>';
+        deviceTypeChart.innerHTML = `<p class="chart-empty">${t('no_scan_data')}</p>`;
         return;
     }
 
@@ -91,80 +108,104 @@ function updateDeviceTypeChart() {
 function createDeviceTypePieChart(scanDeviceTypes) {
     const pieChart = document.getElementById('deviceTypePieChart');
     const tooltip = document.getElementById('pieTooltip');
-    
+
     const total = Object.values(scanDeviceTypes).reduce((sum, count) => sum + count, 0);
     if (total === 0) {
-        pieChart.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #6c757d;">Veri yok</div>';
+        pieChart.innerHTML = `<div class="chart-empty">${t('no_data')}</div>`;
         return;
     }
 
-    // Renk paleti
-    const colors = [
-        '#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe', '#00f2fe',
-        '#43e97b', '#38f9d7', '#ffecd2', '#fcb69f', '#a8edea', '#fed6e3',
-        '#ff9a9e', '#fecfef', '#ffefd5', '#c471f5', '#fa71cd', '#667eea'
-    ];
+    // Eight tokens, cycled. Reading the slice colour off a CSS variable keeps
+    // the chart on the same palette as the rest of the app in both themes.
+    const styles = getComputedStyle(document.documentElement);
+    const colorAt = i => styles.getPropertyValue(`--chart-${(i % 8) + 1}`).trim() || 'currentColor';
 
-    let cumulativePercentage = 0;
-    let colorIndex = 0;
-    
-    // SVG oluştur
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.setAttribute('width', '250');
-    svg.setAttribute('height', '250');
-    svg.style.transform = 'rotate(-90deg)';
+    svg.setAttribute('viewBox', '0 0 250 250');
+    svg.setAttribute('class', 'donut-svg');
 
-    // Cihaz tiplerini sayıya göre büyükten küçüğe sırala
-    const sortedDeviceTypes = Object.entries(scanDeviceTypes).sort((a, b) => b[1] - a[1]);
-    
-    sortedDeviceTypes.forEach(([deviceType, count]) => {
+    const ring = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    ring.setAttribute('transform', 'rotate(-90 125 125)');
+    svg.appendChild(ring);
+
+    const sorted = Object.entries(scanDeviceTypes).sort((a, b) => b[1] - a[1]);
+    const circumference = 2 * Math.PI * 100;
+    let cumulative = 0;
+
+    sorted.forEach(([deviceType, count], i) => {
         const percentage = (count / total) * 100;
-        const circumference = 2 * Math.PI * 100; // radius = 100
-        const strokeDasharray = `${(percentage / 100) * circumference} ${circumference}`;
-        const strokeDashoffset = -cumulativePercentage * circumference / 100;
-        
-        // Circle element
         const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
         circle.setAttribute('cx', '125');
         circle.setAttribute('cy', '125');
         circle.setAttribute('r', '100');
         circle.setAttribute('fill', 'transparent');
-        circle.setAttribute('stroke', colors[colorIndex % colors.length]);
-        circle.setAttribute('stroke-width', '50');
-        circle.setAttribute('stroke-dasharray', strokeDasharray);
-        circle.setAttribute('stroke-dashoffset', strokeDashoffset);
-        circle.style.transition = 'all 0.3s ease';
-        circle.style.cursor = 'pointer';
-        
-        // Hover effects
-        circle.addEventListener('mouseenter', (e) => {
-            circle.style.strokeWidth = '55';
-            circle.style.filter = 'brightness(1.1)';
-            
-            const icon = getDeviceTypeIcon(deviceType);
-            tooltip.innerHTML = `${icon} <strong>${deviceType}</strong><br>${count} cihaz (${percentage.toFixed(1)}%)`;
+        circle.setAttribute('stroke', colorAt(i));
+        circle.setAttribute('stroke-width', '46');
+        circle.setAttribute('stroke-dasharray', `${(percentage / 100) * circumference} ${circumference}`);
+        circle.setAttribute('stroke-dashoffset', -cumulative * circumference / 100);
+        circle.classList.add('donut-slice');
+
+        circle.addEventListener('mouseenter', () => {
+            circle.setAttribute('stroke-width', '52');
+            tooltip.innerHTML = `${getDeviceTypeIcon(deviceType)} <strong>${deviceType}</strong><br>${count} (${percentage.toFixed(1)}%)`;
             tooltip.style.display = 'block';
         });
-        
         circle.addEventListener('mousemove', (e) => {
             const rect = pieChart.getBoundingClientRect();
             tooltip.style.left = (e.clientX - rect.left + 10) + 'px';
             tooltip.style.top = (e.clientY - rect.top - 10) + 'px';
         });
-        
         circle.addEventListener('mouseleave', () => {
-            circle.style.strokeWidth = '50';
-            circle.style.filter = 'none';
+            circle.setAttribute('stroke-width', '46');
             tooltip.style.display = 'none';
         });
-        
-        svg.appendChild(circle);
-        
-        cumulativePercentage += percentage;
-        colorIndex++;
+
+        ring.appendChild(circle);
+
+        // Data label in the slice. Below ~7% the text does not fit an arc this
+        // thick, so those are left to the legend rather than drawn overlapping.
+        if (percentage >= 7) {
+            const angle = ((cumulative + percentage / 2) / 100) * 2 * Math.PI - Math.PI / 2;
+            const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            label.setAttribute('x', 125 + Math.cos(angle) * 100);
+            label.setAttribute('y', 125 + Math.sin(angle) * 100 + 4);
+            label.setAttribute('text-anchor', 'middle');
+            label.setAttribute('class', 'donut-label');
+            label.textContent = count;
+            svg.appendChild(label);
+        }
+
+        cumulative += percentage;
     });
-    
+
+    const centreValue = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    centreValue.setAttribute('x', '125');
+    centreValue.setAttribute('y', '120');
+    centreValue.setAttribute('text-anchor', 'middle');
+    centreValue.setAttribute('class', 'donut-total');
+    centreValue.textContent = total;
+    svg.appendChild(centreValue);
+
+    const centreLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    centreLabel.setAttribute('x', '125');
+    centreLabel.setAttribute('y', '140');
+    centreLabel.setAttribute('text-anchor', 'middle');
+    centreLabel.setAttribute('class', 'donut-total-label');
+    centreLabel.textContent = t('devices');
+    svg.appendChild(centreLabel);
+
     pieChart.appendChild(svg);
+
+    const legend = document.createElement('ul');
+    legend.className = 'donut-legend';
+    legend.innerHTML = sorted.map(([deviceType, count], i) => `
+        <li class="donut-legend__item">
+            <span class="donut-legend__dot" style="background:${colorAt(i)}"></span>
+            <span class="donut-legend__name" title="${deviceType}">${getDeviceTypeIcon(deviceType)} ${deviceType}</span>
+            <span class="donut-legend__value">${count}</span>
+            <span class="donut-legend__pct">${((count / total) * 100).toFixed(0)}%</span>
+        </li>`).join('');
+    pieChart.parentElement.appendChild(legend);
 }
 
 function getDeviceTypeIcon(deviceTypeName) {
@@ -199,7 +240,7 @@ function updateVendorChart() {
     vendorChart.innerHTML = '';
 
     if (scanHistory.length === 0) {
-        vendorChart.innerHTML = '<p style="text-align: center; color: #6c757d;">Henüz tarama verisi yok</p>';
+        vendorChart.innerHTML = `<p class="chart-empty">${t('no_scan_data')}</p>`;
         return;
     }
 
@@ -219,9 +260,7 @@ function updateVendorChart() {
         
         vendorItem.innerHTML = `
             <div class="vendor-name" title="${vendor}">${vendor}</div>
-            <div class="vendor-bar">
-                <div class="vendor-fill" style="width: ${percentage}%"></div>
-            </div>
+            <div class="vendor-bar"><div class="vendor-fill" style="width: ${percentage}%"></div></div>
             <div class="vendor-count">${count}</div>
         `;
         
@@ -239,7 +278,7 @@ function updateTrendChart() {
     controlsContainer.innerHTML = '';
 
     if (scanHistory.length === 0) {
-        trendChart.innerHTML = '<p style="text-align: center; color: #6c757d; padding: 60px;">Henüz tarama verisi yok</p>';
+        trendChart.innerHTML = `<p class="chart-empty">${t('no_scan_data')}</p>`;
         return;
     }
 
@@ -247,15 +286,18 @@ function updateTrendChart() {
     const recentHistory = scanHistory.slice(-20);
     
     if (recentHistory.length < 2) {
-        trendChart.innerHTML = '<p style="text-align: center; color: #6c757d; padding: 60px;">Trend göstermek için en az 2 tarama gerekli</p>';
+        trendChart.innerHTML = `<p class="chart-empty">${t('trend_needs_two_scans')}</p>`;
         return;
     }
 
-    // Metrikler tanımı
+    // Labels were hardcoded Turkish, which showed up untranslated on the
+    // English page; colours now come from the shared chart palette.
+    const styles = getComputedStyle(document.documentElement);
+    const token = name => styles.getPropertyValue(name).trim() || 'currentColor';
     const metrics = [
-        { key: 'total_devices', label: 'Toplam Cihaz', color: '#667eea', active: true },
-        { key: 'online_devices', label: 'Online Cihaz', color: '#43e97b', active: true },
-        { key: 'scan_duration', label: 'Tarama Süresi (s)', color: '#f5576c', active: false }
+        { key: 'total_devices',  label: t('total_devices'),  color: token('--chart-1'), active: true },
+        { key: 'online_devices', label: t('online_devices'), color: token('--chart-2'), active: true },
+        { key: 'scan_duration',  label: t('scan_duration_seconds'),  color: token('--chart-4'), active: false }
     ];
 
     // Kontrol butonlarını oluştur
@@ -300,7 +342,7 @@ function drawTrendChart(data, metrics) {
     const activeMetrics = metrics.filter(m => m.active);
     
     if (activeMetrics.length === 0) {
-        trendChart.innerHTML = '<p style="text-align: center; color: #6c757d; padding: 60px;">En az bir metrik seçin</p>';
+        trendChart.innerHTML = `<p class="chart-empty">${t('select_a_metric')}</p>`;
         return;
     }
 
@@ -329,7 +371,8 @@ function drawTrendChart(data, metrics) {
         line.setAttribute('y1', y);
         line.setAttribute('x2', margin.left + width);
         line.setAttribute('y2', y);
-        line.setAttribute('stroke', '#f0f0f0');
+        line.setAttribute('stroke', 'currentColor');
+        line.setAttribute('class', 'trend-grid');
         line.setAttribute('stroke-width', '1');
         svg.appendChild(line);
         
@@ -339,7 +382,7 @@ function drawTrendChart(data, metrics) {
         text.setAttribute('y', y + 5);
         text.setAttribute('text-anchor', 'end');
         text.setAttribute('font-size', '11');
-        text.setAttribute('fill', '#6c757d');
+        text.setAttribute('class', 'trend-axis');
         text.textContent = value;
         svg.appendChild(text);
     }
@@ -384,7 +427,7 @@ function drawTrendChart(data, metrics) {
                 circle.setAttribute('r', '6');
                 
                 // Tooltip içeriği
-                const date = new Date(scan.timestamp).toLocaleDateString('tr-TR');
+                const date = new Date(scan.timestamp).toLocaleDateString(pageLocale());
                 let tooltipHtml = `<div class="tooltip-date">${date}</div>`;
                 
                 activeMetrics.forEach(m => {
@@ -417,6 +460,19 @@ function drawTrendChart(data, metrics) {
             });
             
             svg.appendChild(circle);
+
+            // Data label. Every point on a 20-point series would collide, so
+            // only every other one is drawn once the series gets long.
+            if (data.length <= 10 || index % 2 === 0 || index === data.length - 1) {
+                const value = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                value.setAttribute('x', x);
+                value.setAttribute('y', y - 12);
+                value.setAttribute('text-anchor', 'middle');
+                value.setAttribute('class', 'trend-value');
+                value.setAttribute('fill', metric.color);
+                value.textContent = scan[metric.key] || 0;
+                svg.appendChild(value);
+            }
         });
 
         // Area path'ini kapat (sağ alt köşeye git)
@@ -427,7 +483,7 @@ function drawTrendChart(data, metrics) {
         const area = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         area.setAttribute('d', areaData);
         area.setAttribute('fill', metric.color);
-        area.setAttribute('fill-opacity', '0.3');
+        area.setAttribute('fill-opacity', '0.16');
         area.setAttribute('stroke', 'none');
         svg.appendChild(area);
 
@@ -453,7 +509,7 @@ function drawTrendChart(data, metrics) {
             text.setAttribute('font-size', '10');
             text.setAttribute('fill', '#6c757d');
             text.setAttribute('transform', `rotate(-45, ${x}, ${margin.top + height + 20})`);
-            const date = new Date(scan.timestamp).toLocaleDateString('tr-TR', { 
+            const date = new Date(scan.timestamp).toLocaleDateString(pageLocale(), { 
                 month: 'short', 
                 day: 'numeric',
                 hour: '2-digit',
@@ -502,11 +558,11 @@ function updateHistoryTable() {
 
     recentHistory.forEach((scan, index) => {
         const date = new Date(scan.timestamp);
-        const formattedDate = date.toLocaleString('tr-TR');
+        const formattedDate = date.toLocaleString(pageLocale());
         
         // Trend hesapla (bir önceki tarama ile karşılaştır)
         let trendClass = 'trend-stable';
-        let trendText = 'Stabil';
+        let trendText = t('trend_stable');
         
         if (index < recentHistory.length - 1) {
             const prevScan = recentHistory[index + 1];
@@ -541,7 +597,7 @@ function updateTimeline() {
     scanTimeline.innerHTML = '';
 
     if (scanHistory.length === 0) {
-        scanTimeline.innerHTML = '<p style="text-align: center; color: #6c757d;">Henüz tarama verisi yok</p>';
+        scanTimeline.innerHTML = `<p class="chart-empty">${t('no_scan_data')}</p>`;
         return;
     }
 
@@ -550,7 +606,7 @@ function updateTimeline() {
 
     recentHistory.forEach(scan => {
         const date = new Date(scan.timestamp);
-        const formattedDate = date.toLocaleString('tr-TR');
+        const formattedDate = date.toLocaleString(pageLocale());
         
         const timelineItem = document.createElement('div');
         timelineItem.className = 'timeline-item';
@@ -566,13 +622,13 @@ function updateTimeline() {
             <div class="timeline-date">${formattedDate}</div>
             <div class="timeline-content">
                 <div class="timeline-title">
-                    ${scan.total_devices || 0} cihaz bulundu (${scan.online_devices || 0} online)
+                    ${scan.total_devices || 0} ${t('devices')} (${scan.online_devices || 0} ${t('online')})
                 </div>
                 <div class="timeline-details">
-                    <strong>IP Aralığı:</strong> ${scan.ip_range || 'N/A'}<br>
-                    <strong>Tarama Süresi:</strong> ${Math.round(scan.scan_duration || 0)} saniye<br>
-                    ${topDeviceType ? `<strong>En Çok Bulunan Tip:</strong> ${topDeviceType[0]} (${topDeviceType[1]} adet)<br>` : ''}
-                    ${topVendor ? `<strong>En Çok Bulunan Marka:</strong> ${topVendor[0]} (${topVendor[1]} adet)` : ''}
+                    <strong>${t('ip_range')}:</strong> ${scan.ip_range || 'N/A'}<br>
+                    <strong>${t('scan_duration')}:</strong> ${Math.round(scan.scan_duration || 0)}s<br>
+                    ${topDeviceType ? `<strong>${t('top_device_type')}:</strong> ${topDeviceType[0]} (${topDeviceType[1]})<br>` : ''}
+                    ${topVendor ? `<strong>${t('top_vendor')}:</strong> ${topVendor[0]} (${topVendor[1]})` : ''}
                 </div>
             </div>
         `;

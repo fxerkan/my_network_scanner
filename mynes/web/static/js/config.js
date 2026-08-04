@@ -40,7 +40,33 @@ function switchTab(tabName) {
         loadNetworks();
     } else if (tabName === 'docker') {
         loadDockerInfo();
+    } else if (tabName === 'oui') {
+        ensureOuiLoaded();
     }
+}
+
+/*
+ * The OUI database is 1.5 MB of JSON. Fetching and parsing it during page load
+ * blocked every other tab behind it, which is why Settings took seconds to
+ * become usable. It is now loaded the first time its own tab is opened.
+ */
+let ouiLoadPromise = null;
+
+function ensureOuiLoaded() {
+    if (ouiLoadPromise) return ouiLoadPromise;
+    const list = document.getElementById('ouiList');
+    if (list) list.innerHTML = `<div class="oui-count">${t('loading')}</div>`;
+    ouiLoadPromise = fetch('/api/config/oui')
+        .then(r => r.json())
+        .then(data => {
+            currentOuiDatabase = data;
+            displayOuiDatabase();
+        })
+        .catch(error => {
+            ouiLoadPromise = null;              // let the next visit retry
+            showAlert(t('settings_load_error') + error.message, 'error');
+        });
+    return ouiLoadPromise;
 }
 
 /**
@@ -61,10 +87,7 @@ function showAlert(message, type = 'success') {
  */
 async function loadAllSettings() {
     try {
-        // OUI database
-        const ouiResponse = await fetch('/api/config/oui');
-        currentOuiDatabase = await ouiResponse.json();
-        displayOuiDatabase();
+        // The OUI database is loaded lazily - see ensureOuiLoaded().
 
         // Device types
         const deviceTypesResponse = await fetch('/api/config/device_types');
@@ -82,7 +105,7 @@ async function loadAllSettings() {
         updateDetectionRuleSelects();
 
     } catch (error) {
-        showAlert('Ayarlar yüklenirken hata oluştu: ' + error.message, 'error');
+        showAlert(t('settings_load_error') + error.message, 'error');
     }
 }
 
@@ -112,42 +135,48 @@ function displayGeneralSettings() {
 /**
  * OUI Database Management
  */
+/*
+ * The IEEE database is ~40,000 entries. The old renderer built one styled DOM
+ * node for every one of them on load, and the search box then walked all
+ * 40,000 nodes on each keystroke - that is the freeze. Now the list renders
+ * only what matches, capped, and search re-renders from the data.
+ */
+const OUI_RENDER_LIMIT = 200;
+
 function displayOuiDatabase() {
     const ouiList = document.getElementById('ouiList');
     if (!ouiList) return;
-    
-    ouiList.innerHTML = '';
-    
-    const sortedOuis = Object.entries(currentOuiDatabase).sort(([a], [b]) => a.localeCompare(b));
-    
-    sortedOuis.forEach(([oui, vendor]) => {
-        const div = document.createElement('div');
-        div.className = 'oui-item';
-        div.style.cssText = 'background: #f8f9fa; padding: 10px; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;';
-        
-        const macExample = `${oui.substring(0,2)}:${oui.substring(2,4)}:${oui.substring(4,6)}:XX:XX:XX`;
-        
-        div.innerHTML = `
-            <div style="flex: 1;">
-                <div style="display: flex; align-items: center; gap: 15px;">
-                    <strong style="font-family: monospace; color: #495057;">${oui}</strong>
-                    <span style="color: #6c757d; font-size: 0.9em;">${macExample}</span>
-                    <span style="flex: 1; color: #212529;">${vendor}</span>
-                </div>
-            </div>
-            <div style="display: flex; gap: 5px;">
-                <button class="btn btn-warning btn-small" onclick="editOuiEntry('${oui}', '${vendor.replace(/'/g, "\\'")}')" title="Düzenle">✏️</button>
-                <button class="btn btn-danger btn-small" onclick="removeOuiEntry('${oui}')" title="Sil">🗑️</button>
-            </div>
-        `;
-        ouiList.appendChild(div);
-    });
-    
-    // Toplam sayısını göster
-    const totalCount = document.createElement('div');
-    totalCount.style.cssText = 'text-align: center; margin-top: 10px; color: #6c757d; font-size: 0.9em;';
-    totalCount.textContent = `Toplam ${sortedOuis.length} OUI kaydı`;
-    ouiList.appendChild(totalCount);
+
+    const term = (document.getElementById('ouiSearchInput')?.value || '').trim().toLowerCase();
+    const all = Object.entries(currentOuiDatabase);
+    const matches = term
+        ? all.filter(([oui, vendor]) => oui.toLowerCase().includes(term) || String(vendor).toLowerCase().includes(term))
+        : all;
+    matches.sort(([a], [b]) => a.localeCompare(b));
+
+    const shown = matches.slice(0, OUI_RENDER_LIMIT);
+    const esc = v => String(v ?? '').replace(/[&<>"']/g, c =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    ouiList.innerHTML = shown.map(([oui, vendor]) => `
+        <div class="oui-item">
+            <span class="oui-item__code" title="${esc(oui.substring(0,2))}:${esc(oui.substring(2,4))}:${esc(oui.substring(4,6))}:XX:XX:XX">${esc(oui)}</span>
+            <span class="oui-item__vendor" title="${esc(vendor)}">${esc(vendor)}</span>
+            <span class="oui-item__actions">
+                <button type="button" class="icon-btn" data-oui-edit="${esc(oui)}" title="${t('edit')}">
+                    <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-wrench"/></svg>
+                </button>
+                <button type="button" class="icon-btn icon-btn--danger" data-oui-remove="${esc(oui)}" title="${t('delete')}">
+                    <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-trash"/></svg>
+                </button>
+            </span>
+        </div>`).join('')
+        + `<div class="oui-count">${t('showing_x_of_y', { shown: shown.length, total: all.length })}</div>`;
+
+    ouiList.querySelectorAll('[data-oui-edit]').forEach(btn =>
+        btn.addEventListener('click', () => editOuiEntry(btn.dataset.ouiEdit, currentOuiDatabase[btn.dataset.ouiEdit])));
+    ouiList.querySelectorAll('[data-oui-remove]').forEach(btn =>
+        btn.addEventListener('click', () => removeOuiEntry(btn.dataset.ouiRemove)));
 }
 
 function addOuiEntry() {
@@ -155,12 +184,12 @@ function addOuiEntry() {
     const vendor = document.getElementById('newVendor').value.trim();
     
     if (!oui || !vendor) {
-        showAlert('OUI ve Vendor alanları boş olamaz!', 'error');
+        showAlert(t('oui_fields_required'), 'error');
         return;
     }
     
     if (oui.length !== 6) {
-        showAlert('OUI 6 karakter olmalıdır (örnek: 001122)', 'error');
+        showAlert(t('oui_must_be_six'), 'error');
         return;
     }
     
@@ -170,90 +199,95 @@ function addOuiEntry() {
     document.getElementById('newOui').value = '';
     document.getElementById('newVendor').value = '';
     
-    showAlert('OUI kaydı eklendi!');
+    showAlert(t('oui_added'));
 }
 
 function removeOuiEntry(oui) {
-    if (confirm(`${oui} kaydını silmek istediğinizden emin misiniz?`)) {
+    if (confirm(t('confirm_delete_oui', { oui: oui }))) {
         delete currentOuiDatabase[oui];
         displayOuiDatabase();
-        showAlert('OUI kaydı silindi!');
+        showAlert(t('oui_removed'));
     }
 }
 
 function editOuiEntry(oui, vendor) {
-    const newVendor = prompt(`OUI ${oui} için yeni vendor adı:`, vendor);
+    const newVendor = prompt(t('prompt_new_vendor', { oui: oui }), vendor);
     if (newVendor && newVendor.trim() !== '' && newVendor !== vendor) {
         currentOuiDatabase[oui] = newVendor.trim();
         displayOuiDatabase();
-        showAlert('OUI kaydı güncellendi!');
+        showAlert(t('oui_updated'));
     }
 }
 
+let ouiFilterTimer = null;
+
 function filterOuiList() {
-    const searchInput = document.getElementById('ouiSearchInput');
-    if (!searchInput) return;
-    
-    const searchTerm = searchInput.value.toLowerCase();
-    const ouiItems = document.querySelectorAll('.oui-item');
-    
-    ouiItems.forEach(item => {
-        const text = item.textContent.toLowerCase();
-        if (text.includes(searchTerm)) {
-            item.style.display = 'flex';
-        } else {
-            item.style.display = 'none';
-        }
-    });
+    // Debounced: re-rendering 200 rows per keystroke is fine, doing it on every
+    // one of a fast typist's keystrokes is not.
+    clearTimeout(ouiFilterTimer);
+    ouiFilterTimer = setTimeout(displayOuiDatabase, 150);
 }
 
 /**
  * Device Types Management
  */
+
+const DEVICE_CATEGORIES = [
+    'unknown', 'tech', 'network', 'smart', 'media', 'security', 'transport',
+    'office', 'mobile', 'computer', 'peripheral', 'entertainment', 'appliance',
+    'iot', 'storage', 'gaming', 'medical', 'industrial',
+];
+
+function categoryOptions(selected) {
+    return DEVICE_CATEGORIES.map(key =>
+        `<option value="${key}"${key === selected ? ' selected' : ''}>${t('category_' + key)}</option>`).join('');
+}
+
 function displayDeviceTypes() {
     const deviceTypesList = document.getElementById('deviceTypesList');
     if (!deviceTypesList) return;
-    
-    // Clean up any existing listeners before rebuilding
+
     cleanupDeviceTypeListeners();
-    
-    deviceTypesList.innerHTML = '';
-    
-    for (const [typeName, typeInfo] of Object.entries(currentDeviceTypes)) {
-        const div = document.createElement('div');
-        div.className = 'device-type-edit';
-        div.innerHTML = `
-            <div class="device-type-edit-form">
-                <button type="button" class="btn btn-small" onclick="openEmojiPicker('deviceIcon_${typeName.replace(/[^a-zA-Z0-9]/g, '_')}'); this.nextElementSibling.id = 'deviceIcon_${typeName.replace(/[^a-zA-Z0-9]/g, '_')}';">📋</button>
-                <input type="text" class="device-icon-input" data-device-type="${typeName}" value="${typeInfo.icon}" style="text-align: center; font-size: 1.2em;" maxlength="2">
-                <input type="text" class="device-name-input" data-device-type="${typeName}" value="${typeName}" style="font-weight: bold;">
-                <select class="device-category-select" data-device-type="${typeName}">
-                    <option value="unknown" ${typeInfo.category === 'unknown' ? 'selected' : ''}>Unknown</option>
-                    <option value="tech" ${typeInfo.category === 'tech' ? 'selected' : ''}>Technology</option>
-                    <option value="network" ${typeInfo.category === 'network' ? 'selected' : ''}>Network</option>
-                    <option value="smart" ${typeInfo.category === 'smart' ? 'selected' : ''}>Smart Home</option>
-                    <option value="media" ${typeInfo.category === 'media' ? 'selected' : ''}>Media</option>
-                    <option value="security" ${typeInfo.category === 'security' ? 'selected' : ''}>Security</option>
-                    <option value="transport" ${typeInfo.category === 'transport' ? 'selected' : ''}>Transport</option>
-                    <option value="office" ${typeInfo.category === 'office' ? 'selected' : ''}>Office</option>
-                    <option value="mobile" ${typeInfo.category === 'mobile' ? 'selected' : ''}>Mobile</option>
-                    <option value="computer" ${typeInfo.category === 'computer' ? 'selected' : ''}>Computer</option>
-                    <option value="peripheral" ${typeInfo.category === 'peripheral' ? 'selected' : ''}>Peripheral</option>
-                    <option value="entertainment" ${typeInfo.category === 'entertainment' ? 'selected' : ''}>Entertainment</option>
-                    <option value="appliance" ${typeInfo.category === 'appliance' ? 'selected' : ''}>Appliance</option>
-                    <option value="iot" ${typeInfo.category === 'iot' ? 'selected' : ''}>IoT Device</option>
-                    <option value="storage" ${typeInfo.category === 'storage' ? 'selected' : ''}>Storage</option>
-                    <option value="gaming" ${typeInfo.category === 'gaming' ? 'selected' : ''}>Gaming</option>
-                    <option value="medical" ${typeInfo.category === 'medical' ? 'selected' : ''}>Medical</option>
-                    <option value="industrial" ${typeInfo.category === 'industrial' ? 'selected' : ''}>Industrial</option>
-                </select>
-                <button class="btn btn-danger btn-small device-remove-btn" data-device-type="${typeName}">🗑️</button>
+    deviceTypesList.className = 'device-types-grid';
+
+    const esc = v => String(v ?? '').replace(/[&<>"']/g, c =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    deviceTypesList.innerHTML = Object.entries(currentDeviceTypes).map(([typeName, typeInfo]) => {
+        const slug = typeName.replace(/[^a-zA-Z0-9]/g, '_');
+        return `
+        <div class="device-type-card">
+            <button type="button" class="device-type-card__icon" id="deviceIcon_${slug}"
+                    data-icon-picker="deviceIcon_${slug}" data-device-type="${esc(typeName)}"
+                    title="${t('icon_emoji')}">${esc(typeInfo.icon)}</button>
+            <input type="text" class="device-type-card__name device-name-input"
+                   data-device-type="${esc(typeName)}" value="${esc(typeName)}"
+                   aria-label="${t('device_type_name')}">
+            <div class="device-type-card__row">
+                <select class="form-select device-category-select" data-device-type="${esc(typeName)}"
+                        aria-label="${t('category')}">${categoryOptions(typeInfo.category)}</select>
+                <button type="button" class="icon-btn icon-btn--danger device-remove-btn"
+                        data-device-type="${esc(typeName)}" title="${t('delete')}">
+                    <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-trash"/></svg>
+                </button>
             </div>
-        `;
-        deviceTypesList.appendChild(div);
-    }
-    
-    // Add event listeners after creating the elements
+            <input type="hidden" class="device-icon-input" data-device-type="${esc(typeName)}" value="${esc(typeInfo.icon)}">
+        </div>`;
+    }).join('');
+
+    // The icon tile is the picker trigger; it writes into the hidden input the
+    // save path already reads, so nothing downstream had to change.
+    deviceTypesList.querySelectorAll('[data-icon-picker]').forEach(tile => {
+        tile.addEventListener('click', () => {
+            const hidden = tile.parentElement.querySelector('.device-icon-input');
+            hidden.id = tile.dataset.iconPicker + '_value';
+            openEmojiPicker(hidden.id);
+            const sync = () => { tile.textContent = hidden.value; };
+            hidden.addEventListener('change', sync);
+            hidden.addEventListener('input', sync);
+        });
+    });
+
     attachDeviceTypeEventListeners();
 }
 
@@ -413,40 +447,59 @@ function removeDeviceType(typeName) {
 /**
  * Detection Rules Management
  */
+function deviceTypeOptions(selected) {
+    return Object.entries(currentDeviceTypes)
+        .map(([name, info]) => `<option value="${name}"${name === selected ? ' selected' : ''}>${info.icon || ''} ${name}</option>`)
+        .join('');
+}
+
+/*
+ * Each rule is "this regex means this device type". The type used to be
+ * printed as plain text, so there was no way to see it as a choice or fix a
+ * wrong one without deleting the rule and retyping the pattern.
+ */
+function renderPatternRules(container, rules, kind) {
+    if (!rules.length) {
+        container.innerHTML = `<div class="pattern-empty">${t('no_patterns_yet')}</div>`;
+        return;
+    }
+    const esc = v => String(v ?? '').replace(/[&<>"']/g, c =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    container.innerHTML = rules.map((rule, index) => `
+        <div class="pattern-item">
+            <code class="pattern-item__pattern" title="${esc(rule.pattern)}">${esc(rule.pattern)}</code>
+            <select class="form-select pattern-item__type" data-rule-kind="${kind}" data-rule-index="${index}"
+                    aria-label="${t('device_type')}">${deviceTypeOptions(rule.type)}</select>
+            <button type="button" class="icon-btn icon-btn--danger" data-remove-kind="${kind}" data-remove-index="${index}"
+                    title="${t('delete')}">
+                <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-trash"/></svg>
+            </button>
+        </div>`).join('');
+
+    container.querySelectorAll('[data-rule-kind]').forEach(select => {
+        select.addEventListener('change', () => {
+            rules[Number(select.dataset.ruleIndex)].type = select.value;
+            showAlert(t('detection_rule_updated'));
+        });
+    });
+    container.querySelectorAll('[data-remove-kind]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const i = Number(btn.dataset.removeIndex);
+            if (btn.dataset.removeKind === 'hostname') removeHostnamePattern(i);
+            else removeVendorPattern(i);
+        });
+    });
+}
+
 function displayDetectionRules() {
     const hostnamePatterns = document.getElementById('hostnamePatterns');
     const vendorPatterns = document.getElementById('vendorPatterns');
-    
     if (!hostnamePatterns || !vendorPatterns) return;
-    
-    hostnamePatterns.innerHTML = '';
-    vendorPatterns.innerHTML = '';
-    
+
     const detectionRules = currentSettings.detection_rules || {};
-    
-    // Hostname patterns
-    const hostPatterns = detectionRules.hostname_patterns || [];
-    hostPatterns.forEach((rule, index) => {
-        const div = document.createElement('div');
-        div.style.cssText = 'background: #f8f9fa; padding: 10px; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;';
-        div.innerHTML = `
-            <span><strong>${rule.type}:</strong> ${rule.pattern}</span>
-            <button class="btn btn-danger btn-small" onclick="removeHostnamePattern(${index})">🗑️</button>
-        `;
-        hostnamePatterns.appendChild(div);
-    });
-    
-    // Vendor patterns
-    const vendPatterns = detectionRules.vendor_patterns || [];
-    vendPatterns.forEach((rule, index) => {
-        const div = document.createElement('div');
-        div.style.cssText = 'background: #f8f9fa; padding: 10px; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;';
-        div.innerHTML = `
-            <span><strong>${rule.type}:</strong> ${rule.pattern}</span>
-            <button class="btn btn-danger btn-small" onclick="removeVendorPattern(${index})">🗑️</button>
-        `;
-        vendorPatterns.appendChild(div);
-    });
+    renderPatternRules(hostnamePatterns, detectionRules.hostname_patterns || [], 'hostname');
+    renderPatternRules(vendorPatterns, detectionRules.vendor_patterns || [], 'vendor');
 }
 
 function addHostnamePattern() {
@@ -454,7 +507,7 @@ function addHostnamePattern() {
     const deviceType = document.getElementById('newHostnameDeviceType').value;
     
     if (!pattern || !deviceType) {
-        showAlert('Pattern ve cihaz tipi alanları dolu olmalıdır!', 'error');
+        showAlert(t('pattern_fields_required'), 'error');
         return;
     }
     
@@ -473,7 +526,7 @@ function addHostnamePattern() {
     document.getElementById('newHostnamePattern').value = '';
     document.getElementById('newHostnameDeviceType').value = '';
     displayDetectionRules();
-    showAlert('Hostname pattern eklendi!');
+    showAlert(t('hostname_pattern_added'));
 }
 
 function addVendorPattern() {
@@ -481,7 +534,7 @@ function addVendorPattern() {
     const deviceType = document.getElementById('newVendorDeviceType').value;
     
     if (!pattern || !deviceType) {
-        showAlert('Pattern ve cihaz tipi alanları dolu olmalıdır!', 'error');
+        showAlert(t('pattern_fields_required'), 'error');
         return;
     }
     
@@ -500,14 +553,14 @@ function addVendorPattern() {
     document.getElementById('newVendorPattern').value = '';
     document.getElementById('newVendorDeviceType').value = '';
     displayDetectionRules();
-    showAlert('Vendor pattern eklendi!');
+    showAlert(t('vendor_pattern_added'));
 }
 
 function removeHostnamePattern(index) {
     if (currentSettings.detection_rules && currentSettings.detection_rules.hostname_patterns) {
         currentSettings.detection_rules.hostname_patterns.splice(index, 1);
         displayDetectionRules();
-        showAlert('Hostname pattern silindi!');
+        showAlert(t('hostname_pattern_removed'));
     }
 }
 
@@ -515,7 +568,7 @@ function removeVendorPattern(index) {
     if (currentSettings.detection_rules && currentSettings.detection_rules.vendor_patterns) {
         currentSettings.detection_rules.vendor_patterns.splice(index, 1);
         displayDetectionRules();
-        showAlert('Vendor pattern silindi!');
+        showAlert(t('vendor_pattern_removed'));
     }
 }
 
@@ -530,13 +583,13 @@ function saveDetectionRules() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            showAlert('Tanıma kuralları kaydedildi!');
+            showAlert(t('detection_rules_saved'));
         } else {
-            showAlert('Kaydetme hatası: ' + data.error, 'error');
+            showAlert(t('save_error') + data.error, 'error');
         }
     })
     .catch(error => {
-        showAlert('Kaydetme hatası: ' + error, 'error');
+        showAlert(t('save_error') + error, 'error');
     });
 }
 
@@ -553,11 +606,12 @@ function displayDevicePortRules() {
     if (Object.keys(deviceSpecificPorts).length > 0) {
         for (const [deviceType, ports] of Object.entries(deviceSpecificPorts)) {
             const div = document.createElement('div');
-            div.style.cssText = 'background: #f8f9fa; padding: 10px; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;';
+            div.className = 'port-rule';
             div.innerHTML = `
                 <span><strong>${deviceType}:</strong> ${ports.join(', ')}</span>
-                <button class="btn btn-danger btn-small" onclick="removeDevicePortRule('${deviceType}')">🗑️</button>
-            `;
+                <button type="button" class="icon-btn icon-btn--danger" onclick="removeDevicePortRule('${deviceType}')" title="${t('delete')}">
+                    <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-trash"/></svg>
+                </button>`;
             container.appendChild(div);
         }
     }
@@ -568,7 +622,7 @@ function addDeviceTypePorts() {
     const ports = document.getElementById('deviceTypePorts').value.trim();
     
     if (!deviceType || !ports) {
-        showAlert('Cihaz tipi ve port alanları dolu olmalıdır!', 'error');
+        showAlert(t('device_ports_required'), 'error');
         return;
     }
     
@@ -585,14 +639,14 @@ function addDeviceTypePorts() {
     document.getElementById('deviceTypePortSelect').value = '';
     
     displayDevicePortRules();
-    showAlert('Cihaz tipi port kuralı eklendi!');
+    showAlert(t('device_port_rule_added'));
 }
 
 function removeDevicePortRule(deviceType) {
     if (currentSettings.port_settings?.device_specific_ports) {
         delete currentSettings.port_settings.device_specific_ports[deviceType];
         displayDevicePortRules();
-        showAlert('Port kuralı silindi!');
+        showAlert(t('device_port_rule_removed'));
     }
 }
 
@@ -625,13 +679,13 @@ async function loadNetworks() {
         });
         
     } catch (error) {
-        showAlert('Ağ bilgileri yüklenirken hata oluştu: ' + error.message, 'error');
+        showAlert(t('networks_load_error') + error.message, 'error');
     }
 }
 
 function refreshNetworks() {
     loadNetworks();
-    showAlert('Ağ bilgileri yenilendi!');
+    showAlert(t('networks_refreshed'));
 }
 
 /**
@@ -646,7 +700,7 @@ async function saveGeneralSettings() {
         const defaultPortsEl = document.getElementById('defaultPorts');
         
         if (!defaultIpRangeEl || !timeoutEl || !maxThreadsEl || !includeOfflineEl || !defaultPortsEl) {
-            showAlert('Form elementleri bulunamadı!', 'error');
+            showAlert(t('form_elements_missing'), 'error');
             return;
         }
         
@@ -684,7 +738,7 @@ async function saveGeneralSettings() {
         }
         
     } catch (error) {
-        showAlert('Ayarlar kaydedilirken hata oluştu: ' + error.message, 'error');
+        showAlert(t('settings_save_error') + error.message, 'error');
     }
 }
 
@@ -707,7 +761,7 @@ async function saveOuiDatabase() {
         }
         
     } catch (error) {
-        showAlert('OUI database kaydedilirken hata oluştu: ' + error.message, 'error');
+        showAlert(t('oui_save_error') + error.message, 'error');
     }
 }
 
@@ -730,7 +784,7 @@ async function saveDeviceTypes() {
         }
         
     } catch (error) {
-        showAlert('Cihaz tipleri kaydedilirken hata oluştu: ' + error.message, 'error');
+        showAlert(t('device_types_save_error') + error.message, 'error');
     }
 }
 
@@ -757,9 +811,9 @@ function importOuiDatabase() {
                 const importedData = JSON.parse(e.target.result);
                 currentOuiDatabase = {...currentOuiDatabase, ...importedData};
                 displayOuiDatabase();
-                showAlert(`${Object.keys(importedData).length} OUI kaydı import edildi!`);
+                showAlert(t('oui_imported', { count: Object.keys(importedData).length }));
             } catch (error) {
-                showAlert('Import hatası: Geçersiz JSON dosyası', 'error');
+                showAlert(t('import_invalid_json'), 'error');
             }
         };
         reader.readAsText(file);
@@ -774,20 +828,20 @@ async function downloadIEEEDatabase() {
     const originalText = btn.textContent;
     
     btn.disabled = true;
-    btn.textContent = '📥 İndiriliyor...';
+    btn.textContent = t('downloading');
     
     try {
         const response = await fetch('/api/download_ieee_oui');
         const result = await response.json();
         
         if (result.success) {
-            showAlert(`IEEE OUI database başarıyla güncellendi! ${result.processed_count} kayıt işlendi.`);
+            showAlert(t('ieee_updated', { count: result.processed_count }));
             loadAllSettings();
         } else {
-            showAlert('IEEE database indirme hatası: ' + result.error, 'error');
+            showAlert(t('ieee_download_error') + result.error, 'error');
         }
     } catch (error) {
-        showAlert('Bağlantı hatası: ' + error.message, 'error');
+        showAlert(t('connection_error') + error.message, 'error');
     } finally {
         btn.disabled = false;
         btn.textContent = originalText;
@@ -798,7 +852,7 @@ async function lookupVendorAPI() {
     const oui = document.getElementById('newOui').value.trim();
     
     if (!oui || oui.length !== 6) {
-        showAlert('Geçerli bir 6 haneli OUI girin (örnek: 001122)', 'error');
+        showAlert(t('oui_must_be_six'), 'error');
         return;
     }
     
@@ -806,7 +860,7 @@ async function lookupVendorAPI() {
     const originalText = btn.textContent;
     
     btn.disabled = true;
-    btn.textContent = '🔍 Aranıyor...';
+    btn.textContent = t('searching');
     
     try {
         const testMac = oui + '123456';
@@ -818,10 +872,10 @@ async function lookupVendorAPI() {
             document.getElementById('newVendor').value = result.vendor;
             showAlert(`Vendor bulundu: ${result.vendor} (Kaynak: ${result.source})`);
         } else {
-            showAlert('Vendor bilgisi bulunamadı: ' + result.error, 'error');
+            showAlert(t('vendor_not_found') + result.error, 'error');
         }
     } catch (error) {
-        showAlert('API arama hatası: ' + error.message, 'error');
+        showAlert(t('api_lookup_error') + error.message, 'error');
     } finally {
         btn.disabled = false;
         btn.textContent = originalText;
@@ -838,9 +892,9 @@ function updateDetectionRuleSelects() {
     
     if (!hostnameSelect || !vendorSelect || !devicePortSelect) return;
     
-    hostnameSelect.innerHTML = '<option value="">Cihaz Tipi Seç</option>';
-    vendorSelect.innerHTML = '<option value="">Cihaz Tipi Seç</option>';
-    devicePortSelect.innerHTML = '<option value="">Port tanımı eklemek için cihaz tipi seçin</option>';
+    hostnameSelect.innerHTML = `<option value="">${t('select_device_type')}</option>`;
+    vendorSelect.innerHTML = `<option value="">${t('select_device_type')}</option>`;
+    devicePortSelect.innerHTML = `<option value="">${t('select_device_type_for_ports')}</option>`;
     
     for (const typeName of Object.keys(currentDeviceTypes)) {
         const option1 = document.createElement('option');
@@ -887,7 +941,7 @@ async function loadDockerInfo() {
             loadDockerScanRanges()
         ]);
     } catch (error) {
-        showAlert('Docker bilgileri yüklenirken hata oluştu: ' + error.message, 'error');
+        showAlert(t('docker_load_error') + error.message, 'error');
     }
 }
 
@@ -909,7 +963,7 @@ async function loadDockerStatus() {
                         <div>
                             <strong>Docker Aktif</strong>
                             <div style="font-size: 0.9em; opacity: 0.8;">
-                                ${data.networks_count} network, ${data.containers_count} container, ${data.scan_ranges_count} tarama aralığı
+                                ${data.networks_count} ${t('docker_networks')}, ${data.containers_count} ${t('docker_containers')}, ${data.scan_ranges_count} ${t('scan_ranges')}
                             </div>
                         </div>
                     </div>
@@ -925,7 +979,7 @@ async function loadDockerStatus() {
                     </div>
                     <div class="stat-item">
                         <div class="stat-number">${data.scan_ranges_count}</div>
-                        <div class="stat-label">Tarama Aralıkları</div>
+                        <div class="stat-label">${t('scan_ranges')}</div>
                     </div>
                     <div class="stat-item">
                         <div class="stat-number">${data.socket_available ? '✅' : '❌'}</div>
@@ -939,9 +993,9 @@ async function loadDockerStatus() {
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <span style="font-size: 1.5em;">❌</span>
                         <div>
-                            <strong>Docker Kullanılamıyor</strong>
+                            <strong>${t('docker_unavailable')}</strong>
                             <div style="font-size: 0.9em; opacity: 0.8;">
-                                ${data.error || 'Docker kurulu değil veya çalışmıyor'}
+                                ${data.error || t('docker_unavailable')}
                             </div>
                         </div>
                     </div>
@@ -972,7 +1026,7 @@ async function loadDockerNetworks() {
         if (!networksContainer) return;
         
         if (!data.success || !data.networks || data.networks.length === 0) {
-            networksContainer.innerHTML = '<div style="text-align: center; color: #6c757d; padding: 20px;">Docker network bulunamadı</div>';
+            networksContainer.innerHTML = `<div class="pattern-empty">${t('no_docker_networks')}</div>`;
             return;
         }
         
@@ -982,7 +1036,7 @@ async function loadDockerNetworks() {
             const subnetDisplay = network.subnets && network.subnets.length > 0 ? network.subnets.join(', ') : 'N/A';
             
             networksHtml += `
-                <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 10px;">
+                <div style="background: var(--bg-surface-sunken); padding: 15px; border-radius: 6px; margin-bottom: 10px;">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                         <div style="flex: 1;">
                             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
@@ -990,14 +1044,14 @@ async function loadDockerNetworks() {
                                 <span style="background: #007bff; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.8em;">${network.driver}</span>
                                 ${network.internal ? '<span style="background: #dc3545; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.8em;">Internal</span>' : ''}
                             </div>
-                            <div style="font-size: 0.9em; color: #6c757d; margin-bottom: 5px;">
+                            <div style="font-size: 0.9em; color: var(--text-tertiary); margin-bottom: 5px;">
                                 <strong>ID:</strong> ${network.id}
                             </div>
-                            <div style="font-size: 0.9em; color: #6c757d; margin-bottom: 5px;">
+                            <div style="font-size: 0.9em; color: var(--text-tertiary); margin-bottom: 5px;">
                                 <strong>Subnet:</strong> ${subnetDisplay}
                             </div>
-                            ${network.gateway ? `<div style="font-size: 0.9em; color: #6c757d; margin-bottom: 5px;"><strong>Gateway:</strong> ${network.gateway}</div>` : ''}
-                            <div style="font-size: 0.9em; color: #6c757d;">
+                            ${network.gateway ? `<div style="font-size: 0.9em; color: var(--text-tertiary); margin-bottom: 5px;"><strong>Gateway:</strong> ${network.gateway}</div>` : ''}
+                            <div style="font-size: 0.9em; color: var(--text-tertiary);">
                                 <strong>Containers:</strong> ${containerCount} adet
                             </div>
                         </div>
@@ -1011,7 +1065,7 @@ async function loadDockerNetworks() {
     } catch (error) {
         const networksContainer = document.getElementById('dockerNetworksList');
         if (networksContainer) {
-            networksContainer.innerHTML = `<div style="color: #dc3545; padding: 20px; text-align: center;">❌ Docker networks yüklenemedi: ${error.message}</div>`;
+            networksContainer.innerHTML = `<div class="pattern-empty">Docker networks: ${error.message}</div>`;
         }
     }
 }
@@ -1025,7 +1079,7 @@ async function loadDockerContainers() {
         if (!containersContainer) return;
         
         if (!data.success || !data.containers || data.containers.length === 0) {
-            containersContainer.innerHTML = '<div style="text-align: center; color: #6c757d; padding: 20px;">Çalışan Docker container bulunamadı</div>';
+            containersContainer.innerHTML = `<div class="pattern-empty">${t('no_docker_containers')}</div>`;
             return;
         }
         
@@ -1035,29 +1089,29 @@ async function loadDockerContainers() {
             const networks = container.networks || [];
             
             containersHtml += `
-                <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 10px;">
+                <div style="background: var(--bg-surface-sunken); padding: 15px; border-radius: 6px; margin-bottom: 10px;">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                         <div style="flex: 1;">
                             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
                                 <strong style="color: #0066cc;">${container.name}</strong>
                                 <span style="background: #28a745; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.8em;">Running</span>
                             </div>
-                            <div style="font-size: 0.9em; color: #6c757d; margin-bottom: 5px;">
+                            <div style="font-size: 0.9em; color: var(--text-tertiary); margin-bottom: 5px;">
                                 <strong>ID:</strong> ${container.id}
                             </div>
-                            <div style="font-size: 0.9em; color: #6c757d; margin-bottom: 5px;">
+                            <div style="font-size: 0.9em; color: var(--text-tertiary); margin-bottom: 5px;">
                                 <strong>Image:</strong> ${container.image}
                             </div>
-                            <div style="font-size: 0.9em; color: #6c757d; margin-bottom: 5px;">
+                            <div style="font-size: 0.9em; color: var(--text-tertiary); margin-bottom: 5px;">
                                 <strong>Networks:</strong> ${networks.join(', ') || 'N/A'}
                             </div>
                             ${ipAddresses.length > 0 ? `
-                                <div style="font-size: 0.9em; color: #6c757d; margin-bottom: 5px;">
+                                <div style="font-size: 0.9em; color: var(--text-tertiary); margin-bottom: 5px;">
                                     <strong>IP Addresses:</strong>
                                     ${ipAddresses.map(ip => `<span style="background: #e9ecef; padding: 2px 6px; border-radius: 4px; margin-right: 5px;">${ip.ipv4} (${ip.network})</span>`).join('')}
                                 </div>
                             ` : ''}
-                            ${container.ports ? `<div style="font-size: 0.9em; color: #6c757d;"><strong>Ports:</strong> ${container.ports}</div>` : ''}
+                            ${container.ports ? `<div style="font-size: 0.9em; color: var(--text-tertiary);"><strong>Ports:</strong> ${container.ports}</div>` : ''}
                         </div>
                     </div>
                 </div>
@@ -1069,7 +1123,7 @@ async function loadDockerContainers() {
     } catch (error) {
         const containersContainer = document.getElementById('dockerContainersList');
         if (containersContainer) {
-            containersContainer.innerHTML = `<div style="color: #dc3545; padding: 20px; text-align: center;">❌ Docker containers yüklenemedi: ${error.message}</div>`;
+            containersContainer.innerHTML = `<div class="pattern-empty">Docker containers: ${error.message}</div>`;
         }
     }
 }
@@ -1083,28 +1137,28 @@ async function loadDockerScanRanges() {
         if (!scanRangesContainer) return;
         
         if (!data.success || !data.scan_ranges || data.scan_ranges.length === 0) {
-            scanRangesContainer.innerHTML = '<div style="text-align: center; color: #6c757d; padding: 20px;">Docker tarama aralığı bulunamadı</div>';
+            scanRangesContainer.innerHTML = `<div class="pattern-empty">${t('no_docker_ranges')}</div>`;
             return;
         }
         
         let scanRangesHtml = '';
         data.scan_ranges.forEach(range => {
             scanRangesHtml += `
-                <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 10px;">
+                <div style="background: var(--bg-surface-sunken); padding: 15px; border-radius: 6px; margin-bottom: 10px;">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <div style="flex: 1;">
                             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
                                 <strong style="color: #0066cc;">${range.network_name}</strong>
                                 <span style="background: #17a2b8; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.8em;">${range.driver}</span>
                             </div>
-                            <div style="font-size: 0.9em; color: #6c757d; margin-bottom: 5px;">
+                            <div style="font-size: 0.9em; color: var(--text-tertiary); margin-bottom: 5px;">
                                 <strong>Subnet:</strong> ${range.subnet}
                             </div>
-                            <div style="font-size: 0.9em; color: #6c757d; margin-bottom: 5px;">
+                            <div style="font-size: 0.9em; color: var(--text-tertiary); margin-bottom: 5px;">
                                 <strong>Scan Range:</strong> <code style="background: #e9ecef; padding: 2px 6px; border-radius: 4px;">${range.scan_range}</code>
                             </div>
-                            ${range.gateway ? `<div style="font-size: 0.9em; color: #6c757d; margin-bottom: 5px;"><strong>Gateway:</strong> ${range.gateway}</div>` : ''}
-                            <div style="font-size: 0.9em; color: #6c757d;">
+                            ${range.gateway ? `<div style="font-size: 0.9em; color: var(--text-tertiary); margin-bottom: 5px;"><strong>Gateway:</strong> ${range.gateway}</div>` : ''}
+                            <div style="font-size: 0.9em; color: var(--text-tertiary);">
                                 <strong>Containers:</strong> ${range.container_count} adet
                             </div>
                         </div>
@@ -1123,7 +1177,7 @@ async function loadDockerScanRanges() {
     } catch (error) {
         const scanRangesContainer = document.getElementById('dockerScanRangesList');
         if (scanRangesContainer) {
-            scanRangesContainer.innerHTML = `<div style="color: #dc3545; padding: 20px; text-align: center;">❌ Docker scan ranges yüklenemedi: ${error.message}</div>`;
+            scanRangesContainer.innerHTML = `<div class="pattern-empty">Docker scan ranges: ${error.message}</div>`;
         }
     }
 }
@@ -1150,10 +1204,10 @@ async function refreshDockerContainers() {
 async function refreshDockerScanRanges() {
     const scanRangesContainer = document.getElementById('dockerScanRangesList');
     if (scanRangesContainer) {
-        scanRangesContainer.innerHTML = '<div class="loading">Tarama aralıkları yenileniyor...</div>';
+        scanRangesContainer.innerHTML = `<div class="loading">${t('scan_ranges_loading')}</div>`;
     }
     await loadDockerScanRanges();
-    showAlert('Docker tarama aralıkları yenilendi!');
+    showAlert(t('docker_ranges_refreshed'));
 }
 
 function addToScanRange(subnet, networkName) {
@@ -1166,7 +1220,7 @@ function addToScanRange(subnet, networkName) {
             const currentValue = defaultIpRangeInput.value;
             const newValue = currentValue ? `${currentValue},${subnet}` : subnet;
             defaultIpRangeInput.value = newValue;
-            showAlert(`${networkName} network'ü (${subnet}) tarama aralığına eklendi!`);
+            showAlert(t('docker_range_added', { network: networkName, subnet: subnet }));
         }
     }, 100);
 }

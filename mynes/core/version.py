@@ -8,8 +8,11 @@ import subprocess
 import os
 from datetime import datetime
 
-# Fallback version if git is not available
-FALLBACK_VERSION = "1.0.4"
+# The released version. Single source of truth: the footer, the API and the
+# Docker label all read this. Git metadata below is still exposed through
+# get_version_info() for debugging, it just no longer decorates the version.
+VERSION = "1.2.0"
+FALLBACK_VERSION = VERSION
 
 def is_docker_environment():
     """Check if running in Docker container"""
@@ -126,7 +129,13 @@ def get_docker_image_version():
     return None
 
 def get_version():
-    """Ana versiyon fonksiyonu - dinamik versiyon döndürür"""
+    """The released version. Not derived from git: a tag that lags a release
+    used to show users something like 1.0.5-f5cfbb2+, which means nothing."""
+    return VERSION
+
+
+def _get_version_from_git():
+    """Kept for reference/debugging - no longer used by get_version()."""
     # Docker ortamında çalışıyorsa ve git yoksa
     if is_docker_environment():
         # Önce Docker image'den versiyon almaya çalış

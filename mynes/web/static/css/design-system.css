@@ -43,6 +43,11 @@
   --cat-iot:      #d99b09;
   --cat-other:    #8a94a8;
 
+  /* Categorical chart series. Same reasoning as --cat-*: one set for both
+     themes, ordered so the first five stay distinguishable side by side. */
+  --chart-1: #4a86e8; --chart-2: #16a862; --chart-3: #d99b09; --chart-4: #d9534f;
+  --chart-5: #8b5cf6; --chart-6: #0891b2; --chart-7: #d1508f; --chart-8: #6b7689;
+
   /* ---------- Spacing: 4px rhythm ---------- */
   --space-0: 0;      --space-1: 4px;   --space-2: 8px;   --space-3: 12px;
   --space-4: 16px;   --space-5: 20px;  --space-6: 24px;  --space-8: 32px;
@@ -397,10 +402,11 @@ hr { border: 0; border-top: 1px solid var(--border-subtle); margin: var(--space-
 
 .ds-brand {
   display: inline-flex; align-items: center; gap: var(--space-2);
-  font-size: var(--text-md); font-weight: var(--weight-bold);
   color: var(--text-primary); letter-spacing: -0.01em; white-space: nowrap;
   min-width: 0; overflow: hidden;
 }
+.ds-brand__text { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
+.ds-brand__name { font-size: var(--text-md); font-weight: var(--weight-bold); }
 .ds-brand:hover { text-decoration: none; }
 .ds-brand__logo { width: 28px; height: 28px; flex: none; }
 .ds-brand__sub { font-weight: var(--weight-normal); color: var(--text-tertiary); font-size: var(--text-xs); }
@@ -466,6 +472,12 @@ hr { border: 0; border-top: 1px solid var(--border-subtle); margin: var(--space-
   .ds-footer { padding-bottom: calc(var(--space-5) + 64px + env(safe-area-inset-bottom)); }
   .ds-toasts { bottom: calc(var(--space-3) + 64px + env(safe-area-inset-bottom)); }
 }
+
+.ds-footer__inner {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
+  gap: var(--space-2) var(--space-3);
+}
+.ds-footer__inner .ds-icon { width: 20px; height: 20px; vertical-align: -4px; }
 
 .ds-footer {
   border-top: 1px solid var(--border-subtle);

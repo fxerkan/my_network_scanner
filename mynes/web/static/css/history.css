@@ -5,35 +5,6 @@
  * Handles styling for history page charts, statistics, and timeline
  */
 
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-
-
-
-
-.nav-buttons {
-    display: flex;
-    gap: 10px;
-}
-
-.nav-btn {
-    background: rgba(255,255,255,0.2);
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 5px;
-    cursor: pointer;
-    text-decoration: none;
-    transition: background 0.3s ease;
-}
-
-.nav-btn:hover {
-    background: rgba(255,255,255,0.3);
-}
 
 /* Horizontal gutters come from .ds-container in the page shell. */
 .content {
@@ -48,21 +19,28 @@
 }
 
 .stat-card {
-    background: linear-gradient(135deg, var(--accent-bg), var(--blue-800));
-    color: white;
-    padding: var(--space-4);
+    background: var(--bg-surface);
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--border-subtle);
+    border-left: 3px solid var(--border-default);
     border-radius: var(--radius-lg);
-    text-align: center;
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--shadow-xs);
     min-width: 0;
 }
+
+/* Colour is a secondary cue only - the label always says what the number is. */
+.stat-total    { border-left-color: var(--accent-bg); }
+.stat-devices  { border-left-color: var(--status-online-dot); }
+.stat-avg      { border-left-color: var(--severity-warning-border); }
+.stat-duration { border-left-color: var(--violet-500); }
 
 .stat-number {
     font-size: var(--text-2xl);
     font-weight: var(--weight-bold);
     line-height: var(--leading-2xl);
     margin-bottom: 2px;
-    color: white;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
     font-variant-numeric: tabular-nums;
 }
 
@@ -70,24 +48,34 @@
     font-size: var(--text-xs);
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    /* The tile is always the blue gradient, so the label is always light. */
-    color: rgba(255, 255, 255, 0.88);
+    color: var(--text-secondary);
+    font-weight: var(--weight-medium);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .chart-container {
     background: var(--bg-surface);
-    border-radius: 10px;
-    padding: 20px;
-    margin-bottom: 20px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5);
+    margin-bottom: var(--space-5);
+    box-shadow: var(--shadow-xs);
 }
 
 .chart-title {
-    font-size: 1.2em;
-    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-md);
+    font-weight: var(--weight-semibold);
     color: var(--text-primary);
-    margin-bottom: 15px;
+    margin-bottom: var(--space-4);
 }
+.chart-title .ds-icon { color: var(--text-tertiary); }
+
+.chart-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-3); }
 
 /* The table keeps its columns and scrolls inside the card. */
 .chart-container { overflow-x: auto; }
@@ -176,51 +164,48 @@
 }
 
 .vendor-chart {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin-top: 15px;
+    display: grid;
+    gap: var(--space-2);
+    margin-top: var(--space-3);
 }
 
+/* Name | bar | count. minmax(0,1fr) on the name is what keeps a 60-character
+   vendor string from shoving the bar past the card's right edge. */
 .vendor-item {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(80px, 180px) 2.5rem;
     align-items: center;
-    gap: 10px;
+    gap: var(--space-3);
 }
 
 .vendor-name {
-    width: 510px;
-    min-width: 510px;
-    max-width: 510px;
-    font-weight: 500;
+    font-size: var(--text-sm);
+    color: var(--text-primary);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    flex-shrink: 0;
 }
 
 .vendor-bar {
-    width: 200px;
-    max-width: 200px;
-    height: 20px;
-    background: var(--border-subtle);
-    border-radius: 10px;
+    height: 10px;
+    background: var(--bg-surface-sunken);
+    border-radius: var(--radius-full);
     overflow: hidden;
-    position: relative;
-    flex-shrink: 0;
 }
 
 .vendor-fill {
     height: 100%;
-    background: linear-gradient(45deg, var(--accent-bg), var(--blue-800));
-    transition: width 0.3s ease;
+    background: var(--chart-1);
+    border-radius: var(--radius-full);
+    transition: width var(--duration-slow) var(--ease-out);
 }
 
 .vendor-count {
-    min-width: 30px;
     text-align: right;
-    font-weight: 600;
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
     color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
 }
 
 .scan-timeline {
@@ -268,26 +253,6 @@
     color: var(--text-secondary);
 }
 
-.btn {
-    background: linear-gradient(45deg, var(--accent-bg), var(--blue-800));
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 6px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: transform 0.2s ease;
-}
-
-.btn:hover {
-    transform: translateY(-2px);
-}
-
-.btn-secondary {
-    background: var(--text-secondary);
-}
-
 /* Side by side layout for charts */
 .charts-row {
     display: grid;
@@ -296,27 +261,66 @@
     margin-bottom: var(--space-5);
 }
 
-/* Pie Chart Styles */
+/* ---------- donut ---------- */
 .pie-chart-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin-top: 15px;
+    display: grid;
+    justify-items: center;
+    gap: var(--space-4);
+    margin-top: var(--space-3);
     position: relative;
 }
 
-.pie-chart {
-    width: 250px;
-    height: 250px;
-    border-radius: 50%;
-    position: relative;
-    flex-shrink: 0;
+.pie-chart { width: min(260px, 100%); position: relative; }
+.donut-svg { width: 100%; height: auto; display: block; }
+.donut-slice { cursor: pointer; transition: stroke-width var(--duration-fast) var(--ease-out); }
+.donut-label { font-size: 13px; font-weight: 600; fill: var(--gray-0); }
+.donut-total { font-size: 30px; font-weight: 700; fill: var(--text-primary); }
+.donut-total-label {
+    font-size: 11px; fill: var(--text-tertiary);
+    text-transform: uppercase; letter-spacing: 0.06em;
 }
+
+.donut-legend {
+    width: 100%;
+    display: grid;
+    gap: var(--space-1);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.donut-legend__item {
+    display: grid;
+    grid-template-columns: 10px minmax(0, 1fr) 2.5rem 2.5rem;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-sm);
+}
+.donut-legend__dot { width: 10px; height: 10px; border-radius: var(--radius-full); }
+.donut-legend__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-primary); }
+.donut-legend__value,
+.donut-legend__pct {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-secondary);
+}
+.donut-legend__value { font-weight: var(--weight-semibold); color: var(--text-primary); }
+
+.chart-empty {
+    padding: var(--space-10) var(--space-4);
+    text-align: center;
+    color: var(--text-tertiary);
+    font-size: var(--text-sm);
+}
+
+/* ---------- trend ---------- */
+.trend-grid { color: var(--border-subtle); }
+.trend-axis { fill: var(--text-tertiary); }
+.trend-value { font-size: 11px; font-weight: 600; }
 
 .pie-tooltip {
     position: absolute;
-    background: rgba(0, 0, 0, 0.8);
-    color: white;
+    background: var(--bg-inverse);
+    color: var(--text-inverse);
     padding: 8px 12px;
     border-radius: 4px;
     font-size: 12px;
@@ -343,20 +347,24 @@
 .metric-toggle {
     display: flex;
     align-items: center;
-    gap: 5px;
-    padding: 5px 10px;
-    border: 1px solid var(--border-subtle);
-    border-radius: 4px;
+    gap: var(--space-2);
+    padding: var(--space-1) var(--space-3);
+    min-height: 32px;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
     background: var(--bg-surface);
+    color: var(--text-secondary);
     cursor: pointer;
-    transition: all 0.2s ease;
-    font-size: 12px;
+    transition: background var(--duration-fast) var(--ease-out),
+                border-color var(--duration-fast) var(--ease-out);
+    font-size: var(--text-sm);
 }
 
 .metric-toggle.active {
-    background: var(--accent-bg);
-    color: white;
-    border-color: var(--accent-bg);
+    background: var(--accent-bg-subtle);
+    color: var(--accent-text);
+    border-color: var(--accent-border);
+    font-weight: var(--weight-medium);
 }
 
 .metric-toggle:hover {
@@ -381,11 +389,12 @@
 
 .chart-tooltip {
     position: absolute;
-    background: rgba(0, 0, 0, 0.9);
-    color: white;
-    padding: 10px;
-    border-radius: 4px;
-    font-size: 12px;
+    background: var(--bg-inverse);
+    color: var(--text-inverse);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-md);
+    font-size: var(--text-sm);
     pointer-events: none;
     z-index: 1000;
     display: none;

@@ -10,19 +10,19 @@
         <div class="content">
             <!-- İstatistik Kartları -->
             <div class="stats-grid">
-                <div class="stat-card">
+                <div class="stat-card stat-total">
                     <div class="stat-number" id="totalScans">0</div>
                     <div class="stat-label">{{ _('total_scans') }}</div>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card stat-devices">
                     <div class="stat-number" id="totalDevices">0</div>
                     <div class="stat-label">{{ _('detected_unique_devices') }}</div>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card stat-avg">
                     <div class="stat-number" id="avgDevices">0</div>
                     <div class="stat-label">{{ _('average_devices_scan') }}</div>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card stat-duration">
                     <div class="stat-number" id="lastScanDuration">0s</div>
                     <div class="stat-label">{{ _('last_scan_duration') }}</div>
                 </div>
@@ -31,14 +31,14 @@
             <!-- Cihaz Tipleri ve Üretici Dağılımı (Yan Yana) -->
             <div class="charts-row">
                 <div class="chart-container">
-                    <h3 class="chart-title">📱 {{ _('device_types_distribution') }}</h3>
+                    <h3 class="chart-title"><svg class="ds-icon" aria-hidden="true"><use href="#i-cpu"/></svg>{{ _('device_types_distribution') }}</h3>
                     <div class="device-type-chart" id="deviceTypeChart">
                         <!-- JavaScript ile doldurulacak -->
                     </div>
                 </div>
 
                 <div class="chart-container">
-                    <h3 class="chart-title">🏭 {{ _('vendor_distribution') }}</h3>
+                    <h3 class="chart-title"><svg class="ds-icon" aria-hidden="true"><use href="#i-router"/></svg>{{ _('vendor_distribution') }}</h3>
                     <div class="vendor-chart" id="vendorChart">
                         <!-- JavaScript ile doldurulacak -->
                     </div>
@@ -47,7 +47,7 @@
 
             <!-- Tarama Trend Grafiği -->
             <div class="chart-container">
-                <h3 class="chart-title">📈 {{ _('scan_trend_chart') }}</h3>
+                <h3 class="chart-title"><svg class="ds-icon" aria-hidden="true"><use href="#i-graph"/></svg>{{ _('scan_trend_chart') }}</h3>
                 <div class="trend-chart-container">
                     <div class="trend-chart-controls" id="trendChartControls">
                         <!-- JavaScript ile doldurulacak -->
@@ -61,10 +61,16 @@
 
             <!-- Tarama Geçmişi -->
             <div class="chart-container">
-                <h3 class="chart-title">📋 {{ _('scan_history') }}</h3>
-                <div style="margin-bottom: 15px;">
-                    <button class="btn btn-secondary" onclick="exportHistory()">📤 {{ _('export_history') }}</button>
-                    <button class="btn btn-secondary" onclick="clearHistory()" style="margin-left: 10px;">🗑️ {{ _('clear_history') }}</button>
+                <h3 class="chart-title"><svg class="ds-icon" aria-hidden="true"><use href="#i-table"/></svg>{{ _('scan_history') }}</h3>
+                <div class="chart-actions">
+                    <button type="button" class="ds-btn ds-btn--secondary ds-btn--sm" onclick="exportHistory()">
+                        <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-download"/></svg>
+                        <span>{{ _('export_history') }}</span>
+                    </button>
+                    <button type="button" class="ds-btn ds-btn--ghost ds-btn--sm" onclick="clearHistory()">
+                        <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-trash"/></svg>
+                        <span>{{ _('clear_history') }}</span>
+                    </button>
                 </div>
                 
                 <table class="history-table">
@@ -86,7 +92,7 @@
 
             <!-- Zaman Çizelgesi -->
             <div class="chart-container">
-                <h3 class="chart-title">⏰ {{ _('detailed_scan_timeline') }}</h3>
+                <h3 class="chart-title"><svg class="ds-icon" aria-hidden="true"><use href="#i-history"/></svg>{{ _('detailed_scan_timeline') }}</h3>
                 <div class="scan-timeline" id="scanTimeline">
                     <!-- JavaScript ile doldurulacak -->
                 </div>

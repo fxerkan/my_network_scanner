@@ -294,8 +294,7 @@
     }
   },
   "security_settings": {
-    "_note": "Master password buraya YAZILMAZ. MYNES_PASSWORD env var veya config/.master_password (git'e girmez) kullanin.",
-    "login_required": true
+    "_note": "Master password buraya YAZILMAZ. MYNES_PASSWORD env var veya config/.master_password (git'e girmez) kullanin."
   },
   "monitoring": {
     "enabled": true,

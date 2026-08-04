@@ -75,15 +75,15 @@
     },
 
     webhook: {
-      title: 'Home Assistant webhook',
+      title: 'Home Assistant webhook — two halves, both required',
       steps: [
-        'In Home Assistant: <b>Settings → Automations &amp; scenes → Create automation → Create new automation</b>.',
-        'There is no "webhook" entry in the blueprint list — you start from an empty automation, then open the ⋮ menu (top right) and choose <b>Edit in YAML</b>.',
-        'Replace everything in the editor with the YAML below. Change <code>webhook_id</code> to something only you know.',
-        'Save it, then paste this URL below:<br><code>http://192.168.1.116:8123/api/webhook/&lt;your-webhook_id&gt;</code>'
+        '<b>In Home Assistant.</b> Settings → Automations &amp; scenes → Create automation → <b>Create new automation</b>. There is no "webhook" entry in the blueprint list, so start empty, then open the ⋮ menu (top right) → <b>Edit in YAML</b> and paste the block below. Change <code>webhook_id</code> to something only you know, and save.',
+        '<b>Copy the URL.</b> It is your Home Assistant address plus the id you just chose:<br><code>http://192.168.1.116:8123/api/webhook/&lt;your-webhook_id&gt;</code>',
+        '<b>Back here.</b> Paste that URL in the field below and click <b>Add channel</b>. <i>This is the step that connects the two</i> — the automation does nothing until MyNeS knows where to send.',
+        '<b>Check it.</b> Click <b>Send test</b>. A notification appears in Home Assistant under the bell icon within a second. From then on MyNeS POSTs to that URL every time an alert fires at or above the severity you picked above.'
       ],
       yaml: [
-        'alias: MyNeS alert',
+        'alias: MyNeS Alert',
         'description: ""',
         'mode: queued',
         'max: 25',
@@ -100,8 +100,8 @@
         '      title: "{{ trigger.json.title }}"',
         '      message: "{{ trigger.json.message }}"'
       ],
-      note: 'MyNeS POSTs the whole alert as JSON, so you can use <code>{{ trigger.json.severity }}</code>, <code>{{ trigger.json.rule }}</code>, <code>{{ trigger.json.ip }}</code> and <code>{{ trigger.json.device_name }}</code> too — swap the action for <code>notify.mobile_app_&lt;device&gt;</code> to get it on your phone. There is no token: the webhook_id <i>is</i> the secret, so make it long. Keep <code>local_only: true</code> unless Home Assistant is reachable from the internet.'
-    },
+      note: 'Nothing in Home Assistant "runs" this automation — MyNeS triggers it by sending an HTTP POST to the webhook URL. The JSON body carries the whole alert, so you can also use <code>{{ trigger.json.severity }}</code>, <code>{{ trigger.json.rule }}</code>, <code>{{ trigger.json.ip }}</code> and <code>{{ trigger.json.device_name }}</code>. Swap the action for <code>notify.mobile_app_&lt;your-device&gt;</code> to get it on your phone instead of the notifications panel. There is no token or API key: the webhook_id <i>is</i> the secret, so make it long. Keep <code>local_only: true</code> and use the LAN address — with a public URL like home.example.com, local_only would reject MyNeS unless it is on the same network.'
+      },
 
     slack: {
       title: 'Slack incoming webhook',

@@ -43,7 +43,10 @@
         <div class="ds-container ds-header__inner">
             <a class="ds-brand" href="/">
                 <svg class="ds-brand__logo" aria-hidden="true"><use href="#i-network"/></svg>
-                <span>MyNeS<span class="ds-brand__sub"> · {{ _('app_title') }}</span></span>
+                <span class="ds-brand__text">
+                    <span class="ds-brand__name">MyNeS</span>
+                    <span class="ds-brand__sub">My Network Scanner</span>
+                </span>
             </a>
 
             <div class="ds-spacer"></div>
@@ -96,15 +99,17 @@
     </main>
 
     <footer class="ds-footer">
-        <div class="ds-container ds-row" style="justify-content:center;gap:var(--space-4)">
+        <div class="ds-container ds-footer__inner">
             <span><strong>MyNeS</strong> <span id="appVersion" class="ds-dim">—</span></span>
             <span class="ds-dim" aria-hidden="true">·</span>
-            <span class="ds-muted">Your family's user-friendly network scanner</span>
-            <span class="ds-dim" aria-hidden="true">·</span>
-            <a href="https://github.com/fxerkan/my_network_scanner" target="_blank" rel="noopener noreferrer">
-                github.com/fxerkan/my_network_scanner
-                <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-external"/></svg>
+            <a href="https://github.com/fxerkan/my_network_scanner" target="_blank"
+               rel="noopener noreferrer" aria-label="GitHub" title="github.com/fxerkan/my_network_scanner">
+                <svg class="ds-icon" aria-hidden="true"><use href="#i-github"/></svg>
             </a>
+            <span class="ds-dim" aria-hidden="true">·</span>
+            <span class="ds-muted">developed by
+                <a href="https://fxerkan.com" target="_blank" rel="noopener noreferrer">FXerkan</a>
+            </span>
         </div>
     </footer>
 

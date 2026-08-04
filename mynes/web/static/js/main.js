@@ -426,9 +426,7 @@ function displayDevicesCard() {
                         ${device.mac && device.mac !== 'N/A' ? `
                             <div class="mac-container">
                                 <span class="mac-address">${device.mac}</span>
-                                <button class="copy-mac-btn" onclick="copyMacAddress('${device.mac}', this); event.stopPropagation();" title="${t('copy_mac_address')}">
-                                    📋
-                                </button>
+                                <button class="copy-mac-btn" onclick="copyMacAddress('${device.mac}', this); event.stopPropagation();" title="${t('copy_mac_address')}" aria-label="${t('copy_mac_address')}"><svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-copy"/></svg></button>
                             </div>
                         ` : 'N/A'}
                     </span>
@@ -467,10 +465,10 @@ function displayDevicesCard() {
             ` : ''}
 
             <div class="device-actions">
-                <button class="btn btn-primary btn-small" onclick="openEnhancedEditModal('${device.ip}')">✏️ ${t('edit')}</button>
-                <button class="btn btn-warning btn-small" onclick="openSingleDeviceAnalysisPage('${device.ip}')" title="${t('advanced_analysis')}" aria-label="${t('advanced_analysis')}">🔬 ${t('advanced_analysis')}</button>
+                <button class="btn btn-primary btn-small" onclick="openEnhancedEditModal('${device.ip}')"><svg class="ds-icon" aria-hidden="true"><use href="#i-wrench"/></svg> ${t('edit')}</button>
+                <button class="btn btn-warning btn-small" onclick="openSingleDeviceAnalysisPage('${device.ip}')" title="${t('detailed_analysis')}" aria-label="${t('detailed_analysis')}"><svg class="ds-icon" aria-hidden="true"><use href="#i-microscope"/></svg> ${t('detailed_analysis')}</button>
                 ${hasEnhancedInfo(device) ? 
-                    `<button class="btn btn-success btn-small" onclick="openEnhancedDetailsModal(${JSON.stringify(device).replace(/"/g, '&quot;')})" title="${t('details')}">📊 ${t('details')}</button>` : 
+                    `<button class="btn btn-success btn-small" onclick="openEnhancedDetailsModal(${JSON.stringify(device).replace(/"/g, '&quot;')})" title="${t('details')}"><svg class="ds-icon" aria-hidden="true"><use href="#i-graph"/></svg> ${t('details')}</button>` : 
                     ''
                 }
             </div>
@@ -1509,7 +1507,7 @@ async function analyzeSingleDeviceFallback(ip) {
         const result = await response.json();
         
         if (response.ok) {
-            showToast(`🔬 ${ip} ${t('advanced_analysis_started')}`, 'success');
+            showToast(`🔬 ${ip} ${t('detailed_analysis_started')}`, 'success');
             
             // Progress indicator göster
             updateBackgroundIndicator('Gelişmiş analiz yapılıyor...', true);
@@ -1523,7 +1521,7 @@ async function analyzeSingleDeviceFallback(ip) {
                     if (status.status === 'completed') {
                         clearInterval(checkInterval);
                         updateBackgroundIndicator('Gelişmiş analiz tamamlandı', false);
-                        showToast(`🎉 ${ip} ${t('advanced_analysis_completed')}`, 'success');
+                        showToast(`🎉 ${ip} ${t('detailed_analysis_completed')}`, 'success');
                         await loadDevices(true); // Cihaz listesini yenile
                     } else if (status.status === 'error') {
                         clearInterval(checkInterval);
@@ -1689,9 +1687,7 @@ function displayDevicesTable() {
                     ${device.mac && device.mac !== 'N/A' ? `
                         <div class="mac-container">
                             <span class="mac-address" title="${device.mac}">${truncateText(device.mac, 17)}</span>
-                            <button class="copy-mac-btn" onclick="copyMacAddress('${device.mac}', this); event.stopPropagation();" title="MAC adresini kopyala">
-                                📋
-                            </button>
+                            <button class="copy-mac-btn" onclick="copyMacAddress('${device.mac}', this); event.stopPropagation();" title="${t('copy_mac_address')}" aria-label="${t('copy_mac_address')}"><svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-copy"/></svg></button>
                         </div>
                     ` : '<span class="mac-address">N/A</span>'}
                 </td>
@@ -1703,10 +1699,10 @@ function displayDevicesTable() {
                 </td>
                 <td class="table-cell">
                     <div class="device-actions">
-                        <button class="btn btn-primary btn-small" onclick="openEnhancedEditModal('${device.ip}'); event.stopPropagation();" title="${t('edit')}" aria-label="${t('edit')}">✏️</button>
-                        <button class="btn btn-warning btn-small" onclick="openSingleDeviceAnalysisPage('${device.ip}'); event.stopPropagation();" title="${t('advanced_analysis')}" aria-label="${t('advanced_analysis')}">🔬</button>
+                        <button class="btn btn-primary btn-small" onclick="openEnhancedEditModal('${device.ip}'); event.stopPropagation();" title="${t('edit')}" aria-label="${t('edit')}"><svg class="ds-icon" aria-hidden="true"><use href="#i-wrench"/></svg></button>
+                        <button class="btn btn-warning btn-small" onclick="openSingleDeviceAnalysisPage('${device.ip}'); event.stopPropagation();" title="${t('detailed_analysis')}" aria-label="${t('detailed_analysis')}"><svg class="ds-icon" aria-hidden="true"><use href="#i-microscope"/></svg></button>
                         ${hasEnhancedInfo(device) ? 
-                            `<button class="btn btn-success btn-small" onclick="openEnhancedDetailsModal(${JSON.stringify(device).replace(/"/g, '&quot;')}); event.stopPropagation();" title="${t('details')}" aria-label="${t('details')}">📊</button>` : 
+                            `<button class="btn btn-success btn-small" onclick="openEnhancedDetailsModal(${JSON.stringify(device).replace(/"/g, '&quot;')}); event.stopPropagation();" title="${t('details')}" aria-label="${t('details')}"><svg class="ds-icon" aria-hidden="true"><use href="#i-graph"/></svg></button>` : 
                             ''
                         }
                     </div>
@@ -1820,7 +1816,7 @@ async function copyMacAddress(macAddress, buttonElement) {
         // Visual feedback
         const originalText = buttonElement.innerHTML;
         buttonElement.classList.add('copied');
-        buttonElement.innerHTML = '✅';
+        buttonElement.innerHTML = '<svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-check"/></svg>';
         
         // Toast notification
         showToast(`${t('mac_copied')}: ${macAddress}`, 'success', 2000);
@@ -1838,7 +1834,7 @@ async function copyMacAddress(macAddress, buttonElement) {
         // Error visual feedback
         const originalText = buttonElement.innerHTML;
         buttonElement.style.background = '#dc3545';
-        buttonElement.innerHTML = '❌';
+        buttonElement.innerHTML = '<svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-x"/></svg>';
         
         setTimeout(() => {
             buttonElement.style.background = '';

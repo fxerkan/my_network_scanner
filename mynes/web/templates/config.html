@@ -11,19 +11,19 @@
             <div id="alertContainer"></div>
 
             <div class="tabs">
-                <button class="tab active" onclick="switchTab('general')">🔧 {{ _('general_settings') }}</button>
-                <button class="tab" onclick="switchTab('oui')">🏭 {{ _('oui_database') }}</button>
-                <button class="tab" onclick="switchTab('devices')">📱 {{ _('device_types') }}</button>
-                <button class="tab" onclick="switchTab('detection')">🔍 {{ _('detection_rules') }}</button>
-                <button class="tab" onclick="switchTab('networks')">🌐 {{ _('network_interfaces') }}</button>
-                <button class="tab" onclick="switchTab('docker')">🐳 {{ _('docker_network') }}</button>
+                <button class="tab active" onclick="switchTab('general')"><svg class="ds-icon" aria-hidden="true"><use href="#i-wrench"/></svg>{{ _('general_settings') }}</button>
+                <button class="tab" onclick="switchTab('oui')"><svg class="ds-icon" aria-hidden="true"><use href="#i-router"/></svg>{{ _('oui_database') }}</button>
+                <button class="tab" onclick="switchTab('devices')"><svg class="ds-icon" aria-hidden="true"><use href="#i-cpu"/></svg>{{ _('device_types') }}</button>
+                <button class="tab" onclick="switchTab('detection')"><svg class="ds-icon" aria-hidden="true"><use href="#i-search"/></svg>{{ _('detection_rules') }}</button>
+                <button class="tab" onclick="switchTab('networks')"><svg class="ds-icon" aria-hidden="true"><use href="#i-globe"/></svg>{{ _('network_interfaces') }}</button>
+                <button class="tab" onclick="switchTab('docker')"><svg class="ds-icon" aria-hidden="true"><use href="#i-plug"/></svg>{{ _('docker_network') }}</button>
             </div>
 
             <!-- Genel Ayarlar -->
             <div id="general" class="tab-content active">
                 <div class="grid">
                     <div class="card">
-                        <h3 class="card-title">📡 {{ _('scan_settings') }}</h3>
+                        <h3 class="card-title"><svg class="ds-icon" aria-hidden="true"><use href="#i-radar"/></svg>{{ _('scan_settings') }}</h3>
                         <div class="form-group">
                             <label class="form-label">{{ _('default_ip_range') }}</label>
                             <input type="text" class="form-input" id="defaultIpRange" placeholder="192.168.1.0/24">
@@ -44,7 +44,7 @@
                     </div>
 
                     <div class="card">
-                        <h3 class="card-title">🔌 {{ _('port_settings') }}</h3>
+                        <h3 class="card-title"><svg class="ds-icon" aria-hidden="true"><use href="#i-plug"/></svg>{{ _('port_settings') }}</h3>
                         <div class="form-group">
                             <label class="form-label">{{ _('default_ports') }}</label>
                             <textarea class="form-textarea" id="defaultPorts" placeholder="21,22,23,25,53,80,110,443,993,995,8080,8443"></textarea>
@@ -65,7 +65,7 @@
                                     <label class="form-label">{{ _('custom_ports_for_device') }}</label>
                                     <input type="text" class="form-input" id="deviceTypePorts" placeholder="80,443,8080,8443">
                                 </div>
-                                <button type="button" class="btn btn-small" onclick="addDeviceTypePorts()">➕ {{ _('add_port_rule') }}</button>
+                                <button type="button" class="btn btn-small" onclick="addDeviceTypePorts()"><svg class="ds-icon" aria-hidden="true"><use href="#i-plus"/></svg>{{ _('add_port_rule') }}</button>
                                 
                                 <div id="currentDevicePortRules" style="margin-top: 15px;">
                                     <!-- Mevcut kurallar burada gösterilecek -->
@@ -78,84 +78,76 @@
                 <div class="ds-card" style="margin-top: 20px;">
                     <div class="ds-card__header">
                         <svg class="ds-icon" aria-hidden="true"><use href="#i-shield"/></svg>
-                        <h3 class="ds-card__title">Access control</h3>
+                        <h3 class="ds-card__title">{{ _('access_control') }}</h3>
                         <div class="ds-spacer"></div>
                         <span class="ds-badge" id="authBadge">—</span>
                     </div>
                     <div class="ds-card__body ds-stack">
                         <p class="ds-muted" style="margin:0">
-                            MyNeS lists every device on your network. With this on, the site asks
-                            for a username and password before showing anything.
+{{ _('access_control_desc') }}
                         </p>
                         <label class="ds-switch">
                             <input type="checkbox" id="loginRequired">
                             <span class="ds-switch__track"></span>
-                            <span class="ds-label" style="margin:0">Require sign-in</span>
+                            <span class="ds-label" style="margin:0">{{ _('require_sign_in') }}</span>
                         </label>
                         <div id="authHint"></div>
                     </div>
                 </div>
 
                 <div style="margin-top: 20px;">
-                    <button class="btn" onclick="saveGeneralSettings()">💾 {{ _('save_general_settings') }}</button>
+                    <button class="btn" onclick="saveGeneralSettings()"><svg class="ds-icon" aria-hidden="true"><use href="#i-download"/></svg>{{ _('save_general_settings') }}</button>
                 </div>
             </div>
 
             <!-- OUI Database -->
             <div id="oui" class="tab-content">
                 <div class="card">
-                    <h3 class="card-title">🏭 OUI (Organizationally Unique Identifier) Database</h3>
-                    <p style="margin-bottom: 20px; color: var(--text-secondary);">
-                        MAC adreslerinden üretici firma bilgisi almak için kullanılan OUI database. 
-                        Yeni üreticiler ekleyebilir veya mevcut kayıtları düzenleyebilirsiniz.
-                    </p>
+                    <h3 class="card-title"><svg class="ds-icon" aria-hidden="true"><use href="#i-router"/></svg>OUI (Organizationally Unique Identifier)</h3>
+                    <p class="card-hint">{{ _('oui_description') }}</p>
                     
                     <div class="grid">
                         <div>
-                            <h4>🌐 Otomatik Güncelleme</h4>
+                            <h4>{{ _('auto_update') }}</h4>
                             <div style="margin-bottom: 15px;">
                                 <button class="btn btn-info" onclick="downloadIEEEDatabase()" id="downloadIEEEBtn">
-                                    📥 IEEE OUI Database İndir
+                                    {{ _('download_ieee_db') }}
                                 </button>
-                                <p style="font-size: 0.8em; color: var(--text-secondary); margin-top: 5px;">
-                                    IEEE.org'dan güncel OUI veritabanını indirir ve mevcut database ile birleştirir.
-                                </p>
+                                <p class="card-hint">{{ _('ieee_download_desc') }}</p>
                             </div>
                             
-                            <h4>➕ Yeni OUI Ekle</h4>
+                            <h4>{{ _('add_new_oui') }}</h4>
                             <div class="form-group">
-                                <label class="form-label">OUI (ilk 3 byte, örnek: 001122)</label>
+                                <label class="form-label">{{ _('oui_first_3_bytes') }}</label>
                                 <input type="text" class="form-input" id="newOui" placeholder="001122" maxlength="6">
                             </div>
                             <div class="form-group">
-                                <label class="form-label">Üretici Adı</label>
+                                <label class="form-label">{{ _('vendor_name') }}</label>
                                 <input type="text" class="form-input" id="newVendor" placeholder="Apple">
                             </div>
                             <div style="display: flex; gap: 10px;">
-                                <button class="btn" onclick="addOuiEntry()">➕ Manuel Ekle</button>
+                                <button class="btn" onclick="addOuiEntry()">{{ _('manual_add') }}</button>
                                 <button class="btn btn-warning" onclick="lookupVendorAPI()" id="apiLookupBtn" disabled>
-                                    🔍 API ile Bul
+                                    {{ _('find_with_api') }}
                                 </button>
                             </div>
-                            <p style="font-size: 0.8em; color: var(--text-secondary); margin-top: 5px;">
-                                API ile Bul: Girdiğiniz OUI için otomatik olarak vendor bilgisini online API'lerden getirir.
-                            </p>
+                            <p class="card-hint">{{ _('api_lookup_desc') }}</p>
                         </div>
                         
                         <div>
-                            <h4>📋 Mevcut OUI Kayıtları</h4>
+                            <h4>{{ _('current_oui_records') }}</h4>
                             <div style="margin-bottom: 10px;">
-                                <input type="text" class="form-input" id="ouiSearchInput" placeholder="OUI veya vendor ile ara..." onkeyup="filterOuiList()">
+                                <input type="text" class="form-input" id="ouiSearchInput" placeholder="{{ _('search_oui_vendor') }}" onkeyup="filterOuiList()">
                             </div>
                             <div class="oui-list" id="ouiList"></div>
                         </div>
                     </div>
                     
                     <div style="margin-top: 20px;">
-                        <button class="btn" onclick="saveOuiDatabase()">💾 OUI Database Kaydet</button>
-                        <button class="btn btn-secondary" onclick="exportOuiDatabase()" style="margin-left: 10px;">📤 Export</button>
+                        <button class="btn" onclick="saveOuiDatabase()">{{ _('save_oui_database') }}</button>
+                        <button class="btn btn-secondary" onclick="exportOuiDatabase()" style="margin-left: 10px;">{{ _('export') }}</button>
                         <input type="file" id="ouiImportFile" accept=".json" style="display: none;" onchange="importOuiDatabase()">
-                        <button class="btn btn-secondary" onclick="document.getElementById('ouiImportFile').click()" style="margin-left: 10px;">📥 Import</button>
+                        <button class="btn btn-secondary" onclick="document.getElementById('ouiImportFile').click()" style="margin-left: 10px;">{{ _('import') }}</button>
                     </div>
                 </div>
             </div>
@@ -163,13 +155,13 @@
             <!-- Cihaz Tipleri -->
             <div id="devices" class="tab-content">
                 <div class="card">
-                    <h3 class="card-title">📱 {{ _('device_types') }}</h3>
+                    <h3 class="card-title"><svg class="ds-icon" aria-hidden="true"><use href="#i-cpu"/></svg>{{ _('device_types') }}</h3>
                     <p style="margin-bottom: 20px; color: var(--text-secondary);">
                         {{ _('device_types_desc') }}
                     </p>
                     
                     <div class="grid">
-                        <div style="max-width: 350px;">
+                        <div>
                             <h4>{{ _('add_device_type') }}</h4>
                             <div class="form-group">
                                 <label class="form-label">{{ _('device_type_name') }}</label>
@@ -179,7 +171,7 @@
                                 <label class="form-label">{{ _('icon_emoji') }}</label>
                                 <div style="display: flex; gap: 10px; align-items: center;">
                                     <input type="text" class="form-input" id="newDeviceIcon" placeholder="🔊" maxlength="2" style="width: 80px; text-align: center; font-size: 1.2em;">
-                                    <button type="button" class="btn btn-small" onclick="openEmojiPicker('newDeviceIcon')">📋 {{ _('select') }}</button>
+                                    <button type="button" class="btn btn-small" onclick="openEmojiPicker('newDeviceIcon')"><svg class="ds-icon" aria-hidden="true"><use href="#i-table"/></svg>{{ _('select') }}</button>
                                 </div>
                             </div>
                             <div class="form-group">
@@ -205,17 +197,17 @@
                                     <option value="industrial">Industrial</option>
                                 </select>
                             </div>
-                            <button class="btn" onclick="addDeviceType()">➕ Cihaz Tipi Ekle</button>
+                            <button class="btn" onclick="addDeviceType()">{{ _('add_device_type') }}</button>
                         </div>
                         
                         <div>
-                            <h4>Mevcut Cihaz Tipleri</h4>
-                            <div id="deviceTypesList" style="max-height: 350px; overflow-y: auto; border: 1px solid var(--border-subtle); border-radius: 6px; padding: 10px;"></div>
+                            <h4>{{ _('current_device_types') }}</h4>
+                            <div id="deviceTypesList" class="device-types-grid"></div>
                         </div>
                     </div>
                     
                     <div style="margin-top: 20px;">
-                        <button class="btn" onclick="saveDeviceTypes()">💾 Cihaz Tiplerini Kaydet</button>
+                        <button class="btn" onclick="saveDeviceTypes()">{{ _('save_device_types') }}</button>
                     </div>
                 </div>
             </div>
@@ -224,7 +216,7 @@
             <div id="detection" class="tab-content">
                 <div class="grid">
                     <div class="card">
-                        <h3 class="card-title">🔍 {{ _('hostname_patterns') }}</h3>
+                        <h3 class="card-title"><svg class="ds-icon" aria-hidden="true"><use href="#i-search"/></svg>{{ _('hostname_patterns') }}</h3>
                         <p style="margin-bottom: 15px; color: var(--text-secondary);">
                             {{ _('hostname_patterns_desc') }}
                         </p>
@@ -236,7 +228,7 @@
                                 <select class="form-select" id="newHostnameDeviceType" style="width: 150px;">
                                     <option value="">{{ _('select_device_type') }}</option>
                                 </select>
-                                <button type="button" class="btn btn-small" onclick="addHostnamePattern()">➕ {{ _('add') }}</button>
+                                <button type="button" class="btn btn-small" onclick="addHostnamePattern()"><svg class="ds-icon" aria-hidden="true"><use href="#i-plus"/></svg>{{ _('add') }}</button>
                             </div>
                         </div>
                         
@@ -244,7 +236,7 @@
                     </div>
 
                     <div class="card">
-                        <h3 class="card-title">🏭 {{ _('vendor_patterns') }}</h3>
+                        <h3 class="card-title"><svg class="ds-icon" aria-hidden="true"><use href="#i-router"/></svg>{{ _('vendor_patterns') }}</h3>
                         <p style="margin-bottom: 15px; color: var(--text-secondary);">
                             {{ _('vendor_patterns_desc') }}
                         </p>
@@ -256,7 +248,7 @@
                                 <select class="form-select" id="newVendorDeviceType" style="width: 150px;">
                                     <option value="">{{ _('select_device_type') }}</option>
                                 </select>
-                                <button type="button" class="btn btn-small" onclick="addVendorPattern()">➕ {{ _('add') }}</button>
+                                <button type="button" class="btn btn-small" onclick="addVendorPattern()"><svg class="ds-icon" aria-hidden="true"><use href="#i-plus"/></svg>{{ _('add') }}</button>
                             </div>
                         </div>
                         
@@ -265,19 +257,19 @@
                 </div>
                 
                 <div style="margin-top: 20px;">
-                    <button class="btn" onclick="saveDetectionRules()">💾 {{ _('save_detection_rules') }}</button>
+                    <button class="btn" onclick="saveDetectionRules()"><svg class="ds-icon" aria-hidden="true"><use href="#i-download"/></svg>{{ _('save_detection_rules') }}</button>
                 </div>
             </div>
 
             <!-- Ağ Arayüzleri -->
             <div id="networks" class="tab-content">
                 <div class="card">
-                    <h3 class="card-title">🌐 {{ _('current_network_interfaces') }}</h3>
+                    <h3 class="card-title"><svg class="ds-icon" aria-hidden="true"><use href="#i-globe"/></svg>{{ _('current_network_interfaces') }}</h3>
                     <p style="margin-bottom: 20px; color: var(--text-secondary);">
                         {{ _('network_interfaces_desc') }}
                     </p>
                     <div id="networksList"></div>
-                    <button class="btn" onclick="refreshNetworks()" style="margin-top: 15px;">🔄 {{ _('refresh_networks') }}</button>
+                    <button class="btn" onclick="refreshNetworks()" style="margin-top: 15px;"><svg class="ds-icon" aria-hidden="true"><use href="#i-refresh"/></svg>{{ _('refresh_networks') }}</button>
                 </div>
             </div>
 
@@ -285,45 +277,45 @@
             <div id="docker" class="tab-content">
                 <div class="grid">
                     <div class="card">
-                        <h3 class="card-title">🐳 {{ _('docker_status') }}</h3>
+                        <h3 class="card-title"><svg class="ds-icon" aria-hidden="true"><use href="#i-plug"/></svg>{{ _('docker_status') }}</h3>
                         <div id="dockerStatus">
                             <div class="loading">{{ _('loading_docker_info') }}</div>
                         </div>
                     </div>
                     
                     <div class="card">
-                        <h3 class="card-title">🌐 {{ _('docker_networks') }}</h3>
+                        <h3 class="card-title"><svg class="ds-icon" aria-hidden="true"><use href="#i-globe"/></svg>{{ _('docker_networks') }}</h3>
                         <p style="margin-bottom: 15px; color: var(--text-secondary);">
                             {{ _('docker_networks_desc') }}
                         </p>
                         <div id="dockerNetworksList">
                             <div class="loading">{{ _('loading_network_info') }}</div>
                         </div>
-                        <button class="btn" onclick="refreshDockerNetworks()" style="margin-top: 15px;">🔄 {{ _('refresh_docker_networks') }}</button>
+                        <button class="btn" onclick="refreshDockerNetworks()" style="margin-top: 15px;"><svg class="ds-icon" aria-hidden="true"><use href="#i-refresh"/></svg>{{ _('refresh_docker_networks') }}</button>
                     </div>
                 </div>
 
                 <div class="grid" style="margin-top: 20px;">
                     <div class="card">
-                        <h3 class="card-title">📦 {{ _('docker_containers') }}</h3>
+                        <h3 class="card-title"><svg class="ds-icon" aria-hidden="true"><use href="#i-download"/></svg>{{ _('docker_containers') }}</h3>
                         <p style="margin-bottom: 15px; color: var(--text-secondary);">
                             {{ _('running_containers_desc') }}
                         </p>
                         <div id="dockerContainersList">
                             <div class="loading">{{ _('loading_container_info') }}</div>
                         </div>
-                        <button class="btn" onclick="refreshDockerContainers()" style="margin-top: 15px;">🔄 {{ _('refresh_containers') }}</button>
+                        <button class="btn" onclick="refreshDockerContainers()" style="margin-top: 15px;"><svg class="ds-icon" aria-hidden="true"><use href="#i-refresh"/></svg>{{ _('refresh_containers') }}</button>
                     </div>
                     
                     <div class="card">
-                        <h3 class="card-title">🎯 {{ _('scan_ranges') }}</h3>
+                        <h3 class="card-title"><svg class="ds-icon" aria-hidden="true"><use href="#i-shield"/></svg>{{ _('scan_ranges') }}</h3>
                         <p style="margin-bottom: 15px; color: var(--text-secondary);">
                             {{ _('docker_scan_ranges_desc') }}
                         </p>
                         <div id="dockerScanRangesList">
                             <div class="loading">{{ _('loading_scan_ranges') }}</div>
                         </div>
-                        <button class="btn" onclick="refreshDockerScanRanges()" style="margin-top: 15px;">🔄 {{ _('refresh_scan_ranges') }}</button>
+                        <button class="btn" onclick="refreshDockerScanRanges()" style="margin-top: 15px;"><svg class="ds-icon" aria-hidden="true"><use href="#i-refresh"/></svg>{{ _('refresh_scan_ranges') }}</button>
                     </div>
                 </div>
             </div>
@@ -334,7 +326,7 @@
     <div id="emojiPickerModal" class="emoji-picker-modal">
         <div class="emoji-picker-content">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h3>🙂 {{ _('select_emoji') }}</h3>
+                <h3>{{ _('emoji_picker') }}</h3>
                 <button type="button" onclick="closeEmojiPicker()" style="background: none; border: none; font-size: 1.5em; cursor: pointer;">✖️</button>
             </div>
             
@@ -354,7 +346,7 @@
                     <button type="button" class="btn btn-small btn-secondary" onclick="filterEmojiCategory('gaming')" id="categoryGaming">Gaming</button>
                     <button type="button" class="btn btn-small btn-secondary" onclick="filterEmojiCategory('iot')" id="categoryIot">IoT</button>
                 </div>
-                <input type="text" class="form-input" id="emojiSearchInput" placeholder="Emoji ara..." style="margin-bottom: 10px;" oninput="searchEmojisHandler(event)" onkeyup="searchEmojisHandler(event)">
+                <input type="text" class="form-input" id="emojiSearchInput" placeholder="{{ _('emoji_search') }}" style="margin-bottom: 10px;" oninput="searchEmojisHandler(event)" onkeyup="searchEmojisHandler(event)">
             </div>
             
             <div id="emojiGrid" class="emoji-grid"></div>
