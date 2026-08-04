@@ -551,5 +551,6 @@
   "no_docker_networks": "Docker ağı bulunamadı",
   "no_docker_containers": "Çalışan Docker konteyneri yok",
   "no_docker_ranges": "Docker tarama aralığı bulunamadı",
-  "docker_range_added": "{network} ({subnet}) tarama aralıklarına eklendi"
+  "docker_range_added": "{network} ({subnet}) tarama aralıklarına eklendi",
+  "showing_x_of_matches": "{total} eşleşmeden {shown} tanesi gösteriliyor"
 }

@@ -10,7 +10,42 @@ Modern ve kullanıcı dostu web arayüzü ile ağ yönetimini kolaylaştırır. 
 
 > *Bu uygulama tümüyle **AI destekli** olarak (**Agentic Mode**) [Claude Code](https://www.anthropic.com/claude-code)*, [Github Copilot](https://github.com/features/copilot) ve *[Visual Studio Code](https://code.visualstudio.com/) kullanılarak **Open-Source** olarak geliştirilmiştir.*
 
-## 🆕 v2'de Yenilikler
+## 🆕 v1.2'de Yenilikler
+
+> Sürüm sürüm tüm değişiklikler için: [**CHANGELOG.md**](CHANGELOG.md)
+
+**Cihaz görünümünde üç yeni yerleşim** — Araç çubuğundaki görünüm anahtarından:
+
+| Görünüm                  | Ne gösterir                                                                              |
+| ------------------------ | ---------------------------------------------------------------------------------------- |
+| **Grafik (Graph)**       | Kuvvet tabanlı ağ bulutu; alt ağ geçitleri merkez, cihazlar kategori rengiyle uydu       |
+| **Topoloji**             | Gerçek zincir: `İnternet → router → switch/AP → grup → cihaz`, 17 adlandırılmış grup |
+| **Ev Planı (Home Plan)** | Kat planı üzerine sürükle-bırak cihaz iğneleri; oda adları düzenlenebilir              |
+
+Ev planında arka planı kendi görselinizle değiştirebilirsiniz; iğne konumları
+oransal saklandığı için her ekran genişliğinde doğru kalır.
+
+**Bağlantı zinciri keşfi** (`/api/topology`) — "Bu cihaz neye bağlı?" sorusunu
+üç kaynaktan, güven sırasına göre yanıtlar: elle atanmış uplink, traceroute ile
+bulunan yönlendirilmiş atlama, ardından doğrudan varsayım. Bilinen bağlantılar
+düz, varsayılanlar kesikli çizgiyle çizilir. **Köprü modundaki bir switch veya
+erişim noktası 3. katmanda görünmez** — bu yüzden tahmin edilmez, cihaza
+tıklayıp elle belirtebilirsiniz.
+
+**Geçmiş ve Ayarlar sayfaları yeni tasarım sistemine taşındı** — Grafiklerde
+veri etiketleri, sayı ve yüzde içeren gösterge; Cihaz Tipleri artık okunabilir
+ikonlarla kart ızgarası; tanıma kurallarında hangi regex hangi cihaz tipine
+eşleşiyor artık görünüyor ve açılır listeden değiştirilebiliyor.
+
+**Ayarlar sayfası artık anında açılıyor** — 1,5 MB'lık OUI veritabanı sayfa
+yüklenirken çekilip ayrıştırılıyor ve diğer tüm sekmeleri bekletiyordu. Artık
+yalnızca kendi sekmesi açıldığında yükleniyor ve listede 40.000 DOM düğümü
+yerine en fazla 200 eşleşen satır oluşturuluyor.
+
+**Ağ Haritası (Network Map) görünümü kaldırıldı** — Yerini Grafik ve Topoloji
+görünümleri aldı.
+
+## 🆕 v1.1'de Yenilikler
 
 > Sürüm sürüm tüm değişiklikler için: [**CHANGELOG.md**](CHANGELOG.md)
 
@@ -405,6 +440,26 @@ nmap --version
 - Encryption key dosyalarını silin ve yeniden oluşturun
 
 ## 🔄 Güncelleme Geçmişi
+
+Tam liste: [**CHANGELOG.md**](CHANGELOG.md)
+
+### v1.2.0 (2026-08-04)
+
+- ✅ Grafik, Topoloji ve Ev Planı görünümleri
+- ✅ Bağlantı zinciri (uplink) keşfi ve elle atama
+- ✅ Geçmiş ve Ayarlar sayfaları yeni tasarım sistemine taşındı
+- ✅ Ayarlar sayfası açılış performansı (OUI veritabanı tembel yükleme)
+- ✅ Yeni uygulama ikonu ve favicon
+- ✅ TR/EN çeviriler tamamlandı ve eşitlendi
+- ❌ Ağ Haritası görünümü kaldırıldı
+
+### v1.1.0 (2026-08-04)
+
+- ✅ Çoklu protokol keşfi (mDNS/Matter, SSDP, BLE, MQTT)
+- ✅ Periyodik izleme, uyarı kuralları ve bildirim kanalları
+- ✅ Home Assistant çift yönlü entegrasyon
+- ✅ Root'suz tarama (ping sweep + ARP cache)
+- ✅ Tasarım sistemi, açık/koyu tema, PWA
 
 ### v1.0.1 (2025-07-09)
 

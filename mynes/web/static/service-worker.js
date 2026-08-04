@@ -16,7 +16,7 @@
    when the shell changes; move to a generated manifest only if assets multiply.
 */
 
-const CACHE_VERSION = 'mynes-v2.0';
+const CACHE_VERSION = 'mynes-v1.2.0';
 const SHELL_CACHE = CACHE_VERSION + '-shell';
 const RUNTIME_CACHE = CACHE_VERSION + '-runtime';
 

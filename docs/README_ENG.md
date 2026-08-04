@@ -10,6 +10,39 @@ It simplifies network management with a modern and user-friendly web interface. 
 
 > *This application has been developed entirely **AI-assisted** (**Agentic Mode**) using [Claude Code](https://www.anthropic.com/claude-code), [Github Copilot](https://github.com/features/copilot), and [Visual Studio Code](https://code.visualstudio.com/) as **Open-Source**.*
 
+## 🆕 What's New in v1.2
+
+> Full per-release detail: [**CHANGELOG.md**](../CHANGELOG.md)
+
+**Three new layouts** in the device view's layout switch:
+
+| View              | What it shows                                                                                  |
+| ----------------- | ---------------------------------------------------------------------------------------------- |
+| **Graph**         | Force-directed cloud; subnet gateways as hubs, devices coloured by category                     |
+| **Topology**      | The real chain: `Internet → router → switch/AP → group → device`, across 17 named groups     |
+| **Home plan**     | Drag-and-drop device pins on a floor plan; room names are editable                              |
+
+In the home plan you can swap the background for your own image; pin positions
+are stored as fractions, so the plan stays correct at any width.
+
+**Uplink discovery** (`/api/topology`) answers "what is this device plugged
+into" from three sources, most-trusted first: a hand-assigned uplink, a
+traceroute-discovered routed hop, then assumed-direct. Known edges draw solid,
+assumed ones dashed. **A bridged switch or access point is invisible at layer
+3** — so nothing is guessed; you click the device and say what it hangs off.
+
+**History and Settings rebuilt on the design system** — charts carry data
+labels and a legend with counts and percentages; Device Types is a card grid
+with legible icons; detection rules now show which device type each regex maps
+to, as an editable dropdown.
+
+**Settings opens instantly** — the 1.5 MB OUI database was fetched and parsed
+during page load, blocking every other tab. It now loads when its own tab is
+first opened, and the list renders at most 200 matching rows instead of 40,000
+DOM nodes.
+
+**The Network Map view was removed** — the Graph and Topology views replace it.
+
 ## ✨ Features
 
 - 🌐 **Web-based Interface** - Modern, responsive, user friendly web UI
@@ -291,6 +324,26 @@ docker run --privileged --cap-add=NET_ADMIN --cap-add=NET_RAW fxerkan/my_network
 ```
 
 ## 🔄 Release History
+
+Full list: [**CHANGELOG.md**](../CHANGELOG.md)
+
+### v1.2.0 (2026-08-04)
+
+- ✅ Graph, Topology and Home plan views
+- ✅ Uplink discovery and manual assignment
+- ✅ History and Settings rebuilt on the design system
+- ✅ Settings load performance (lazy OUI database)
+- ✅ New app icon and favicon
+- ✅ Turkish and English translations completed and in sync
+- ❌ Network Map view removed
+
+### v1.1.0 (2026-08-04)
+
+- ✅ Multi-protocol discovery (mDNS/Matter, SSDP, BLE, MQTT)
+- ✅ Scheduled monitoring, alert rules and notification channels
+- ✅ Two-way Home Assistant integration
+- ✅ Root-free scanning (ping sweep + OS ARP cache)
+- ✅ Design system, light/dark theme, PWA
 
 ### v1.0.1 (2025-07-09)
 

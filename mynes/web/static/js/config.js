@@ -171,7 +171,9 @@ function displayOuiDatabase() {
                 </button>
             </span>
         </div>`).join('')
-        + `<div class="oui-count">${t('showing_x_of_y', { shown: shown.length, total: all.length })}</div>`;
+        + `<div class="oui-count">${term
+              ? t('showing_x_of_matches', { shown: shown.length, total: matches.length })
+              : t('showing_x_of_y', { shown: shown.length, total: all.length })}</div>`;
 
     ouiList.querySelectorAll('[data-oui-edit]').forEach(btn =>
         btn.addEventListener('click', () => editOuiEntry(btn.dataset.ouiEdit, currentOuiDatabase[btn.dataset.ouiEdit])));

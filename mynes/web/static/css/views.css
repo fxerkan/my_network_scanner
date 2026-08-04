@@ -231,7 +231,7 @@
      grid when it is short - that is what left dead space under it before. */
   max-height: clamp(320px, 65vh, 620px);
 }
-.home-tray__list { overflow-y: auto; }
+.home-tray__list { overflow-y: auto; overflow-x: hidden; }
 .home-tray h4 {
   margin: 0 0 var(--space-2);
   font-size: var(--text-sm);
@@ -257,7 +257,7 @@
   touch-action: none;
 }
 .home-tray__item:hover { background: var(--bg-hover); border-color: var(--border-default); }
-.home-tray__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.home-tray__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .home-tray__empty { font-size: var(--text-sm); color: var(--text-tertiary); margin: 0; }
 
 /* built-in floor plan - HTML, not SVG, so room names are directly editable */

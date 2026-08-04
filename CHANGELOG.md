@@ -4,9 +4,74 @@ All notable changes to MyNeS (My Network Scanner) are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
-## [2.0.0] — 2026-08-04
+## [1.2.0] — 2026-08-04
 
-v2 is a rewrite around one idea: **a home network is not just IP addresses.**
+### Added
+
+- **Three new layouts in the device view's layout switch.**
+  - *Graph* — force-directed cloud, subnet gateways drawn as hubs, device
+    category by colour. No charting dependency; the layout is ~40 lines of
+    spring/repulsion in `static/js/views.js`.
+  - *Topology* — the real chain, `Internet → router → switch/AP → group →
+    device`, with devices bucketed into 17 named groups (Lights, Cameras,
+    Climates, Medias, Pets, Servers, Computers, Phones, Tablets, Access
+    Points, Vacuums, Switches, Sensors, IoT Devices, TVs, Smart Home, Other).
+  - *Home plan* — a floor plan with drag-and-drop device pins. Room names are
+    editable, the background can be replaced with the user's own image
+    (downscaled to 1600px before it is stored), and pin positions are kept as
+    fractions so the plan stays correct at any width.
+- **Uplink discovery** (`mynes/core/topology.py`, `/api/topology`). Answers
+  "what is this device plugged into" from three sources, most-trusted first:
+  a hand-assigned uplink, a traceroute-discovered routed hop, then
+  assumed-direct. Known edges draw solid, assumed ones dashed. An unmanaged
+  switch is invisible at layer 3, so the manual assignment is the only way to
+  record one — the UI says so rather than guessing.
+
+### Changed
+
+- **History page** rebuilt on the design system: KPI tiles match the Devices
+  page, charts carry data labels and a legend with counts and percentages,
+  and the donut/trend series read their colours from shared `--chart-*`
+  tokens so they work in both themes.
+- **Settings page** rebuilt on the design system. Device Types is a card grid
+  with legible icons instead of a cramped scroll box; detection rules show the
+  device type each pattern maps to, as an editable dropdown.
+- **Header and footer.** The brand is now "MyNeS" over "My Network Scanner";
+  the footer carries the version, a GitHub link and the author, without the
+  commit hash.
+- New app icon and favicon, replacing the emoji-in-an-SVG placeholder.
+- "Advanced Analysis" is called **Detailed Analysis** everywhere, and the
+  action-button icons come from the sprite at a legible size.
+- The version is a constant in `mynes/core/version.py` instead of a
+  git-describe string; users were being shown things like `1.0.5-f5cfbb2+`.
+
+### Fixed
+
+- **Settings took seconds to become usable**: the 1.5 MB OUI database was
+  fetched and parsed during page load, blocking every other tab. It is now
+  loaded when its own tab is first opened, and the list renders at most 200
+  matching rows instead of building 40,000 DOM nodes. Search filters the data
+  (debounced) rather than walking every node.
+- Vendor bars on the History page overflowed their card — a 510px fixed-width
+  name column, now a grid.
+- Trend chart labels and history dates were hardcoded Turkish and appeared
+  untranslated on the English page.
+- The built-in home floor plan was invisible on the light theme.
+- Table headers used the inverted palette, which came out white in dark mode.
+- Card action buttons sat at different heights depending on card content;
+  they now align to the bottom edge.
+- Turkish and English translation tables are complete and in sync (both 549
+  keys); the settings page no longer has hardcoded Turkish strings.
+
+### Removed
+
+- The Network Map layout. The graph and topology views replace it. The
+  service worker cache version was bumped so the removed button does not
+  linger in an already-installed PWA shell.
+
+## [1.1.0] — 2026-08-04
+
+This release is built around one idea: **a home network is not just IP addresses.**
 An ARP scan cannot see a Zigbee bulb, a Bluetooth tracker or a Matter sensor,
 so v2 adds a discovery layer per protocol, a monitoring loop that tells you
 when something changes, and a Home Assistant integration that works in both

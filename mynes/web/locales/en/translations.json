@@ -551,5 +551,6 @@
   "no_docker_networks": "No Docker networks found",
   "no_docker_containers": "No running Docker containers",
   "no_docker_ranges": "No Docker scan ranges found",
-  "docker_range_added": "{network} ({subnet}) added to the scan ranges"
+  "docker_range_added": "{network} ({subnet}) added to the scan ranges",
+  "showing_x_of_matches": "Showing {shown} of {total} matches"
 }

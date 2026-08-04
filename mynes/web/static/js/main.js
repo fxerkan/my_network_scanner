@@ -415,7 +415,7 @@ function displayDevicesCard() {
                 </div>
             </div>
 
-            ${device.alias ? `<div class="device-alias">👤 ${device.alias}</div>` : ''}
+            ${device.alias ? `<div class="device-alias"><svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-info"/></svg> ${device.alias}</div>` : ''}
             
             ${device.notes ? `<div class="device-notes">📝 ${device.notes.replace(/\n/g, '<br>')}</div>` : ''}
 
@@ -447,7 +447,7 @@ function displayDevicesCard() {
 
             ${device.open_ports && device.open_ports.length > 0 ? `
                 <div class="ports-container">
-                    <div class="ports-title">🔌 ${t('open_ports')}</div>
+                    <div class="ports-title"><svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-plug"/></svg> ${t('open_ports')}</div>
                     <div class="ports-list">
                         ${device.open_ports.map(port => {
                             if (typeof port === 'object') {
