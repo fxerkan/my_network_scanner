@@ -76,6 +76,7 @@ services:
             en_US: Configuration and encrypted credentials.
             tr_TR: Yapılandırma ve şifrelenmiş kimlik bilgileri.
 x-casaos:
+  id: io.github.fxerkan.mynes
   architectures:
     - amd64
     - arm64
