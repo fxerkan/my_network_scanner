@@ -22,6 +22,7 @@
             <!-- Genel Ayarlar -->
             <div id="general" class="tab-content active">
                 <div class="grid">
+                  <div class="grid-col">
                     <div class="card">
                         <h3 class="card-title"><svg class="ds-icon" aria-hidden="true"><use href="#i-radar"/></svg>{{ _('scan_settings') }}</h3>
                         <div class="form-group">
@@ -43,6 +44,26 @@
                         </div>
                     </div>
 
+                    <div class="ds-card">
+                        <div class="ds-card__header">
+                            <svg class="ds-icon" aria-hidden="true"><use href="#i-shield"/></svg>
+                            <h3 class="ds-card__title">{{ _('access_control') }}</h3>
+                            <div class="ds-spacer"></div>
+                            <span class="ds-badge" id="authBadge">—</span>
+                        </div>
+                        <div class="ds-card__body ds-stack">
+                            <p class="ds-muted" style="margin:0">{{ _('access_control_desc') }}</p>
+                            <label class="ds-switch">
+                                <input type="checkbox" id="loginRequired">
+                                <span class="ds-switch__track"></span>
+                                <span class="ds-label" style="margin:0">{{ _('require_sign_in') }}</span>
+                            </label>
+                            <div id="authHint"></div>
+                        </div>
+                    </div>
+                  </div>
+
+                  <div class="grid-col">
                     <div class="card">
                         <h3 class="card-title"><svg class="ds-icon" aria-hidden="true"><use href="#i-plug"/></svg>{{ _('port_settings') }}</h3>
                         <div class="form-group">
@@ -73,28 +94,8 @@
                             </div>
                         </div>
                     </div>
+                  </div>
                 </div>
-                <!-- Access control -->
-                <div class="ds-card" style="margin-top: 20px;">
-                    <div class="ds-card__header">
-                        <svg class="ds-icon" aria-hidden="true"><use href="#i-shield"/></svg>
-                        <h3 class="ds-card__title">{{ _('access_control') }}</h3>
-                        <div class="ds-spacer"></div>
-                        <span class="ds-badge" id="authBadge">—</span>
-                    </div>
-                    <div class="ds-card__body ds-stack">
-                        <p class="ds-muted" style="margin:0">
-{{ _('access_control_desc') }}
-                        </p>
-                        <label class="ds-switch">
-                            <input type="checkbox" id="loginRequired">
-                            <span class="ds-switch__track"></span>
-                            <span class="ds-label" style="margin:0">{{ _('require_sign_in') }}</span>
-                        </label>
-                        <div id="authHint"></div>
-                    </div>
-                </div>
-
                 <div style="margin-top: 20px;">
                     <button class="btn" onclick="saveGeneralSettings()"><svg class="ds-icon" aria-hidden="true"><use href="#i-download"/></svg>{{ _('save_general_settings') }}</button>
                 </div>
@@ -140,6 +141,7 @@
                                 <input type="text" class="form-input" id="ouiSearchInput" placeholder="{{ _('search_oui_vendor') }}" onkeyup="filterOuiList()">
                             </div>
                             <div class="oui-list" id="ouiList"></div>
+                            <div class="oui-pager" id="ouiPager"></div>
                         </div>
                     </div>
                     

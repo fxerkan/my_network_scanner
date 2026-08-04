@@ -554,5 +554,20 @@
   "docker_range_added": "{network} ({subnet}) tarama aralıklarına eklendi",
   "showing_x_of_matches": "{total} eşleşmeden {shown} tanesi gösteriliyor",
   "pattern": "Desen",
-  "invalid_regex": "Geçerli bir düzenli ifade değil:"
+  "invalid_regex": "Geçerli bir düzenli ifade değil:",
+  "no_results": "Eşleşme yok",
+  "first_page": "İlk sayfa",
+  "previous_page": "Önceki sayfa",
+  "next_page": "Sonraki sayfa",
+  "last_page": "Son sayfa",
+  "showing_range": "{total} kayıttan {from}–{to}",
+  "page_x_of_y": "sayfa {page} / {pages}",
+  "auth_sign_in_required": "giriş zorunlu",
+  "auth_open_to_network": "ağdaki herkese açık",
+  "auth_no_credentials": "Kimlik bilgisi tanımlı değil. Proje kökündeki <code>.env</code> dosyasına şunları ekleyip MyNeS'i yeniden başlatın:",
+  "auth_hash_hint": "Hash tercih ederseniz şunu çalıştırıp sonucu MYNES_AUTH_PASSWORD içine yazın:",
+  "auth_signed_in_as": "Etkinleştirildiğinde <b>{user}</b> olarak giriş yapılır. Bilgileri <code>.env</code> içinde değiştirip MyNeS'i yeniden başlatın.",
+  "auth_sign_out": "Şimdi çıkış yap",
+  "auth_enabled_toast": "Giriş artık zorunlu. Bu tarayıcıda oturumunuz açık kalır.",
+  "auth_disabled_toast": "Giriş kapatıldı — ağdaki herkes MyNeS'i açabilir."
 }

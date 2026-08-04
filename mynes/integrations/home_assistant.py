@@ -414,7 +414,7 @@ class HomeAssistantClient:
 
         # HA's device registry rarely carries a MAC and never an IP, so an
         # identifier-only diff under-reports badly. Names are the third signal:
-        # "rpifx" in HA is "rpifx.local" here.
+        # "livingroom-pi" in HA is "livingroom-pi.local" here.
         ha_names = {n for d in ha for n in _name_keys(d)}
         my_names = {n for d in mynes_devices for n in _name_keys(d)}
 
@@ -529,8 +529,8 @@ def _identifiers_in_name(name: str | None) -> tuple[str | None, str | None]:
 def _name_keys(device: dict) -> set[str]:
     """Comparable name forms for a device, from either side of the diff.
 
-    Strips `.local`, case and punctuation so `rpifx.local`, `RPiFX` and `rpi-fx`
-    all collapse to `rpifx`. Names shorter than four characters are dropped -
+    Strips `.local`, case and punctuation so `media-pi.local`, `MediaPi` and
+    `media-pi` all collapse to `mediapi`. Names under four characters go -
     "tv" or "pi" would match half the network.
     """
     keys = set()

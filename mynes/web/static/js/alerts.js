@@ -60,7 +60,7 @@
   // `trigger:` key inside the list, not the legacy `trigger:`/`platform:` pair.
   var CHANNEL_GUIDES = {
     mynes_push: {
-      title: 'MyNeS push — no Home Assistant, no relay',
+      title: 'MyNeS push — no relay',
       steps: [
         'Scroll up to <b>Notifications on this device</b> and press <b>Enable on this device</b>. Your browser asks once for permission.',
         'Repeat that on every phone, tablet or laptop that should get alerts — each device registers itself.',
@@ -107,7 +107,7 @@
       title: 'Home Assistant webhook — two halves, both required',
       steps: [
         '<b>In Home Assistant.</b> Settings → Automations &amp; scenes → Create automation → <b>Create new automation</b>. There is no "webhook" entry in the blueprint list, so start empty, then open the ⋮ menu (top right) → <b>Edit in YAML</b> and paste the block below. Change <code>webhook_id</code> to something only you know, and save.',
-        '<b>Copy the URL.</b> It is your Home Assistant address plus the id you just chose:<br><code>http://192.168.1.116:8123/api/webhook/&lt;your-webhook_id&gt;</code>',
+        '<b>Copy the URL.</b> It is your Home Assistant address plus the id you just chose:<br><code>http://homeassistant.local:8123/api/webhook/&lt;your-webhook_id&gt;</code>',
         '<b>Back here.</b> Paste that URL in the field below and click <b>Add channel</b>. <i>This is the step that connects the two</i> — the automation does nothing until MyNeS knows where to send.',
         '<b>Check it.</b> Click <b>Send test</b>. A notification appears in Home Assistant under the bell icon within a second. From then on MyNeS POSTs to that URL every time an alert fires at or above the severity you picked above.'
       ],

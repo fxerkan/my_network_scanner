@@ -195,11 +195,24 @@
 .oui-item__vendor { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--text-sm); }
 .oui-item__actions { display: flex; gap: var(--space-1); }
 .oui-count {
-    padding: var(--space-2) var(--space-3);
+    padding: var(--space-4) var(--space-3);
     font-size: var(--text-sm);
     color: var(--text-tertiary);
     text-align: center;
 }
+
+.oui-pager {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-top: var(--space-2);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+}
+.oui-pager__label { flex: 1; display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: baseline; }
+.oui-pager__page { color: var(--text-tertiary); }
+.oui-pager .icon-btn { font-size: var(--text-md); line-height: 1; }
+.oui-pager .icon-btn[disabled] { opacity: 0.4; cursor: default; }
 
 .oui-item:last-child {
     border-bottom: none;
@@ -514,4 +527,13 @@
     background: var(--bg-surface-sunken);
     border-radius: var(--radius-sm);
     font-size: var(--text-sm);
+}
+
+/* A column of cards inside .grid. The port card is far taller than the scan
+   card, so plain grid cells left a hole under the short one. */
+.grid-col {
+    display: grid;
+    gap: var(--space-4);
+    align-content: start;
+    min-width: 0;
 }

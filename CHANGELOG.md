@@ -68,6 +68,8 @@ Both ride the existing rule and severity filters, so "new device found" and
   page, charts carry data labels and a legend with counts and percentages,
   and the donut/trend series read their colours from shared `--chart-*`
   tokens so they work in both themes.
+
+![Scan history](assets/screenshots/history.png)
 - **Settings page** rebuilt on the design system. Device Types is a card grid
   with legible icons instead of a cramped scroll box; detection rules show the
   device type each pattern maps to, as an editable dropdown.
@@ -87,6 +89,8 @@ Both ride the existing rule and severity filters, so "new device found" and
   loaded when its own tab is first opened, and the list renders at most 200
   matching rows instead of building 40,000 DOM nodes. Search filters the data
   (debounced) rather than walking every node.
+
+![OUI database](assets/screenshots/oui-database.png)
 - Vendor bars on the History page overflowed their card — a 510px fixed-width
   name column, now a grid.
 - Trend chart labels and history dates were hardcoded Turkish and appeared
@@ -129,7 +133,7 @@ empty list instead of breaking the scan.
 | MQTT | Zigbee2MQTT, Z-Wave JS, Tasmota and HA-discovery retained topics — the only way to see radio devices |
 | DHCP (passive) | Devices that announce themselves; needs raw-socket privileges |
 
-![Protocol discovery](assets/screenshots/discovery.jpg)
+![Protocol discovery](assets/screenshots/discovery.png)
 
 #### Monitoring & alerts
 
@@ -145,7 +149,7 @@ empty list instead of breaking the scan.
   `SENDERS`.
 - Capped JSON alert history with severity filter, mark-read and clear.
 
-![Monitoring and alerts](assets/screenshots/monitoring-alerts.jpg)
+![Monitoring and alerts](assets/screenshots/monitoring-alerts.png)
 
 #### Home Assistant integration, both directions
 
@@ -168,7 +172,7 @@ Map, **Graph**, **Topology** and **Home** are new.
 **Graph view** — a force-directed map of the LAN, devices coloured by category
 (Network, Servers & NAS, Personal, Media, IoT, Other) around the gateway.
 
-![Graph view](assets/screenshots/graph-view.jpg)
+![Graph view](assets/screenshots/graph-view.png)
 
 **Topology diagram** — the physical shape of the network: Internet → router →
 device groups. `Discover uplinks` runs a traceroute pass, and because a bridged
@@ -176,13 +180,13 @@ switch or access point is invisible on the wire, you can click a device and say
 what it is plugged into. Solid lines are known uplinks, dashed are assumed
 direct.
 
-![Topology diagram](assets/screenshots/topology-view.jpg)
+![Topology diagram](assets/screenshots/topology-view.png)
 
 **Home view** — a floor plan. Drop a device onto a room to pin it, drag to move,
 double-click to remove. Ships with a default plan and accepts your own
 background image; the sidebar lists everything not yet placed, grouped by type.
 
-![Home view](assets/screenshots/home-view.jpg)
+![Home view](assets/screenshots/home-view.png)
 
 #### Desktop platform integration (`mynes/platform/`)
 
@@ -209,6 +213,11 @@ background image; the sidebar lists everything not yet placed, grouped by type.
 - **Turkish and English** UI via `web/i18n.py` and `web/locales/{tr,en}/`.
 - Accessibility: visible focus rings, 44px minimum tap targets,
   `prefers-reduced-motion` respected.
+
+<p>
+  <img src="assets/screenshots/mobile-1.png" alt="Mobile - device list" width="45%">
+  <img src="assets/screenshots/mobile-2.png" alt="Mobile - device detail" width="45%">
+</p>
 - New `/api` v2 blueprint: `/api/discovery`, `/monitoring`, `/alerts`,
   `/notifications`, `/integrations`, `/health`, `/capabilities`.
 - **`/api/capabilities`** exists because "it only found two devices" is a
@@ -223,6 +232,11 @@ background image; the sidebar lists everything not yet placed, grouped by type.
   what makes LAN discovery work in a container.
 - Credential storage encrypted with Fernet + PBKDF2-HMAC-SHA256 (100k
   iterations); `security/sanitizer.py` strips sensitive fields before export.
+
+Detailed per-device analysis — services, system information and security
+findings behind one button:
+
+![Detailed device analysis](assets/screenshots/detailed-scan.png)
 - `docs/PHASE2_MOBILE.md` — the React Native / Expo plan and the server-side
   prerequisites (token auth, CORS, QR pairing, frozen `/api/devices`, SSE
   progress) to get right in Phase 1.

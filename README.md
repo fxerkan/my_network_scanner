@@ -8,102 +8,7 @@ Modern ve kullanıcı dostu web arayüzü ile ağ yönetimini kolaylaştırır. 
 
 ![Alt text](assets/mynes.png "a title")
 
-> *Bu uygulama tümüyle **AI destekli** olarak (**Agentic Mode**) [Claude Code](https://www.anthropic.com/claude-code)*, [Github Copilot](https://github.com/features/copilot) ve *[Visual Studio Code](https://code.visualstudio.com/) kullanılarak **Open-Source** olarak geliştirilmiştir.*
-
-## 🆕 v1.3'te Yenilikler
-
-**MyNeS artık kendi bildirimlerini gönderiyor.** Alerts sayfasındaki
-*Notifications on this device* kartından bir kez izin verin; uyarılar sekme
-kapalıyken bile tarayıcıya veya ana ekrana eklenmiş uygulamaya düşer. Araya
-Home Assistant, ntfy veya başka bir servis girmez — bildirim doğrudan bu
-sunucudan cihazınıza gider. Her cihaz kendini ayrı kaydeder.
-
-**Home Assistant `notify` servisine doğrudan kanal.** Webhook kanalının aksine
-HA tarafında otomasyon kurmanız gerekmiyor: zaten tanımlı token ile
-`notify.mobile_app_...` gibi bir servis doğrudan çağrılıyor. Kanal ekranı
-kurulumunuzun gerçekten sunduğu servisleri listeler.
-
-Yeni cihaz bulunduğunda ve bir cihaza erişilemediğinde/hata olduğunda uyarılar
-ek ayar gerekmeden bu kanallara gider.
-
-> Web Push isteğe bağlı bir bağımlılık ister: `pip install 'mynes[push]'`
-
-## 🆕 v1.2'de Yenilikler
-
-> Sürüm sürüm tüm değişiklikler için: [**CHANGELOG.md**](CHANGELOG.md)
-
-**Cihaz görünümünde üç yeni yerleşim** — Araç çubuğundaki görünüm anahtarından:
-
-| Görünüm                  | Ne gösterir                                                                              |
-| ------------------------ | ---------------------------------------------------------------------------------------- |
-| **Grafik (Graph)**       | Kuvvet tabanlı ağ bulutu; alt ağ geçitleri merkez, cihazlar kategori rengiyle uydu       |
-| **Topoloji**             | Gerçek zincir: `İnternet → router → switch/AP → grup → cihaz`, 17 adlandırılmış grup |
-| **Ev Planı (Home Plan)** | Kat planı üzerine sürükle-bırak cihaz iğneleri; oda adları düzenlenebilir              |
-
-Ev planında arka planı kendi görselinizle değiştirebilirsiniz; iğne konumları
-oransal saklandığı için her ekran genişliğinde doğru kalır.
-
-**Bağlantı zinciri keşfi** (`/api/topology`) — "Bu cihaz neye bağlı?" sorusunu
-üç kaynaktan, güven sırasına göre yanıtlar: elle atanmış uplink, traceroute ile
-bulunan yönlendirilmiş atlama, ardından doğrudan varsayım. Bilinen bağlantılar
-düz, varsayılanlar kesikli çizgiyle çizilir. **Köprü modundaki bir switch veya
-erişim noktası 3. katmanda görünmez** — bu yüzden tahmin edilmez, cihaza
-tıklayıp elle belirtebilirsiniz.
-
-**Geçmiş ve Ayarlar sayfaları yeni tasarım sistemine taşındı** — Grafiklerde
-veri etiketleri, sayı ve yüzde içeren gösterge; Cihaz Tipleri artık okunabilir
-ikonlarla kart ızgarası; tanıma kurallarında hangi regex hangi cihaz tipine
-eşleşiyor artık görünüyor ve açılır listeden değiştirilebiliyor.
-
-**Ayarlar sayfası artık anında açılıyor** — 1,5 MB'lık OUI veritabanı sayfa
-yüklenirken çekilip ayrıştırılıyor ve diğer tüm sekmeleri bekletiyordu. Artık
-yalnızca kendi sekmesi açıldığında yükleniyor ve listede 40.000 DOM düğümü
-yerine en fazla 200 eşleşen satır oluşturuluyor.
-
-**Ağ Haritası (Network Map) görünümü kaldırıldı** — Yerini Grafik ve Topoloji
-görünümleri aldı.
-
-## 🆕 v1.1'de Yenilikler
-
-> Sürüm sürüm tüm değişiklikler için: [**CHANGELOG.md**](CHANGELOG.md)
-
-**Home Lab için çoklu protokol keşfi** — IP taraması ev ağının yarısını kaçırır.
-MyNeS artık kendini duyuran her şeyi dinliyor:
-
-| Protokol                 | Bulduğu cihazlar                                                                             |
-| ------------------------ | --------------------------------------------------------------------------------------------- |
-| **mDNS / Bonjour** | Yazıcılar, NAS, Chromecast, HomeKit, Home Assistant, Raspberry Pi                           |
-| **Matter**         | `_matter._tcp` / `_matterc._udp` üzerinden Matter düğümleri (mDNS ile birlikte gelir) |
-| **SSDP / UPnP**    | Router, Smart TV, DLNA, IP kamera, oyun konsolları                                           |
-| **Bluetooth LE**   | Takip cihazları, sensörler, kulaklıklar, saatler —*IP'si olmayan cihazlar*              |
-| **MQTT**           | Zigbee2MQTT, Z-Wave JS, Tasmota, Home Assistant MQTT discovery                                |
-
-**Periyodik izleme ve bildirim** — Ağı belirli aralıklarla tarar, iki tarama
-arasındaki farkı çıkarır ve önemli olanı bildirir:
-
-- Yeni cihaz, cihaz çevrimdışı, IP değişimi, **MAC değişimi (ARP spoofing)**
-- Yeni açık port (SSH/RDP/SMB gibi hassas portlarda *kritik*)
-- **Düşük voltaj** (Raspberry Pi / Orange Pi güç sorunları), düşük pil,
-  yüksek gecikme, zayıf sinyal
-- Kanallar: ntfy (telefon push), Telegram, Webhook, Slack, Discord, E-posta
-- Tek bir kayıp yanıt bildirim göndermez — eşik ayarlanabilir
-
-**Home Assistant entegrasyonu** — İki yönlü:
-
-- **Push:** MQTT Discovery ile her cihaz otomatik olarak bir HA
-  `device_tracker` + tanılama sensörlerine dönüşür. YAML yok.
-- **Pull:** HA'nın kendi cihaz listesini okuyup MyNeS'in bulduklarıyla
-  karşılaştırır (Zigbee/Z-Wave/Matter cihazları dahil).
-
-**Kökensiz (root'suz) çalışan tarama** — Ham ARP root ister. Yetki yoksa MyNeS
-artık sessizce boş liste döndürmek yerine ping sweep + işletim sistemi ARP
-cache yöntemine düşüyor. Gerçek bir /24 ağda: **2 → 29 cihaz**.
-
-**Her ekranda çalışan arayüz** — Yeni tasarım sistemi (açık/koyu tema),
-PWA (telefona/tablete kurulabilir), 320px telefondan TV'ye kadar duyarlı
-yerleşim, TV kumandası için ok tuşu navigasyonu, erişilebilirlik iyileştirmeleri.
-
-📱 Mobil uygulama (Faz 2) planı: [`docs/PHASE2_MOBILE.md`](docs/PHASE2_MOBILE.md)
+> Sürüm sürüm tüm değişiklikler: [**CHANGELOG.md**](CHANGELOG.md)
 
 ## ✨ Özellikler
 
@@ -118,6 +23,66 @@ yerleşim, TV kumandası için ok tuşu navigasyonu, erişilebilirlik iyileştir
 - **🎛️ Yedekleme ve Aktarım**: JSON tabanalı basit ve kolay cihaz bilgilerini yedekleme ve geri yükleme
 - **📊 Geçmiş Tarama Analizi**: Geçmiş tarama sonuçlarını ve istatistiklerini takip edebilme
 - 🌍 **Çoklu Dil Desteği** - Türkçe ve İngilizce dil desteği
+- 📡 **Çoklu Protokol Keşfi**: mDNS/Bonjour, Matter, SSDP/UPnP, Bluetooth LE ve
+  MQTT (Zigbee2MQTT / Z-Wave JS / Tasmota) — IP taramasının göremediği cihazlar
+- 🔔 **Periyodik İzleme ve Bildirim**: Değişiklikleri tespit eder, uyarır
+- 🏠 **Home Assistant Entegrasyonu**: MQTT Discovery ile push, REST/WebSocket ile pull
+- 🗺️ **Beş Görünüm**: Kart, Tablo, Grafik, Topoloji ve Ev Planı
+- 📱 **PWA**: Telefona/tablete kurulabilir, açık/koyu tema, 320px'den TV'ye duyarlı
+
+### 🗺️ Görünümler
+
+Cihaz listesini beş farklı şekilde okuyabilirsiniz — araç çubuğundaki görünüm
+anahtarından geçiş yapılır.
+
+| Görünüm      | Ne işe yarar                                                              |
+| ------------ | ------------------------------------------------------------------------- |
+| Kart / Tablo | Ayrıntı ve toplu düzenleme                                                |
+| **Grafik**   | Ağın bütününü tek bakışta görmek; alt ağ geçitleri merkez                 |
+| **Topoloji** | Neyin neye bağlı olduğu: `İnternet → router → switch/AP → grup → cihaz` |
+| **Ev Planı** | Cihazları evinizin planına sürükleyip bırakmak                            |
+
+![Grafik görünümü](assets/screenshots/graph-view.png)
+
+![Topoloji diyagramı](assets/screenshots/topology-view.png)
+
+![Ev planı görünümü](assets/screenshots/home-view.png)
+
+### 📡 Çoklu Protokol Keşfi
+
+Bir IP taraması ev ağının yarısını kaçırır. MyNeS kendini duyuran her şeyi
+dinler: mDNS/Bonjour (yazıcı, NAS, Chromecast, HomeKit), Matter, SSDP/UPnP
+(router, Smart TV, kamera, konsol), Bluetooth LE (*IP'si olmayan cihazlar*) ve
+MQTT üzerinden Zigbee/Z-Wave cihazları.
+
+![Keşif](assets/screenshots/discovery.png)
+
+### 🔔 İzleme, Uyarı ve Bildirim
+
+Ağı belirli aralıklarla tarar, iki tarama arasındaki farkı çıkarır ve önemli
+olanı bildirir: yeni cihaz, cihaz çevrimdışı, IP değişimi, **MAC değişimi
+(ARP spoofing)**, yeni açık port, düşük voltaj (Raspberry Pi güç sorunları),
+düşük pil, yüksek gecikme, zayıf sinyal.
+
+Bildirim kanalları: **MyNeS'in kendi push'u** (Web Push — Home Assistant veya
+üçüncü taraf bir servise gerek yok), **Home Assistant `notify` servisi**,
+ntfy, Telegram, Webhook, Slack, Discord ve e-posta.
+
+![İzleme ve uyarılar](assets/screenshots/monitoring-alerts.png)
+
+### 📱 Telefonda
+
+Uygulama bir PWA: ana ekrana eklenebilir, açık/koyu temayı işletim sisteminden
+alır ve 320px genişlikten TV'ye kadar uyum sağlar.
+
+<p>
+  <img src="assets/screenshots/mobile-1.png" alt="Mobil - cihaz listesi" width="45%">
+  <img src="assets/screenshots/mobile-2.png" alt="Mobil - cihaz detayı" width="45%">
+</p>
+
+### 📈 Geçmiş ve İstatistikler
+
+![Tarama geçmişi](assets/screenshots/history.png)
 
 ### 📊 Detaylı Cihaz Bilgileri
 
@@ -131,6 +96,8 @@ yerleşim, TV kumandası için ok tuşu navigasyonu, erişilebilirlik iyileştir
 - **Güvenlik Analizi**: Zafiyetler ve güvenlik durumu
 - **Docker Bilgileri**: Container durumu ve network mapping
 
+![Detaylı cihaz analizi](assets/screenshots/detailed-scan.png)
+
 ### 🏭 Gelişmiş OUI/Vendor Yönetimi
 
 - **Multi-Source IEEE Desteği**: OUI, MA-M, OUI-36, IAB, CID kayıtlarını destekler
@@ -138,6 +105,8 @@ yerleşim, TV kumandası için ok tuşu navigasyonu, erişilebilirlik iyileştir
 - **Online API Fallback**: Bilinmeyen MAC'ler için otomatik online arama
 - **37,000+ Üretici Kaydı**: Kapsamlı vendor veritabanı
 - **Akıllı Vendor Temizleme**: Organizasyon isimlerini normalize etme
+
+![OUI veritabanı](assets/screenshots/oui-database.png)
 
 ### 🎯 AI Destekli Akıllı Cihaz Tanıma
 
@@ -322,6 +291,7 @@ vermemek için basit bir oturum girişi var. **Varsayılan olarak kapalıdır.**
    MYNES_AUTH_USERNAME=admin
    MYNES_AUTH_PASSWORD=uzun-bir-parola
    ```
+
    Parolayı düz metin yerine hash olarak tutmak isterseniz:
    `python -m mynes.web.auth --hash`
 2. MyNeS'i yeniden başlatın.
@@ -457,55 +427,9 @@ nmap --version
 - Config dizininin yazılabilir olduğunu kontrol edin
 - Encryption key dosyalarını silin ve yeniden oluşturun
 
-## 🔄 Güncelleme Geçmişi
+## 🔄 Değişiklik Geçmişi
 
-Tam liste: [**CHANGELOG.md**](CHANGELOG.md)
-
-### v1.3.0 (2026-08-04)
-
-- ✅ MyNeS kendi bildirimlerini gönderiyor (Web Push) — HA veya üçüncü taraf servis gerekmiyor
-- ✅ Home Assistant `notify.*` servisine doğrudan bildirim kanalı (otomasyon kurmaya gerek yok)
-- ✅ Yeni cihaz ve erişim/hata uyarıları her iki kanala da ek ayar gerekmeden gidiyor
-
-### v1.2.0 (2026-08-04)
-
-- ✅ Grafik, Topoloji ve Ev Planı görünümleri
-- ✅ Bağlantı zinciri (uplink) keşfi ve elle atama
-- ✅ Geçmiş ve Ayarlar sayfaları yeni tasarım sistemine taşındı
-- ✅ Ayarlar sayfası açılış performansı (OUI veritabanı tembel yükleme)
-- ✅ Yeni uygulama ikonu ve favicon
-- ✅ TR/EN çeviriler tamamlandı ve eşitlendi
-- ❌ Ağ Haritası görünümü kaldırıldı
-
-### v1.1.0 (2026-08-04)
-
-- ✅ Çoklu protokol keşfi (mDNS/Matter, SSDP, BLE, MQTT)
-- ✅ Periyodik izleme, uyarı kuralları ve bildirim kanalları
-- ✅ Home Assistant çift yönlü entegrasyon
-- ✅ Root'suz tarama (ping sweep + ARP cache)
-- ✅ Tasarım sistemi, açık/koyu tema, PWA
-
-### v1.0.1 (2025-07-09)
-
-- ✅ AI destekli cihaz tanıma sistemi
-- ✅ Gelişmiş cihaz analizi (SSH, FTP, HTTP, SNMP)
-- ✅ Güvenli credential yönetimi (AES-256 şifreleme)
-- ✅ Docker container tespiti ve network mapping
-- ✅ Birleşik veri modeli ve tutarlılık
-- ✅ Veri temizleme ve güvenlik özellikleri
-- ✅ Dinamik versiyon yönetimi
-- ✅ 1000+ port ile kapsamlı tarama
-- ✅ Güvenlik analizi ve zafiyet tespiti
-- ✅ Raspberry Pi özel tespiti
-
-### v1.0.0 (2025-07-02)
-
-- ✅ İlk sürüm
-- ✅ ARP ve port taraması
-- ✅ Web arayüzü
-- ✅ Cihaz tipı tespiti
-- ✅ JSON veri depolama
-- ✅ Import/Export özelliği
+Sürüm sürüm tüm değişiklikler: [**CHANGELOG.md**](CHANGELOG.md)
 
 ## 📄 Lisans
 

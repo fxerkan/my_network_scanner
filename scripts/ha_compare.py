@@ -49,8 +49,8 @@ def load_devices(scan_range: str | None, with_discovery: bool = True) -> list[di
         return devices
 
     # An IP scan names a device after its vendor ("TP-Link IoT Device"); mDNS
-    # names it "rpifx.local". Home Assistant uses the latter, so without this
-    # the name-matching half of the diff finds almost nothing.
+    # names it "livingroom-pi.local". Home Assistant uses the latter, so
+    # without this the name-matching half of the diff finds almost nothing.
     print("Running a discovery sweep for hostnames ...", file=sys.stderr)
     try:
         from mynes.discovery import discover_all

@@ -23,6 +23,15 @@ window.addEventListener('pagehide', function() {
     cleanupDeviceTypeListeners();
 });
 
+window.addEventListener('translationsLoaded', function () {
+    // translations.js fetches its table after this file has already rendered,
+    // so the first paint showed raw keys like "category_network".
+    if (Object.keys(currentDeviceTypes || {}).length) displayDeviceTypes();
+    if (currentSettings && currentSettings.detection_rules) displayDetectionRules();
+    if (Object.keys(currentOuiDatabase || {}).length) displayOuiDatabase();
+    updateDetectionRuleSelects();
+});
+
 /**
  * Tab Management
  */
@@ -141,7 +150,8 @@ function displayGeneralSettings() {
  * 40,000 nodes on each keystroke - that is the freeze. Now the list renders
  * only what matches, capped, and search re-renders from the data.
  */
-const OUI_RENDER_LIMIT = 200;
+const OUI_PAGE_SIZE = 100;
+let ouiPage = 0;
 
 function displayOuiDatabase() {
     const ouiList = document.getElementById('ouiList');
@@ -154,7 +164,11 @@ function displayOuiDatabase() {
         : all;
     matches.sort(([a], [b]) => a.localeCompare(b));
 
-    const shown = matches.slice(0, OUI_RENDER_LIMIT);
+    const pages = Math.max(1, Math.ceil(matches.length / OUI_PAGE_SIZE));
+    ouiPage = Math.min(Math.max(0, ouiPage), pages - 1);
+    const start = ouiPage * OUI_PAGE_SIZE;
+    const shown = matches.slice(start, start + OUI_PAGE_SIZE);
+
     const esc = v => String(v ?? '').replace(/[&<>"']/g, c =>
         ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -170,15 +184,37 @@ function displayOuiDatabase() {
                     <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-trash"/></svg>
                 </button>
             </span>
-        </div>`).join('')
-        + `<div class="oui-count">${term
-              ? t('showing_x_of_matches', { shown: shown.length, total: matches.length })
-              : t('showing_x_of_y', { shown: shown.length, total: all.length })}</div>`;
+        </div>`).join('') || `<div class="oui-count">${t('no_results')}</div>`;
 
     ouiList.querySelectorAll('[data-oui-edit]').forEach(btn =>
         btn.addEventListener('click', () => editOuiEntry(btn.dataset.ouiEdit, currentOuiDatabase[btn.dataset.ouiEdit])));
     ouiList.querySelectorAll('[data-oui-remove]').forEach(btn =>
         btn.addEventListener('click', () => removeOuiEntry(btn.dataset.ouiRemove)));
+
+    renderOuiPager(matches.length, pages, start, shown.length);
+}
+
+/* Pagination rather than one endless list: 40,000 entries is far past what a
+   scroll bar can address usefully. */
+function renderOuiPager(total, pages, start, count) {
+    const host = document.getElementById('ouiPager');
+    if (!host) return;
+    const from = count ? start + 1 : 0;
+    host.innerHTML = `
+        <button type="button" class="icon-btn" id="ouiFirst" ${ouiPage === 0 ? 'disabled' : ''} title="${t('first_page')}">«</button>
+        <button type="button" class="icon-btn" id="ouiPrev" ${ouiPage === 0 ? 'disabled' : ''} title="${t('previous_page')}">‹</button>
+        <span class="oui-pager__label">
+            ${t('showing_range', { from: from, to: start + count, total: total })}
+            <span class="oui-pager__page">${t('page_x_of_y', { page: ouiPage + 1, pages: pages })}</span>
+        </span>
+        <button type="button" class="icon-btn" id="ouiNext" ${ouiPage >= pages - 1 ? 'disabled' : ''} title="${t('next_page')}">›</button>
+        <button type="button" class="icon-btn" id="ouiLast" ${ouiPage >= pages - 1 ? 'disabled' : ''} title="${t('last_page')}">»</button>`;
+
+    const go = (page) => { ouiPage = page; displayOuiDatabase(); document.getElementById('ouiList').scrollTop = 0; };
+    host.querySelector('#ouiFirst').addEventListener('click', () => go(0));
+    host.querySelector('#ouiPrev').addEventListener('click', () => go(ouiPage - 1));
+    host.querySelector('#ouiNext').addEventListener('click', () => go(ouiPage + 1));
+    host.querySelector('#ouiLast').addEventListener('click', () => go(pages - 1));
 }
 
 function addOuiEntry() {
@@ -224,10 +260,10 @@ function editOuiEntry(oui, vendor) {
 let ouiFilterTimer = null;
 
 function filterOuiList() {
-    // Debounced: re-rendering 200 rows per keystroke is fine, doing it on every
-    // one of a fast typist's keystrokes is not.
+    // Debounced, and back to page 1 - staying on page 40 of a two-page result
+    // would look like the search found nothing.
     clearTimeout(ouiFilterTimer);
-    ouiFilterTimer = setTimeout(displayOuiDatabase, 150);
+    ouiFilterTimer = setTimeout(() => { ouiPage = 0; displayOuiDatabase(); }, 150);
 }
 
 /**
@@ -1276,25 +1312,23 @@ function addToScanRange(subnet, networkName) {
     // Cannot enable a gate with no key: that locks everyone out of a LAN app.
     box.disabled = !s.credentials_configured && !s.login_required;
 
-    badge.textContent = s.active ? 'sign-in required' : 'open to anyone on the network';
+    badge.textContent = s.active ? t('auth_sign_in_required') : t('auth_open_to_network');
     badge.className = 'ds-badge ' + (s.active ? 'ds-badge--success' : 'ds-badge--warning');
 
     if (!s.credentials_configured) {
       hint.innerHTML =
         '<div class="ds-alert ds-alert--warning">' +
           '<svg class="ds-alert__icon ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-alert"/></svg>' +
-          '<div>No credentials set. Add these to <code>.env</code> in the project root and restart MyNeS:' +
+          '<div>' + t('auth_no_credentials') +
           '<pre style="background:var(--bg-surface-sunken);padding:var(--space-3);border-radius:var(--radius-md);' +
             'margin:var(--space-2) 0 0;font-size:var(--text-xs)">' +
             'MYNES_AUTH_USERNAME=admin\nMYNES_AUTH_PASSWORD=choose-a-long-one</pre>' +
-          '<div class="ds-dim" style="margin-top:var(--space-2)">Prefer a hash? Run ' +
-          '<code>python -m mynes.web.auth --hash</code> and put the result in ' +
-          '<code>MYNES_AUTH_PASSWORD</code> instead.</div></div></div>';
+          '<div class="ds-dim" style="margin-top:var(--space-2)">' + t('auth_hash_hint') +
+          ' <code>python -m mynes.web.auth --hash</code></div></div></div>';
     } else {
       hint.innerHTML =
-        '<div class="ds-dim">Signed in as <b>' + esc(s.username) + '</b> when enabled. ' +
-        'Change the credentials in <code>.env</code>, then restart MyNeS.' +
-        (s.active ? ' <a href="/logout">Sign out now</a>.' : '') + '</div>';
+        '<div class="ds-dim">' + t('auth_signed_in_as', { user: esc(s.username) }) +
+        (s.active ? ' <a href="/logout">' + t('auth_sign_out') + '</a>.' : '') + '</div>';
     }
   }
 
@@ -1321,9 +1355,7 @@ function addToScanRange(subnet, networkName) {
             return;
           }
           if (window.MyNeS) {
-            window.MyNeS.toast(r.login_required
-              ? 'Sign-in is now required. You stay signed in on this browser.'
-              : 'Sign-in disabled — anyone on the network can open MyNeS.',
+            window.MyNeS.toast(r.login_required ? t('auth_enabled_toast') : t('auth_disabled_toast'),
               r.login_required ? 'success' : 'warning');
           }
           return load();
@@ -1331,6 +1363,9 @@ function addToScanRange(subnet, networkName) {
     });
 
     load();
+    // Same race as the rest of this page: translations.js fetches its table
+    // after we have already painted, so re-render once it lands.
+    window.addEventListener('translationsLoaded', load);
   }
 
   // Guard on readyState: if this file is served from cache after the document

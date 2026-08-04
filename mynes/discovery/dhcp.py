@@ -84,11 +84,11 @@ def discover(timeout: float = 5.0) -> list[DiscoveredDevice]:
 
 def demo() -> None:
     opts = [("message-type", 3), ("hostname", b"yeelink-light-mono5"),
-            ("requested_addr", "192.168.1.185"), "end"]
+            ("requested_addr", "192.168.1.30"), "end"]
     assert _hostname(opts) == "yeelink-light-mono5"
-    assert _requested_ip(opts) == "192.168.1.185"
+    assert _requested_ip(opts) == "192.168.1.30"
     assert _hostname([("message-type", 3), "end"]) is None
-    assert _mac(bytes.fromhex("5ce50c2467a6") + b"\x00" * 10) == "5c:e5:0c:24:67:a6"
+    assert _mac(bytes.fromhex("aabbcc010203") + b"\x00" * 10) == "aa:bb:cc:01:02:03"
     print("dhcp demo ok")
 
 

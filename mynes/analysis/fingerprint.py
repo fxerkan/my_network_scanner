@@ -610,7 +610,7 @@ def demo():
     assert title_as_name('QNAP Turbo NAS TS-453') == 'QNAP Turbo NAS TS-453'
 
     # A camera that answered the ONVIF probe is named by its owner, not by us.
-    onvif_cam = {'ip': '192.168.1.147', 'open_ports': [443, 554, 2020],
+    onvif_cam = {'ip': '192.168.1.10', 'open_ports': [443, 554, 2020],
                  'vendor': '', 'hostname': '', 'is_gateway': False,
                  'ssh': None, 'http': [], 'rtsp': None,
                  'onvif': {'name': 'C212', 'model': 'C212', 'vendor': ''}}
@@ -625,7 +625,7 @@ def demo():
     assert clean_vendor('Zyxel Communications Corporation') == 'Zyxel'
 
     # This Mac answered 22/445/5000/5900 and was called a NAS.
-    mac_host = {'ip': '192.168.1.135', 'open_ports': [22, 445, 5000, 5900],
+    mac_host = {'ip': '192.168.1.20', 'open_ports': [22, 445, 5000, 5900],
                 'vendor': '', 'hostname': '', 'is_gateway': False, 'rtsp': None,
                 'ssh': None, 'http': [{'port': 5000, 'server': 'AirTunes/870.14.1',
                                        'title': '', 'realm': '', 'powered_by': ''}]}
@@ -648,7 +648,7 @@ def demo():
     assert suggest_name(nameless, 'Unknown') == '', suggest_name(nameless, 'Unknown')
 
     # A Xiaomi phone is a phone, not a smart bulb.
-    phone = {'ip': '192.168.1.185', 'open_ports': [], 'hostname': '',
+    phone = {'ip': '192.168.1.30', 'open_ports': [], 'hostname': '',
              'vendor': 'Beijing Xiaomi Mobile Software Co., Ltd',
              'is_gateway': False, 'rtsp': None, 'http': [], 'ssh': None}
     assert classify(phone)['device_type'] == 'Smartphone', classify(phone)

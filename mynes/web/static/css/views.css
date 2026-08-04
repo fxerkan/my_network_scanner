@@ -207,15 +207,16 @@
 }
 .home-pin.is-online .home-pin__icon { border-color: var(--status-online-dot); }
 .home-pin__label {
-  max-width: 96px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  max-width: 140px;
   font-size: var(--text-xs);
+  line-height: 1.25;
   color: var(--text-primary);
   background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-xs);
-  padding: 0 4px;
+  padding: 1px 4px;
+  text-align: center;
+  overflow-wrap: anywhere;   /* wrap the full name instead of clipping it */
 }
 .home-pin:focus-visible .home-pin__icon { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 
@@ -257,45 +258,58 @@
   touch-action: none;
 }
 .home-tray__item:hover { background: var(--bg-hover); border-color: var(--border-default); }
-.home-tray__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.home-tray__name { min-width: 0; overflow-wrap: anywhere; }   /* full name, wrapped */
 .home-tray__empty { font-size: var(--text-sm); color: var(--text-tertiary); margin: 0; }
 
 /* built-in floor plan - HTML, not SVG, so room names are directly editable */
 .home-plan {
   display: grid;
   grid-template-rows: auto auto 1fr;
-  gap: var(--space-2);
-  padding: var(--space-4);
+  padding: var(--space-6) var(--space-4) var(--space-4);
   height: 100%;
   min-height: 420px;
+  /* Plain white on light, plain black on dark: the plan is a drawing, and a
+     tinted surface behind it read as another panel. */
+  background: #ffffff;
 }
-/* An outlined SVG roof, not a clip-path: clip-path eats the border, which
-   left the whole plan invisible on a white surface. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .home-plan { background: #000000; }
+}
+:root[data-theme="dark"] .home-plan { background: #000000; }
+
+/* Roof and walls meet: the roof's base sits exactly on the wall's top edge and
+   both are drawn with the same stroke, so the join is a butt joint, not two
+   floating shapes. */
 .home-plan__roof {
-  height: 90px;
-  background:
-    linear-gradient(to bottom right, transparent calc(50% - 1.5px), var(--border-strong) calc(50% - 1.5px) 50%, transparent 50%) left / 50% 100% no-repeat,
-    linear-gradient(to bottom left, transparent calc(50% - 1.5px), var(--border-strong) calc(50% - 1.5px) 50%, transparent 50%) right / 50% 100% no-repeat,
-    var(--accent-bg-subtle);
+  height: 96px;
+  margin-bottom: -2px;      /* overlap the wall's top border by its own width */
+  background: var(--accent-bg-subtle);
   clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  border-bottom: 2px solid var(--border-strong);
 }
+
 .home-plan__title {
-  margin-top: calc(var(--space-10) * -1);
+  position: relative;
+  z-index: 1;
+  margin-top: calc(var(--space-12) * -1);
+  margin-bottom: var(--space-4);
   text-align: center;
   font-size: var(--text-lg);
   font-weight: 600;
   color: var(--text-primary);
   border-radius: var(--radius-xs);
 }
+
 .home-plan__rooms {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-3);
   padding: var(--space-3);
+  /* Square outer walls - a house is not a rounded rectangle. Rooms inside
+     stay rounded. */
   border: 2px solid var(--border-strong);
-  border-radius: var(--radius-md);
-  background: var(--bg-surface);
-  box-shadow: var(--shadow-sm);
+  border-radius: 0;
+  background: transparent;
 }
 @media (max-width: 700px) {
   .home-plan__rooms { grid-template-columns: repeat(2, minmax(0, 1fr)); }

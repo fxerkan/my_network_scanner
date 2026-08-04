@@ -10,55 +10,7 @@ It simplifies network management with a modern and user-friendly web interface. 
 
 > *This application has been developed entirely **AI-assisted** (**Agentic Mode**) using [Claude Code](https://www.anthropic.com/claude-code), [Github Copilot](https://github.com/features/copilot), and [Visual Studio Code](https://code.visualstudio.com/) as **Open-Source**.*
 
-## 🆕 What's New in v1.3
-
-**MyNeS now sends its own notifications.** On the Alerts page, *Notifications
-on this device* → allow once, and alerts arrive in the browser or the installed
-app even with the tab closed. Nothing sits in the path — no Home Assistant, no
-ntfy, no relay. Each device registers itself.
-
-**A direct Home Assistant notify channel.** Unlike the webhook channel it needs
-no automation built in HA first: MyNeS calls `notify.mobile_app_...` straight
-over the REST API with the token you already configured, and the picker lists
-the services your install actually exposes.
-
-New-device and unreachable/error alerts reach both destinations with no extra
-configuration.
-
-> Web Push needs one optional dependency: `pip install 'mynes[push]'`
-
-## 🆕 What's New in v1.2
-
 > Full per-release detail: [**CHANGELOG.md**](../CHANGELOG.md)
-
-**Three new layouts** in the device view's layout switch:
-
-| View              | What it shows                                                                                  |
-| ----------------- | ---------------------------------------------------------------------------------------------- |
-| **Graph**         | Force-directed cloud; subnet gateways as hubs, devices coloured by category                     |
-| **Topology**      | The real chain: `Internet → router → switch/AP → group → device`, across 17 named groups     |
-| **Home plan**     | Drag-and-drop device pins on a floor plan; room names are editable                              |
-
-In the home plan you can swap the background for your own image; pin positions
-are stored as fractions, so the plan stays correct at any width.
-
-**Uplink discovery** (`/api/topology`) answers "what is this device plugged
-into" from three sources, most-trusted first: a hand-assigned uplink, a
-traceroute-discovered routed hop, then assumed-direct. Known edges draw solid,
-assumed ones dashed. **A bridged switch or access point is invisible at layer
-3** — so nothing is guessed; you click the device and say what it hangs off.
-
-**History and Settings rebuilt on the design system** — charts carry data
-labels and a legend with counts and percentages; Device Types is a card grid
-with legible icons; detection rules now show which device type each regex maps
-to, as an editable dropdown.
-
-**Settings opens instantly** — the 1.5 MB OUI database was fetched and parsed
-during page load, blocking every other tab. It now loads when its own tab is
-first opened, and the list renders at most 200 matching rows instead of 40,000
-DOM nodes.
-
-**The Network Map view was removed** — the Graph and Topology views replace it.
 
 ## ✨ Features
 
@@ -117,6 +69,67 @@ The application automatically determines device type using the following informa
 - **Virtual Network Mapping**: Docker network and IP assignments
 - **Container Information**: Detailed container metadata
 - **Network Isolation**: Container network communication analysis
+
+### 🗺️ Five views
+
+The device list can be read five ways, switched from the toolbar.
+
+| View          | What it is for                                                          |
+| ------------- | ----------------------------------------------------------------------- |
+| Cards / Table | Detail and bulk editing                                                 |
+| **Graph**     | The whole network at a glance; subnet gateways as hubs                  |
+| **Topology**  | What is plugged into what: `Internet → router → switch/AP → group → device` |
+| **Home plan** | Drag devices onto a plan of your home                                   |
+
+![Graph view](../assets/screenshots/graph-view.png)
+
+![Topology diagram](../assets/screenshots/topology-view.png)
+
+![Home plan view](../assets/screenshots/home-view.png)
+
+### 📡 Multi-protocol discovery
+
+An IP scan misses half a home network. MyNeS listens to everything that
+announces itself: mDNS/Bonjour (printers, NAS, Chromecast, HomeKit), Matter,
+SSDP/UPnP (routers, smart TVs, cameras, consoles), Bluetooth LE (*devices with
+no IP at all*) and Zigbee/Z-Wave over MQTT.
+
+![Discovery](../assets/screenshots/discovery.png)
+
+### 🔔 Monitoring, alerts and notifications
+
+Scans on a schedule, diffs consecutive scans and reports what matters: new
+device, device offline, IP change, **MAC change (ARP spoofing)**, newly opened
+port, under-voltage (Raspberry Pi power problems), low battery, high latency,
+weak signal.
+
+Delivery: **MyNeS's own push** (Web Push — no Home Assistant and no third-party
+service in the path), a **Home Assistant `notify` service**, ntfy, Telegram,
+webhook, Slack, Discord and email.
+
+![Monitoring and alerts](../assets/screenshots/monitoring-alerts.png)
+
+### 📱 On a phone
+
+The app is a PWA: installable to the home screen, follows the OS light/dark
+preference, and lays out from a 320px phone up to a TV.
+
+<p>
+  <img src="../assets/screenshots/mobile-1.png" alt="Mobile - device list" width="45%">
+  <img src="../assets/screenshots/mobile-2.png" alt="Mobile - device detail" width="45%">
+</p>
+
+### 📈 History and statistics
+
+![Scan history](../assets/screenshots/history.png)
+
+### 🔬 Detailed device analysis
+
+![Detailed device analysis](../assets/screenshots/detailed-scan.png)
+
+### 🏭 OUI / vendor database
+
+![OUI database](../assets/screenshots/oui-database.png)
 
 ## 🚀 Quick Start - Docker
 
@@ -340,55 +353,9 @@ docker run -p 8883:5883 fxerkan/my_network_scanner:latest
 docker run --privileged --cap-add=NET_ADMIN --cap-add=NET_RAW fxerkan/my_network_scanner:latest
 ```
 
-## 🔄 Release History
+## 🔄 Changelog
 
-Full list: [**CHANGELOG.md**](../CHANGELOG.md)
-
-### v1.3.0 (2026-08-04)
-
-- ✅ MyNeS sends its own notifications (Web Push) — no HA or third-party relay
-- ✅ Direct Home Assistant `notify.*` channel, no automation to build first
-- ✅ New-device and unreachable/error alerts reach both with no extra setup
-
-### v1.2.0 (2026-08-04)
-
-- ✅ Graph, Topology and Home plan views
-- ✅ Uplink discovery and manual assignment
-- ✅ History and Settings rebuilt on the design system
-- ✅ Settings load performance (lazy OUI database)
-- ✅ New app icon and favicon
-- ✅ Turkish and English translations completed and in sync
-- ❌ Network Map view removed
-
-### v1.1.0 (2026-08-04)
-
-- ✅ Multi-protocol discovery (mDNS/Matter, SSDP, BLE, MQTT)
-- ✅ Scheduled monitoring, alert rules and notification channels
-- ✅ Two-way Home Assistant integration
-- ✅ Root-free scanning (ping sweep + OS ARP cache)
-- ✅ Design system, light/dark theme, PWA
-
-### v1.0.1 (2025-07-09)
-
-- ✅ AI destekli cihaz tanıma sistemi
-- ✅ Gelişmiş cihaz analizi (SSH, FTP, HTTP, SNMP)
-- ✅ Güvenli credential yönetimi (AES-256 şifreleme)
-- ✅ Docker container tespiti ve network mapping
-- ✅ Birleşik veri modeli ve tutarlılık
-- ✅ Veri temizleme ve güvenlik özellikleri
-- ✅ Dinamik versiyon yönetimi
-- ✅ 1000+ port ile kapsamlı tarama
-- ✅ Güvenlik analizi ve zafiyet tespiti
-- ✅ Raspberry Pi özel tespiti
-
-### v1.0.0 (2025-07-02)
-
-- ✅ İlk sürüm
-- ✅ ARP ve port taraması
-- ✅ Web arayüzü
-- ✅ Cihaz tipı tespiti
-- ✅ JSON veri depolama
-- ✅ Import/Export özelliği
+Full per-release detail: [**CHANGELOG.md**](../CHANGELOG.md)
 
 ## 📄 License
 

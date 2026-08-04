@@ -298,6 +298,14 @@ dist/
 .pytest_cache/
 .ruff_cache/
 
+# Monitoring settings: notification channels hold bot tokens and SMTP
+# passwords, and config/config.json is tracked.
+data/monitoring.json
+
 # Web Push: server identity key and the devices that opted in
 config/.vapid_key
 data/push_subscriptions.json
+
+
+.claude-hr-port
+.serena/

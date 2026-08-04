@@ -8,12 +8,15 @@ If MyNeS ever needs multiple independent schedules, move to APScheduler.
 
 from __future__ import annotations
 
+import json
 import logging
+import os
 import threading
 import time
 from datetime import datetime, timezone
 
 from mynes.monitoring import notify, rules, store
+from mynes.paths import data_file
 
 log = logging.getLogger(__name__)
 
@@ -28,6 +31,28 @@ DEFAULTS = {
     "thresholds": {},
     "publish_to_mqtt": False,
 }
+
+
+SETTINGS_FILE = "monitoring.json"
+
+
+def _load_local_settings() -> dict:
+    path = data_file(SETTINGS_FILE)
+    if not os.path.exists(path):
+        return {}
+    try:
+        with open(path, encoding="utf-8") as fh:
+            return json.load(fh) or {}
+    except (OSError, ValueError):
+        return {}
+
+
+def _save_local_settings(settings: dict) -> None:
+    path = data_file(SETTINGS_FILE)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as fh:
+        json.dump(settings, fh, ensure_ascii=False, indent=2)
+    os.chmod(path, 0o600)      # channel credentials live in here
 
 
 def _snapshot(devices) -> dict[str, dict]:
@@ -60,21 +85,27 @@ class MonitorScheduler:
 
     # -- config -----------------------------------------------------------
     def settings(self) -> dict:
+        """Defaults, overlaid with config.json, overlaid with the local file.
+
+        Notification channels carry bot tokens, SMTP passwords and ntfy access
+        tokens, and config.json is tracked in git - so the whole monitoring
+        block now lives in data/monitoring.json, which is not. Values already
+        in config.json are still read, so an existing install keeps working.
+        """
         cfg = {}
         if self.config_manager is not None:
             try:
                 cfg = (self.config_manager.config or {}).get("monitoring", {}) or {}
             except Exception as e:  # noqa: BLE001
                 log.warning("could not read monitoring config: %s", e)
-        return {**DEFAULTS, **cfg}
+        return {**DEFAULTS, **cfg, **_load_local_settings()}
 
     def update_settings(self, patch: dict) -> dict:
-        """Merge a settings patch into config.json and apply it to the loop."""
+        """Merge a settings patch and apply it to the loop. Never writes to
+        config.json - see settings() for why."""
         merged = {**self.settings(), **(patch or {})}
         merged.pop("_note", None)
-        if self.config_manager is not None:
-            self.config_manager.config["monitoring"] = merged
-            self.config_manager.save_config()
+        _save_local_settings(merged)
         if merged["enabled"]:
             self.start()
         else:

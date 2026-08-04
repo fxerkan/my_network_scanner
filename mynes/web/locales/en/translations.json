@@ -554,5 +554,20 @@
   "docker_range_added": "{network} ({subnet}) added to the scan ranges",
   "showing_x_of_matches": "Showing {shown} of {total} matches",
   "pattern": "Pattern",
-  "invalid_regex": "Not a valid regular expression:"
+  "invalid_regex": "Not a valid regular expression:",
+  "no_results": "No matches",
+  "first_page": "First page",
+  "previous_page": "Previous page",
+  "next_page": "Next page",
+  "last_page": "Last page",
+  "showing_range": "{from}–{to} of {total}",
+  "page_x_of_y": "page {page} / {pages}",
+  "auth_sign_in_required": "sign-in required",
+  "auth_open_to_network": "open to anyone on the network",
+  "auth_no_credentials": "No credentials set. Add these to <code>.env</code> in the project root and restart MyNeS:",
+  "auth_hash_hint": "Prefer a hash? Run this and put the result in MYNES_AUTH_PASSWORD:",
+  "auth_signed_in_as": "Signed in as <b>{user}</b> when enabled. Change the credentials in <code>.env</code>, then restart MyNeS.",
+  "auth_sign_out": "Sign out now",
+  "auth_enabled_toast": "Sign-in is now required. You stay signed in on this browser.",
+  "auth_disabled_toast": "Sign-in disabled — anyone on the network can open MyNeS."
 }
