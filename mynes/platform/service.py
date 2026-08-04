@@ -23,6 +23,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+from mynes.core.network import is_container
 from mynes.paths import BASE_DIR, DATA_DIR
 
 LABEL = "org.mynes.server"
@@ -274,9 +275,26 @@ _IMPL = {
 
 
 def _dispatch(index: int) -> dict:
+    if is_container():
+        # There is no init system in the container to install into, so the
+        # Linux path went looking for systemctl and blew up on the Install
+        # button. It is also pointless: the scheduler thread is already running
+        # inside this process, and the restart policy is the container runtime's
+        # job, not ours.
+        return {
+            "ok": True,
+            "installed": False,
+            "supported": False,
+            "running": True,
+            "detail": "Not applicable in a container. Scheduled scanning already "
+                      "runs inside MyNeS, and the container runtime restarts it "
+                      "(restart: unless-stopped).",
+        }
+
     impl = _IMPL.get(platform.system())
     if impl is None:
-        return {"ok": False, "detail": f"No service integration for {platform.system()}."}
+        return {"ok": False, "installed": False, "supported": False,
+                "detail": f"No service integration for {platform.system()}."}
     return impl[index]()
 
 

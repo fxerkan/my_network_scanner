@@ -295,13 +295,50 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
                 "credentials_configured": auth.credentials_configured(),
                 "username": username,
                 "active": required and auth.credentials_configured(),
+                "source": auth.credentials_source(),
                 "hint": (
-                    "Set MYNES_AUTH_USERNAME and MYNES_AUTH_PASSWORD in .env, then reload."
+                    "Set a username and password below, or use MYNES_AUTH_USERNAME "
+                    "and MYNES_AUTH_PASSWORD in the environment."
                     if not auth.credentials_configured()
                     else None
                 ),
             }
         )
+
+    @bp.post("/auth/credentials")
+    def auth_set_credentials():
+        """Set the login credentials from the Settings page.
+
+        Editing .env is not an option inside a store-installed container, which
+        left the gate permanently unreachable there. Once the gate is on this
+        endpoint is behind it like everything else, so it cannot be used to
+        take an already-protected install away from its owner.
+        """
+        from mynes.web import auth
+
+        payload = request.get_json(silent=True) or {}
+        if auth.credentials_source() == "env":
+            return jsonify({
+                "ok": False,
+                "error": "Credentials come from the environment. Change "
+                         "MYNES_AUTH_USERNAME / MYNES_AUTH_PASSWORD instead.",
+            }), 409
+        try:
+            auth.set_credentials(payload.get("username", ""), payload.get("password", ""))
+        except ValueError as exc:
+            return jsonify({"ok": False, "error": str(exc)}), 400
+        return jsonify({"ok": True, "username": payload.get("username", "").strip(),
+                        "source": "stored"})
+
+    @bp.delete("/auth/credentials")
+    def auth_clear_credentials():
+        from mynes.web import auth
+
+        if auth.credentials_source() == "env":
+            return jsonify({"ok": False, "error": "Credentials come from the environment."}), 409
+        auth.clear_credentials()
+        auth.set_login_required(False)   # never leave the gate on with no way in
+        return jsonify({"ok": True, "login_required": False})
 
     @bp.post("/auth/status")
     def auth_toggle():

@@ -5,7 +5,7 @@ version: "3.7"
 
 services:
   server:
-    image: fxerkan/my_network_scanner:1.3.0
+    image: fxerkan/my_network_scanner:1.4.0
     network_mode: host
     restart: on-failure
     stop_grace_period: 1m
@@ -17,3 +17,6 @@ services:
     volumes:
       - ${APP_DATA_DIR}/data:/app/data
       - ${APP_DATA_DIR}/config:/app/config
+      # Optional: names your containers and the docker networks behind the
+      # br-* bridges. Remove it to keep the Docker API out of MyNeS.
+      - /var/run/docker.sock:/var/run/docker.sock

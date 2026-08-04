@@ -14,6 +14,13 @@ services:
     volumes:
       - ../data:/app/data
       - ../config:/app/config
+      # Optional. Names the containers and the docker networks behind the br-*
+      # bridges; without it every bridge is an indistinguishable "<host>
+      # (Docker)" device and the Docker panel reads "not installed".
+      # Not :ro - connecting to a unix socket needs write permission on it, and
+      # :ro would only break the mount without restricting the API anyway.
+      # Drop this line if you would rather not expose the Docker API.
+      - /var/run/docker.sock:/var/run/docker.sock
     environment:
       MYNES_PORT: 5883
       # Set in a .env file next to this compose file. Leave unset to auto-generate.

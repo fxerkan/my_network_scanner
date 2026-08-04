@@ -48,7 +48,7 @@
   <Screenshot>https://raw.githubusercontent.com/fxerkan/my_network_scanner/main/assets/screenshots/monitoring-alerts.png</Screenshot>
   <Date>2026-08-04</Date>
   <Changes>
-### 1.3.0&#13;
+### 1.4.0&#13;
 - Web Push notifications sent by MyNeS itself, plus a direct Home Assistant alert channel&#13;
 - Editable regex identification patterns&#13;
 - Settings and home-plan pass
@@ -58,6 +58,7 @@
 
   <Config Name="Data" Target="/app/data" Default="/mnt/user/appdata/mynes/data" Mode="rw" Description="Device inventory, scan history and alerts." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/mynes/data</Config>
   <Config Name="Config" Target="/app/config" Default="/mnt/user/appdata/mynes/config" Mode="rw" Description="Configuration and encrypted credentials." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/mynes/config</Config>
+  <Config Name="Docker Socket" Target="/var/run/docker.sock" Default="/var/run/docker.sock" Mode="rw" Description="Optional. Lets MyNeS name your containers and the docker networks behind the br-* bridges. Remove it to keep the Docker API out of MyNeS." Type="Path" Display="advanced" Required="false" Mask="false">/var/run/docker.sock</Config>
 
   <Config Name="Master Password" Target="MYNES_PASSWORD" Default="" Description="Encrypts stored device credentials. Leave empty and MyNeS generates one on first start." Type="Variable" Display="always" Required="false" Mask="true"/>
   <Config Name="MQTT Broker Host" Target="MYNES_MQTT_HOST" Default="" Description="Optional. Reads retained Zigbee2MQTT / Z-Wave JS / Tasmota / Home Assistant discovery topics - the only way to see radio devices." Type="Variable" Display="always" Required="false" Mask="false"/>

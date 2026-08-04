@@ -96,12 +96,54 @@ def _env(names) -> str | None:
 
 
 def credentials() -> tuple[str | None, str | None]:
-    return _env(USER_VARS), _env(PASS_VARS)
+    """Environment first, then the ones set from the Settings page.
+
+    A container has no .env to edit and no shell the user wants to open, so
+    "add these to .env and restart" made the gate unreachable for exactly the
+    installs that need it most - a store app on an open LAN.
+    """
+    user, password = _env(USER_VARS), _env(PASS_VARS)
+    if user and password:
+        return user, password
+
+    local = load_local(SECURITY_FILE)
+    return (
+        user or local.get("username") or None,
+        password or local.get("password_hash") or None,
+    )
 
 
 def credentials_configured() -> bool:
     user, password = credentials()
     return bool(user and password)
+
+
+def credentials_source() -> str:
+    """Where the active credentials come from - the UI has to say."""
+    if _env(USER_VARS) and _env(PASS_VARS):
+        return "env"
+    local = load_local(SECURITY_FILE)
+    if local.get("username") and local.get("password_hash"):
+        return "stored"
+    return "none"
+
+
+def set_credentials(username: str, password: str) -> None:
+    """Store a username and a PBKDF2 hash in data/security.json (mode 600).
+
+    Only ever a hash: the plaintext never touches disk, and security.json is in
+    the data dir, which is not tracked in git.
+    """
+    username = (username or "").strip()
+    if not username or not password:
+        raise ValueError("username and password are both required")
+    if len(password) < 8:
+        raise ValueError("password must be at least 8 characters")
+    _update_security(username=username, password_hash=hash_password(password))
+
+
+def clear_credentials() -> None:
+    _update_security(username=None, password_hash=None)
 
 
 # ---------------------------------------------------------------------------
@@ -155,8 +197,20 @@ def login_required(config_manager) -> bool:
         return False
 
 
+def _update_security(**changes) -> dict:
+    """Merge into data/security.json. A plain save_local() here would drop the
+    stored credentials every time the toggle was flipped."""
+    current = load_local(SECURITY_FILE)
+    for key, value in changes.items():
+        if value is None:
+            current.pop(key, None)
+        else:
+            current[key] = value
+    return save_local(SECURITY_FILE, current)
+
+
 def set_login_required(value: bool) -> bool:
-    save_local(SECURITY_FILE, {"login_required": bool(value)})
+    _update_security(login_required=bool(value))
     return bool(value)
 
 

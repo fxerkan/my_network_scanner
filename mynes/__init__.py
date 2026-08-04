@@ -6,6 +6,7 @@ submodule only worked for the modules that happened to import that submodule.
 """
 
 import os
+import time
 from pathlib import Path
 
 __all__ = ["load_dotenv", "DOTENV_KEYS"]
@@ -41,4 +42,27 @@ def load_dotenv(path: Path | None = None) -> list[str]:
     return applied
 
 
+def drop_unsubstituted_env() -> list[str]:
+    """Discard variables whose value is still a literal `$NAME` / `${NAME}`.
+
+    App-store manifests write placeholders like `TZ: $TZ` for the platform to
+    fill in, and some paths do not fill them in - a CasaOS in-place upgrade
+    hands the container the four characters `$TZ`, which then silently means
+    "UTC" and puts every timestamp an hour or three out. An unsubstituted
+    placeholder is never a value anyone meant.
+    """
+    dropped = []
+    for key, value in list(os.environ.items()):
+        stripped = value.strip()
+        if stripped.startswith("$") and stripped.strip("${}").replace("_", "").isalnum():
+            del os.environ[key]
+            dropped.append(key)
+    if "TZ" in dropped and hasattr(time, "tzset"):
+        # os.environ deletion unsetenv()s, but libc caches the zone until it is
+        # told to look again - otherwise every timestamp keeps the bogus one.
+        time.tzset()
+    return dropped
+
+
+UNSUBSTITUTED_ENV = drop_unsubstituted_env()
 DOTENV_KEYS = load_dotenv()

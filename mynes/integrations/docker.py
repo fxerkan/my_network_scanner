@@ -9,15 +9,39 @@ import json
 import subprocess
 import socket
 import os
+import http.client
 from datetime import datetime
 import ipaddress
+
+from ..core.network import is_container
+
+
+class _UnixHTTPConnection(http.client.HTTPConnection):
+    """http.client over an AF_UNIX socket - the whole Docker Engine API client.
+
+    ponytail: 8 lines of stdlib instead of the requests-unixsocket dependency.
+    """
+
+    def __init__(self, socket_path, timeout=10):
+        super().__init__('localhost', timeout=timeout)
+        self.socket_path = socket_path
+
+    def connect(self):
+        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        sock.settimeout(self.timeout)
+        sock.connect(self.socket_path)
+        self.sock = sock
 
 
 class DockerManager:
     def __init__(self):
+        # Socket path first: _check_docker_availability() reads it. Setting it
+        # afterwards raised AttributeError inside the fallback, so a container
+        # with the socket mounted but no `docker` CLI reported "not installed".
+        self.docker_socket_path = os.environ.get(
+            "DOCKER_SOCKET", "/var/run/docker.sock")
         self.docker_available = self._check_docker_availability()
-        self.docker_socket_path = "/var/run/docker.sock"
-        
+
     def _check_docker_availability(self):
         """Docker'ın sisteme kurulu ve çalışır durumda olup olmadığını kontrol et"""
         try:
@@ -44,36 +68,44 @@ class DockerManager:
             return self._check_docker_socket()
     
     def _check_docker_socket(self):
-        """Docker socket'inin erişilebilir olup olmadığını kontrol et"""
+        """Docker socket'inin erişilebilir olup olmadığını kontrol et.
+
+        The API needs to *write* the request too, so R_OK alone is not enough:
+        the socket is root:docker 0660 and a non-root container that is not in
+        the docker group can stat it but never talk to it.
+        """
         try:
-            return os.path.exists(self.docker_socket_path) and os.access(self.docker_socket_path, os.R_OK)
+            return (os.path.exists(self.docker_socket_path)
+                    and os.access(self.docker_socket_path, os.R_OK | os.W_OK))
         except Exception:
             return False
-    
+
     def _is_running_in_docker(self):
-        """Docker container içinde çalışıp çalışmadığını kontrol et"""
-        try:
-            with open('/proc/1/cgroup', 'r') as f:
-                content = f.read()
-                return 'docker' in content or 'containerd' in content
-        except:
-            return False
-    
+        """Docker container içinde çalışıp çalışmadığını kontrol et.
+
+        /proc/1/cgroup is useless under cgroup v2 - it reads "0::/" inside the
+        container and out of it alike, which is why this returned False on any
+        modern host and the socket API was never reached.
+        """
+        return is_container()
+
     def _use_docker_socket_api(self, endpoint):
-        """Docker socket API kullanarak veri al"""
+        """Docker Engine API over the UNIX socket, stdlib only.
+
+        `requests` cannot speak http+unix:// without the requests-unixsocket
+        package, so the previous implementation always raised.
+        """
         try:
-            import requests
-            import json
-            
-            # Docker socket üzerinden HTTP request yap
-            base_url = "http+unix://%2Fvar%2Frun%2Fdocker.sock"
-            response = requests.get(f"{base_url}/{endpoint}", timeout=10)
-            
-            if response.status_code == 200:
-                return response.json()
-            else:
-                return None
-                
+            conn = _UnixHTTPConnection(self.docker_socket_path, timeout=10)
+            try:
+                conn.request('GET', '/' + endpoint.lstrip('/'))
+                response = conn.getresponse()
+                body = response.read()
+                if response.status != 200:
+                    return None
+                return json.loads(body.decode('utf-8'))
+            finally:
+                conn.close()
         except Exception as e:
             print(f"Docker socket API hatası: {e}")
             return None
@@ -232,9 +264,16 @@ class DockerManager:
         """Çalışan Docker container'ları listele"""
         if not self.docker_available:
             return []
-            
+
+        # The image ships no `docker` CLI, so inside a container the socket is
+        # the only route. Try it first when there is no CLI to call.
+        if self._check_docker_socket():
+            containers = self._containers_via_socket()
+            if containers:
+                return containers
+
         try:
-            result = subprocess.run(['docker', 'ps', '--format', 'json'], 
+            result = subprocess.run(['docker', 'ps', '--format', 'json'],
                                   capture_output=True, text=True, timeout=10)
             
             if result.returncode != 0:
@@ -266,6 +305,69 @@ class DockerManager:
             print(f"Docker container bilgileri alınamadı: {e}")
             return []
     
+    def _containers_via_socket(self):
+        """`docker ps` equivalent straight off the Engine API."""
+        data = self._use_docker_socket_api('containers/json')
+        if not data:
+            return []
+
+        containers = []
+        for c in data:
+            settings = c.get('NetworkSettings') or {}
+            networks_info = settings.get('Networks') or {}
+            ip_addresses = []
+            for network_name, info in networks_info.items():
+                if info.get('IPAddress'):
+                    ip_addresses.append({
+                        'network': network_name,
+                        'ipv4': info.get('IPAddress', ''),
+                        'ipv6': info.get('GlobalIPv6Address', ''),
+                        'mac': info.get('MacAddress', ''),
+                        'gateway': info.get('Gateway', ''),
+                        'gateway_ipv6': info.get('IPv6Gateway', ''),
+                    })
+            ports = ', '.join(
+                f"{p.get('PublicPort')}->{p.get('PrivatePort')}/{p.get('Type')}"
+                if p.get('PublicPort') else f"{p.get('PrivatePort')}/{p.get('Type')}"
+                for p in (c.get('Ports') or []))
+            containers.append({
+                'id': (c.get('Id') or '')[:12],
+                # API gives "/name"; the CLI gives "name". Match the CLI.
+                'name': ', '.join(n.lstrip('/') for n in (c.get('Names') or [])),
+                'image': c.get('Image', ''),
+                'status': c.get('Status', ''),
+                'ports': ports,
+                'created': c.get('Created', ''),
+                'networks': list(networks_info.keys()),
+                'ip_addresses': ip_addresses,
+            })
+        return containers
+
+    def bridge_interface_names(self):
+        """Map a host bridge interface (docker0, br-<id>) to its network name.
+
+        Docker names a user-defined bridge's interface br-<first 12 of net id>,
+        which is why every one of them showed up as an indistinguishable
+        "<host> (Docker)" in the device list.
+        """
+        names = {}
+        data = self._use_docker_socket_api('networks')
+        if not data:
+            return names
+        for net in data:
+            name = net.get('Name')
+            net_id = net.get('Id') or ''
+            if not name:
+                continue
+            options = net.get('Options') or {}
+            iface = options.get('com.docker.network.bridge.name')
+            if iface:
+                names[iface] = name
+            elif net.get('Driver') == 'bridge' and net_id:
+                names[f'br-{net_id[:12]}'] = name
+        names.setdefault('docker0', 'bridge')
+        return names
+
     def _get_container_network_details(self, container_id):
         """Container'ın network detaylarını al"""
         try:

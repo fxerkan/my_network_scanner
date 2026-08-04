@@ -273,6 +273,32 @@ class LANScanner:
         
         return ports
 
+    def local_interface_label(self, interface_info):
+        """A label that tells one local interface from another.
+
+        A host with a dozen containers has a dozen docker bridges, and every
+        one of them classified as 'Docker' - so the device list, the graph and
+        the topology view each showed a column of identical "<host> (Docker)"
+        nodes. Prefer the docker network name, fall back to the kernel
+        interface name, and only then to the bare type.
+        """
+        interface_type = (interface_info or {}).get('interface_type') or 'Other'
+        interface_name = (interface_info or {}).get('interface_name') or ''
+
+        if interface_type in ('Docker', 'Docker Network', 'Bridge') and interface_name:
+            network = self._docker_bridge_names().get(interface_name)
+            return f"docker: {network}" if network else interface_name
+        return interface_type
+
+    def _docker_bridge_names(self):
+        """bridge interface -> docker network name, resolved once per scan."""
+        if getattr(self, '_bridge_name_cache', None) is None:
+            try:
+                self._bridge_name_cache = docker_manager.bridge_interface_names()
+            except Exception:
+                self._bridge_name_cache = {}
+        return self._bridge_name_cache
+
     def _get_interface_type(self, interface):
         """Network interface tipini belirle"""
         interface_lower = interface.lower()
@@ -800,7 +826,7 @@ class LANScanner:
             hostname = self.get_local_machine_hostname()
             # Yerel makine hostname'ini interface tipi ile zenginleştir
             if local_interface_info.get('interface_type'):
-                hostname = f"{hostname} ({local_interface_info['interface_type']})"
+                hostname = f"{hostname} ({self.local_interface_label(local_interface_info)})"
             log_operation("🔍 Hostname Çözümleme", "yerel makine", hostname)
         elif existing_hostname and not detailed_analysis:
             # Hızlı taramada mevcut hostname'i koru
@@ -1110,7 +1136,7 @@ class LANScanner:
             interface_name = local_interface_info.get('interface_name', 'unknown')
             interface_type = local_interface_info.get('interface_type', 'Other')
             local_hostname = hostname.split(' (')[0]  # Parantez kısmını çıkar
-            device_info['alias'] = f"{local_hostname} - {interface_type}"
+            device_info['alias'] = f"{local_hostname} - {self.local_interface_label(local_interface_info)}"
             print(f"Yerel makine alias oluşturuldu: {device_info['alias']} ({ip})")
         elif device_info['alias']:
             print(f"Kullanıcı tanımlı alias korundu: {device_info['alias']} ({ip})")
@@ -1142,7 +1168,8 @@ class LANScanner:
     def scan_network(self, progress_callback=None, ip_range=None, include_offline=None):
         """Tüm ağı tarar"""
         self.scanning = True
-        
+        self._bridge_name_cache = None  # containers come and go between scans
+
         # Mevcut cihaz bilgilerini korumak için önce yükle (unified model kullanarak)
         existing_devices = {}
         if os.path.exists(data_file('lan_devices.json')):

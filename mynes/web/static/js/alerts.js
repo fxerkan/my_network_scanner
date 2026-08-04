@@ -235,6 +235,16 @@
 
   function refreshPushState() {
     if (!pushSupported()) {
+      // Browsers hide serviceWorker/PushManager entirely on an insecure
+      // origin, so a plain http:// LAN address looks identical to "your
+      // browser is too old". Name the actual reason - reached over http it is
+      // always this one, and telling the user to buy a new browser is a lie.
+      if (window.isSecureContext === false) {
+        return setPushState('unsupported',
+          'Web push needs a secure page. This one is served over plain http://' +
+          ' — start MyNeS with MYNES_TLS=adhoc and open it over https://, or reach it' +
+          ' at http://localhost:' + window.location.port + ' on the machine running it.');
+      }
       return setPushState('unsupported', 'This browser cannot receive web push. On iOS, add MyNeS to the home screen first.');
     }
     if (Notification.permission === 'denied') {

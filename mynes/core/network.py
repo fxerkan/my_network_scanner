@@ -4,6 +4,7 @@ Network utilities with fallback support for Docker environments
 Provides network interface detection with or without netifaces
 """
 
+import os
 import psutil
 import socket
 import ipaddress
@@ -166,13 +167,29 @@ def get_local_ip_ranges():
     
     return ranges
 
-def is_docker_environment():
-    """Check if running in Docker container"""
+def is_container():
+    """True when MyNeS itself runs inside a container.
+
+    /proc/1/cgroup is the classic test and it is wrong under cgroup v2 (any
+    current Debian/Ubuntu/RPi OS host): it reads "0::/" both inside and outside
+    the container. The marker files the runtimes drop are the reliable signal.
+    """
+    if os.path.exists('/.dockerenv'):          # Docker
+        return True
+    if os.path.exists('/run/.containerenv'):   # Podman
+        return True
+    if os.environ.get('KUBERNETES_SERVICE_HOST'):
+        return True
     try:
         with open('/proc/1/cgroup', 'r') as f:
-            return 'docker' in f.read() or 'containerd' in f.read()
-    except:
+            content = f.read()
+        return 'docker' in content or 'containerd' in content or 'lxc' in content
+    except Exception:
         return False
+
+
+# Kept for the older call sites; container-ness is the question either way.
+is_docker_environment = is_container
 
 def get_docker_networks():
     """Get Docker network information if in Docker environment"""

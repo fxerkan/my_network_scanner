@@ -13,3 +13,6 @@ paho-mqtt>=1.6
 paramiko>=3.0
 pysnmp>=4.4.12
 websocket-client>=1.7
+# Web push: the server half of the alert notifications. Without it the whole
+# feature reports "unsupported" no matter what the browser can do.
+pywebpush>=1.14

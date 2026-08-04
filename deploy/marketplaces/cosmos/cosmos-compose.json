@@ -34,10 +34,13 @@
   "services": {
     "{ServiceName}": {
       "container_name": "{ServiceName}",
-      "image": "fxerkan/my_network_scanner:1.3.0",
+      "image": "fxerkan/my_network_scanner:1.4.0",
       "restart": "unless-stopped",
       "network_mode": "host",
-      "capabilities": ["NET_ADMIN", "NET_RAW"],
+      "capabilities": [
+        "NET_ADMIN",
+        "NET_RAW"
+      ],
       "environment": [
         "MYNES_PORT=5883",
         "MYNES_MQTT_HOST={MYNES_MQTT_HOST}",
@@ -54,6 +57,11 @@
           "source": "{Context.storagePath}/{ServiceName}/config",
           "target": "/app/config",
           "type": "bind"
+        },
+        {
+          "type": "bind",
+          "source": "/var/run/docker.sock",
+          "target": "/var/run/docker.sock"
         }
       ],
       "labels": {

@@ -3,7 +3,7 @@
 name: mynes
 services:
   mynes:
-    image: fxerkan/my_network_scanner:1.3.0
+    image: fxerkan/my_network_scanner:1.4.0
     container_name: mynes
     # ARP / mDNS / SSDP discovery only sees the LAN from the host network namespace.
     network_mode: host
@@ -15,6 +15,12 @@ services:
       MYNES_PORT: "5883"
       TZ: $TZ
       MYNES_PASSWORD: ""
+      # Login gate. Fill both in to require a sign-in before MyNeS shows your
+      # device list; leave them empty and set them from Settings instead.
+      # MYNES_AUTH_PASSWORD accepts a plaintext value or a PBKDF2 hash from
+      # `python -m mynes.web.auth --hash` - prefer the hash.
+      MYNES_AUTH_USERNAME: ""
+      MYNES_AUTH_PASSWORD: ""
       MYNES_MQTT_HOST: ""
       MYNES_HA_URL: ""
       MYNES_HA_TOKEN: ""
@@ -25,6 +31,12 @@ services:
       - type: bind
         source: /DATA/AppData/$AppID/config
         target: /app/config
+      # Names your containers and the docker networks behind the br-* bridges.
+      # Remove this if you would rather not expose the Docker API to MyNeS -
+      # everything else keeps working, the Docker panel just stays empty.
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
     deploy:
       resources:
         reservations:
@@ -49,6 +61,14 @@ services:
           description:
             en_US: Master password used to encrypt stored device credentials. Leave empty to auto-generate.
             tr_TR: Cihaz kimlik bilgilerini şifrelemek için kullanılan ana parola. Boş bırakılırsa otomatik üretilir.
+        - container: MYNES_AUTH_USERNAME
+          description:
+            en_US: Optional. Username for the login gate. Set this and the password to require a sign-in before MyNeS shows your device list.
+            tr_TR: İsteğe bağlı. Giriş ekranı kullanıcı adı. Bunu ve parolayı doldurursanız MyNeS cihaz listesini göstermeden önce giriş ister.
+        - container: MYNES_AUTH_PASSWORD
+          description:
+            en_US: Optional. Password for the login gate. A PBKDF2 hash from `python -m mynes.web.auth --hash` is accepted and preferred over a plaintext value.
+            tr_TR: İsteğe bağlı. Giriş ekranı parolası. `python -m mynes.web.auth --hash` ile üretilen PBKDF2 özeti kabul edilir ve düz metne tercih edilir.
         - container: MYNES_MQTT_HOST
           description:
             en_US: Optional. MQTT broker host, so Zigbee2MQTT / Z-Wave JS / Tasmota devices show up too.
@@ -75,25 +95,39 @@ services:
           description:
             en_US: Configuration and encrypted credentials.
             tr_TR: Yapılandırma ve şifrelenmiş kimlik bilgileri.
+        - container: /var/run/docker.sock
+          description:
+            en_US: Optional. Lets MyNeS name your containers and the docker networks behind the br-* bridges. Remove it to keep the Docker API out of MyNeS.
+            tr_TR: İsteğe bağlı. MyNeS'in container'larınızı ve br-* köprülerinin arkasındaki docker ağlarını isimlendirmesini sağlar. Docker API'sini MyNeS'ten uzak tutmak için kaldırabilirsiniz.
 x-casaos:
   id: io.github.fxerkan.mynes
-  version: "1.3.0"
+  version: "1.4.0"
   update_at: "2026-08-04"
   release_notes:
     en_US: |-
-      - Web Push notifications sent by MyNeS itself, so alerts need no Home Assistant
-        or third-party relay.
-      - A direct Home Assistant alert channel alongside MQTT Discovery.
-      - Editable regex identification patterns, so you can teach MyNeS to recognise
-        your own devices from the UI.
-      - Service worker fix: the PWA no longer serves the previous release's JavaScript.
+      Container fixes, all of them found on a real store install:
+      - Raw ARP now works without running as root, so a container install finds
+        the devices a ping sweep misses.
+      - Docker integration actually connects: containers are named, and each
+        docker bridge is labelled with its network instead of a dozen identical
+        "<host> (Docker)" entries.
+      - Sign-in can be turned on from Settings - no .env file to edit.
+      - Web push says what is actually wrong (a plain http:// page cannot
+        receive it) and MYNES_TLS=adhoc gives you an https:// page that can.
+      - The background-service Install button no longer crashes in a container,
+        where scheduled scanning already runs in-process.
     tr_TR: |-
-      - Uyarilari MyNeS'in kendisi Web Push ile gonderiyor; Home Assistant ya da
-        ucuncu taraf bir role gerekmiyor.
-      - MQTT Discovery'nin yani sira dogrudan Home Assistant uyari kanali.
-      - Duzenlenebilir regex tanimlama desenleri; kendi cihazlarinizi arayuzden
-        tanitabiliyorsunuz.
-      - Service worker duzeltmesi: PWA artik onceki surumun JavaScript'ini sunmuyor.
+      Gercek bir magaza kurulumunda bulunan container duzeltmeleri:
+      - Ham ARP artik root olmadan calisiyor; container kurulumu ping
+        taramasinin kacirdigi cihazlari da buluyor.
+      - Docker entegrasyonu gercekten baglaniyor: container'lar isimleriyle
+        gorunuyor, her docker koprusu bir dusune ait ag adiyla etiketleniyor -
+        birbirinin ayni "<host> (Docker)" satirlari yerine.
+      - Girise zorunlu kilma Ayarlar'dan acilabiliyor; .env duzenlemek gerekmiyor.
+      - Web push neyin yanlis oldugunu soyluyor (duz http:// sayfasi push
+        alamaz) ve MYNES_TLS=adhoc alabilen bir https:// sayfasi veriyor.
+      - Arka plan servisi Install dugmesi container icinde artik cokmuyor;
+        zamanlanmis tarama zaten surec icinde calisiyor.
   architectures:
     - amd64
     - arm64

@@ -1316,15 +1316,26 @@ function addToScanRange(subnet, networkName) {
     badge.className = 'ds-badge ' + (s.active ? 'ds-badge--success' : 'ds-badge--warning');
 
     if (!s.credentials_configured) {
+      // A container has no .env the user can edit, so telling them to go add
+      // one made this switch permanently dead exactly where it matters most.
+      // Set the credentials here; the server stores a PBKDF2 hash.
       hint.innerHTML =
         '<div class="ds-alert ds-alert--warning">' +
           '<svg class="ds-alert__icon ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-alert"/></svg>' +
-          '<div>' + t('auth_no_credentials') +
-          '<pre style="background:var(--bg-surface-sunken);padding:var(--space-3);border-radius:var(--radius-md);' +
-            'margin:var(--space-2) 0 0;font-size:var(--text-xs)">' +
-            'MYNES_AUTH_USERNAME=admin\nMYNES_AUTH_PASSWORD=choose-a-long-one</pre>' +
-          '<div class="ds-dim" style="margin-top:var(--space-2)">' + t('auth_hash_hint') +
-          ' <code>python -m mynes.web.auth --hash</code></div></div></div>';
+          '<div style="flex:1">' + t('auth_no_credentials') +
+            '<div class="ds-row" style="margin-top:var(--space-3)">' +
+              '<input class="ds-input" id="authUser" autocomplete="username" ' +
+                'placeholder="' + t('auth_username_placeholder') + '">' +
+              '<input class="ds-input" id="authPass" type="password" autocomplete="new-password" ' +
+                'placeholder="' + t('auth_password_placeholder') + '">' +
+              '<button class="ds-btn ds-btn--primary" id="authSave" type="button">' +
+                t('auth_save_credentials') + '</button>' +
+            '</div>' +
+            '<div class="ds-dim" style="margin-top:var(--space-2)">' + t('auth_env_alternative') +
+              ' <code>MYNES_AUTH_USERNAME</code> / <code>MYNES_AUTH_PASSWORD</code></div>' +
+          '</div></div>';
+      var save = document.getElementById('authSave');
+      if (save) save.addEventListener('click', saveCredentials);
     } else {
       hint.innerHTML =
         '<div class="ds-dim">' + t('auth_signed_in_as', { user: esc(s.username) }) +
@@ -1334,6 +1345,26 @@ function addToScanRange(subnet, networkName) {
 
   function load() {
     return fetch('/api/auth/status').then(function (r) { return r.json(); }).then(render);
+  }
+
+  function saveCredentials() {
+    var user = (document.getElementById('authUser') || {}).value || '';
+    var pass = (document.getElementById('authPass') || {}).value || '';
+    return fetch('/api/auth/credentials', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: user, password: pass })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (r) {
+        if (!r.ok) {
+          if (window.MyNeS) window.MyNeS.toast(r.error, 'critical');
+          else window.alert(r.error);
+          return;
+        }
+        if (window.MyNeS) window.MyNeS.toast(t('auth_credentials_saved'), 'success');
+        return load();
+      });
   }
 
   function init() {

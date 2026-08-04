@@ -4,6 +4,55 @@ All notable changes to MyNeS (My Network Scanner) are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [1.4.0] — 2026-08-04
+
+Everything here came out of installing 1.3.0 from the CasaOS store onto a
+Raspberry Pi and using it. None of it reproduces on a dev machine, which is
+why it all shipped.
+
+### Fixed
+
+- **Raw ARP in a container.** `cap_add: NET_ADMIN/NET_RAW` grants nothing to a
+  non-root process — the capabilities land in the bounding set and never in the
+  effective one, so every container install silently fell back to a ping sweep.
+  The Dockerfile now `setcap`s the interpreter, which survives the drop to the
+  `scanner` user, and the entrypoint starts as root only long enough to hand
+  over the docker socket's group before `exec gosu scanner`.
+- **Docker integration never connected** (`mynes/integrations/docker.py`), three
+  independent bugs stacked: the socket path was assigned *after* the probe that
+  reads it, so the `AttributeError` was swallowed as "Docker is not installed";
+  the socket client asked `requests` for `http+unix://`, which it cannot do
+  without `requests-unixsocket`; and container detection read `/proc/1/cgroup`,
+  which says `0::/` under cgroup v2 whether you are in a container or not. The
+  Engine API now goes over `http.client` on an `AF_UNIX` socket — stdlib only —
+  and the manifests mount the socket.
+- **Every docker bridge showed the same device name.** A host with a dozen
+  containers has a dozen bridges, all classified `Docker`, all rendering as an
+  identical `<host> (Docker)` in the list, the graph and the topology view.
+  They are now labelled with the docker network behind them
+  (`<host> (docker: mynes_default)`), falling back to the interface name.
+- **The sign-in gate could not be turned on where it matters.** Credentials were
+  environment-only and the UI said "add these to `.env` and restart" — advice
+  with no meaning inside a store-installed container. Settings now takes a
+  username and password directly (`POST /api/auth/credentials`) and stores a
+  PBKDF2 hash in `data/security.json`, mode 600. Environment variables still
+  win, and the endpoint refuses to overwrite them.
+- **"Notifications: Unsupported" was a misleading diagnosis.** Browsers hide
+  `serviceWorker`/`PushManager` entirely on an insecure origin, so a plain
+  `http://<lan-ip>` page is indistinguishable from an ancient browser. The UI
+  now names the real cause, and `MYNES_TLS=adhoc` (or `MYNES_TLS_CERT`/`_KEY`)
+  serves https so push actually works. `pywebpush` is now in the image; without
+  it the server half was missing regardless.
+- **Installing the background service crashed inside a container**, where it
+  went looking for `systemctl`. It is reported as not applicable now — the
+  scheduler already runs in-process and restarts are the runtime's job.
+
+### Notes
+
+- Mounting `/var/run/docker.sock` is optional in every manifest. Drop the line
+  and everything except the Docker panel keeps working.
+- Bluetooth LE stays out of the image on purpose: a container has no adapter.
+
 ## [1.3.0] — 2026-08-04
 
 ### Added

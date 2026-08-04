@@ -18,6 +18,7 @@ LABEL org.opencontainers.image.version="${VERSION}"
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     nmap iputils-ping net-tools iproute2 curl avahi-utils \
+    libcap2-bin gosu \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -36,11 +37,23 @@ ENV PYTHONUNBUFFERED=1 \
     MYNES_PORT=5883
 
 RUN useradd -m -u 1000 scanner && chown -R scanner:scanner /app
-USER scanner
+
+# cap_add: NET_RAW/NET_ADMIN alone does nothing for a non-root process - the
+# caps land in the bounding set, never the effective one, so raw ARP silently
+# fell back to a ping sweep on every container install. File capabilities on
+# the interpreter survive the switch to `scanner`; without cap_add they are
+# still inert, so this grants nothing the operator did not ask for.
+RUN setcap cap_net_raw,cap_net_admin+eip "$(readlink -f "$(command -v python3)")"
+
+COPY deploy/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
 EXPOSE 5883
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
     CMD curl -f http://localhost:5883/api/version || exit 1
 
+# Starts as root only to join the docker socket's group, then drops to
+# `scanner` for the application itself. See entrypoint.sh.
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["python", "-m", "mynes"]

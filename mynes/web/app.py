@@ -2077,8 +2077,22 @@ def main():
     port = int(os.environ.get('MYNES_PORT') or os.environ.get('FLASK_PORT') or 5883)
     debug = os.environ.get('MYNES_DEBUG', '').lower() in ('1', 'true', 'yes')
 
-    print(f"MyNeS starting on http://localhost:{port}")
-    app.run(debug=debug, host=host, port=port)
+    # Web push, service workers and the install prompt all require a secure
+    # context, and http://<lan-ip> is not one - which is why "Notifications:
+    # Unsupported" on an otherwise healthy LAN install. MYNES_TLS=adhoc serves
+    # a self-signed cert (browsers warn once); MYNES_TLS_CERT/_KEY use your own.
+    # ponytail: no cert management, no ACME. Point a reverse proxy at it if you
+    # want a real certificate.
+    ssl_context = None
+    cert, key = os.environ.get('MYNES_TLS_CERT'), os.environ.get('MYNES_TLS_KEY')
+    if cert and key:
+        ssl_context = (cert, key)
+    elif os.environ.get('MYNES_TLS', '').lower() in ('1', 'true', 'yes', 'adhoc'):
+        ssl_context = 'adhoc'  # needs `cryptography`, already a hard dependency
+
+    scheme = 'https' if ssl_context else 'http'
+    print(f"MyNeS starting on {scheme}://localhost:{port}")
+    app.run(debug=debug, host=host, port=port, ssl_context=ssl_context)
 
 
 if __name__ == '__main__':

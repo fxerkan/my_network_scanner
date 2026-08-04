@@ -235,7 +235,11 @@
         '<span class="ds-badge ds-badge--' + (svc.running ? 'success' : 'offline') + '">' +
           '<span class="ds-dot' + (svc.running ? ' ds-dot--online' : '') + '"></span>' +
           (svc.running ? 'running' : svc.installed ? 'stopped' : 'not installed') + '</span>' +
-        '<button class="ds-btn ds-btn--sm" id="svcToggle">' + (svc.installed ? 'Uninstall' : 'Install') + '</button>' +
+        // No button where there is nothing to install into - a container has
+        // no init system, and the scheduler is already running in-process.
+        (svc.supported === false ? '' :
+          '<button class="ds-btn ds-btn--sm" id="svcToggle">' +
+          (svc.installed ? 'Uninstall' : 'Install') + '</button>') +
       '</div>'
     );
 
