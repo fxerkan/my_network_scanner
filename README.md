@@ -12,6 +12,8 @@ Modern ve kullanıcı dostu web arayüzü ile ağ yönetimini kolaylaştırır. 
 
 ## 🆕 v2'de Yenilikler
 
+> Sürüm sürüm tüm değişiklikler için: [**CHANGELOG.md**](CHANGELOG.md)
+
 **Home Lab için çoklu protokol keşfi** — IP taraması ev ağının yarısını kaçırır.
 MyNeS artık kendini duyuran her şeyi dinliyor:
 

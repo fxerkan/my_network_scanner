@@ -198,6 +198,7 @@ test_*
 
 # Screenshots and media (unless specifically needed)
 screenshots/
+!assets/screenshots/
 media/
 assets/temp/
 
