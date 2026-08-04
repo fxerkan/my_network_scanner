@@ -191,10 +191,11 @@ config/production_*
 *.pfx
 *.jks
 
-# Local development files
-local_*
-dev_*
-test_*
+# Local development files. Scoped to the repo root: an unscoped `test_*` also
+# matched tests/, so the whole test suite was silently untracked.
+/local_*
+/dev_*
+/test_*
 
 # Screenshots and media (unless specifically needed)
 screenshots/
