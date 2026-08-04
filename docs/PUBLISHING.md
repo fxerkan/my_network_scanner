@@ -20,9 +20,10 @@ tag or 404s on an icon URL.
 | Umbrel | ⏳ PR open | [umbrel-apps#5955](https://github.com/getumbrel/umbrel-apps/pull/5955) |
 | Runtipi | ⏳ PR open | [runtipi-appstore#11796](https://github.com/runtipi/runtipi-appstore/pull/11796) |
 | Cosmos | ⏳ PR open | [cosmos-servapps-official#264](https://github.com/azukaar/cosmos-servapps-official/pull/264) |
-| Coolify | ⏳ PR open | [coolify#11124](https://github.com/coollabsio/coolify/pull/11124) |
+| Coolify | 🔵 branch ready, **you open the PR** | see [`coolify-pr-body.md`](coolify-pr-body.md) |
 | Unraid CA | ⏳ issue open | [AppFeed#39](https://github.com/Squidly271/AppFeed/issues/39) |
-| Portainer (Lissy93 aggregator) | ⏳ PR open | [portainer-templates#127](https://github.com/Lissy93/portainer-templates/pull/127) |
+| Portainer (Qballjos collection) | ⏳ PR open | [portainer_templates#74](https://github.com/Qballjos/portainer_templates/pull/74) |
+| Portainer (Lissy93 aggregator) | ❌ closed — correctly | [#127](https://github.com/Lissy93/portainer-templates/pull/127): `sources.csv` tracks upstream *collections*, not single templates. Qballjos is already a tracked source, so merging #74 gets MyNeS here transitively. |
 | awesome-selfhosted | ⏳ PR open | [awesome-selfhosted-data#2840](https://github.com/awesome-selfhosted/awesome-selfhosted-data/pull/2840) |
 | awesome-homelab | ⏳ PR open | [awesome-homelab#112](https://github.com/AwesomeHomelab/awesome-homelab/pull/112) |
 | awesome-casaos | ⏳ PR open | [Awesome-CasaOS#14](https://github.com/IceWhaleTech/Awesome-CasaOS/pull/14) |
@@ -39,6 +40,26 @@ Home Assistant → Add-ons → ⋮ → Repositories:
 Portainer → Settings → App Templates:
   https://raw.githubusercontent.com/fxerkan/my_network_scanner/main/deploy/marketplaces/portainer/portainer-template.json
 ```
+
+### What review taught us
+
+Worth reading before the next store, because none of it is in any documentation:
+
+- **Coolify** auto-closes on mechanical rules in `.github/workflows/pr-quality.yaml`: base branch
+  must be `next` (not `v4.x`, not `main`), the PR template is mandatory with a strict
+  *Contributor Agreement* section, description ≤ 2500 chars, ≤ 5 inline code refs, and **≤ 10
+  added comment lines** — the first template had 11. Their template also tells AI agents to put a
+  specific word at the top of the description; that word is in the workflow's `blocked-terms`, so
+  writing it auto-rejects the PR. Disclose AI use in the *AI Assistance* section instead.
+- **Umbrel** CI requires `releaseNotes: ""` and `gallery: []` for a *new* app (they are for
+  updates), the `${APP_DATA_DIR}` bind-mount directories committed as real folders, and icon and
+  gallery images posted in the PR body rather than committed. Host networking and `NET_ADMIN` /
+  `NET_RAW` are warnings, not errors — they just want them justified.
+- **Lissy93's portainer-templates** is an aggregator of collections. Submit to a collection it
+  already tracks; do not add yourself as a source.
+- **CasaOS** rejects an app without a reverse-domain `x-casaos.id`, and silently builds an empty
+  `version` without `x-casaos.version`, which stops CasaOS distinguishing an update from a
+  reinstall.
 
 **Still to do by hand** (needs a browser login this tooling cannot do):
 
