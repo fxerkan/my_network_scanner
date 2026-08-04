@@ -8,6 +8,51 @@ tag or 404s on an icon URL.
 
 ---
 
+## Status — v1.3.0 submission round
+
+| Store | State | Link |
+|-------|-------|------|
+| GitHub release | ✅ live | [v1.3.0](https://github.com/fxerkan/my_network_scanner/releases/tag/v1.3.0) |
+| Docker Hub | ✅ live, description auto-synced | [`fxerkan/my_network_scanner`](https://hub.docker.com/r/fxerkan/my_network_scanner) `1.3.0` / `1.3` / `latest`, amd64 + arm64 |
+| CasaOS third-party store | ✅ **live now, no review needed** | [`fxerkan/mynes-casaos-store`](https://github.com/fxerkan/mynes-casaos-store) |
+| Home Assistant add-on | ✅ **live now, no review needed** | [`fxerkan/mynes-addon`](https://github.com/fxerkan/mynes-addon) |
+| CasaOS official store | ⏳ PR open | [CasaOS-AppStore#993](https://github.com/IceWhaleTech/CasaOS-AppStore/pull/993) |
+| Umbrel | ⏳ PR open | [umbrel-apps#5955](https://github.com/getumbrel/umbrel-apps/pull/5955) |
+| Runtipi | ⏳ PR open | [runtipi-appstore#11796](https://github.com/runtipi/runtipi-appstore/pull/11796) |
+| Cosmos | ⏳ PR open | [cosmos-servapps-official#264](https://github.com/azukaar/cosmos-servapps-official/pull/264) |
+| Coolify | ⏳ PR open | [coolify#11124](https://github.com/coollabsio/coolify/pull/11124) |
+| Unraid CA | ⏳ issue open | [AppFeed#39](https://github.com/Squidly271/AppFeed/issues/39) |
+| Portainer (Lissy93 aggregator) | ⏳ PR open | [portainer-templates#127](https://github.com/Lissy93/portainer-templates/pull/127) |
+| awesome-selfhosted | ⏳ PR open | [awesome-selfhosted-data#2840](https://github.com/awesome-selfhosted/awesome-selfhosted-data/pull/2840) |
+| awesome-homelab | ⏳ PR open | [awesome-homelab#112](https://github.com/AwesomeHomelab/awesome-homelab/pull/112) |
+| awesome-casaos | ⏳ PR open | [Awesome-CasaOS#14](https://github.com/IceWhaleTech/Awesome-CasaOS/pull/14) |
+
+**Install URLs to hand out today:**
+
+```
+CasaOS  → App Store → Add Source:
+  https://cdn.jsdelivr.net/gh/fxerkan/mynes-casaos-store@gh-pages/store/main.zip
+
+Home Assistant → Add-ons → ⋮ → Repositories:
+  https://github.com/fxerkan/mynes-addon
+
+Portainer → Settings → App Templates:
+  https://raw.githubusercontent.com/fxerkan/my_network_scanner/main/deploy/marketplaces/portainer/portainer-template.json
+```
+
+**Still to do by hand** (needs a browser login this tooling cannot do):
+
+- **AlternativeTo** — add MyNeS to the [Fing](https://alternativeto.net/software/fing/),
+  [Nmap](https://alternativeto.net/software/nmap/) and
+  [Fingbox](https://alternativeto.net/software/fingbox) alternatives pages. Free, permanent,
+  and it ranks in search. Highest value per minute of anything left on this list.
+- **Unraid forum support thread** — AppFeed#39 offers to repoint `<Support>` at one. Create it at
+  [forums.unraid.net](https://forums.unraid.net/) if they ask.
+- **awesome-home-assistant** and **awesome-docker** PRs — see §10.
+- The community outreach in [`OUTREACH.md`](OUTREACH.md).
+
+---
+
 ## 0. Prerequisites (do these once, before any submission)
 
 | # | What | Status |
