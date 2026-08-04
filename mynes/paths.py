@@ -31,3 +31,33 @@ def config_file(name: str) -> str:
 
 def data_file(name: str) -> str:
     return str(DATA_DIR / name)
+
+
+def load_local(name: str) -> dict:
+    """Read a settings file from the data dir. Missing or corrupt -> {}.
+
+    config/config.json is tracked in git, so anything per-install - notification
+    channels with tokens, whether sign-in is required - belongs here instead.
+    """
+    import json
+
+    path = data_file(name)
+    if not os.path.exists(path):
+        return {}
+    try:
+        with open(path, encoding="utf-8") as fh:
+            return json.load(fh) or {}
+    except (OSError, ValueError):
+        return {}
+
+
+def save_local(name: str, data: dict) -> dict:
+    """Write it back, owner-readable only - these files can hold secrets."""
+    import json
+
+    path = data_file(name)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as fh:
+        json.dump(data, fh, ensure_ascii=False, indent=2)
+    os.chmod(path, 0o600)
+    return data

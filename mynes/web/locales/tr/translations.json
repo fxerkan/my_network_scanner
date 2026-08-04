@@ -577,5 +577,11 @@
   "uplink_field_hint": "Cihaz, MyNeS'in göremediği bir switch veya erişim noktasına bağlı değilse Otomatik bırakın.",
   "zoom_in": "Yakınlaştır",
   "zoom_out": "Uzaklaştır",
-  "zoom_fit": "Ekrana sığdır"
+  "zoom_fit": "Ekrana sığdır",
+  "device_availability": "Cihaz erişilebilirliği",
+  "uptime_summary": "Son {checks} zamanlanmış tarama · {incidents} kesinti · {from} → {to}",
+  "uptime_up": "Erişilebilir",
+  "uptime_warn": "Sorunlu",
+  "uptime_down": "Erişilemiyor",
+  "uptime_unknown": "Taranmadı"
 }

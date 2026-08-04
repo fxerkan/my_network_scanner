@@ -8,15 +8,13 @@ If MyNeS ever needs multiple independent schedules, move to APScheduler.
 
 from __future__ import annotations
 
-import json
 import logging
-import os
 import threading
 import time
 from datetime import datetime, timezone
 
-from mynes.monitoring import notify, rules, store
-from mynes.paths import data_file
+from mynes.monitoring import notify, rules, store, uptime
+from mynes.paths import load_local, save_local
 
 log = logging.getLogger(__name__)
 
@@ -34,25 +32,6 @@ DEFAULTS = {
 
 
 SETTINGS_FILE = "monitoring.json"
-
-
-def _load_local_settings() -> dict:
-    path = data_file(SETTINGS_FILE)
-    if not os.path.exists(path):
-        return {}
-    try:
-        with open(path, encoding="utf-8") as fh:
-            return json.load(fh) or {}
-    except (OSError, ValueError):
-        return {}
-
-
-def _save_local_settings(settings: dict) -> None:
-    path = data_file(SETTINGS_FILE)
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w", encoding="utf-8") as fh:
-        json.dump(settings, fh, ensure_ascii=False, indent=2)
-    os.chmod(path, 0o600)      # channel credentials live in here
 
 
 def _snapshot(devices) -> dict[str, dict]:
@@ -98,14 +77,14 @@ class MonitorScheduler:
                 cfg = (self.config_manager.config or {}).get("monitoring", {}) or {}
             except Exception as e:  # noqa: BLE001
                 log.warning("could not read monitoring config: %s", e)
-        return {**DEFAULTS, **cfg, **_load_local_settings()}
+        return {**DEFAULTS, **cfg, **load_local(SETTINGS_FILE)}
 
     def update_settings(self, patch: dict) -> dict:
         """Merge a settings patch and apply it to the loop. Never writes to
         config.json - see settings() for why."""
         merged = {**self.settings(), **(patch or {})}
         merged.pop("_note", None)
-        _save_local_settings(merged)
+        save_local(SETTINGS_FILE, merged)
         if merged["enabled"]:
             self.start()
         else:
@@ -212,6 +191,17 @@ class MonitorScheduler:
         store.add_alerts(alert_dicts)
         self.last_run = datetime.now(timezone.utc).isoformat()
         store.save_state({"snapshot": current, "miss_counts": misses, "last_run": self.last_run})
+
+        # One cell per device per run, for the History page's uptime strip.
+        # The aggregate scan history says how many were up, never which.
+        try:
+            uptime.record(
+                list(current.values()),
+                miss_counts=misses,
+                latency_ms=settings["thresholds"].get("latency_ms", 500),
+            )
+        except OSError as e:
+            log.warning("could not record uptime history: %s", e)
 
         deliveries = notify.dispatch(settings["notify_channels"], alert_dicts)
 

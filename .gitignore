@@ -301,6 +301,8 @@ dist/
 # Monitoring settings: notification channels hold bot tokens and SMTP
 # passwords, and config/config.json is tracked.
 data/monitoring.json
+# Whether this install requires sign-in - a local choice, not a repo default.
+data/security.json
 
 # Web Push: server identity key and the devices that opted in
 config/.vapid_key

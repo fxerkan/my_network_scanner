@@ -77,6 +77,23 @@ services:
             tr_TR: Yapılandırma ve şifrelenmiş kimlik bilgileri.
 x-casaos:
   id: io.github.fxerkan.mynes
+  version: "1.3.0"
+  update_at: "2026-08-04"
+  release_notes:
+    en_US: |-
+      - Web Push notifications sent by MyNeS itself, so alerts need no Home Assistant
+        or third-party relay.
+      - A direct Home Assistant alert channel alongside MQTT Discovery.
+      - Editable regex identification patterns, so you can teach MyNeS to recognise
+        your own devices from the UI.
+      - Service worker fix: the PWA no longer serves the previous release's JavaScript.
+    tr_TR: |-
+      - Uyarilari MyNeS'in kendisi Web Push ile gonderiyor; Home Assistant ya da
+        ucuncu taraf bir role gerekmiyor.
+      - MQTT Discovery'nin yani sira dogrudan Home Assistant uyari kanali.
+      - Duzenlenebilir regex tanimlama desenleri; kendi cihazlarinizi arayuzden
+        tanitabiliyorsunuz.
+      - Service worker duzeltmesi: PWA artik onceki surumun JavaScript'ini sunmuyor.
   architectures:
     - amd64
     - arm64

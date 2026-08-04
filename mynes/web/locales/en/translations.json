@@ -577,5 +577,11 @@
   "uplink_field_hint": "Leave on Auto unless the device hangs off a switch or access point MyNeS cannot see.",
   "zoom_in": "Zoom in",
   "zoom_out": "Zoom out",
-  "zoom_fit": "Fit to screen"
+  "zoom_fit": "Fit to screen",
+  "device_availability": "Device availability",
+  "uptime_summary": "Last {checks} scheduled scans · {incidents} incidents · {from} → {to}",
+  "uptime_up": "Reachable",
+  "uptime_warn": "Degraded",
+  "uptime_down": "Unreachable",
+  "uptime_unknown": "Not scanned"
 }

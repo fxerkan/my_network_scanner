@@ -15,7 +15,7 @@ from mynes.core import topology
 from mynes.core.network import get_default_gateway
 from mynes.discovery import discover_all
 from mynes.integrations.home_assistant import HomeAssistantClient, publish_devices
-from mynes.monitoring import notify, push, store
+from mynes.monitoring import notify, push, store, uptime
 from mynes.monitoring.scheduler import MonitorScheduler
 from mynes.platform import privileges, service
 
@@ -92,6 +92,12 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
         except Exception as e:  # noqa: BLE001
             log.exception("manual monitoring run failed")
             return jsonify({"error": f"{type(e).__name__}: {e}"}), 500
+
+    @bp.get("/monitoring/uptime")
+    def monitoring_uptime():
+        """Per-device up/warn/down history, one cell per scheduled scan."""
+        limit = max(1, min(int(request.args.get("limit", 48)), uptime.CAP))
+        return jsonify({**uptime.series(limit), "enabled": monitor.settings()["enabled"]})
 
     # -- alerts -----------------------------------------------------------
     @bp.get("/alerts")
@@ -281,14 +287,14 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
     def auth_status():
         from mynes.web import auth
 
-        settings = (config_manager.config or {}).get("security_settings", {}) or {}
+        required = auth.login_required(config_manager)
         username, _ = auth.credentials()
         return jsonify(
             {
-                "login_required": bool(settings.get("login_required")),
+                "login_required": required,
                 "credentials_configured": auth.credentials_configured(),
                 "username": username,
-                "active": bool(settings.get("login_required")) and auth.credentials_configured(),
+                "active": required and auth.credentials_configured(),
                 "hint": (
                     "Set MYNES_AUTH_USERNAME and MYNES_AUTH_PASSWORD in .env, then reload."
                     if not auth.credentials_configured()
@@ -314,12 +320,13 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
                          "MYNES_AUTH_PASSWORD in .env first, or you would lock yourself out.",
             }), 400
 
-        settings = config_manager.config.setdefault("security_settings", {})
-        settings["login_required"] = want
-        # Belt and braces: the password must never land in the tracked config.
-        settings.pop("master_password", None)
-        settings.pop("password", None)
-        config_manager.save_config()
+        # Written to data/security.json: config.json is tracked, and whether
+        # this install is exposed to the LAN is not a repo default.
+        auth.set_login_required(want)
+        settings = config_manager.config.get("security_settings")
+        if isinstance(settings, dict) and "login_required" in settings:
+            settings.pop("login_required", None)      # drop the migrated copy
+            config_manager.save_config()
         return jsonify({"ok": True, "login_required": want, "active": want})
 
     # -- health -----------------------------------------------------------

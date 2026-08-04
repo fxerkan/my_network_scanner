@@ -29,6 +29,8 @@ import time
 from datetime import timedelta
 from functools import wraps
 
+from mynes.paths import load_local, save_local
+
 from flask import (
     Blueprint,
     current_app,
@@ -137,15 +139,32 @@ def clear_failures() -> None:
 # Blueprint
 # ---------------------------------------------------------------------------
 
+SECURITY_FILE = "security.json"
+
+
+def login_required(config_manager) -> bool:
+    """Whether the gate is on. Stored in data/security.json, not in the tracked
+    config.json - whether *your* install is exposed is not a repo default. A
+    value left in config.json is still honoured so upgrades keep working."""
+    local = load_local(SECURITY_FILE)
+    if "login_required" in local:
+        return bool(local["login_required"])
+    try:
+        return bool(((config_manager.config or {}).get("security_settings") or {}).get("login_required"))
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def set_login_required(value: bool) -> bool:
+    save_local(SECURITY_FILE, {"login_required": bool(value)})
+    return bool(value)
+
+
 def create_auth(config_manager) -> Blueprint:
     bp = Blueprint("auth", __name__)
 
     def enabled() -> bool:
-        try:
-            settings = (config_manager.config or {}).get("security_settings", {}) or {}
-        except Exception:  # noqa: BLE001
-            return False
-        return bool(settings.get("login_required")) and credentials_configured()
+        return login_required(config_manager) and credentials_configured()
 
     bp.login_enabled = enabled  # exposed for the settings API
 

@@ -45,6 +45,22 @@
                 </div>
             </div>
 
+            <!-- Cihaz Erişilebilirlik Şeridi (yalnızca zamanlanmış tarama açıkken) -->
+            <div class="chart-container" id="uptimeCard" hidden>
+                <h3 class="chart-title">
+                    <svg class="ds-icon" aria-hidden="true"><use href="#i-shield"/></svg>
+                    {{ _('device_availability') }}
+                </h3>
+                <p class="card-hint" id="uptimeSummary"></p>
+                <div id="uptimeList" class="uptime-list"></div>
+                <div class="view-legend uptime-legend">
+                    <span class="view-legend__item"><i class="uptime-cell uptime-cell--up"></i>{{ _('uptime_up') }}</span>
+                    <span class="view-legend__item"><i class="uptime-cell uptime-cell--warn"></i>{{ _('uptime_warn') }}</span>
+                    <span class="view-legend__item"><i class="uptime-cell uptime-cell--down"></i>{{ _('uptime_down') }}</span>
+                    <span class="view-legend__item"><i class="uptime-cell uptime-cell--none"></i>{{ _('uptime_unknown') }}</span>
+                </div>
+            </div>
+
             <!-- Tarama Trend Grafiği -->
             <div class="chart-container">
                 <h3 class="chart-title"><svg class="ds-icon" aria-hidden="true"><use href="#i-graph"/></svg>{{ _('scan_trend_chart') }}</h3>

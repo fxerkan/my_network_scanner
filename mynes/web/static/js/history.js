@@ -16,11 +16,13 @@ function pageLocale() {
 window.addEventListener('load', function() {
     loadDeviceTypes();
     loadScanHistory();
+    loadUptime();
 });
 
 // translations.js fetches its table asynchronously, so the first render can
 // beat it and paint raw keys ("total_devices") into the chart legend.
 window.addEventListener('translationsLoaded', function () {
+    loadUptime();
     if (scanHistory.length) {
         updateDeviceTypeChart();
         updateTrendChart();
@@ -680,3 +682,59 @@ async function clearHistory() {
 
 // Sayfa 30 saniyede bir otomatik olarak yenilensin
 setInterval(loadScanHistory, 30000);
+
+/*
+ * Per-device availability strip. Only shown when scheduled scanning is on -
+ * without it there is nothing sampling the network, so the cells would be a
+ * misleading record of whenever somebody happened to press Scan.
+ */
+async function loadUptime() {
+    const card = document.getElementById('uptimeCard');
+    if (!card) return;
+
+    let data;
+    try {
+        data = await (await fetch('/api/monitoring/uptime?limit=48')).json();
+    } catch (error) {
+        card.hidden = true;
+        return;
+    }
+
+    if (!data.enabled || !data.devices || !data.devices.length) {
+        card.hidden = true;
+        return;
+    }
+    card.hidden = false;
+
+    const esc = v => String(v ?? '').replace(/[&<>"']/g, c =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const icon = type => (typeof getDeviceTypeIcon === 'function' ? getDeviceTypeIcon(type) : '');
+
+    const first = data.checks[0];
+    const last = data.checks[data.checks.length - 1];
+    const incidents = data.devices.reduce((sum, d) => sum + d.incidents, 0);
+    document.getElementById('uptimeSummary').textContent = t('uptime_summary', {
+        checks: data.checks.length,
+        incidents: incidents,
+        from: first ? new Date(first).toLocaleString(pageLocale()) : '—',
+        to: last ? new Date(last).toLocaleString(pageLocale()) : '—'
+    });
+
+    document.getElementById('uptimeList').innerHTML = data.devices.map(function (d) {
+        const cells = d.cells.map(function (state, i) {
+            const stamp = data.checks[i] ? new Date(data.checks[i]).toLocaleString(pageLocale()) : '';
+            const label = state ? t('uptime_' + state) : t('uptime_unknown');
+            return '<i class="uptime-cell uptime-cell--' + (state || 'none') + '"' +
+                   ' title="' + esc(stamp + ' — ' + label) + '"></i>';
+        }).join('');
+        const pctClass = d.uptime >= 99 ? '' : (d.uptime >= 90 ? ' is-degraded' : ' is-down');
+        return '<div class="uptime-row">' +
+            '<div class="uptime-row__name">' + icon(d.device_type) +
+                '<span title="' + esc(d.name) + '">' + esc(d.name) + '</span>' +
+                (d.ip ? '<span class="uptime-row__ip">' + esc(d.ip) + '</span>' : '') +
+            '</div>' +
+            '<div class="uptime-row__bars">' + cells + '</div>' +
+            '<div class="uptime-row__pct' + pctClass + '">' + d.uptime + '%</div>' +
+        '</div>';
+    }).join('');
+}

@@ -24,9 +24,13 @@
 .actions-menu__caret { margin-left: var(--space-1); }
 
 @media (min-width: 768px) {
+    /* Wide enough to be the obvious primary action, with its own margin so it
+       never crowds the brand on one side or the nav on the other. */
+    .actions-menu { margin: 0 var(--space-6); }
     .actions-menu__trigger {
-        min-height: 44px;
-        min-width: 168px;
+        min-height: 48px;
+        min-width: 230px;
+        padding: var(--space-2) var(--space-6);
         font-size: var(--text-md);
     }
     .actions-menu__caret { margin-left: auto; }

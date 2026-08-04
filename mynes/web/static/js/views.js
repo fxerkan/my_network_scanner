@@ -583,22 +583,60 @@
         }, { passive: false });
 
         let dragging = null;
+        const active = new Map();          // live pointers, for pinch
+        let pinch = null;
+
+        const dist = () => {
+            const [a, b] = [...active.values()];
+            return Math.hypot(a.x - b.x, a.y - b.y);
+        };
+        const midpoint = () => {
+            const [a, b] = [...active.values()];
+            return toSvg((a.x + b.x) / 2, (a.y + b.y) / 2);
+        };
+
         stage.addEventListener('pointerdown', e => {
-            if (e.target.closest('.topo-node')) return;      // a node click opens its menu
+            // A node opens its own menu, and the zoom buttons need their click
+            // event - capturing the pointer here swallowed it, which is why
+            // the buttons did nothing while the wheel worked.
+            if (e.target.closest('.topo-node') || e.target.closest('.topo-zoom')) return;
+
+            active.set(e.pointerId, { x: e.clientX, y: e.clientY });
+            if (active.size === 2) {
+                dragging = null;
+                pinch = { distance: dist(), centre: midpoint() };
+                return;
+            }
             dragging = { ...toSvg(e.clientX, e.clientY) };
             stage.setPointerCapture(e.pointerId);
             stage.classList.add('is-panning');
         });
+
         stage.addEventListener('pointermove', e => {
+            if (active.has(e.pointerId)) active.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+            if (pinch && active.size === 2) {
+                const now = dist();
+                if (now > 0 && pinch.distance > 0) zoomAt(pinch.distance / now, pinch.centre.x, pinch.centre.y);
+                pinch.distance = now;
+                pinch.centre = midpoint();
+                return;
+            }
             if (!dragging) return;
             const p = toSvg(e.clientX, e.clientY);
             view.x -= p.x - dragging.x;
             view.y -= p.y - dragging.y;
             apply();
         });
-        const endDrag = () => { dragging = null; stage.classList.remove('is-panning'); };
-        stage.addEventListener('pointerup', endDrag);
-        stage.addEventListener('pointercancel', endDrag);
+
+        const endPointer = e => {
+            active.delete(e.pointerId);
+            if (active.size < 2) pinch = null;
+            dragging = null;
+            stage.classList.remove('is-panning');
+        };
+        stage.addEventListener('pointerup', endPointer);
+        stage.addEventListener('pointercancel', endPointer);
 
         const controls = document.createElement('div');
         controls.className = 'topo-zoom';

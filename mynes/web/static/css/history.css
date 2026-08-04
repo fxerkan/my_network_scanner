@@ -425,3 +425,68 @@
     height: 8px;
     border-radius: 50%;
 }
+/* ---------- per-device availability strip ----------
+   One cell per scheduled scan, newest on the right. */
+.uptime-list { display: grid; gap: var(--space-2); }
+
+.uptime-row {
+    display: grid;
+    grid-template-columns: minmax(120px, 1.2fr) minmax(0, 3fr) 4rem;
+    align-items: center;
+    gap: var(--space-3);
+}
+@media (max-width: 640px) {
+    .uptime-row { grid-template-columns: minmax(0, 1fr) 3.5rem; }
+    .uptime-row__bars { grid-column: 1 / -1; order: 3; }
+}
+
+.uptime-row__name {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-width: 0;
+    font-size: var(--text-sm);
+    color: var(--text-primary);
+}
+.uptime-row__name span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.uptime-row__ip { color: var(--text-tertiary); font-size: var(--text-xs); }
+
+.uptime-row__bars {
+    display: flex;
+    gap: 2px;
+    align-items: stretch;
+    justify-content: flex-end;   /* newest check sits next to the percentage */
+    min-width: 0;
+}
+
+.uptime-cell {
+    /* Capped so three checks are three ticks, not three slabs; as history
+       accumulates they shrink to fit the row. */
+    flex: 1 1 0;
+    min-width: 3px;
+    max-width: 12px;
+    height: 22px;
+    border-radius: 2px;
+    background: var(--status-offline-bg);
+}
+.uptime-cell--up   { background: var(--status-online-dot); }
+.uptime-cell--warn { background: var(--severity-warning-border); }
+.uptime-cell--down { background: var(--severity-critical-fg); }
+.uptime-cell--none { background: var(--border-subtle); }
+
+.uptime-row__pct {
+    text-align: right;
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    font-variant-numeric: tabular-nums;
+    color: var(--text-primary);
+}
+.uptime-row__pct.is-degraded { color: var(--severity-warning-fg); }
+.uptime-row__pct.is-down     { color: var(--severity-critical-fg); }
+
+.uptime-legend { margin-top: var(--space-4); }
+.uptime-legend .uptime-cell { flex: none; width: 10px; height: 10px; border-radius: 2px; }
