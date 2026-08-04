@@ -10,6 +10,23 @@ It simplifies network management with a modern and user-friendly web interface. 
 
 > *This application has been developed entirely **AI-assisted** (**Agentic Mode**) using [Claude Code](https://www.anthropic.com/claude-code), [Github Copilot](https://github.com/features/copilot), and [Visual Studio Code](https://code.visualstudio.com/) as **Open-Source**.*
 
+## 🆕 What's New in v1.3
+
+**MyNeS now sends its own notifications.** On the Alerts page, *Notifications
+on this device* → allow once, and alerts arrive in the browser or the installed
+app even with the tab closed. Nothing sits in the path — no Home Assistant, no
+ntfy, no relay. Each device registers itself.
+
+**A direct Home Assistant notify channel.** Unlike the webhook channel it needs
+no automation built in HA first: MyNeS calls `notify.mobile_app_...` straight
+over the REST API with the token you already configured, and the picker lists
+the services your install actually exposes.
+
+New-device and unreachable/error alerts reach both destinations with no extra
+configuration.
+
+> Web Push needs one optional dependency: `pip install 'mynes[push]'`
+
 ## 🆕 What's New in v1.2
 
 > Full per-release detail: [**CHANGELOG.md**](../CHANGELOG.md)
@@ -326,6 +343,12 @@ docker run --privileged --cap-add=NET_ADMIN --cap-add=NET_RAW fxerkan/my_network
 ## 🔄 Release History
 
 Full list: [**CHANGELOG.md**](../CHANGELOG.md)
+
+### v1.3.0 (2026-08-04)
+
+- ✅ MyNeS sends its own notifications (Web Push) — no HA or third-party relay
+- ✅ Direct Home Assistant `notify.*` channel, no automation to build first
+- ✅ New-device and unreachable/error alerts reach both with no extra setup
 
 ### v1.2.0 (2026-08-04)
 

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mynes"
-version = "1.2.0"
+version = "1.3.0"
 description = "MyNeS - My Network Scanner: home-lab network discovery, monitoring and Home Assistant integration"
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -41,7 +41,9 @@ bluetooth = ["bleak>=0.21"]
 analysis = ["paramiko>=3.0", "pysnmp>=4.4.12"]
 # System tray / menu bar icon.
 tray = ["pystray>=0.19", "pillow>=10.0"]
-all = ["mynes[discovery,bluetooth,analysis,tray,homeassistant]"]
+# MyNeS's own Web Push, so alerts need no Home Assistant or third-party relay.
+push = ["pywebpush>=2.0"]
+all = ["mynes[discovery,bluetooth,analysis,tray,homeassistant,push]"]
 dev = ["pytest>=7.4", "ruff>=0.5"]
 
 [project.scripts]

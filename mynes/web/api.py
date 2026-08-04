@@ -15,7 +15,7 @@ from mynes.core import topology
 from mynes.core.network import get_default_gateway
 from mynes.discovery import discover_all
 from mynes.integrations.home_assistant import HomeAssistantClient, publish_devices
-from mynes.monitoring import notify, store
+from mynes.monitoring import notify, push, store
 from mynes.monitoring.scheduler import MonitorScheduler
 from mynes.platform import privileges, service
 
@@ -145,6 +145,17 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
         except Exception as e:  # noqa: BLE001
             return jsonify({"error": f"{type(e).__name__}: {e}"}), 502
 
+    @bp.get("/integrations/home-assistant/notify-services")
+    def ha_notify_services():
+        """The notify.* services this HA install exposes, for the channel picker."""
+        client = HomeAssistantClient()
+        if not client.configured():
+            return jsonify({"error": "set MYNES_HA_URL and MYNES_HA_TOKEN"}), 400
+        try:
+            return jsonify({"services": client.notify_services()})
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"error": f"{type(e).__name__}: {e}"}), 502
+
     @bp.get("/integrations/home-assistant/compare")
     def ha_compare():
         client = HomeAssistantClient()
@@ -164,6 +175,68 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
             return jsonify(result), (200 if result.get("ok") else 400)
         except Exception as e:  # noqa: BLE001
             return jsonify({"ok": False, "error": f"{type(e).__name__}: {e}"}), 502
+
+    # -- push (MyNeS's own notifications) ---------------------------------
+    @bp.get("/push/key")
+    def push_key():
+        """The VAPID public key a browser needs before it can subscribe."""
+        ok, reason = push.available()
+        return jsonify({"available": ok, "detail": reason, "public_key": push.vapid_public_key()})
+
+    @bp.get("/push/subscriptions")
+    def push_list():
+        # Endpoints are secrets - anyone holding one can push to that device -
+        # so the list is summarised rather than echoed back.
+        rows = [
+            {
+                "kind": s.get("kind"),
+                "label": s.get("label"),
+                "created": s.get("created"),
+                "id": (s.get("endpoint") or s.get("token") or "")[-24:],
+            }
+            for s in push.subscriptions()
+        ]
+        return jsonify({"subscriptions": rows, "count": len(rows)})
+
+    @bp.post("/push/subscribe")
+    def push_subscribe():
+        body = request.get_json(silent=True) or {}
+        try:
+            entry = push.subscribe(body.get("subscription") or body, body.get("label"))
+        except ValueError as e:
+            return jsonify({"ok": False, "error": str(e)}), 400
+
+        # Registering a device is the whole intent of "enable notifications";
+        # making the user *also* add a channel afterwards just means alerts
+        # silently go nowhere. Create it once, then leave it alone.
+        channels = monitor.settings()["notify_channels"]
+        created = not any(c.get("type") == "mynes_push" for c in channels)
+        if created:
+            monitor.update_settings(
+                {
+                    "notify_channels": channels
+                    + [{"type": "mynes_push", "name": "MyNeS push", "enabled": True, "min_severity": "warning"}]
+                }
+            )
+        return jsonify({"ok": True, "kind": entry["kind"], "label": entry["label"], "channel_created": created})
+
+    @bp.post("/push/unsubscribe")
+    def push_unsubscribe():
+        body = request.get_json(silent=True) or {}
+        key = body.get("endpoint") or body.get("token") or ""
+        return jsonify({"ok": push.unsubscribe(key)})
+
+    @bp.post("/push/test")
+    def push_test():
+        from mynes.monitoring.rules import Alert
+
+        probe = Alert(
+            rule="test",
+            severity="info",
+            title="MyNeS test notification",
+            message="If you can read this, push from MyNeS works on this device.",
+        ).to_dict()
+        return jsonify(push.send(probe))
 
     # -- topology ---------------------------------------------------------
     @bp.get("/topology")
@@ -298,6 +371,11 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
                     {"name": b.name, "available": b.available()[0], "detail": b.available()[1]}
                     for b in backends()
                 ],
+                "push": {
+                    "available": push.available()[0],
+                    "detail": push.available()[1],
+                    "devices": len(push.subscriptions()),
+                },
                 "privileges": privileges.plan().to_dict(),
                 "service": service.status(),
                 "tray": {"available": _tray_available()},

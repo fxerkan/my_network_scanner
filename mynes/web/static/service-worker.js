@@ -16,7 +16,7 @@
    when the shell changes; move to a generated manifest only if assets multiply.
 */
 
-const CACHE_VERSION = 'mynes-v1.2.0';
+const CACHE_VERSION = 'mynes-v1.3.0';
 const SHELL_CACHE = CACHE_VERSION + '-shell';
 const RUNTIME_CACHE = CACHE_VERSION + '-runtime';
 
@@ -113,4 +113,49 @@ self.addEventListener('message', (event) => {
   if (event.data === 'clear-caches') {
     event.waitUntil(caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k)))));
   }
+});
+
+
+/* ---------- Push -----------------------------------------------------------
+   MyNeS sends these itself (see mynes/monitoring/push.py) - no Home Assistant
+   and no third-party relay in the path. The `tag` collapses repeats of the
+   same rule so a flapping device cannot bury the notification tray. */
+
+self.addEventListener('push', (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch (e) {
+    data = { title: 'MyNeS', body: event.data ? event.data.text() : '' };
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(data.title || 'MyNeS', {
+      body: data.body || '',
+      icon: '/static/logo_256x256.svg',
+      badge: '/static/logo_96x96.svg',
+      tag: data.rule ? 'mynes-' + data.rule : 'mynes',
+      renotify: data.severity === 'critical',
+      requireInteraction: data.severity === 'critical',
+      timestamp: data.timestamp ? Date.parse(data.timestamp) : Date.now(),
+      data: { url: data.url || '/alerts' }
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const target = (event.notification.data && event.notification.data.url) || '/alerts';
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      // Focus an open MyNeS tab rather than piling up new ones.
+      for (const client of clients) {
+        if (new URL(client.url).origin === self.location.origin && 'focus' in client) {
+          client.navigate(target);
+          return client.focus();
+        }
+      }
+      return self.clients.openWindow(target);
+    })
+  );
 });

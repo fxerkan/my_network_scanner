@@ -297,3 +297,7 @@ build/
 dist/
 .pytest_cache/
 .ruff_cache/
+
+# Web Push: server identity key and the devices that opted in
+config/.vapid_key
+data/push_subscriptions.json

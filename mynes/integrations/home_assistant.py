@@ -267,6 +267,18 @@ class HomeAssistantClient:
         except (urllib.error.URLError, OSError, ValueError) as e:
             return {"ok": False, "error": f"{type(e).__name__}: {e}"}
 
+    def notify_services(self) -> list[str]:
+        """Every `notify.*` service this install exposes, sorted.
+
+        Used by the notification-channel picker so the user chooses their phone
+        from a list instead of guessing `notify.mobile_app_<slug>`.
+        """
+        domains = self._get("/api/services")
+        for entry in domains:
+            if entry.get("domain") == "notify":
+                return sorted(entry.get("services", {}))
+        return []
+
     def states(self) -> list[dict]:
         return self._get("/api/states")
 

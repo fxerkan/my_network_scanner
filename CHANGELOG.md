@@ -4,6 +4,41 @@ All notable changes to MyNeS (My Network Scanner) are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [1.3.0] — 2026-08-04
+
+### Added
+
+- **MyNeS sends its own notifications** (`mynes/monitoring/push.py`). Web Push
+  straight from this server to the browser or the installed PWA — no Home
+  Assistant, no ntfy, no relay in the path. Allow notifications once per device
+  and alerts arrive with the tab closed.
+  - VAPID key pair is generated on first use into `config/.vapid_key`
+    (mode 600, gitignored); subscriptions live in
+    `data/push_subscriptions.json`.
+  - A subscription the push service reports as gone (404/410) is pruned
+    automatically — an uninstalled PWA would otherwise fail on every alert.
+  - Enabling it on a device also creates the `mynes_push` channel if it is
+    missing, so alerts do not silently go nowhere after granting permission.
+  - Optional dependency: `pip install 'mynes[push]'` (pywebpush). Without it
+    the channel reports itself unavailable and everything else keeps working.
+  - Subscriptions are stored as opaque records tagged with a `kind`, so the
+    Phase-2 mobile app can register an Expo/FCM token in the same table
+    instead of needing a second one.
+  - New endpoints: `GET /api/push/key`, `GET /api/push/subscriptions`,
+    `POST /api/push/subscribe`, `POST /api/push/unsubscribe`,
+    `POST /api/push/test`. `/api/capabilities` reports push availability and
+    the registered device count.
+- **Home Assistant notify channel.** Calls a `notify.*` service directly over
+  the REST API with the token already configured — unlike the webhook channel
+  it needs no automation built in Home Assistant first. The channel picker
+  lists the services the install actually exposes
+  (`GET /api/integrations/home-assistant/notify-services`), so nobody has to
+  guess `notify.mobile_app_<slug>`. Defaults to `persistent_notification`,
+  which exists everywhere.
+
+Both ride the existing rule and severity filters, so "new device found" and
+"device unreachable" reach either destination with no extra configuration.
+
 ## [1.2.0] — 2026-08-04
 
 ### Added

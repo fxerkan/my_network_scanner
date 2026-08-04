@@ -10,6 +10,24 @@ Modern ve kullanıcı dostu web arayüzü ile ağ yönetimini kolaylaştırır. 
 
 > *Bu uygulama tümüyle **AI destekli** olarak (**Agentic Mode**) [Claude Code](https://www.anthropic.com/claude-code)*, [Github Copilot](https://github.com/features/copilot) ve *[Visual Studio Code](https://code.visualstudio.com/) kullanılarak **Open-Source** olarak geliştirilmiştir.*
 
+## 🆕 v1.3'te Yenilikler
+
+**MyNeS artık kendi bildirimlerini gönderiyor.** Alerts sayfasındaki
+*Notifications on this device* kartından bir kez izin verin; uyarılar sekme
+kapalıyken bile tarayıcıya veya ana ekrana eklenmiş uygulamaya düşer. Araya
+Home Assistant, ntfy veya başka bir servis girmez — bildirim doğrudan bu
+sunucudan cihazınıza gider. Her cihaz kendini ayrı kaydeder.
+
+**Home Assistant `notify` servisine doğrudan kanal.** Webhook kanalının aksine
+HA tarafında otomasyon kurmanız gerekmiyor: zaten tanımlı token ile
+`notify.mobile_app_...` gibi bir servis doğrudan çağrılıyor. Kanal ekranı
+kurulumunuzun gerçekten sunduğu servisleri listeler.
+
+Yeni cihaz bulunduğunda ve bir cihaza erişilemediğinde/hata olduğunda uyarılar
+ek ayar gerekmeden bu kanallara gider.
+
+> Web Push isteğe bağlı bir bağımlılık ister: `pip install 'mynes[push]'`
+
 ## 🆕 v1.2'de Yenilikler
 
 > Sürüm sürüm tüm değişiklikler için: [**CHANGELOG.md**](CHANGELOG.md)
@@ -442,6 +460,12 @@ nmap --version
 ## 🔄 Güncelleme Geçmişi
 
 Tam liste: [**CHANGELOG.md**](CHANGELOG.md)
+
+### v1.3.0 (2026-08-04)
+
+- ✅ MyNeS kendi bildirimlerini gönderiyor (Web Push) — HA veya üçüncü taraf servis gerekmiyor
+- ✅ Home Assistant `notify.*` servisine doğrudan bildirim kanalı (otomasyon kurmaya gerek yok)
+- ✅ Yeni cihaz ve erişim/hata uyarıları her iki kanala da ek ayar gerekmeden gidiyor
 
 ### v1.2.0 (2026-08-04)
 

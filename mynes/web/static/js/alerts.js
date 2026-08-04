@@ -35,6 +35,13 @@
       { key: 'chat_id', label: 'Chat ID', required: true }
     ],
     webhook: [{ key: 'url', label: 'URL', hint: 'Receives the full alert as JSON.', required: true }],
+    mynes_push: [],
+    home_assistant: [
+      { key: 'service', label: 'Notify service', value: 'persistent_notification',
+        hint: 'e.g. mobile_app_pixel_9. Leave as persistent_notification for the bell icon in HA.' },
+      { key: 'url', label: 'Home Assistant URL (optional)', hint: 'Defaults to MYNES_HA_URL from the environment.' },
+      { key: 'token', label: 'Long-lived token (optional)', type: 'password', hint: 'Defaults to MYNES_HA_TOKEN.' }
+    ],
     slack:   [{ key: 'url', label: 'Incoming webhook URL', required: true }],
     discord: [{ key: 'url', label: 'Webhook URL', required: true }],
     smtp: [
@@ -52,6 +59,28 @@
   // Assistant 2024.10+ uses the plural `triggers:`/`actions:` schema with a
   // `trigger:` key inside the list, not the legacy `trigger:`/`platform:` pair.
   var CHANNEL_GUIDES = {
+    mynes_push: {
+      title: 'MyNeS push — no Home Assistant, no relay',
+      steps: [
+        'Scroll up to <b>Notifications on this device</b> and press <b>Enable on this device</b>. Your browser asks once for permission.',
+        'Repeat that on every phone, tablet or laptop that should get alerts — each device registers itself.',
+        'Add this channel and pick a severity. From then on every matching alert is pushed to all registered devices.',
+        'Install MyNeS to the home screen (Share → Add to Home Screen on iOS) if you want alerts while the browser is closed.'
+      ],
+      note: 'The alert goes from this server to your device via the browser vendor\'s push service. Nothing is stored or read by anyone else, and no account is needed. iOS only allows web push for apps added to the home screen — that is an Apple restriction, not a MyNeS one.'
+    },
+
+    home_assistant: {
+      title: 'Home Assistant notify service — direct, no automation needed',
+      steps: [
+        'Make sure MyNeS already talks to Home Assistant: <code>MYNES_HA_URL</code> and <code>MYNES_HA_TOKEN</code> in your <code>.env</code>. Create the token in HA under your profile → <b>Security</b> → <b>Long-lived access tokens</b>.',
+        'Pick the notify service. <code>persistent_notification</code> shows up under the bell icon in HA and always exists.',
+        'To get it on your phone instead, use the service the HA companion app created — it looks like <code>mobile_app_&lt;device&gt;</code>. The dropdown below lists what your install actually exposes.',
+        'Press <b>Send test</b>. It should arrive in Home Assistant within a second.'
+      ],
+      note: 'Unlike the Webhook channel, this needs no automation in Home Assistant — MyNeS calls the service directly over the REST API using the token you already have.'
+    },
+
     ntfy: {
       title: 'ntfy — push to your phone, no account needed',
       steps: [
@@ -177,6 +206,92 @@
     }
   }
 
+  /* ---------------- MyNeS's own push ------------------------------------ */
+  function b64ToUint8(base64) {
+    var padded = (base64 + '='.repeat((4 - base64.length % 4) % 4)).replace(/-/g, '+').replace(/_/g, '/');
+    var raw = window.atob(padded);
+    return Uint8Array.from(raw, function (c) { return c.charCodeAt(0); });
+  }
+
+  function pushSupported() {
+    return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+  }
+
+  function setPushState(state, detail) {
+    var badge = $('pushBadge');
+    var labels = { on: 'On', off: 'Off', blocked: 'Blocked', unsupported: 'Unsupported', unavailable: 'Unavailable' };
+    badge.textContent = labels[state] || state;
+    badge.className = 'ds-badge' + (state === 'on' ? ' ds-badge--success' : (state === 'blocked' ? ' ds-badge--critical' : ''));
+    $('pushEnableBtn').hidden = state === 'on';
+    $('pushTestBtn').hidden = state !== 'on';
+    $('pushDisableBtn').hidden = state !== 'on';
+    $('pushEnableBtn').disabled = state === 'blocked' || state === 'unsupported' || state === 'unavailable';
+    $('pushHint').innerHTML = detail
+      ? '<div class="ds-alert ds-alert--' + (state === 'on' ? 'success' : 'info') + '">' +
+        '<svg class="ds-alert__icon ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-info"/></svg>' +
+        '<span>' + detail + '</span></div>'
+      : '';
+  }
+
+  function refreshPushState() {
+    if (!pushSupported()) {
+      return setPushState('unsupported', 'This browser cannot receive web push. On iOS, add MyNeS to the home screen first.');
+    }
+    if (Notification.permission === 'denied') {
+      return setPushState('blocked', 'Notifications are blocked for this site in your browser settings.');
+    }
+    return api('/api/push/key').then(function (info) {
+      if (!info.available) return setPushState('unavailable', info.detail);
+      return navigator.serviceWorker.ready
+        .then(function (reg) { return reg.pushManager.getSubscription(); })
+        .then(function (sub) {
+          setPushState(sub ? 'on' : 'off',
+            sub ? 'This device is registered. Alerts arrive even with the tab closed.' : '');
+        });
+    }).catch(function (e) { setPushState('off', e.message); });
+  }
+
+  function enablePush() {
+    var btn = $('pushEnableBtn');
+    btn.disabled = true;
+    return Notification.requestPermission()
+      .then(function (permission) {
+        if (permission !== 'granted') throw new Error('Permission was not granted.');
+        return api('/api/push/key');
+      })
+      .then(function (info) {
+        if (!info.public_key) throw new Error(info.detail || 'Push is not available on the server.');
+        return navigator.serviceWorker.ready.then(function (reg) {
+          return reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: b64ToUint8(info.public_key)
+          });
+        });
+      })
+      .then(function (sub) {
+        return api('/api/push/subscribe', {
+          method: 'POST',
+          body: { subscription: sub.toJSON(), label: navigator.platform || 'this device' }
+        });
+      })
+      .then(function () { toast('Push enabled on this device.', 'success'); return refreshPushState(); })
+      .catch(function (e) { toast('Could not enable push: ' + e.message, 'critical'); return refreshPushState(); })
+      .finally(function () { btn.disabled = false; });
+  }
+
+  function disablePush() {
+    return navigator.serviceWorker.ready
+      .then(function (reg) { return reg.pushManager.getSubscription(); })
+      .then(function (sub) {
+        if (!sub) return null;
+        var endpoint = sub.endpoint;
+        return sub.unsubscribe().then(function () {
+          return api('/api/push/unsubscribe', { method: 'POST', body: { endpoint: endpoint } });
+        });
+      })
+      .then(function () { toast('Push turned off on this device.', 'info'); return refreshPushState(); });
+  }
+
   function renderChannelFields() {
     var fields = CHANNEL_FIELDS[$('chType').value] || [];
     renderChannelGuide();
@@ -189,6 +304,21 @@
         (f.hint ? '<span class="ds-hint">' + esc(f.hint) + '</span>' : '') +
       '</div>';
     }).join('');
+
+    // Guessing `notify.mobile_app_<slug>` is the step people get wrong, so ask
+    // Home Assistant what it actually exposes and offer it as a datalist.
+    if ($('chType').value === 'home_assistant' && $('ch_service')) {
+      api('/api/integrations/home-assistant/notify-services')
+        .then(function (r) {
+          if (!r.services || !r.services.length) return;
+          $('chFields').insertAdjacentHTML('beforeend',
+            '<datalist id="haNotifyServices">' +
+            r.services.map(function (n) { return '<option value="' + esc(n) + '">'; }).join('') +
+            '</datalist>');
+          $('ch_service').setAttribute('list', 'haNotifyServices');
+        })
+        .catch(function () { /* not configured yet - the plain field still works */ });
+    }
   }
 
   function collectChannel() {
@@ -420,6 +550,20 @@
       api('/api/alerts', { method: 'DELETE' })
         .then(function () { return Promise.all([loadFeed(), loadStatus(), window.MyNeS.refreshAlertBadge()]); });
     });
+
+    $('pushEnableBtn').addEventListener('click', enablePush);
+    $('pushDisableBtn').addEventListener('click', disablePush);
+    $('pushTestBtn').addEventListener('click', function () {
+      var btn = this; btn.disabled = true;
+      api('/api/push/test', { method: 'POST' })
+        .then(function (r) {
+          toast(r.sent ? 'Sent to ' + r.sent + ' device(s).' : (r.error || 'No device registered.'),
+                r.sent ? 'success' : 'warning');
+        })
+        .catch(function (e) { toast('Test failed: ' + e.message, 'critical'); })
+        .finally(function () { btn.disabled = false; });
+    });
+    refreshPushState();
 
     $('addChannelBtn').addEventListener('click', function () { openModal(true); });
     $('closeChannelModal').addEventListener('click', function () { openModal(false); });

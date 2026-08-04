@@ -110,6 +110,49 @@ def send_smtp(cfg, alert):
     return 250, "sent"
 
 
+def send_home_assistant(cfg, alert):
+    """Call a Home Assistant notify service directly over its REST API.
+
+    The webhook channel needs the user to build an automation first; this one
+    reuses the token they already configured for the HA integration and calls
+    e.g. `notify.mobile_app_pixel` straight away. `persistent_notification` is
+    the default because it exists on every install.
+    """
+    from mynes.integrations.home_assistant import _first_env
+
+    url = (cfg.get("url") or _first_env(("MYNES_HA_URL", "HA_URL")) or "").rstrip("/")
+    token = cfg.get("token") or _first_env(("MYNES_HA_TOKEN", "HA_TOKEN"))
+    if not url or not token:
+        raise KeyError("Home Assistant URL and token are required (MYNES_HA_URL / MYNES_HA_TOKEN)")
+
+    service = (cfg.get("service") or "persistent_notification").replace("notify.", "")
+    payload = {
+        "title": f"{SEVERITY_EMOJI.get(alert['severity'], '')} {alert['title']}".strip(),
+        "message": alert["message"],
+        # Mobile-app notify services read `data`; persistent_notification ignores it.
+        "data": {
+            "tag": f"mynes-{alert.get('rule')}",
+            "url": "/lovelace",
+            "mynes": {k: alert.get(k) for k in ("rule", "severity", "ip", "mac", "device_name")},
+        },
+    }
+    return _post(
+        f"{url}/api/services/notify/{service}",
+        payload,
+        {"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+    )
+
+
+def send_mynes_push(cfg, alert):
+    """MyNeS's own Web Push - no Home Assistant, no third-party relay."""
+    from mynes.monitoring import push
+
+    result = push.send(alert)
+    if not result.get("ok"):
+        raise OSError(result.get("error") or "; ".join(result.get("errors", [])) or "push failed")
+    return 200, f"pushed to {result['sent']} device(s)"
+
+
 SENDERS = {
     "webhook": send_webhook,
     "slack": send_webhook,
@@ -118,6 +161,8 @@ SENDERS = {
     "telegram": send_telegram,
     "smtp": send_smtp,
     "email": send_smtp,
+    "home_assistant": send_home_assistant,
+    "mynes_push": send_mynes_push,
 }
 
 

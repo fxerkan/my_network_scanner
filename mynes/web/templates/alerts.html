@@ -137,6 +137,37 @@
     </div>
   </section>
 
+  <!-- MyNeS's own push -->
+  <section class="ds-card">
+    <div class="ds-card__header">
+      <svg class="ds-icon" aria-hidden="true"><use href="#i-bell"/></svg>
+      <h2 class="ds-card__title">Notifications on this device</h2>
+      <div class="ds-spacer"></div>
+      <span class="ds-badge" id="pushBadge">—</span>
+    </div>
+    <div class="ds-card__body ds-stack">
+      <p class="ds-muted" style="margin:0">
+        MyNeS can push alerts to this browser or installed app itself — no Home
+        Assistant and no third-party service in the path. Allow notifications
+        once and they arrive even when the tab is closed.
+      </p>
+      <div class="ds-row" style="gap:var(--space-2);flex-wrap:wrap">
+        <button class="ds-btn ds-btn--primary ds-btn--sm" id="pushEnableBtn">
+          <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-bell"/></svg>
+          <span>Enable on this device</span>
+        </button>
+        <button class="ds-btn ds-btn--sm" id="pushTestBtn" hidden>
+          <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-play"/></svg>
+          <span>Send test</span>
+        </button>
+        <button class="ds-btn ds-btn--ghost ds-btn--sm" id="pushDisableBtn" hidden>
+          <span>Turn off here</span>
+        </button>
+      </div>
+      <div id="pushHint"></div>
+    </div>
+  </section>
+
   <!-- Notification channels -->
   <section class="ds-card">
     <div class="ds-card__header">
@@ -190,9 +221,11 @@
       <div class="ds-field">
         <label class="ds-label" for="chType">Type</label>
         <select class="ds-select" id="chType">
+          <option value="mynes_push">MyNeS push (this server, no relay)</option>
+          <option value="home_assistant">Home Assistant notify service</option>
           <option value="ntfy">ntfy (phone push, no account)</option>
           <option value="telegram">Telegram bot</option>
-          <option value="webhook">Webhook (Home Assistant, n8n, …)</option>
+          <option value="webhook">Webhook (n8n, custom, HA automation)</option>
           <option value="slack">Slack incoming webhook</option>
           <option value="discord">Discord webhook</option>
           <option value="smtp">Email (SMTP)</option>
