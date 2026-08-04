@@ -136,50 +136,99 @@ Uygulama aşağıdaki bilgileri kullanarak cihaz tipini otomatik olarak belirler
 
 ## 🚀 Hızlı Başlangıç - Docker
 
-[![Docker Pulls](https://img.shields.io/docker/pulls/fxerkan/my_network_scanner)](https://hub.docker.com/r/fxerkan/my_network_scanner) [![Docker Image Size](https://img.shields.io/docker/image-size/fxerkan/my_network_scanner/latest)](https://hub.docker.com/r/fxerkan/my_network_scanner) [![GitHub Release](https://img.shields.io/github/v/release/fxerkan/my_network_scanner)](https://github.com/fxerkan/my_network_scanner/releases) [![GitHub Stars](https://img.shields.io/github/stars/fxerkan/my_network_scanner?style=social)](https://github.com/fxerkan/my_network_scanner)
+[![Docker Pulls](https://img.shields.io/docker/pulls/fxerkan/my_network_scanner)](https://hub.docker.com/r/fxerkan/my_network_scanner)
+[![Docker Image Size](https://img.shields.io/docker/image-size/fxerkan/my_network_scanner/latest)](https://hub.docker.com/r/fxerkan/my_network_scanner)
+[![GitHub Release](https://img.shields.io/github/v/release/fxerkan/my_network_scanner)](https://github.com/fxerkan/my_network_scanner/releases)
+[![GitHub Stars](https://img.shields.io/github/stars/fxerkan/my_network_scanner?style=social)](https://github.com/fxerkan/my_network_scanner)
 
-Bu container imajı  `amd64` ve `arm64` mimarilerinin tümünü destekler.
+İmaj `linux/amd64` ve `linux/arm64` için yayınlanır — Raspberry Pi ve Orange Pi'de de çalışır.
 
-### 🐳 Docker Compose (Tavsiye Edilen)
+### 🐳 Docker Compose (önerilen)
 
 ```yaml
 services:
-  my-network-scanner:
+  mynes:
     image: fxerkan/my_network_scanner:latest
-    container_name: my-network-scanner
-    ports:
-      - "5883:5883"
+    container_name: mynes
+    # LAN'ı gerçekten görebilmesini sağlayan şey host ağı. Aşağıdaki nota bakın.
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
     volumes:
       - ./data:/app/data
       - ./config:/app/config
     environment:
-      - FLASK_ENV=production
-      - LAN_SCANNER_PASSWORD=your-secure-password
+      MYNES_PORT: 5883
+      # Boş bırakılırsa ilk açılışta otomatik üretilir.
+      MYNES_PASSWORD: ""
+      # İsteğe bağlı: Zigbee2MQTT / Z-Wave JS / Tasmota cihazlarını da görmek için
+      MYNES_MQTT_HOST: ""
+      # İsteğe bağlı: Home Assistant entegrasyonu
+      MYNES_HA_URL: ""
+      MYNES_HA_TOKEN: ""
     restart: unless-stopped
-    cap_add:
-      - NET_ADMIN
-      - NET_RAW
-    privileged: true
 ```
+
+```bash
+docker compose up -d
+```
+
+Depodaki hazır dosya: `docker compose -f deploy/docker-compose.yml up -d`
 
 ### 🐳 Docker Run
 
 ```bash
-# Pull and run the container
 docker run -d \
-  --name my-network-scanner \
-  --privileged \
+  --name mynes \
+  --network host \
   --cap-add=NET_ADMIN \
   --cap-add=NET_RAW \
-  -p 5883:5883 \
-  -v $(pwd)/data:/app/data \
-  -v $(pwd)/config:/app/config \
-  -e LAN_SCANNER_PASSWORD=your-secure-password \
+  -v "$(pwd)/data:/app/data" \
+  -v "$(pwd)/config:/app/config" \
+  -e MYNES_PORT=5883 \
+  --restart unless-stopped \
   fxerkan/my_network_scanner:latest
-
-# Access the application
-open http://localhost:5883
 ```
+
+Arayüz: **http://\<sunucu-ip\>:5883**
+
+### ⚠️ Neden host ağı ve NET_RAW?
+
+MyNeS ham ARP paketleri gönderir ve mDNS/SSDP multicast dinler. İkisi de host ağ
+namespace'i ister — bridge ağından yalnızca bridge'i görür, LAN'ı göremez.
+
+- `NET_RAW` ARP paketlerini oluşturmasını sağlar.
+- `NET_ADMIN` arayüz durumunu okumasını sağlar.
+- **root olarak çalışmaz** (`USER scanner`, uid 1000) ve **`privileged` değildir.**
+- Bu yetkiler olmadan hata vermez; ping taraması + işletim sistemi ARP önbelleğine
+  düşer ve daha az cihaz bulur. Neyin eksik olduğunu `/api/capabilities` söyler.
+
+Docker Desktop (macOS/Windows) host ağını tam desteklemez. Orada `network_mode: host`
+yerine `ports: ["5883:5883"]` kullanın; keşif yeteneği kısıtlı olur.
+
+> Yalnızca size ait ağları tarayın.
+
+### 🔧 Ortam Değişkenleri
+
+| Değişken | Açıklama | Varsayılan |
+| --- | --- | --- |
+| `MYNES_PORT` | Web arayüzü portu | `5883` |
+| `MYNES_PASSWORD` | Kayıtlı cihaz kimlik bilgilerini şifreleyen ana parola | otomatik üretilir |
+| `MYNES_MQTT_HOST` | MQTT broker adresi (Zigbee/Z-Wave/Tasmota keşfi) | boş |
+| `MYNES_MQTT_USERNAME` / `MYNES_MQTT_PASSWORD` | MQTT kimlik bilgileri | boş |
+| `MYNES_HA_URL` / `MYNES_HA_TOKEN` | Home Assistant adresi ve uzun ömürlü jeton | boş |
+| `TZ` | Konteyner saat dilimi | `UTC` |
+
+`HA_URL` / `HA_TOKEN` de kabul edilir. Depo kökündeki `.env` dosyası her giriş
+noktası tarafından okunur; gerçek ortam değişkenleri dosyayı ezer.
+
+### 📁 Kalıcı Dizinler
+
+| Yol | İçerik |
+| --- | --- |
+| `/app/data` | Cihaz envanteri, tarama geçmişi, uyarılar |
+| `/app/config` | Yapılandırma ve şifrelenmiş kimlik bilgileri |
 
 ## 🛠️ Kurulum ve Geliştirme
 

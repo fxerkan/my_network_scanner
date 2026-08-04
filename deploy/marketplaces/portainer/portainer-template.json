@@ -9,7 +9,7 @@
       "note": "Host networking is required for ARP/mDNS/SSDP discovery. NET_ADMIN and NET_RAW let MyNeS send raw ARP frames; without them it falls back to a ping sweep and finds fewer devices. Open http://&lt;host-ip&gt;:5883 after deploy. Only scan networks you own.",
       "categories": ["Network", "Monitoring", "Tools"],
       "platform": "linux",
-      "logo": "https://raw.githubusercontent.com/fxerkan/my_network_scanner/main/assets/mynes.png",
+      "logo": "https://raw.githubusercontent.com/fxerkan/my_network_scanner/main/assets/icon.png",
       "image": "fxerkan/my_network_scanner:latest",
       "network": "host",
       "restart_policy": "unless-stopped",

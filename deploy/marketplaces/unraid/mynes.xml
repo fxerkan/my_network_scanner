@@ -42,7 +42,7 @@
   </Requires>
   <WebUI>http://[IP]:[PORT:5883]</WebUI>
   <TemplateURL>https://raw.githubusercontent.com/fxerkan/my_network_scanner/main/deploy/marketplaces/unraid/mynes.xml</TemplateURL>
-  <Icon>https://raw.githubusercontent.com/fxerkan/my_network_scanner/main/assets/mynes.png</Icon>
+  <Icon>https://raw.githubusercontent.com/fxerkan/my_network_scanner/main/assets/icon.png</Icon>
   <Screenshot>https://raw.githubusercontent.com/fxerkan/my_network_scanner/main/assets/screenshots/home-view.png</Screenshot>
   <Screenshot>https://raw.githubusercontent.com/fxerkan/my_network_scanner/main/assets/screenshots/graph-view.png</Screenshot>
   <Screenshot>https://raw.githubusercontent.com/fxerkan/my_network_scanner/main/assets/screenshots/monitoring-alerts.png</Screenshot>

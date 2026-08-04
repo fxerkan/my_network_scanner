@@ -135,50 +135,98 @@ preference, and lays out from a 320px phone up to a TV.
 
 [![Docker Pulls](https://img.shields.io/docker/pulls/fxerkan/my_network_scanner)](https://hub.docker.com/r/fxerkan/my_network_scanner)
 [![Docker Image Size](https://img.shields.io/docker/image-size/fxerkan/my_network_scanner/latest)](https://hub.docker.com/r/fxerkan/my_network_scanner)
+[![GitHub Release](https://img.shields.io/github/v/release/fxerkan/my_network_scanner)](https://github.com/fxerkan/my_network_scanner/releases)
 [![GitHub Stars](https://img.shields.io/github/stars/fxerkan/my_network_scanner?style=social)](https://github.com/fxerkan/my_network_scanner)
 
-This image supports both `amd64` and `arm64` architectures.
+The image is published for `linux/amd64` and `linux/arm64`, so it runs on a Raspberry Pi
+or Orange Pi as-is.
 
-### 🐳 Docker Compose (Recommended)
+### 🐳 Docker Compose (recommended)
 
 ```yaml
 services:
-  my-network-scanner:
+  mynes:
     image: fxerkan/my_network_scanner:latest
-    container_name: my-network-scanner
-    ports:
-      - "5883:5883"
+    container_name: mynes
+    # Host networking is what lets it actually see the LAN. See the note below.
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
     volumes:
       - ./data:/app/data
       - ./config:/app/config
     environment:
-      - FLASK_ENV=production
-      - LAN_SCANNER_PASSWORD=your-secure-password
+      MYNES_PORT: 5883
+      # Auto-generated on first start if left empty.
+      MYNES_PASSWORD: ""
+      # Optional: reveals Zigbee2MQTT / Z-Wave JS / Tasmota devices
+      MYNES_MQTT_HOST: ""
+      # Optional: Home Assistant integration
+      MYNES_HA_URL: ""
+      MYNES_HA_TOKEN: ""
     restart: unless-stopped
-    cap_add:
-      - NET_ADMIN
-      - NET_RAW
-    privileged: true
 ```
+
+```bash
+docker compose up -d
+```
+
+Or use the file in this repo: `docker compose -f deploy/docker-compose.yml up -d`
 
 ### 🐳 Docker Run
 
 ```bash
-# Pull and run the container
 docker run -d \
-  --name my-network-scanner \
-  --privileged \
+  --name mynes \
+  --network host \
   --cap-add=NET_ADMIN \
   --cap-add=NET_RAW \
-  -p 5883:5883 \
-  -v $(pwd)/data:/app/data \
-  -v $(pwd)/config:/app/config \
-  -e LAN_SCANNER_PASSWORD=your-secure-password \
+  -v "$(pwd)/data:/app/data" \
+  -v "$(pwd)/config:/app/config" \
+  -e MYNES_PORT=5883 \
+  --restart unless-stopped \
   fxerkan/my_network_scanner:latest
-
-# Access the application
-open http://localhost:5883
 ```
+
+Web UI: **http://\<your-server-ip\>:5883**
+
+### ⚠️ Why host networking and NET_RAW?
+
+MyNeS sends raw ARP frames and listens for mDNS/SSDP multicast. Both require the host
+network namespace — from a bridge network it can only see the bridge, not the LAN.
+
+- `NET_RAW` lets it build ARP frames.
+- `NET_ADMIN` lets it read interface state.
+- It does **not** run as root (`USER scanner`, uid 1000) and it is **not** `privileged`.
+- Without these capabilities it does not fail: it degrades to a ping sweep plus the OS ARP
+  cache and finds fewer devices. `/api/capabilities` tells you exactly what is missing.
+
+Docker Desktop (macOS/Windows) does not fully support host networking. There, drop
+`network_mode: host` and use `ports: ["5883:5883"]` instead, accepting reduced discovery.
+
+> Only scan networks you own.
+
+### 🔧 Environment Variables
+
+| Variable | Description | Default |
+| --- | --- | --- |
+| `MYNES_PORT` | Web interface port | `5883` |
+| `MYNES_PASSWORD` | Master password encrypting stored device credentials | auto-generated |
+| `MYNES_MQTT_HOST` | MQTT broker host (Zigbee/Z-Wave/Tasmota discovery) | empty |
+| `MYNES_MQTT_USERNAME` / `MYNES_MQTT_PASSWORD` | MQTT credentials | empty |
+| `MYNES_HA_URL` / `MYNES_HA_TOKEN` | Home Assistant URL and long-lived token | empty |
+| `TZ` | Container timezone | `UTC` |
+
+`HA_URL` / `HA_TOKEN` are accepted too. A `.env` file in the repo root is read by every
+entry point; real environment variables always win over the file.
+
+### 📁 Persistent Volumes
+
+| Path | Contents |
+| --- | --- |
+| `/app/data` | Device inventory, scan history, alerts |
+| `/app/config` | Configuration and encrypted credentials |
 
 ## 🛠️ Development
 
@@ -255,7 +303,8 @@ The application supports various configuration options:
 
 ```bash
 # Set master password for credential encryption
-export LAN_SCANNER_PASSWORD="your_master_password"
+# (LAN_SCANNER_PASSWORD is still accepted as a legacy alias)
+export MYNES_PASSWORD="your_master_password"
 
 # Custom Flask configuration
 export FLASK_SECRET_KEY="your_secret_key"

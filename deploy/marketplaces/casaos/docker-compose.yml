@@ -134,7 +134,7 @@ x-casaos:
         Bunlar olmadan ping taraması + işletim sistemi ARP önbelleğine düşer ve daha az cihaz bulur.
         Kurulumdan sonra http://<sunucu-ip>:5883 adresini açın. Yalnızca size ait ağları tarayın.
   icon: https://raw.githubusercontent.com/fxerkan/my_network_scanner/main/assets/logo.svg
-  thumbnail: https://raw.githubusercontent.com/fxerkan/my_network_scanner/main/assets/mynes.png
+  thumbnail: https://raw.githubusercontent.com/fxerkan/my_network_scanner/main/assets/store/1.jpg
   screenshot_link:
     - https://raw.githubusercontent.com/fxerkan/my_network_scanner/main/assets/screenshots/home-view.png
     - https://raw.githubusercontent.com/fxerkan/my_network_scanner/main/assets/screenshots/discovery.png
