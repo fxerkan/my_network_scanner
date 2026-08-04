@@ -308,16 +308,14 @@ async function checkScanStatus() {
 
 function toggleToolsDropdown() {
     const dropdown = document.getElementById('toolsDropdownMenu');
-    if (dropdown.style.display === 'none' || dropdown.style.display === '') {
-        dropdown.style.display = 'block';
-    } else {
-        dropdown.style.display = 'none';
-    }
+    const open = !(dropdown.style.display === 'none' || dropdown.style.display === '');
+    dropdown.style.display = open ? 'none' : 'block';
+    document.getElementById('toolsDropdown')?.setAttribute('aria-expanded', String(!open));
 }
 
 function closeToolsDropdown() {
-    const dropdown = document.getElementById('toolsDropdownMenu');
-    dropdown.style.display = 'none';
+    document.getElementById('toolsDropdownMenu').style.display = 'none';
+    document.getElementById('toolsDropdown')?.setAttribute('aria-expanded', 'false');
 }
 
 // Close dropdown when clicking outside
@@ -2295,12 +2293,39 @@ function openEnhancedEditModal(ip) {
     
     // Load device data to all tabs
     loadDeviceToEnhancedModal(device);
+    loadUplinkField(device);
     
     // Show modal
     document.getElementById('enhancedEditModal').style.display = 'block';
     
     // Switch to first tab
     switchEditTab('device');
+}
+
+/*
+ * "Connected via" - the same manual uplink the topology view sets, offered
+ * here too because this is where people already come to correct a device. A
+ * bridged switch is invisible at layer 3, so this is the only way to record it.
+ */
+async function loadUplinkField(device) {
+    const select = document.getElementById('enhancedEditUplink');
+    if (!select) return;
+
+    const others = devices.filter(d => d.ip && d.ip !== device.ip);
+    const infraRe = /router|switch|access point|extender|repeater|modem|gateway/i;
+    const isInfra = d => infraRe.test(d.device_type || '') || d.ip.endsWith('.1');
+    const option = d => `<option value="${d.ip}">${getDeviceIcon(d.device_type)} ${d.alias || d.hostname || d.ip} — ${d.ip}</option>`;
+
+    select.innerHTML = `<option value="">${t('uplink_auto')}</option>`
+        + `<optgroup label="${t('network_gear')}">${others.filter(isInfra).map(option).join('')}</optgroup>`
+        + `<optgroup label="${t('other_devices')}">${others.filter(d => !isInfra(d)).map(option).join('')}</optgroup>`;
+
+    try {
+        const topo = await (await fetch('/api/topology')).json();
+        select.value = (topo.uplinks || {})[device.ip] || '';
+    } catch (_) {
+        select.value = '';
+    }
 }
 
 function closeEnhancedEditModal() {
@@ -2834,6 +2859,14 @@ async function saveEnhancedDevice() {
         const result = await response.json();
 
         if (response.ok) {
+            const uplink = document.getElementById('enhancedEditUplink');
+            if (uplink) {
+                await fetch('/api/topology/uplinks', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ uplinks: { [currentEnhancedEditingIp]: uplink.value || null } })
+                }).catch(() => { /* the device itself saved; the uplink is a nicety */ });
+            }
             showToast(t('device_updated_success'), 'success');
             closeEnhancedEditModal();
             await loadDevices(); // Reload devices

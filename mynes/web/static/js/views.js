@@ -52,6 +52,13 @@
         iot_devices: 'IoT Devices', other: 'Other',
     };
 
+    const GROUP_ICONS = {
+        access_points: '📶', switches: '🔀', servers: '🖥️', computers: '💻',
+        phones: '📱', tablets: '📱', tvs: '📺', medias: '🔊', cameras: '📹',
+        lights: '💡', climates: '🌡️', vacuums: '🧹', pets: '🐾', sensors: '📈',
+        smart_home: '🏠', iot_devices: '🔗', other: '❓',
+    };
+
     const TYPE_TO_GROUP = {};
     GROUPS.forEach(g => g.types.forEach(t => { TYPE_TO_GROUP[t.toLowerCase()] = g; }));
 
@@ -337,18 +344,44 @@
         return topoCache;
     }
 
-    const COL = 122, ROW = 128, TOP = 52;
+    // Sibling step and generation step. Horizontal needs less room between
+    // siblings (they stack vertically) and more between generations, because
+    // captions sit beside the node instead of under it.
+    const SPACING = {
+        vertical:   { across: 122, depth: 128 },
+        horizontal: { across: 58,  depth: 230 },
+    };
+    const TOP = 52;
 
-    /** Tidy tree: leaves take the next slot, parents centre over their kids. */
+    // Vertical fans out sideways and needs horizontal scroll; horizontal grows
+    // downwards, which is the direction a phone scrolls anyway.
+    let topoOrientation = localStorage.getItem('mynes.topoOrientation') || 'vertical';
+
+    /** Tidy tree: leaves take the next slot, parents centre over their kids.
+        `across` is the sibling axis, `depth` is the generation axis; which one
+        becomes x and which becomes y is decided by the orientation. */
     function layoutTree(node, depth, cursor) {
-        node.y = TOP + depth * ROW;
+        const step = SPACING[topoOrientation] || SPACING.vertical;
+        node.depth = TOP + depth * step.depth;
         if (!node.children || !node.children.length) {
-            node.x = cursor.n * COL + COL / 2;
+            node.across = cursor.n * step.across + step.across / 2;
             cursor.n += 1;
             return;
         }
         node.children.forEach(c => layoutTree(c, depth + 1, cursor));
-        node.x = (node.children[0].x + node.children[node.children.length - 1].x) / 2;
+        node.across = (node.children[0].across + node.children[node.children.length - 1].across) / 2;
+    }
+
+    /** Project the layout onto the screen axes for the chosen orientation. */
+    function applyOrientation(node) {
+        if (topoOrientation === 'horizontal') {
+            node.x = node.depth;
+            node.y = node.across;
+        } else {
+            node.x = node.across;
+            node.y = node.depth;
+        }
+        (node.children || []).forEach(applyOrientation);
     }
 
     function buildTopoTree(list, topo) {
@@ -390,7 +423,7 @@
             const kids = (childrenOf.get(d.ip) || []).filter(k => !seen.has(k.ip));
             const infraKids = kids.filter(isBranch).map(infraNode);
             const groups = byGroup(kids.filter(k => !isBranch(k))).map(g => ({
-                kind: 'group', name: g.label, cls: g.color, count: g.members.length,
+                kind: 'group', name: g.label, cls: g.color, count: g.members.length, groupKey: g.key,
                 children: g.members.map(m => ({
                     kind: 'leaf', device: m, cls: g.color, source: sourceOf(m.ip), children: [],
                 })),
@@ -409,7 +442,7 @@
             roots.push({
                 kind: 'infra', name: tr('radio_devices', 'Radio devices'), cls: 'other', source: 'radio',
                 children: byGroup(radio).map(g => ({
-                    kind: 'group', name: g.label, cls: g.color, count: g.members.length,
+                    kind: 'group', name: g.label, cls: g.color, count: g.members.length, groupKey: g.key,
                     children: g.members.map(m => ({ kind: 'leaf', device: m, cls: g.color, source: 'radio', children: [] })),
                 })),
             });
@@ -428,12 +461,17 @@
         const root = buildTopoTree(list, topo);
         const cursor = { n: 0 };
         layoutTree(root, 0, cursor);
+        applyOrientation(root);
 
         const depth = (function maxDepth(n, d) {
             return n.children.length ? Math.max(...n.children.map(c => maxDepth(c, d + 1))) : d;
         })(root, 0);
-        const width = Math.max(cursor.n * COL, 640);
-        const height = TOP + depth * ROW + 90;
+        const step = SPACING[topoOrientation] || SPACING.vertical;
+        const acrossSize = Math.max(cursor.n * step.across, 640);
+        const depthSize = TOP + depth * step.depth + 90;
+        const horizontal = topoOrientation === 'horizontal';
+        const width = horizontal ? depthSize + 120 : acrossSize;
+        const height = horizontal ? acrossSize : depthSize;
 
         container.innerHTML = '';
         container.appendChild(topoToolbar(container, list));
@@ -454,11 +492,14 @@
         (function walk(node) {
             drawTopoNode(nodeLayer, node, container, list);
             node.children.forEach(child => {
-                const mid = (node.y + child.y) / 2;
-                el('path', {
-                    class: child.source === 'default' ? 'is-assumed' : '',
-                    d: `M${node.x},${node.y + 22} V${mid} H${child.x} V${child.y - 22}`,
-                }, edges);
+                // Same elbow, rotated: the first leg runs along the generation
+                // axis, the second along the sibling axis.
+                const d = horizontal
+                    ? (() => { const mid = (node.x + child.x) / 2;
+                               return `M${node.x + 22},${node.y} H${mid} V${child.y} H${child.x - 22}`; })()
+                    : (() => { const mid = (node.y + child.y) / 2;
+                               return `M${node.x},${node.y + 22} V${mid} H${child.x} V${child.y - 22}`; })();
+                el('path', { class: child.source === 'default' ? 'is-assumed' : '', d }, edges);
                 walk(child);
             });
         })(root);
@@ -467,7 +508,8 @@
             `<span class="view-legend__item"><i class="view-legend__line"></i>${tr('uplink_known', 'Known uplink')}</span>
              <span class="view-legend__item"><i class="view-legend__line view-legend__line--dashed"></i>${tr('uplink_assumed', 'Assumed direct')}</span>`
         ));
-        scroller.scrollLeft = (width - scroller.clientWidth) / 2;
+        scroller.classList.toggle('is-horizontal', horizontal);
+        if (!horizontal) scroller.scrollLeft = (width - scroller.clientWidth) / 2;
     }
 
     function drawTopoNode(layer, node, container, list) {
@@ -483,11 +525,22 @@
         el('title', {}, g).textContent = sub ? `${name}\n${sub}` : name;
         el('circle', { cx: 0, cy: 0, r: isLeaf ? 16 : 22 }, g);
         const glyph = el('text', { class: 'topo-glyph', x: 0, y: 6, 'text-anchor': 'middle' }, g);
-        glyph.textContent = d ? icon(d) : (node.kind === 'root' ? '🌐' : '⬚');
-        const cap = el('text', { class: 'topo-caption', x: 0, y: isLeaf ? 34 : 42, 'text-anchor': 'middle' }, g);
+        glyph.textContent = d ? icon(d)
+            : (node.kind === 'root' ? '🌐' : (GROUP_ICONS[node.groupKey] || '❓'));
+
+        // Captions go under the node when the tree grows downwards, and to its
+        // right when it grows sideways - otherwise they overlap the next row.
+        const side = topoOrientation === 'horizontal';
+        const capAttrs = side
+            ? { x: (isLeaf ? 22 : 28), y: 0, 'text-anchor': 'start' }
+            : { x: 0, y: isLeaf ? 34 : 42, 'text-anchor': 'middle' };
+        const cap = el('text', { class: 'topo-caption', ...capAttrs }, g);
         cap.textContent = clip(name, 15);
         if (sub) {
-            const s = el('text', { class: 'topo-sub', x: 0, y: isLeaf ? 47 : 56, 'text-anchor': 'middle' }, g);
+            const subAttrs = side
+                ? { x: (isLeaf ? 22 : 28), y: 13, 'text-anchor': 'start' }
+                : { x: 0, y: isLeaf ? 47 : 56, 'text-anchor': 'middle' };
+            const s = el('text', { class: 'topo-sub', ...subAttrs }, g);
             s.textContent = clip(sub, 18);
         }
         if (d) {
@@ -506,8 +559,25 @@
                 <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-radar"/></svg>
                 <span>${esc(tr('topology_discover', 'Discover uplinks'))}</span>
             </button>
+            <div class="ds-segmented topo-orientation" role="group" aria-label="${esc(tr('orientation', 'Orientation'))}">
+                <button type="button" class="ds-segmented__btn" data-orientation="vertical"
+                        aria-pressed="${topoOrientation === 'vertical'}" title="${esc(tr('orientation_vertical', 'Vertical'))}">
+                    <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-topology"/></svg>
+                </button>
+                <button type="button" class="ds-segmented__btn" data-orientation="horizontal"
+                        aria-pressed="${topoOrientation === 'horizontal'}" title="${esc(tr('orientation_horizontal', 'Horizontal'))}">
+                    <svg class="ds-icon ds-icon--sm topo-orientation__rotated" aria-hidden="true"><use href="#i-topology"/></svg>
+                </button>
+            </div>
             <span class="topo-hint">${esc(tr('topology_hint',
                 'Traceroute only finds routed hops. A bridged switch or access point is invisible on the wire - click a device to say what it is plugged into.'))}</span>`;
+        bar.querySelectorAll('[data-orientation]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                topoOrientation = btn.dataset.orientation;
+                try { localStorage.setItem('mynes.topoOrientation', topoOrientation); } catch (_) { /* private mode */ }
+                renderTopology(container, list);
+            });
+        });
         bar.querySelector('#topoDiscover').addEventListener('click', async e => {
             const btn = e.currentTarget;
             btn.disabled = true;
@@ -575,10 +645,17 @@
             await fetchTopology(true);
             renderTopology(container, list);
         });
-        setTimeout(() => document.addEventListener('click', function once() {
-            menu.remove();
-            document.removeEventListener('click', once);
-        }, { once: true }), 0);
+        // Close on a click *outside* the menu. The previous version listened
+        // for any click at all, so opening the <select> closed the popover.
+        setTimeout(() => {
+            const onDocClick = (e) => {
+                if (menu.contains(e.target)) return;
+                menu.remove();
+                document.removeEventListener('click', onDocClick);
+            };
+            document.addEventListener('click', onDocClick);
+            menu.addEventListener('remove', () => document.removeEventListener('click', onDocClick));
+        }, 0);
     }
 
     // ------------------------------------------------------------- home view

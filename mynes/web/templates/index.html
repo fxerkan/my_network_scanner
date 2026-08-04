@@ -7,33 +7,31 @@
 {% endblock %}
 
 {% block content %}
-        <!-- 1. Primary actions. One row on desktop, a wrapping grid on a phone;
-             the scan button is always the widest and first. -->
+        <!-- 1. Primary actions. One dropdown instead of four buttons: four
+             never divided evenly on a phone and left a hole, and on a desktop
+             they stranded a wide empty strip beside them. -->
         <div class="page-actions">
-            <button id="scanBtn" class="btn btn-primary page-actions__primary" onclick="startScan()">
-                <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-search"/></svg>
-                <span>{{ _('scan_network') }}</span>
-            </button>
-            <button id="stopBtn" class="btn btn-danger" onclick="stopScan()" style="display:none">
-                <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-stop"/></svg>
-                <span>{{ _('stop_scan') }}</span>
-            </button>
-            <button class="btn btn-warning" onclick="startBulkAnalysis()">
-                <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-microscope"/></svg>
-                <span>{{ _('detailed_analysis') }}</span>
-            </button>
-            <button class="btn btn-info" onclick="showDeviceManagementModal()">
-                <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-settings"/></svg>
-                <span>{{ _('device') }} {{ _('actions') }}</span>
-            </button>
-            <div class="dropdown">
-                <button class="btn btn-secondary dropdown-toggle" onclick="toggleToolsDropdown()"
+            <div class="dropdown actions-menu">
+                <button class="btn btn-primary actions-menu__trigger" onclick="toggleToolsDropdown()"
                         id="toolsDropdown" aria-haspopup="true" aria-expanded="false">
-                    <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-wrench"/></svg>
-                    <span>{{ _('tools') }}</span>
-                    <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+                    <svg class="ds-icon" aria-hidden="true"><use href="#i-search"/></svg>
+                    <span>{{ _('scan') if _('scan') != 'scan' else 'Scan' }}</span>
+                    <svg class="ds-icon ds-icon--sm actions-menu__caret" aria-hidden="true"><use href="#i-chevron-down"/></svg>
                 </button>
                 <div class="dropdown-menu" id="toolsDropdownMenu" style="display:none">
+                    <button type="button" class="dropdown-item" id="scanBtn" onclick="startScan(); closeToolsDropdown();">
+                        <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-search"/></svg>
+                        {{ _('scan_network') }}
+                    </button>
+                    <button type="button" class="dropdown-item" onclick="startBulkAnalysis(); closeToolsDropdown();">
+                        <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-microscope"/></svg>
+                        {{ _('detailed_analysis') }}
+                    </button>
+                    <button type="button" class="dropdown-item" onclick="showDeviceManagementModal(); closeToolsDropdown();">
+                        <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-settings"/></svg>
+                        {{ _('device_management') }}
+                    </button>
+                    <div class="dropdown-divider"></div>
                     <button type="button" class="dropdown-item" onclick="exportData(); closeToolsDropdown();">
                         <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-download"/></svg>
                         {{ _('export_devices') }}
@@ -49,6 +47,10 @@
                     </button>
                 </div>
             </div>
+            <button id="stopBtn" class="btn btn-danger" onclick="stopScan()" style="display:none">
+                <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-stop"/></svg>
+                <span>{{ _('stop_scan') }}</span>
+            </button>
             <input type="file" id="importFile" accept=".json" hidden onchange="importData()">
         </div>
 
@@ -279,22 +281,22 @@
     <div id="enhancedEditModal" class="modal">
         <div class="modal-content enhanced-edit-modal">
             <div class="modal-header">
-                <h2 class="modal-title">📝 {{ _('advanced_device_edit') }}</h2>
+                <h2 class="modal-title">{{ _('advanced_device_edit') }}</h2>
                 <span class="close" onclick="closeEnhancedEditModal()">&times;</span>
             </div>
             
             <!-- Tab Navigation -->
             <div class="tab-navigation">
                 <button class="tab-button active" onclick="switchEditTab('device')">
-                    <span class="tab-icon">🖥️</span>
+                    <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-cpu"/></svg>
                     <span>{{ _('device_tab') }}</span>
                 </button>
                 <button class="tab-button" onclick="switchEditTab('ports')">
-                    <span class="tab-icon">🔌</span>
+                    <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-plug"/></svg>
                     <span>{{ _('ports_tab') }}</span>
                 </button>
                 <button class="tab-button" onclick="switchEditTab('access')">
-                    <span class="tab-icon">🔐</span>
+                    <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-shield"/></svg>
                     <span>{{ _('access_tab') }}</span>
                 </button>
             </div>
@@ -329,6 +331,13 @@
                             <select id="enhancedEditDeviceType" class="form-input">
                                 <option value="">{{ _('select_device_type') }}</option>
                             </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="enhancedEditUplink">{{ _('connected_via') }}</label>
+                            <select id="enhancedEditUplink" class="form-input">
+                                <option value="">{{ _('uplink_auto') }}</option>
+                            </select>
+                            <small class="form-hint">{{ _('uplink_field_hint') }}</small>
                         </div>
                         <div class="form-group">
                             <label class="form-label">{{ _('notes_label') }}</label>
@@ -424,10 +433,12 @@
             <!-- Modal Footer -->
             <div class="modal-footer">
                 <button type="button" class="btn btn-primary" onclick="saveEnhancedDevice()">
-                    💾 {{ _('save_all_changes') }}
+                    <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-check"/></svg>
+                    <span>{{ _('save_all_changes') }}</span>
                 </button>
-                <button type="button" class="btn btn-secondary" onclick="closeEnhancedEditModal()" style="margin-left: 10px;">
-                    ❌ {{ _('cancel') }}
+                <button type="button" class="btn btn-secondary" onclick="closeEnhancedEditModal()">
+                    <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-x"/></svg>
+                    <span>{{ _('cancel') }}</span>
                 </button>
             </div>
         </div>

@@ -101,6 +101,15 @@
   color: var(--text-tertiary);
 }
 .topo-scroller { overflow-x: auto; overflow-y: hidden; }
+/* Horizontal trees grow downwards, so they scroll vertically instead - which
+   is the direction a phone scrolls anyway. */
+.topo-scroller.is-horizontal {
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: clamp(420px, 70vh, 820px);
+}
+.topo-orientation { flex: none; }
+.topo-orientation__rotated { transform: rotate(-90deg); }
 .topo-edges path.is-assumed { stroke-dasharray: 4 4; opacity: 0.4; }
 
 .uplink-menu {

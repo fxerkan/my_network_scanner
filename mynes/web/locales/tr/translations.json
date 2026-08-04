@@ -569,5 +569,10 @@
   "auth_signed_in_as": "Etkinleştirildiğinde <b>{user}</b> olarak giriş yapılır. Bilgileri <code>.env</code> içinde değiştirip MyNeS'i yeniden başlatın.",
   "auth_sign_out": "Şimdi çıkış yap",
   "auth_enabled_toast": "Giriş artık zorunlu. Bu tarayıcıda oturumunuz açık kalır.",
-  "auth_disabled_toast": "Giriş kapatıldı — ağdaki herkes MyNeS'i açabilir."
+  "auth_disabled_toast": "Giriş kapatıldı — ağdaki herkes MyNeS'i açabilir.",
+  "scan": "Tara",
+  "orientation": "Yön",
+  "orientation_vertical": "Dikey",
+  "orientation_horizontal": "Yatay",
+  "uplink_field_hint": "Cihaz, MyNeS'in göremediği bir switch veya erişim noktasına bağlı değilse Otomatik bırakın."
 }

@@ -294,12 +294,25 @@
     }
   },
   "security_settings": {
-    "_note": "Master password buraya YAZILMAZ. MYNES_PASSWORD env var veya config/.master_password (git'e girmez) kullanin."
+    "_note": "Master password buraya YAZILMAZ. MYNES_PASSWORD env var veya config/.master_password (git'e girmez) kullanin.",
+    "login_required": true
   },
   "monitoring": {
-    "_note": "Runtime monitoring settings live in data/monitoring.json (untracked): notification channels carry tokens and passwords.",
-    "enabled": false,
-    "interval_minutes": 30
+    "enabled": true,
+    "interval_minutes": 15,
+    "include_offline": true,
+    "run_discovery": true,
+    "discovery_timeout": 6,
+    "notify_channels": [],
+    "enabled_rules": null,
+    "thresholds": {
+      "battery_percent": 20,
+      "latency_ms": 500,
+      "offline_scans": 3,
+      "rssi_dbm": -85,
+      "voltage_min": 4.7
+    },
+    "publish_to_mqtt": false
   },
   "discovery": {
     "mdns": true,

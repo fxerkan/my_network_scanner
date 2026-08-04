@@ -1,6 +1,8 @@
-# 🌐 My Network Scanner (MyNeS)
+<img src="assets/logo.svg" alt="MyNeS" width="72" align="left" hspace="12">
 
-**Beni Oku (Türkçe)** | [**Readme (English)**](README_ENG.md)
+# My Network Scanner (MyNeS)
+
+**Beni Oku (Türkçe)** | [**Readme (English)**](docs/README_ENG.md)
 
 **My Network Scanner (MyNeS)**, "***Ailenizin Kullanıcı Dostu Ağ Tarayıcısı***" mottosu ile geliştirilmiş, yerel ağınızdaki tüm cihazları (Router/Modem, Laptop, Tablet, Desktop, Server, IP Camera, Gaming Console, Smart Home Appliances, .....) tarayıp, tespit ettiği cihazlar ile ilgili detaylı bilgileri kullanıcı dostu ve kolay bir arayüz üzerinden kolaylıkla yönetebilmenizi sağlayan profesyonel bir uygulamadır.
 
@@ -8,7 +10,7 @@ Modern ve kullanıcı dostu web arayüzü ile ağ yönetimini kolaylaştırır. 
 
 ![Alt text](assets/mynes.png "a title")
 
-> Sürüm sürüm tüm değişiklikler: [**CHANGELOG.md**](CHANGELOG.md)
+> Sürüm değişiklikleri: [**CHANGELOG.md**](CHANGELOG.md)
 
 ## ✨ Özellikler
 
@@ -23,8 +25,7 @@ Modern ve kullanıcı dostu web arayüzü ile ağ yönetimini kolaylaştırır. 
 - **🎛️ Yedekleme ve Aktarım**: JSON tabanalı basit ve kolay cihaz bilgilerini yedekleme ve geri yükleme
 - **📊 Geçmiş Tarama Analizi**: Geçmiş tarama sonuçlarını ve istatistiklerini takip edebilme
 - 🌍 **Çoklu Dil Desteği** - Türkçe ve İngilizce dil desteği
-- 📡 **Çoklu Protokol Keşfi**: mDNS/Bonjour, Matter, SSDP/UPnP, Bluetooth LE ve
-  MQTT (Zigbee2MQTT / Z-Wave JS / Tasmota) — IP taramasının göremediği cihazlar
+- 📡 **Çoklu Protokol Keşfi**: mDNS/Bonjour, Matter, SSDP/UPnP, Bluetooth LE ve MQTT (Zigbee2MQTT / Z-Wave JS / Tasmota) — IP taramasının göremediği cihazlar
 - 🔔 **Periyodik İzleme ve Bildirim**: Değişiklikleri tespit eder, uyarır
 - 🏠 **Home Assistant Entegrasyonu**: MQTT Discovery ile push, REST/WebSocket ile pull
 - 🗺️ **Beş Görünüm**: Kart, Tablo, Grafik, Topoloji ve Ev Planı
@@ -35,12 +36,12 @@ Modern ve kullanıcı dostu web arayüzü ile ağ yönetimini kolaylaştırır. 
 Cihaz listesini beş farklı şekilde okuyabilirsiniz — araç çubuğundaki görünüm
 anahtarından geçiş yapılır.
 
-| Görünüm      | Ne işe yarar                                                              |
-| ------------ | ------------------------------------------------------------------------- |
-| Kart / Tablo | Ayrıntı ve toplu düzenleme                                                |
-| **Grafik**   | Ağın bütününü tek bakışta görmek; alt ağ geçitleri merkez                 |
-| **Topoloji** | Neyin neye bağlı olduğu: `İnternet → router → switch/AP → grup → cihaz` |
-| **Ev Planı** | Cihazları evinizin planına sürükleyip bırakmak                            |
+| Görünüm          | Ne işe yarar                                                                    |
+| ------------------- | -------------------------------------------------------------------------------- |
+| Kart / Tablo        | Ayrıntı ve toplu düzenleme                                                    |
+| **Grafik**    | Ağın bütününü tek bakışta görmek; alt ağ geçitleri merkez             |
+| **Topoloji**  | Neyin neye bağlı olduğu:`İnternet → router → switch/AP → grup → cihaz` |
+| **Ev Planı** | Cihazları evinizin planına sürükleyip bırakmak                              |
 
 ![Grafik görünümü](assets/screenshots/graph-view.png)
 
@@ -287,6 +288,7 @@ MyNeS ağındaki tüm cihazları listeler; portu görebilen herkese bu haritayı
 vermemek için basit bir oturum girişi var. **Varsayılan olarak kapalıdır.**
 
 1. `.env` içine kullanıcı adı ve parolayı yazın:
+
    ```
    MYNES_AUTH_USERNAME=admin
    MYNES_AUTH_PASSWORD=uzun-bir-parola
@@ -451,7 +453,7 @@ Bu proje MIT lisansı altında lisanslanmıştır.
 
 ---
 
-**Bu uygulama [FXerkan](https://github.com/fxerkan) tarafından "*Code more, worry less*" mottosu ile geliştirilmiştir - Made with ❤️ & 🤖 by [FXerkan](https://github.com/fxerkan)**
+**Bu uygulama [FXerkan](https://fxerkan.com) tarafından "*Code more, worry less*" mottosu ile geliştirilmiştir - Made with ❤️ & 🤖**
 
 **ÖNEMLİ** : Bu araç sadece eğitim amacıyla ve sadece kendi ağınızdaki cihazlar hakkında bilgi sahibi olmak amacıyla kullanılmalıdır.
 

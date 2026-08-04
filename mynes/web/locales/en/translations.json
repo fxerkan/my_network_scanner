@@ -569,5 +569,10 @@
   "auth_signed_in_as": "Signed in as <b>{user}</b> when enabled. Change the credentials in <code>.env</code>, then restart MyNeS.",
   "auth_sign_out": "Sign out now",
   "auth_enabled_toast": "Sign-in is now required. You stay signed in on this browser.",
-  "auth_disabled_toast": "Sign-in disabled — anyone on the network can open MyNeS."
+  "auth_disabled_toast": "Sign-in disabled — anyone on the network can open MyNeS.",
+  "scan": "Scan",
+  "orientation": "Orientation",
+  "orientation_vertical": "Vertical",
+  "orientation_horizontal": "Horizontal",
+  "uplink_field_hint": "Leave on Auto unless the device hangs off a switch or access point MyNeS cannot see."
 }

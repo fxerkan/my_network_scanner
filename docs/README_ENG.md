@@ -1,14 +1,14 @@
-# 🌐 My Network Scanner (MyNeS)
+<img src="../assets/logo.svg" alt="MyNeS" width="72" align="left" hspace="12">
 
-[**Beni Oku (Türkçe)**](README.md) | **Readme (English)**
+# My Network Scanner (MyNeS)
+
+[**Beni Oku (Türkçe)**](../README.md) | **Readme (English)**
 
 **My Network Scanner (MyNeS)**, developed with the motto "***Your Family's User-Friendly Network Scanner***", is a professional application that scans all devices in your local network (Router/Modem, Laptop, Tablet, Desktop, Server, IP Camera, Gaming Console, Smart Home Appliances, etc.), collects detailed information about detected devices, and allows you to manage your devices through a user-friendly and easy interface.
 
 It simplifies network management with a modern and user-friendly web interface. It offers advanced and detailed scanning, AI-powered device identification, and security features.
 
-![Alt text](assets/mynes.png "MyNeS Interface")
-
-> *This application has been developed entirely **AI-assisted** (**Agentic Mode**) using [Claude Code](https://www.anthropic.com/claude-code), [Github Copilot](https://github.com/features/copilot), and [Visual Studio Code](https://code.visualstudio.com/) as **Open-Source**.*
+![My Network Scanner](../assets/mynes.png)
 
 > Full per-release detail: [**CHANGELOG.md**](../CHANGELOG.md)
 
@@ -74,12 +74,12 @@ The application automatically determines device type using the following informa
 
 The device list can be read five ways, switched from the toolbar.
 
-| View          | What it is for                                                          |
-| ------------- | ----------------------------------------------------------------------- |
-| Cards / Table | Detail and bulk editing                                                 |
-| **Graph**     | The whole network at a glance; subnet gateways as hubs                  |
-| **Topology**  | What is plugged into what: `Internet → router → switch/AP → group → device` |
-| **Home plan** | Drag devices onto a plan of your home                                   |
+| View                | What it is for                                                                   |
+| ------------------- | -------------------------------------------------------------------------------- |
+| Cards / Table       | Detail and bulk editing                                                          |
+| **Graph**     | The whole network at a glance; subnet gateways as hubs                           |
+| **Topology**  | What is plugged into what:`Internet → router → switch/AP → group → device` |
+| **Home plan** | Drag devices onto a plan of your home                                            |
 
 ![Graph view](../assets/screenshots/graph-view.png)
 
@@ -208,7 +208,6 @@ sudo apt-get install nmap
 ```bash
 sudo yum install nmap
 ```
-
 
 ### 2. Code Installation
 
@@ -370,7 +369,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🙏 Acknowledgments
 
 - **[Claude Code](https://www.anthropic.com/claude-code)**: AI-assisted development
-- **[GitHub Copilot](https://github.com/features/copilot)**: Code assistance
 - **[IEEE](https://www.ieee.org/)**: OUI database
 - **[Nmap](https://nmap.org/)**: Network scanning engine
 - **[Flask](https://flask.palletsprojects.com/en/stable/)**: Web framework
@@ -378,8 +376,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**Made with ❤️ & 🤖 by [fxerkan](https://github.com/fxerkan)**
+**Made with ❤️ & 🤖 by [FXerkan](https://fxerkan.com)**
 
-**Note:** This tool should only be used for training purpuse on your owned network only.
+**Important:** This tool should only be used for training purpuse on your owned network only.
 
-Scanning other people's networks without permission is illegal, and My Network Scanner (MyNeS) does not recommend or support such use.
+**Warning:** Scanning other people's networks without permission is illegal, and My Network Scanner (MyNeS) does not recommend or support such use.
