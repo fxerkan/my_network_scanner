@@ -7,6 +7,8 @@
 
 **See every device on your home network — including the ones an IP scan cannot find.**
 
+![MyNeS device inventory](https://raw.githubusercontent.com/fxerkan/my_network_scanner/main/assets/mynes.png)
+
 An IP scan of my LAN found 29 devices. There were about 60. Everything on Zigbee and Z-Wave has
 no IP address, so an IP scan is blind to it — and the inventory was never real.
 
@@ -19,7 +21,9 @@ No cloud, no account, no telemetry. Everything stays on your LAN.
 
 ---
 
-## Quick start
+## Start in 60 seconds
+
+**1.** Save this as `docker-compose.yml`:
 
 ```yaml
 services:
@@ -43,11 +47,18 @@ services:
     restart: unless-stopped
 ```
 
+**2.** Start it:
+
 ```bash
 docker compose up -d
 ```
 
-Or without compose:
+**3.** Open **http://\<your-server-ip\>:5883** and press **Scan Network**.
+
+That's it — no account, no setup wizard. The first scan takes a minute or two on a busy LAN.
+
+<details>
+<summary>Prefer a single <code>docker run</code>?</summary>
 
 ```bash
 docker run -d \
@@ -62,7 +73,24 @@ docker run -d \
   fxerkan/my_network_scanner:latest
 ```
 
-Then open **http://\<your-server-ip\>:5883**.
+</details>
+
+---
+
+## What you get
+
+| | |
+| --- | --- |
+| 🔎 **Finds what IP scans miss** | ARP, mDNS/Bonjour, SSDP/UPnP, Matter, Bluetooth LE, MQTT. Zigbee bulbs behind Zigbee2MQTT and Z-Wave sensors behind Z-Wave JS appear next to your laptops. |
+| 🏷️ **Names them for you** | 1000+ entry OUI vendor database, hostname patterns, port signatures, automatic device types (router, NAS, camera, console, smart plug…). Rules are editable in the UI. |
+| 🗺️ **Five ways to look** | Card grid, table, network topology, force-directed graph, and a floor plan you can pin devices onto. |
+| 🔔 **Tells you when things change** | Rule-based alerts on new, missing or changed devices — Web Push (self-hosted, no relay), webhook, e-mail or Home Assistant. |
+| 🏠 **Two-way Home Assistant** | MQTT Discovery pushes every device in as an entity; the REST/WebSocket side pulls HA's registry back and diffs it against what is actually on the wire. |
+| 🔬 **Optional deep dive** | nmap port/service detection, SSH/SNMP interrogation with credentials stored encrypted (Fernet + PBKDF2-HMAC-SHA256, 100k iterations). |
+| 🌍 **Turkish and English** | Light and dark themes, installable as a PWA on your phone. |
+
+Optional pieces degrade gracefully: a missing Bluetooth adapter or an unreachable MQTT broker
+disables that one source, never the scan.
 
 ---
 
@@ -75,36 +103,21 @@ namespace — from a bridge network it can only see the bridge, not the LAN.
 - `NET_ADMIN` lets it read interface state.
 - It does **not** run as root (`USER scanner`, uid 1000) and it is **not** `privileged`.
 - Without these capabilities it does not fail: it degrades to a ping sweep plus the OS ARP cache
-  and finds fewer devices. `GET /api/capabilities` tells you exactly what is missing and why.
-
-Docker Desktop (macOS/Windows) does not fully support host networking. There, drop
-`network_mode: host` and use `ports: ["5883:5883"]` instead, accepting reduced discovery.
+  and finds fewer devices.
 
 > MyNeS is a scanner. Only scan networks you own.
 
 ---
 
-## What it does
+## Something not working?
 
-- **Multi-protocol discovery** — ARP, mDNS/Bonjour, SSDP/UPnP, Matter, Bluetooth LE, MQTT.
-  Zigbee bulbs behind Zigbee2MQTT and Z-Wave sensors behind Z-Wave JS appear next to your laptops.
-- **Identification** — vendor lookup over a 1000+ entry OUI database, hostname pattern analysis,
-  port signatures, and automatic device-type classification (router, NAS, camera, console, smart
-  plug, …). Identification regexes are editable in the UI.
-- **Views** — device grid, table, network topology, force-directed graph, and a home floor plan
-  you can pin devices onto.
-- **Scan history** — when a device first appeared, when it went quiet.
-- **Monitoring and alerts** — rule-based alerts on new, missing or changed devices, delivered by
-  Web Push (MyNeS runs its own, no third-party relay), webhook, e-mail, or Home Assistant.
-- **Two-way Home Assistant integration** — MQTT Discovery pushes every device in as an entity;
-  the REST/WebSocket side pulls HA's device registry back and diffs it against what is actually
-  on the wire.
-- **Optional deep analysis** — port and service detection via nmap, SSH/SNMP interrogation with
-  credentials you store encrypted (Fernet + PBKDF2-HMAC-SHA256, 100k iterations).
-- **Turkish and English UI**, light and dark themes, installable as a PWA.
-
-Optional dependencies degrade gracefully: a missing Bluetooth adapter or an unreachable MQTT
-broker disables that one source, never the scan.
+| Symptom | What to do |
+| --- | --- |
+| **Far fewer devices than expected** | Open `GET /api/capabilities` — it lists exactly which protocol backends and privileges are missing, and why. That is the first thing to read, always. |
+| **Running Docker Desktop (macOS/Windows)** | Host networking is not fully supported there. Drop `network_mode: host`, use `ports: ["5883:5883"]`, and accept reduced discovery. |
+| **No Zigbee / Z-Wave devices** | Set `MYNES_MQTT_HOST` (plus username/password) to your broker. Those devices have no IP; MQTT is the only way to see them. |
+| **Port 5883 already taken** | Set `MYNES_PORT` to something else. |
+| **Is it alive?** | The image ships a health check against `GET /api/version`. |
 
 ---
 
@@ -132,16 +145,22 @@ legacy alias for `MYNES_PASSWORD`.
 | `/app/data` | Device inventory, scan history, alerts |
 | `/app/config` | Configuration and encrypted credentials |
 
+Back up both and you have backed up everything.
+
 ## Tags and architectures
 
 `latest`, `1.3`, `1.3.0` — built for **linux/amd64** and **linux/arm64**, so a Raspberry Pi or
 Orange Pi works without changes.
 
-## Health check
+---
 
-The image ships a health check against `GET /api/version`. `GET /api/capabilities` is the one to
-read when discovery finds less than you expect — it reports which protocol backends and
-privileges are actually available.
+## More screenshots
+
+| Discovery | Topology |
+| --- | --- |
+| ![Discovery](https://raw.githubusercontent.com/fxerkan/my_network_scanner/main/assets/screenshots/discovery.png) | ![Topology](https://raw.githubusercontent.com/fxerkan/my_network_scanner/main/assets/screenshots/topology-view.png) |
+| **Alerts** | **History** |
+| ![Alerts](https://raw.githubusercontent.com/fxerkan/my_network_scanner/main/assets/screenshots/monitoring-alerts.png) | ![History](https://raw.githubusercontent.com/fxerkan/my_network_scanner/main/assets/screenshots/history.png) |
 
 ---
 

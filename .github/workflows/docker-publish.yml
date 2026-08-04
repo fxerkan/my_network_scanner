@@ -16,21 +16,21 @@ jobs:
     
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       
     - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+      uses: docker/setup-buildx-action@v4
       
     - name: Login to Docker Hub
       if: github.event_name != 'pull_request'
-      uses: docker/login-action@v3
+      uses: docker/login-action@v4
       with:
         username: ${{ secrets.DOCKER_HUB_USERNAME }}
         password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
         
     - name: Extract metadata
       id: meta
-      uses: docker/metadata-action@v5
+      uses: docker/metadata-action@v6
       with:
         images: ${{ env.IMAGE_NAME }}
         tags: |
@@ -40,7 +40,7 @@ jobs:
           type=raw,value=latest,enable={{is_default_branch}}
           
     - name: Build and push Docker image
-      uses: docker/build-push-action@v5
+      uses: docker/build-push-action@v7
       with:
         context: .
         file: deploy/Dockerfile
@@ -55,9 +55,11 @@ jobs:
         cache-to: type=gha,mode=max
 
     # Keeps the Docker Hub landing page in sync with the repo instead of rotting.
+    # Runs even if the image push failed: the description is independent of the build,
+    # and a tag-immutability rejection should not also block the README.
     - name: Update Docker Hub description
-      if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-      uses: peter-evans/dockerhub-description@v4
+      if: ${{ !cancelled() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+      uses: peter-evans/dockerhub-description@v5
       with:
         username: ${{ secrets.DOCKER_HUB_USERNAME }}
         password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
