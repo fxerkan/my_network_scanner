@@ -464,7 +464,16 @@ hr { border: 0; border-top: 1px solid var(--border-subtle); margin: var(--space-
     content: ""; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
     width: 26px; height: 3px; border-radius: var(--radius-full); background: var(--accent-bg);
   }
-  .ds-nav .ds-badge { position: absolute; top: 2px; right: calc(50% - 22px); }
+  /* The badge sat centred over the icon and hid it. It now clips the icon's
+     top-right corner the way a notification badge is meant to, and is sized so
+     a three-digit count still fits inside the tab. */
+  .ds-nav .ds-badge {
+    position: absolute; top: 2px; left: calc(50% + 5px); right: auto;
+    min-width: 16px; height: 16px; padding: 0 4px;
+    justify-content: center;
+    font-size: 10px; font-weight: var(--weight-semibold); line-height: 1;
+    border: 1px solid var(--bg-surface);
+  }
 
   /* The footer is the last thing on the page, so it carries the clearance
      that keeps the tab bar from covering content. */

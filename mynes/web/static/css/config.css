@@ -466,12 +466,18 @@
 }
 .pattern-item:last-child { border-bottom: none; }
 .pattern-item__pattern {
+    min-height: 34px;
     font-family: var(--font-mono);
     font-size: var(--text-sm);
-    color: var(--text-primary);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    background: transparent;
+    border-color: transparent;
+}
+.pattern-item__pattern:hover { border-color: var(--border-default); }
+.pattern-item__pattern:focus { background: var(--bg-surface); }
+.pattern-item__pattern.is-invalid {
+    border-color: var(--severity-critical-border);
+    background: var(--severity-critical-bg);
+    color: var(--severity-critical-fg);
 }
 .pattern-item__type { min-height: 34px; }
 .pattern-empty { padding: var(--space-4); text-align: center; color: var(--text-tertiary); font-size: var(--text-sm); }

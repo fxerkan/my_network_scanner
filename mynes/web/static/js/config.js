@@ -470,7 +470,9 @@ function renderPatternRules(container, rules, kind) {
 
     container.innerHTML = rules.map((rule, index) => `
         <div class="pattern-item">
-            <code class="pattern-item__pattern" title="${esc(rule.pattern)}">${esc(rule.pattern)}</code>
+            <input type="text" class="form-input pattern-item__pattern" value="${esc(rule.pattern)}"
+                   data-pattern-index="${index}" spellcheck="false"
+                   aria-label="${t('pattern')}" title="${esc(rule.pattern)}">
             <select class="form-select pattern-item__type" data-rule-kind="${kind}" data-rule-index="${index}"
                     aria-label="${t('device_type')}">${deviceTypeOptions(rule.type)}</select>
             <button type="button" class="icon-btn icon-btn--danger" data-remove-kind="${kind}" data-remove-index="${index}"
@@ -478,6 +480,36 @@ function renderPatternRules(container, rules, kind) {
                 <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-trash"/></svg>
             </button>
         </div>`).join('');
+
+    // The pattern is a regex the scanner will compile, so a typo here silently
+    // stops matching. Validate on edit and say so rather than saving garbage.
+    container.querySelectorAll('[data-pattern-index]').forEach(input => {
+        const commit = () => {
+            const value = input.value.trim();
+            const rule = rules[Number(input.dataset.patternIndex)];
+            if (!value) {
+                input.value = rule.pattern;
+                input.classList.remove('is-invalid');
+                return;
+            }
+            try {
+                new RegExp(value, 'i');
+            } catch (e) {
+                input.classList.add('is-invalid');
+                input.title = t('invalid_regex') + ' ' + e.message;
+                return;
+            }
+            input.classList.remove('is-invalid');
+            input.title = value;
+            if (rule.pattern !== value) {
+                rule.pattern = value;
+                showAlert(t('detection_rule_updated'));
+            }
+        };
+        input.addEventListener('change', commit);
+        input.addEventListener('blur', commit);
+        input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); input.blur(); } });
+    });
 
     container.querySelectorAll('[data-rule-kind]').forEach(select => {
         select.addEventListener('change', () => {
