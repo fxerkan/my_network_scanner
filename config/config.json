@@ -297,21 +297,21 @@
     "_note": "Master password buraya YAZILMAZ. MYNES_PASSWORD env var veya config/.master_password (git'e girmez) kullanin."
   },
   "monitoring": {
-    "enabled": false,
-    "interval_minutes": 30,
+    "enabled": true,
+    "interval_minutes": 15,
     "include_offline": true,
     "run_discovery": true,
     "discovery_timeout": 6,
-    "publish_to_mqtt": false,
+    "notify_channels": [],
     "enabled_rules": null,
     "thresholds": {
-      "offline_scans": 2,
-      "latency_ms": 500,
       "battery_percent": 20,
-      "voltage_min": 4.7,
-      "rssi_dbm": -85
+      "latency_ms": 500,
+      "offline_scans": 3,
+      "rssi_dbm": -85,
+      "voltage_min": 4.7
     },
-    "notify_channels": []
+    "publish_to_mqtt": false
   },
   "discovery": {
     "mdns": true,

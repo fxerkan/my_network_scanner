@@ -33,6 +33,16 @@
   --red-100:   #fde0e0; --red-400:   #f47272; --red-500:   #dc3545; --red-600:   #b92434; --red-900:   #4d1119;
   --violet-100:#eee2fd; --violet-400:#a884f5; --violet-500:#8b5cf6; --violet-600:#7040e0;
 
+  /* Device-category hues for the graph / topology / home views. Mid-tone on
+     purpose: these are fills on a surface and must read on light AND dark, so
+     they have no per-theme variant. */
+  --cat-net:      #6f5aa8;
+  --cat-infra:    #3f8c81;
+  --cat-personal: #4a86e8;
+  --cat-media:    #d9534f;
+  --cat-iot:      #d99b09;
+  --cat-other:    #8a94a8;
+
   /* ---------- Spacing: 4px rhythm ---------- */
   --space-0: 0;      --space-1: 4px;   --space-2: 8px;   --space-3: 12px;
   --space-4: 16px;   --space-5: 20px;  --space-6: 24px;  --space-8: 32px;

@@ -15,13 +15,13 @@ Modern ve kullanıcı dostu web arayüzü ile ağ yönetimini kolaylaştırır. 
 **Home Lab için çoklu protokol keşfi** — IP taraması ev ağının yarısını kaçırır.
 MyNeS artık kendini duyuran her şeyi dinliyor:
 
-| Protokol | Bulduğu cihazlar |
-|---|---|
-| **mDNS / Bonjour** | Yazıcılar, NAS, Chromecast, HomeKit, Home Assistant, Raspberry Pi |
-| **Matter** | `_matter._tcp` / `_matterc._udp` üzerinden Matter düğümleri (mDNS ile birlikte gelir) |
-| **SSDP / UPnP** | Router, Smart TV, DLNA, IP kamera, oyun konsolları |
-| **Bluetooth LE** | Takip cihazları, sensörler, kulaklıklar, saatler — *IP'si olmayan cihazlar* |
-| **MQTT** | Zigbee2MQTT, Z-Wave JS, Tasmota, Home Assistant MQTT discovery |
+| Protokol                 | Bulduğu cihazlar                                                                             |
+| ------------------------ | --------------------------------------------------------------------------------------------- |
+| **mDNS / Bonjour** | Yazıcılar, NAS, Chromecast, HomeKit, Home Assistant, Raspberry Pi                           |
+| **Matter**         | `_matter._tcp` / `_matterc._udp` üzerinden Matter düğümleri (mDNS ile birlikte gelir) |
+| **SSDP / UPnP**    | Router, Smart TV, DLNA, IP kamera, oyun konsolları                                           |
+| **Bluetooth LE**   | Takip cihazları, sensörler, kulaklıklar, saatler —*IP'si olmayan cihazlar*              |
+| **MQTT**           | Zigbee2MQTT, Z-Wave JS, Tasmota, Home Assistant MQTT discovery                                |
 
 **Periyodik izleme ve bildirim** — Ağı belirli aralıklarla tarar, iki tarama
 arasındaki farkı çıkarır ve önemli olanı bildirir:
@@ -219,11 +219,11 @@ python -m mynes.platform.privileges            # ne gerektiğini söyler
 python -m mynes.platform.privileges --apply    # komutları çalıştırır (parola sorar)
 ```
 
-| Platform | Yöntem |
-|---|---|
-| **Linux** | Python ikilisine `setcap cap_net_raw,cap_net_admin+eip` — sadece iki yetenek, root yok |
-| **macOS** | `access_bpf` grubu + açılışta çalışan ChmodBPF LaunchDaemon (Wireshark ile aynı mekanizma) |
-| **Windows** | Npcap sürücüsü, "Administrators only" seçeneği **kapalı** kurulur |
+| Platform          | Yöntem                                                                                              |
+| ----------------- | ---------------------------------------------------------------------------------------------------- |
+| **Linux**   | Python ikilisine`setcap cap_net_raw,cap_net_admin+eip` — sadece iki yetenek, root yok             |
+| **macOS**   | `access_bpf` grubu + açılışta çalışan ChmodBPF LaunchDaemon (Wireshark ile aynı mekanizma) |
+| **Windows** | Npcap sürücüsü, "Administrators only" seçeneği**kapalı** kurulur                        |
 
 macOS'ta grup üyeliği **yeni oturumda** geçerli olur — çıkış yapıp tekrar girin.
 Durum arayüzde de görünür: **Discovery → System setup**.
@@ -265,8 +265,8 @@ export MYNES_PORT=5883
 export MYNES_DATA_DIR=/veri/yolu         # MYNES_CONFIG_DIR, MYNES_HOME de var
 
 # Home Assistant entegrasyonu (opsiyonel)
-export MYNES_HA_URL="http://homeassistant.local:8123"
-export MYNES_HA_TOKEN="uzun_omurlu_erisim_tokeni"
+export HA_URL="http://homeassistant.local:8123"
+export HA_TOKEN="uzun_omurlu_erisim_tokeni"
 
 # MQTT / Zigbee2MQTT keşfi ve HA'ya yayın (opsiyonel)
 export MYNES_MQTT_HOST="192.168.1.10"
@@ -310,7 +310,6 @@ my_network_scanner/
 └── .claude/skills/              # UI/UX ve full-stack Claude Skills
 ```
 
-
 - **Root Yetkileri**: Port taraması için yönetici yetkileri gerekebilir
 - **Güvenlik Duvarı**: Bazı güvenlik duvarları taramayı engelleyebilir
 - **Etik Kullanım**: Sadece kendi ağınızı tarayın
@@ -326,8 +325,9 @@ my_network_scanner/
 #### "Sadece 2-3 cihaz buluyor"
 
 Neredeyse her zaman ham soket yetkisi eksikliğidir. MyNeS bu durumda ping sweep
+
 + ARP cache'e düşer; bu yöntem ICMP'ye yanıt vermeyen ve bu makineyle hiç
-konuşmamış cihazları kaçırır. Durumu `GET /api/capabilities` söyler.
+  konuşmamış cihazları kaçırır. Durumu `GET /api/capabilities` söyler.
 
 ```bash
 sudo .venv/bin/python -m mynes          # macOS/Linux
@@ -416,7 +416,6 @@ Bu proje MIT lisansı altında lisanslanmıştır.
 ## 🙏 Teşekkürler
 
 - **[Claude Code](https://www.anthropic.com/claude-code)**: AI-assisted development
-- **[GitHub Copilot](https://github.com/features/copilot)**: Code assistance
 - **[IEEE](https://www.ieee.org/)**: OUI database
 - **[Nmap](https://nmap.org/)**: Network scanning engine
 - **[Flask](https://flask.palletsprojects.com/en/stable/)**: Web framework
@@ -424,8 +423,8 @@ Bu proje MIT lisansı altında lisanslanmıştır.
 
 ---
 
-**[fxerkan](https://github.com/fxerkan) tarafında sevgi ve yapay zekas desteği ile geliştirilmiştir - Made with ❤️ & 🤖 by [fxerkan](https://github.com/fxerkan)**
+**Bu uygulama [FXerkan](https://github.com/fxerkan) tarafından "*Code more, worry less*" mottosu ile geliştirilmiştir - Made with ❤️ & 🤖 by [FXerkan](https://github.com/fxerkan)**
 
-**Not**: Bu araç sadece eğitim amacıyla ve sadece kendi ağınızdaki cihazlar hakkında bilgi sahibi olmak amacıyla kullanılmalıdır.
+**ÖNEMLİ** : Bu araç sadece eğitim amacıyla ve sadece kendi ağınızdaki cihazlar hakkında bilgi sahibi olmak amacıyla kullanılmalıdır.
 
-Başkalarının ağlarını izinsiz taramak yasalara aykırıdır, My Network Scanner (MyNeS) bu tip kullanımları önermez ve desteklemez.
+**DİKKAT** : Başkalarının ağlarını izinsiz taramak yasalara aykırıdır, My Network Scanner (MyNeS) bu tip kullanımları önermez ve desteklemez.

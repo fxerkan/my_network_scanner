@@ -47,8 +47,89 @@
     ]
   };
 
+
+  var CHANNEL_GUIDES = {
+    ntfy: {
+      title: 'ntfy — push to your phone, no account needed',
+      steps: [
+        'Install the <b>ntfy</b> app (App Store / Play Store / F-Droid).',
+        'Pick a topic name that is hard to guess — anyone who knows it can read your alerts. Example: <code>mynes-a7f3k9</code>.',
+        'In the app tap <b>+</b> and subscribe to that exact topic.',
+        'Type the same topic below and press <b>Send test</b>.'
+      ],
+      note: 'Self-hosting ntfy? Put your own server URL in the Server field and, if it requires auth, an access token.'
+    },
+    telegram: {
+      title: 'Telegram bot',
+      steps: [
+        'In Telegram, open <a href="https://t.me/BotFather" target="_blank" rel="noopener">@BotFather</a> and send <code>/newbot</code>.',
+        'Follow the prompts; BotFather replies with a <b>bot token</b> like <code>123456:ABC-DEF...</code> — paste it below.',
+        'Send any message to your new bot (a bot cannot message you first).',
+        'Open <code>https://api.telegram.org/bot&lt;TOKEN&gt;/getUpdates</code> in a browser and copy <code>result[0].message.chat.id</code> — that is your <b>Chat ID</b>.'
+      ],
+      note: 'For a group: add the bot to the group, send a message there, and use the negative chat id from getUpdates.'
+    },
+    webhook: {
+      title: 'Home Assistant webhook',
+      steps: [
+        'In Home Assistant go to <b>Settings → Automations &amp; scenes → Create automation → Edit in YAML</b>.',
+        'Use a webhook trigger and give it an id you invent:<br><code>trigger:<br>&nbsp;&nbsp;- platform: webhook<br>&nbsp;&nbsp;&nbsp;&nbsp;webhook_id: mynes_alert<br>&nbsp;&nbsp;&nbsp;&nbsp;allowed_methods: [POST]<br>&nbsp;&nbsp;&nbsp;&nbsp;local_only: true</code>',
+        'Save the automation.',
+        'The URL is <code>http://&lt;your-ha&gt;:8123/api/webhook/mynes_alert</code> — paste it below.'
+      ],
+      note: 'MyNeS POSTs the whole alert as JSON. In the automation use <code>{{ trigger.json.title }}</code>, <code>{{ trigger.json.message }}</code>, <code>{{ trigger.json.severity }}</code>, <code>{{ trigger.json.ip }}</code>. Keep <code>local_only: true</code> unless HA is exposed to the internet. The webhook needs no token — the id is the secret, so make it unguessable.'
+    },
+    slack: {
+      title: 'Slack incoming webhook',
+      steps: [
+        'Go to <a href="https://api.slack.com/apps" target="_blank" rel="noopener">api.slack.com/apps</a> → <b>Create New App</b> → <b>From scratch</b>.',
+        'Open <b>Incoming Webhooks</b> and turn it on.',
+        'Click <b>Add New Webhook to Workspace</b> and choose the channel.',
+        'Copy the <code>https://hooks.slack.com/services/...</code> URL below.'
+      ]
+    },
+    discord: {
+      title: 'Discord webhook',
+      steps: [
+        'In Discord, right-click the target channel → <b>Edit Channel</b>.',
+        'Open <b>Integrations → Webhooks → New Webhook</b>.',
+        'Click <b>Copy Webhook URL</b>.',
+        'Paste it below.'
+      ],
+      note: 'You need Manage Webhooks permission on that server.'
+    },
+    smtp: {
+      title: 'Email (SMTP)',
+      steps: [
+        'Gmail: enable 2-step verification, then create an <b>App password</b> at <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener">myaccount.google.com/apppasswords</a>. Use <code>smtp.gmail.com</code> port <code>587</code>.',
+        'Outlook: <code>smtp-mail.outlook.com</code> port <code>587</code>. iCloud: <code>smtp.mail.me.com</code> port <code>587</code>.',
+        'Enter the host, port, and the app password (not your normal account password).',
+        'Set From to the same mailbox you authenticated with, or the provider will reject the message.'
+      ],
+      note: 'Port 465 is used with implicit TLS; 587 with STARTTLS. MyNeS picks the right mode from the port.'
+    }
+  };
+
+  function renderChannelGuide() {
+    var guide = CHANNEL_GUIDES[$('chType').value];
+    var host = $('chGuide');
+    if (!guide) { host.innerHTML = ''; return; }
+    host.innerHTML =
+      '<div class="ds-alert" style="align-items:flex-start">' +
+        '<svg class="ds-alert__icon ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-info"/></svg>' +
+        '<div style="min-width:0">' +
+          '<strong>' + guide.title + '</strong>' +
+          '<ol style="margin:var(--space-2) 0 0;padding-left:1.2em;line-height:1.6">' +
+            guide.steps.map(function (s) { return '<li>' + s + '</li>'; }).join('') +
+          '</ol>' +
+          (guide.note ? '<div class="ds-dim" style="margin-top:var(--space-2)">' + guide.note + '</div>' : '') +
+        '</div>' +
+      '</div>';
+  }
+
   function renderChannelFields() {
     var fields = CHANNEL_FIELDS[$('chType').value] || [];
+    renderChannelGuide();
     $('chFields').innerHTML = fields.map(function (f) {
       return '<div class="ds-field">' +
         '<label class="ds-label" for="ch_' + f.key + '">' + esc(f.label) + '</label>' +
@@ -153,6 +234,60 @@
     });
   }
 
+
+  function fmtAbs(iso) {
+    if (!iso) return '';
+    try { return new Date(iso).toLocaleString(); } catch (e) { return iso; }
+  }
+
+  function fmtIn(seconds) {
+    if (seconds == null) return '—';
+    if (seconds < 60) return 'in ' + Math.max(0, Math.round(seconds)) + 's';
+    if (seconds < 3600) return 'in ' + Math.ceil(seconds / 60) + ' min';
+    return 'in ' + (seconds / 3600).toFixed(1) + ' h';
+  }
+
+  function renderTimeline(s) {
+    var card = $('scheduleTimeline');
+    // Nothing meaningful to show until either the schedule is on or a scan ran.
+    if (!s.enabled && !s.last_run) { card.hidden = true; return; }
+    card.hidden = false;
+
+    $('tlLast').textContent = s.last_run ? relativeTime(s.last_run) : 'never';
+    $('tlLastAbs').textContent = fmtAbs(s.last_run);
+
+    var r = s.last_result;
+    if (r) {
+      $('tlResult').textContent = r.baseline
+        ? 'baseline recorded'
+        : r.devices + ' devices · ' + r.alerts + ' alerts';
+      $('tlDuration').textContent = 'took ' + r.duration_seconds + 's';
+    } else {
+      $('tlResult').textContent = '—';
+      $('tlDuration').textContent = '';
+    }
+
+    if (s.enabled && s.next_run_in_seconds != null) {
+      $('tlNext').textContent = fmtIn(s.next_run_in_seconds);
+      $('tlNextAbs').textContent = fmtAbs(new Date(Date.now() + s.next_run_in_seconds * 1000).toISOString());
+      var total = s.interval_minutes * 60;
+      var elapsed = Math.min(1, Math.max(0, (total - s.next_run_in_seconds) / total));
+      $('tlProgressWrap').hidden = false;
+      $('tlProgress').style.width = (elapsed * 100).toFixed(1) + '%';
+    } else {
+      $('tlNext').textContent = s.enabled ? 'after the next tick' : 'not scheduled';
+      $('tlNextAbs').textContent = '';
+      $('tlProgressWrap').hidden = true;
+    }
+
+    $('tlState').textContent = s.last_error ? 'error' : (s.running ? 'running' : 'stopped');
+    $('tlBaseline').textContent = s.last_error
+      ? s.last_error
+      : (s.has_baseline
+          ? 'Comparing against ' + s.baseline_devices + ' known devices.'
+          : 'No baseline yet — the first scan records one without alerting.');
+  }
+
   /* ---------------- Status & feed ---------------------------------------- */
   function loadStatus() {
     return api('/api/monitoring/status').then(function (s) {
@@ -167,6 +302,7 @@
       if (s.next_run_in_seconds != null) line += ' Next in ' + Math.ceil(s.next_run_in_seconds / 60) + ' min.';
       if (s.last_error) line += ' Last error: ' + s.last_error;
       $('monStatusLine').textContent = line;
+      renderTimeline(s);
     });
   }
 

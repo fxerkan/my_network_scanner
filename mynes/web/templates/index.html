@@ -3,6 +3,7 @@
 
 {% block styles %}
 <link rel="stylesheet" href="/static/css/main.css">
+<link rel="stylesheet" href="/static/css/views.css">
 {% endblock %}
 
 {% block content %}
@@ -98,10 +99,20 @@
                     <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-table"/></svg>
                     <span class="ds-visually-hidden">Table</span>
                 </button>
-                <button type="button" id="viewMap" class="ds-segmented__btn view-btn"
-                        onclick="switchView('map')" aria-pressed="false" title="{{ _('map_view') if _('map_view') != 'map_view' else 'Map' }}">
-                    <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-map"/></svg>
-                    <span class="ds-visually-hidden">Map</span>
+                <button type="button" id="viewGraph" class="ds-segmented__btn view-btn"
+                        onclick="switchView('graph')" aria-pressed="false" title="{{ _('graph_view') if _('graph_view') != 'graph_view' else 'Graph' }}">
+                    <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-graph"/></svg>
+                    <span class="ds-visually-hidden">Graph</span>
+                </button>
+                <button type="button" id="viewTopology" class="ds-segmented__btn view-btn"
+                        onclick="switchView('topology')" aria-pressed="false" title="{{ _('topology_view') if _('topology_view') != 'topology_view' else 'Topology' }}">
+                    <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-topology"/></svg>
+                    <span class="ds-visually-hidden">Topology</span>
+                </button>
+                <button type="button" id="viewHome" class="ds-segmented__btn view-btn"
+                        onclick="switchView('home')" aria-pressed="false" title="{{ _('home_view') if _('home_view') != 'home_view' else 'Home plan' }}">
+                    <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-home"/></svg>
+                    <span class="ds-visually-hidden">Home plan</span>
                 </button>
             </div>
         </div>
@@ -201,18 +212,10 @@
                 </table>
             </div>
 
-            <!-- Harita Görünümü (başlangıçta gizli) -->
-            <div id="mapContainer" class="map-container" style="display: none;">
-                <div class="map-placeholder">
-                    <div class="map-content">
-                        <h3>🗺️ Network Map</h3>
-                        <p>Ağ haritası görünümü geliştirme aşamasında...</p>
-                        <div class="network-diagram" id="networkDiagram">
-                            <!-- Network diagram buraya gelecek -->
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <!-- Graph / Topology / Home plan - rendered by static/js/views.js -->
+            <div id="graphContainer" class="graph-container" style="display: none;"></div>
+            <div id="topologyContainer" class="topology-container" style="display: none;"></div>
+            <div id="homeContainer" class="home-container" style="display: none;"></div>
         </div>
 
     <!-- Cihaz Düzenleme Modal -->
@@ -562,6 +565,7 @@
 {% block scripts %}
 <script src="/static/js/translations.js"></script>
 <script src="/static/js/main.js"></script>
+<script src="/static/js/views.js"></script>
 <script src="/static/js/device-access.js"></script>
 <script src="/static/js/enhanced-details.js"></script>
 <script>

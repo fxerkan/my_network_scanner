@@ -6,6 +6,7 @@ can be unit-tested without a network. `evaluate()` is the only entry point.
 
 from __future__ import annotations
 
+import re
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from typing import Any
@@ -54,6 +55,19 @@ class Alert:
 
 def _identity(device: dict) -> str:
     return (device.get("mac") or device.get("ip") or device.get("id") or "").lower()
+
+
+# A real MAC: six hex octets. Anything else used as an identity - notably the
+# rotating CoreBluetooth UUIDs macOS hands out instead of BLE addresses - is
+# ephemeral by design and would otherwise be "a new device" on every scan.
+_MAC_SHAPED = re.compile(r"^(?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2}$")
+
+
+def _has_stable_identity(device: dict) -> bool:
+    mac = (device.get("mac") or "").lower()
+    if mac:
+        return bool(_MAC_SHAPED.match(mac))
+    return bool(device.get("ip"))
 
 
 def _label(device: dict) -> str:
@@ -110,6 +124,11 @@ def evaluate(
     misses = dict(miss_counts or {})
     alerts: list[Alert] = []
 
+    # First run: there is no baseline, so *every* device looks new. Record the
+    # snapshot silently instead of reporting the whole network as arrivals.
+    if not previous:
+        return [], misses
+
     def emit(rule, severity, title, message, device, **details):
         if enabled_rules is not None and rule not in enabled_rules:
             return
@@ -136,15 +155,18 @@ def evaluate(
             misses.pop(key, None)
 
         if old is None:
-            emit(
-                NEW_DEVICE,
-                "warning",
-                f"New device: {name}",
-                f"{name} ({dev.get('ip') or dev.get('mac')}) appeared on the network for the first time.",
-                dev,
-                vendor=dev.get("vendor"),
-                device_type=dev.get("device_type"),
-            )
+            # A rotating BLE address is "new" every single scan; alerting on it
+            # is noise that buries the one arrival that actually matters.
+            if _has_stable_identity(dev):
+                emit(
+                    NEW_DEVICE,
+                    "warning",
+                    f"New device: {name}",
+                    f"{name} ({dev.get('ip') or dev.get('mac')}) appeared on the network for the first time.",
+                    dev,
+                    vendor=dev.get("vendor"),
+                    device_type=dev.get("device_type"),
+                )
         else:
             was_online = _is_online(old)
             if online and not was_online:
@@ -272,17 +294,22 @@ def evaluate(
 
 
 def demo():
-    """Self-check: the rules fire on the cases that matter and stay quiet otherwise."""
+    """Self-check: the rules fire on the cases that matter and stay quiet otherwise.
+
+    MACs are full six-octet addresses on purpose - `_has_stable_identity` now
+    rejects anything else, so short placeholders would silently skip NEW_DEVICE.
+    """
+    PI, NAS, NEW = "aa:bb:cc:00:00:01", "aa:bb:cc:00:00:02", "aa:bb:cc:00:00:03"
     prev = {
-        "aa:bb": {"mac": "aa:bb", "ip": "192.168.1.10", "alias": "Pi", "status": "online", "open_ports": [80]},
-        "cc:dd": {"mac": "cc:dd", "ip": "192.168.1.11", "alias": "NAS", "status": "online"},
+        PI: {"mac": PI, "ip": "192.168.1.10", "alias": "Pi", "status": "online", "open_ports": [80]},
+        NAS: {"mac": NAS, "ip": "192.168.1.11", "alias": "NAS", "status": "online"},
     }
     cur = {
-        "aa:bb": {
-            "mac": "aa:bb", "ip": "192.168.1.99", "alias": "Pi", "status": "online",
+        PI: {
+            "mac": PI, "ip": "192.168.1.99", "alias": "Pi", "status": "online",
             "open_ports": [80, 22], "voltage": 4.5, "response_time": 900,
         },
-        "ee:ff": {"mac": "ee:ff", "ip": "192.168.1.12", "alias": "New Thing", "status": "online"},
+        NEW: {"mac": NEW, "ip": "192.168.1.12", "alias": "New Thing", "status": "online"},
     }
 
     alerts, misses = evaluate(prev, cur)
@@ -303,8 +330,17 @@ def demo():
     assert evaluate(prev, prev)[0] == [], "stable network must be silent"
 
     # Same IP, different MAC -> critical.
-    spoof, _ = evaluate(prev, {"99:99": {"mac": "99:99", "ip": "192.168.1.10", "status": "online"}})
+    spoof_mac = "de:ad:be:ef:00:99"
+    spoof, _ = evaluate(prev, {spoof_mac: {"mac": spoof_mac, "ip": "192.168.1.10", "status": "online"}})
     assert MAC_CHANGED in {a.rule for a in spoof}
+
+    # A rotating BLE address must not read as an arrival.
+    ble = "7DE7F807-A905-9E49-54FD-7CAD1F3E786D"
+    quiet, _ = evaluate(prev, {**prev, ble.lower(): {"mac": ble, "status": "online"}})
+    assert quiet == [], [a.title for a in quiet]
+
+    # No baseline yet -> record it silently rather than report the whole network.
+    assert evaluate({}, cur)[0] == [], "the first run must not alert"
     print("rules demo OK")
 
 

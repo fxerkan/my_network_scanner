@@ -236,9 +236,14 @@ class HomeAssistantClient:
     Create one in HA: profile page -> Security -> Long-lived access tokens.
     """
 
+    # Both spellings are accepted: the MYNES_-prefixed pair keeps MyNeS settings
+    # together in a shared .env, the bare pair is what people type by hand.
+    URL_VARS = ("MYNES_HA_URL", "HA_URL")
+    TOKEN_VARS = ("MYNES_HA_TOKEN", "HA_TOKEN")
+
     def __init__(self, url: str | None = None, token: str | None = None, timeout: int = 15):
-        self.url = (url or os.environ.get("MYNES_HA_URL") or "").rstrip("/")
-        self.token = token or os.environ.get("MYNES_HA_TOKEN")
+        self.url = (url or _first_env(self.URL_VARS) or "").rstrip("/")
+        self.token = token or _first_env(self.TOKEN_VARS)
         self.timeout = timeout
 
     def configured(self) -> bool:
@@ -483,6 +488,13 @@ def _protocol_for(domains: list[str]) -> str:
     if any(d in NON_DEVICE_INTEGRATIONS for d in domains):
         return "Not a device"
     return f"Other ({domains[0]})" if domains else "unknown"
+
+
+def _first_env(names) -> str | None:
+    for name in names:
+        if os.environ.get(name):
+            return os.environ[name]
+    return None
 
 
 _IP_IN_NAME = re.compile(r"\b(\d{1,3})[._](\d{1,3})[._](\d{1,3})[._](\d{1,3})\b")

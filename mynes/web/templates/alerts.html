@@ -35,6 +35,37 @@
     </div>
   </div>
 
+  <!-- Schedule timeline: when it last ran, when it runs next. -->
+  <div class="ds-card" id="scheduleTimeline" hidden>
+    <div class="ds-card__body">
+      <div class="ds-grid" style="grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr))">
+        <div>
+          <div class="ds-stat__label">Last scan</div>
+          <div id="tlLast" style="font-weight:var(--weight-semibold)">—</div>
+          <div class="ds-dim" id="tlLastAbs" style="font-size:var(--text-xs)"></div>
+        </div>
+        <div>
+          <div class="ds-stat__label">Result</div>
+          <div id="tlResult" style="font-weight:var(--weight-semibold)">—</div>
+          <div class="ds-dim" id="tlDuration" style="font-size:var(--text-xs)"></div>
+        </div>
+        <div>
+          <div class="ds-stat__label">Next scan</div>
+          <div id="tlNext" style="font-weight:var(--weight-semibold)">—</div>
+          <div class="ds-dim" id="tlNextAbs" style="font-size:var(--text-xs)"></div>
+        </div>
+        <div>
+          <div class="ds-stat__label">State</div>
+          <div id="tlState" style="font-weight:var(--weight-semibold)">—</div>
+          <div class="ds-dim" id="tlBaseline" style="font-size:var(--text-xs)"></div>
+        </div>
+      </div>
+      <div class="ds-progress" style="margin-top:var(--space-4)" id="tlProgressWrap" hidden>
+        <div class="ds-progress__bar" id="tlProgress" style="width:0%"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- Schedule settings -->
   <section class="ds-card">
     <div class="ds-card__header">
@@ -155,6 +186,7 @@
       </button>
     </div>
     <div class="ds-modal__body ds-stack">
+      <div id="chGuide"></div>
       <div class="ds-field">
         <label class="ds-label" for="chType">Type</label>
         <select class="ds-select" id="chType">

@@ -223,6 +223,8 @@
 }
 
 .device-card {
+    display: flex;
+    flex-direction: column;
     background: var(--bg-surface);
     border-radius: 12px;
     padding: 20px;
@@ -369,6 +371,8 @@
 
 .device-actions {
     display: flex;
+    margin-top: auto;
+    padding-top: var(--space-4);
     gap: var(--space-2);
     flex-wrap: wrap;
     align-items: center;
@@ -639,8 +643,9 @@
 }
 
 .devices-table th {
-    background: var(--bg-inverse);
-    color: var(--text-inverse);
+    background: var(--bg-surface-sunken);
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border-default);
     font-weight: 600;
     padding: 15px 12px;
     text-align: left;
@@ -659,7 +664,8 @@
 }
 
 .devices-table th.sortable:hover {
-    background: var(--bg-inverse);
+    background: var(--bg-hover);
+    color: var(--text-primary);
 }
 
 .sort-indicator {
@@ -803,164 +809,6 @@
     background: var(--accent-bg-hover);
     transform: translateY(-1px);
     box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-}
-
-/* Map View Styles */
-.map-container {
-    margin-top: 0; /* view-controls artık stats-bar'da */
-    background: var(--bg-surface);
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    min-height: 500px;
-}
-
-.map-placeholder {
-    padding: 30px;
-    text-align: center;
-}
-
-.map-content h3 {
-    color: var(--text-primary);
-    margin-bottom: 10px;
-}
-
-.network-map {
-    text-align: left;
-}
-
-.network-segment {
-    margin-bottom: 30px;
-    border: 2px solid var(--border-subtle);
-    border-radius: 12px;
-    overflow: hidden;
-    background: var(--bg-surface-sunken);
-}
-
-.segment-header {
-    background: var(--bg-inverse);
-    color: var(--text-inverse);
-    padding: 15px 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.segment-header h4 {
-    margin: 0;
-    font-size: 1.1em;
-}
-
-.device-count {
-    background: rgba(255,255,255,0.2);
-    padding: 4px 12px;
-    border-radius: 15px;
-    font-size: 0.9em;
-}
-
-.segment-content {
-    padding: 20px;
-}
-
-.router-section, .devices-section {
-    margin-bottom: 20px;
-}
-
-.section-title {
-    font-weight: 600;
-    color: var(--text-secondary);
-    margin-bottom: 15px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.device-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(min(200px, 100%), 1fr));
-    gap: 15px;
-}
-
-.map-device-card {
-    background: var(--bg-surface);
-    border: 2px solid var(--border-subtle);
-    border-radius: 10px;
-    padding: 15px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    position: relative;
-}
-
-.map-device-card:hover {
-    border-color: var(--accent-bg);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
-
-.map-device-card.online {
-    border-left: 4px solid var(--success-bg);
-}
-
-.map-device-card.offline {
-    border-left: 4px solid var(--danger-bg);
-    opacity: 0.7;
-}
-
-.map-device-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 10px;
-}
-
-.map-device-icon {
-    font-size: 1.5em;
-}
-
-.map-device-status {
-    font-size: 0.9em;
-}
-
-.map-device-ip {
-    font-weight: 600;
-    color: var(--accent-bg);
-    font-size: 1.1em;
-    margin-bottom: 8px;
-    cursor: pointer;
-}
-
-.map-device-ip:hover {
-    text-decoration: underline;
-}
-
-.map-device-info {
-    margin-bottom: 10px;
-}
-
-.map-device-name {
-    font-weight: 500;
-    color: var(--text-primary);
-    margin-bottom: 4px;
-}
-
-.map-device-vendor {
-    font-size: 0.85em;
-    color: var(--text-secondary);
-}
-
-.map-ports {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    margin-top: 10px;
-}
-
-.port-mini {
-    background: var(--border-subtle);
-    color: var(--text-secondary);
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 0.7em;
-    font-weight: 500;
 }
 
 /* Toast Notifications */

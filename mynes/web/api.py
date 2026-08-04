@@ -11,6 +11,8 @@ import logging
 
 from flask import Blueprint, jsonify, request
 
+from mynes.core import topology
+from mynes.core.network import get_default_gateway
 from mynes.discovery import discover_all
 from mynes.integrations.home_assistant import HomeAssistantClient, publish_devices
 from mynes.monitoring import notify, store
@@ -23,6 +25,13 @@ log = logging.getLogger(__name__)
 def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
     bp = Blueprint("api_v2", __name__, url_prefix="/api")
     monitor = MonitorScheduler(scanner, config_manager)
+
+    # Scheduled scanning is a persisted setting, so it has to survive a restart.
+    # Without this the schedule silently stopped every time the app came back up
+    # and the UI showed "enabled" next to "not running".
+    if monitor.settings()["enabled"]:
+        monitor.start()
+        log.info("monitoring enabled in config - scheduler started")
 
     def _devices():
         devices = scanner.get_devices()
@@ -155,6 +164,44 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
             return jsonify(result), (200 if result.get("ok") else 400)
         except Exception as e:  # noqa: BLE001
             return jsonify({"ok": False, "error": f"{type(e).__name__}: {e}"}), 502
+
+    # -- topology ---------------------------------------------------------
+    @bp.get("/topology")
+    def topology_tree():
+        """Parent/child tree for the topology view. See core/topology.py for
+        why most edges come back as "default" on a flat home LAN."""
+        state = topology.load_state()
+        return jsonify(
+            {
+                **topology.build_tree(
+                    _devices(), get_default_gateway(),
+                    uplinks=state["uplinks"], traced=state["traced"],
+                ),
+                "uplinks": state["uplinks"],
+                "traced": state["traced"],
+            }
+        )
+
+    @bp.post("/topology/uplinks")
+    def topology_set_uplinks():
+        """Hand-assign "device X is plugged into Y". The only way to record a
+        bridged switch or AP, which is invisible on the wire."""
+        body = request.get_json(silent=True) or {}
+        state = topology.load_state()
+        state["uplinks"] = {**state["uplinks"], **(body.get("uplinks") or {})}
+        state["uplinks"] = {k: v for k, v in state["uplinks"].items() if v}
+        return jsonify(topology.save_state(state))
+
+    @bp.post("/topology/discover")
+    def topology_discover():
+        """Traceroute sweep. Slow (seconds per unreachable host) and only ever
+        finds routed hops, so it is a button, not part of a scan."""
+        devices = _devices()
+        traced = topology.discover_uplinks(devices)
+        state = topology.load_state()
+        state["traced"] = traced
+        topology.save_state(state)
+        return jsonify({"traced": traced, "checked": len(devices)})
 
     # -- health -----------------------------------------------------------
     @bp.get("/health")

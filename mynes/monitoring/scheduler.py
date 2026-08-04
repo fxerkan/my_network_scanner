@@ -84,12 +84,18 @@ class MonitorScheduler:
 
     def status(self) -> dict:
         s = self.settings()
+        state = store.load_state()
+        baseline = state.get("snapshot") or {}
         return {
             "running": bool(self._thread and self._thread.is_alive()),
             "enabled": s["enabled"],
             "interval_minutes": s["interval_minutes"],
-            "last_run": self.last_run,
+            # Survives a restart: last_run lives in the state file, not just memory.
+            "last_run": self.last_run or state.get("last_run"),
             "last_error": self.last_error,
+            "last_result": self.last_result,
+            "has_baseline": bool(baseline),
+            "baseline_devices": len(baseline),
             "next_run_in_seconds": self._seconds_until_next(s),
             "channels": [
                 {"type": c.get("type"), "name": c.get("name"), "enabled": c.get("enabled", True)}
@@ -99,9 +105,13 @@ class MonitorScheduler:
         }
 
     def _seconds_until_next(self, settings) -> int | None:
-        if not (self._thread and self._thread.is_alive() and self.last_run):
+        last = self.last_run or store.load_state().get("last_run")
+        if not (self._thread and self._thread.is_alive() and last):
             return None
-        elapsed = (datetime.now(timezone.utc) - datetime.fromisoformat(self.last_run)).total_seconds()
+        try:
+            elapsed = (datetime.now(timezone.utc) - datetime.fromisoformat(last)).total_seconds()
+        except (TypeError, ValueError):
+            return None
         return max(0, int(settings["interval_minutes"] * 60 - elapsed))
 
     # -- lifecycle --------------------------------------------------------
@@ -156,9 +166,11 @@ class MonitorScheduler:
             devices = self._enrich_with_discovery(devices, settings["discovery_timeout"])
 
         state = store.load_state()
+        previous = state.get("snapshot") or {}
+        is_baseline = not previous
         current = _snapshot(devices)
         alerts, misses = rules.evaluate(
-            previous=state.get("snapshot") or {},
+            previous=previous,
             current=current,
             miss_counts=state.get("miss_counts") or {},
             thresholds=settings["thresholds"],
@@ -180,10 +192,18 @@ class MonitorScheduler:
             "duration_seconds": round(time.monotonic() - started, 1),
             "devices": len(current),
             "alerts": len(alert_dicts),
+            "baseline": is_baseline,
+            "message": (
+                f"Baseline recorded for {len(current)} devices. "
+                "Changes from here on will be reported."
+                if is_baseline
+                else f"{len(current)} devices, {len(alert_dicts)} alerts."
+            ),
             "by_severity": {s: sum(1 for a in alert_dicts if a["severity"] == s) for s in rules.SEVERITIES},
             "deliveries": deliveries,
         }
-        log.info("scheduled scan: %s devices, %s alerts", len(current), len(alert_dicts))
+        log.info("scheduled scan: %s devices, %s alerts%s",
+                 len(current), len(alert_dicts), " (baseline)" if is_baseline else "")
         return self.last_result
 
     def _enrich_with_discovery(self, devices, timeout):

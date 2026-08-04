@@ -372,8 +372,11 @@ function displayDevices() {
         case 'table':
             displayDevicesTable();
             return;
-        case 'map':
-            displayDevicesMap();
+        case 'graph':
+        case 'topology':
+        case 'home':
+            // views.js owns these; it reads the same (already filtered) `devices`.
+            if (window.MynesViews) window.MynesViews.render(currentView, devices);
             return;
         default:
             // Card view (varsayılan)
@@ -465,7 +468,7 @@ function displayDevicesCard() {
 
             <div class="device-actions">
                 <button class="btn btn-primary btn-small" onclick="openEnhancedEditModal('${device.ip}')">✏️ ${t('edit')}</button>
-                <button class="btn btn-warning btn-small" onclick="openSingleDeviceAnalysisPage('${device.ip}')" title="${t('advanced_analysis')}" aria-label="${t('advanced_analysis')}">🔬</button>
+                <button class="btn btn-warning btn-small" onclick="openSingleDeviceAnalysisPage('${device.ip}')" title="${t('advanced_analysis')}" aria-label="${t('advanced_analysis')}">🔬 ${t('advanced_analysis')}</button>
                 ${hasEnhancedInfo(device) ? 
                     `<button class="btn btn-success btn-small" onclick="openEnhancedDetailsModal(${JSON.stringify(device).replace(/"/g, '&quot;')})" title="${t('details')}">📊 ${t('details')}</button>` : 
                     ''
@@ -1620,24 +1623,22 @@ function switchView(view) {
     if (activeBtn.hasAttribute('aria-pressed')) activeBtn.setAttribute('aria-pressed', 'true');
     
     // Görünümleri gizle/göster
-    document.getElementById('devicesContainer').style.display = view === 'card' ? 'grid' : 'none';
-    document.getElementById('tableContainer').style.display = view === 'table' ? 'block' : 'none';
-    document.getElementById('mapContainer').style.display = view === 'map' ? 'block' : 'none';
-    
+    const containers = {
+        card: ['devicesContainer', 'grid'],
+        table: ['tableContainer', 'block'],
+        graph: ['graphContainer', 'block'],
+        topology: ['topologyContainer', 'block'],
+        home: ['homeContainer', 'block'],
+    };
+    Object.entries(containers).forEach(([name, [id, display]]) => {
+        const node = document.getElementById(id);
+        if (node) node.style.display = name === view ? display : 'none';
+    });
+
     currentView = view;
-    
+
     // Seçilen görünüme göre verileri yükle
-    switch (view) {
-        case 'card':
-            displayDevices(); // Mevcut card görünümü
-            break;
-        case 'table':
-            displayDevicesTable();
-            break;
-        case 'map':
-            displayDevicesMap();
-            break;
-    }
+    displayDevices();
 }
 
 function displayDevicesTable() {
@@ -1713,93 +1714,6 @@ function displayDevicesTable() {
             </tr>
         `;
     }).join('');
-}
-
-function displayDevicesMap() {
-    const mapContainer = document.getElementById('networkDiagram');
-    
-    if (devices.length === 0) {
-        mapContainer.innerHTML = `
-            <div style="text-align: center; padding: 40px; color: #6c757d;">
-                <div>📡 Henüz cihaz bulunamadı</div>
-                <div style="margin-top: 10px; font-size: 0.9em;">Ağınızı taramak için "Taramayı Başlat" butonuna tıklayın</div>
-            </div>
-        `;
-        return;
-    }
-
-    // Network segment'lerini grupla (ilk 3 oktet bazında)
-    const networkSegments = {};
-    devices.forEach(device => {
-        const segment = device.ip.split('.').slice(0, 3).join('.');
-        if (!networkSegments[segment]) {
-            networkSegments[segment] = [];
-        }
-        networkSegments[segment].push(device);
-    });
-
-    let mapHtml = '<div class="network-map">';
-    
-    Object.keys(networkSegments).forEach(segment => {
-        const segmentDevices = networkSegments[segment];
-        const routerDevices = segmentDevices.filter(d => d.device_type === 'Router');
-        const otherDevices = segmentDevices.filter(d => d.device_type !== 'Router');
-        
-        mapHtml += `
-            <div class="network-segment">
-                <div class="segment-header">
-                    <h4>🌐 Network: ${segment}.0/24</h4>
-                    <span class="device-count">${segmentDevices.length} cihaz</span>
-                </div>
-                
-                <div class="segment-content">
-                    ${routerDevices.length > 0 ? `
-                        <div class="router-section">
-                            <div class="section-title">🔀 Routers & Gateways</div>
-                            <div class="device-grid">
-                                ${routerDevices.map(device => createMapDeviceCard(device)).join('')}
-                            </div>
-                        </div>
-                    ` : ''}
-                    
-                    ${otherDevices.length > 0 ? `
-                        <div class="devices-section">
-                            <div class="section-title">💻 Connected Devices</div>
-                            <div class="device-grid">
-                                ${otherDevices.map(device => createMapDeviceCard(device)).join('')}
-                            </div>
-                        </div>
-                    ` : ''}
-                </div>
-            </div>
-        `;
-    });
-    
-    mapHtml += '</div>';
-    mapContainer.innerHTML = mapHtml;
-}
-
-function createMapDeviceCard(device) {
-    const ports = device.open_ports && device.open_ports.length > 0 ? 
-        `<div class="map-ports">${device.open_ports.slice(0, 3).map(port => {
-            const portNum = typeof port === 'object' ? port.port : port;
-            return `<span class="port-mini">${portNum}</span>`;
-        }).join('')}${device.open_ports.length > 3 ? '<span class="port-mini">...</span>' : ''}</div>` : '';
-
-    return `
-        <div class="map-device-card ${device.status}" onclick="editDevice('${device.ip}')">
-            <div class="map-device-header">
-                <span class="map-device-icon">${getDeviceIcon(device.device_type)}</span>
-                <span class="map-device-status ${device.status}">${device.status === 'online' ? '🟢' : '🔴'}</span>
-            </div>
-            <div class="map-device-ip" onclick="openDevice('${device.ip}'); event.stopPropagation();">${device.ip}</div>
-            <div class="map-device-info">
-                <div class="map-device-name">${device.alias || device.hostname || 'Unknown'}</div>
-                <div class="map-device-vendor">${truncateText(device.vendor || 'Unknown', 15)}</div>
-            </div>
-            ${ports}
-        </div>
-    `;
 }
 
 function selectTableRow(row) {
