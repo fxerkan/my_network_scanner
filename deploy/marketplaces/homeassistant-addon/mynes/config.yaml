@@ -1,0 +1,36 @@
+name: MyNeS - My Network Scanner
+version: "1.3.0"
+slug: mynes
+description: >-
+  Discover, identify and monitor every device on your network - including the Zigbee, Z-Wave,
+  Matter and Bluetooth LE devices an IP scan cannot see - and compare it against what Home
+  Assistant thinks it knows.
+url: https://github.com/fxerkan/my_network_scanner
+image: fxerkan/my_network_scanner
+arch:
+  - aarch64
+  - amd64
+init: false
+startup: application
+boot: auto
+# ARP / mDNS / SSDP discovery only works from the host network namespace.
+host_network: true
+privileged:
+  - NET_ADMIN
+  - NET_RAW
+ports:
+  5883/tcp: 5883
+ports_description:
+  5883/tcp: MyNeS web interface
+webui: "http://[HOST]:[PORT:5883]"
+panel_icon: mdi:lan
+ingress: false
+map:
+  - addon_config:rw
+environment:
+  MYNES_DATA_DIR: /data
+  MYNES_CONFIG_DIR: /config
+# ponytail: no options/schema block. The published image has no bashio wrapper, so add-on
+# options would never reach the app. MQTT broker and Home Assistant credentials are entered in
+# MyNeS's own Settings page instead. Add a run.sh wrapper here if config-via-add-on-UI is wanted.
+homeassistant_api: true

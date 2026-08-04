@@ -129,6 +129,27 @@
             ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     }
 
+    /** Greedy word wrap for an SVG label: no <foreignObject>, no measuring. */
+    function wrapLabel(text, perLine, maxLines) {
+        const words = String(text || '').split(/\s+/).filter(Boolean);
+        const lines = [];
+        let line = '';
+        for (const word of words) {
+            const candidate = line ? line + ' ' + word : word;
+            if (candidate.length <= perLine || !line) {
+                line = candidate;
+            } else {
+                lines.push(line);
+                line = word;
+            }
+            if (lines.length === maxLines) break;
+        }
+        if (line && lines.length < maxLines) lines.push(line);
+        // A single unbroken token longer than the line budget still has to end
+        // somewhere; that is the one case an ellipsis is honest.
+        return lines.map(l => (l.length > perLine + 6 ? l.slice(0, perLine + 5) + '…' : l));
+    }
+
     function clip(s, n) {
         s = String(s == null ? '' : s);
         return s.length > n ? s.slice(0, n - 1) + '…' : s;
@@ -468,23 +489,33 @@
         })(root, 0);
         const step = SPACING[topoOrientation] || SPACING.vertical;
         const acrossSize = Math.max(cursor.n * step.across, 640);
-        const depthSize = TOP + depth * step.depth + 90;
+        const depthSize = TOP + depth * step.depth + 120;
         const horizontal = topoOrientation === 'horizontal';
-        const width = horizontal ? depthSize + 120 : acrossSize;
+        const width = horizontal ? depthSize : acrossSize;
         const height = horizontal ? acrossSize : depthSize;
 
         container.innerHTML = '';
         container.appendChild(topoToolbar(container, list));
 
-        // Drawn 1:1 in px and scrolled horizontally - scaling a wide tree down
-        // to the viewport turns every caption into a smear.
-        const scroller = document.createElement('div');
-        scroller.className = 'topo-scroller';
-        container.appendChild(scroller);
+        /*
+         * The diagram is scaled to fit its box rather than drawn 1:1 and
+         * scrolled. A 4000px-wide tree in a 390px phone viewport was simply
+         * blank on first open; fit-then-zoom shows the whole network first and
+         * lets the user go in from there.
+         */
+        const stage = document.createElement('div');
+        stage.className = 'topo-stage';
+        container.appendChild(stage);
+
+        const PAD = 40;
+        const box = { x: -PAD, y: -PAD, w: width + PAD * 2, h: height + PAD * 2 };
         const svg = el('svg', {
-            class: 'topo-svg', viewBox: `0 0 ${width} ${height}`, width, height,
-            role: 'img', 'aria-label': tr('topology_view', 'Network topology'),
-        }, scroller);
+            class: 'topo-svg',
+            viewBox: `${box.x} ${box.y} ${box.w} ${box.h}`,
+            preserveAspectRatio: 'xMidYMid meet',
+            role: 'img',
+            'aria-label': tr('topology_view', 'Network topology'),
+        }, stage);
 
         const edges = el('g', { class: 'topo-edges' }, svg);
         const nodeLayer = el('g', {}, svg);
@@ -504,12 +535,88 @@
             });
         })(root);
 
+        // The stage takes the diagram's shape via aspect-ratio (min/max in the
+        // stylesheet keep it usable), so a wide shallow tree is not
+        // letterboxed in a tall panel with dead space above and below.
+        stage.style.setProperty('--topo-ratio', `${box.w} / ${box.h}`);
+
+        attachZoomPan(stage, svg, box);
         container.appendChild(legend(
             `<span class="view-legend__item"><i class="view-legend__line"></i>${tr('uplink_known', 'Known uplink')}</span>
              <span class="view-legend__item"><i class="view-legend__line view-legend__line--dashed"></i>${tr('uplink_assumed', 'Assumed direct')}</span>`
         ));
-        scroller.classList.toggle('is-horizontal', horizontal);
-        if (!horizontal) scroller.scrollLeft = (width - scroller.clientWidth) / 2;
+    }
+
+    /** Zoom and pan by moving the viewBox. No library, no transform matrices. */
+    function attachZoomPan(stage, svg, fitBox) {
+        const view = { ...fitBox };
+        const MIN_SCALE = 0.2, MAX_SCALE = 8;      // relative to the fit view
+
+        const apply = () => svg.setAttribute('viewBox', `${view.x} ${view.y} ${view.w} ${view.h}`);
+
+        function zoomAt(factor, cx, cy) {
+            const next = Math.min(Math.max(view.w * factor, fitBox.w / MAX_SCALE), fitBox.w / MIN_SCALE);
+            const k = next / view.w;
+            // Keep the point under the cursor where it is.
+            view.x = cx - (cx - view.x) * k;
+            view.y = cy - (cy - view.y) * k;
+            view.w = next;
+            view.h *= k;
+            apply();
+        }
+
+        const toSvg = (clientX, clientY) => {
+            const r = svg.getBoundingClientRect();
+            // preserveAspectRatio="meet" letterboxes, so the on-screen scale is
+            // the smaller of the two ratios.
+            const scale = Math.min(r.width / view.w, r.height / view.h);
+            return {
+                x: view.x + (clientX - r.left - (r.width - view.w * scale) / 2) / scale,
+                y: view.y + (clientY - r.top - (r.height - view.h * scale) / 2) / scale,
+            };
+        };
+
+        stage.addEventListener('wheel', e => {
+            e.preventDefault();
+            const p = toSvg(e.clientX, e.clientY);
+            zoomAt(e.deltaY > 0 ? 1.15 : 1 / 1.15, p.x, p.y);
+        }, { passive: false });
+
+        let dragging = null;
+        stage.addEventListener('pointerdown', e => {
+            if (e.target.closest('.topo-node')) return;      // a node click opens its menu
+            dragging = { ...toSvg(e.clientX, e.clientY) };
+            stage.setPointerCapture(e.pointerId);
+            stage.classList.add('is-panning');
+        });
+        stage.addEventListener('pointermove', e => {
+            if (!dragging) return;
+            const p = toSvg(e.clientX, e.clientY);
+            view.x -= p.x - dragging.x;
+            view.y -= p.y - dragging.y;
+            apply();
+        });
+        const endDrag = () => { dragging = null; stage.classList.remove('is-panning'); };
+        stage.addEventListener('pointerup', endDrag);
+        stage.addEventListener('pointercancel', endDrag);
+
+        const controls = document.createElement('div');
+        controls.className = 'topo-zoom';
+        controls.innerHTML = `
+            <button type="button" class="icon-btn" data-zoom="in" title="${esc(tr('zoom_in', 'Zoom in'))}">+</button>
+            <button type="button" class="icon-btn" data-zoom="out" title="${esc(tr('zoom_out', 'Zoom out'))}">−</button>
+            <button type="button" class="icon-btn" data-zoom="fit" title="${esc(tr('zoom_fit', 'Fit to screen'))}">
+                <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-scan"/></svg>
+            </button>`;
+        stage.appendChild(controls);
+        controls.addEventListener('click', e => {
+            const btn = e.target.closest('[data-zoom]');
+            if (!btn) return;
+            const cx = view.x + view.w / 2, cy = view.y + view.h / 2;
+            if (btn.dataset.zoom === 'in') zoomAt(1 / 1.4, cx, cy);
+            else if (btn.dataset.zoom === 'out') zoomAt(1.4, cx, cy);
+            else { Object.assign(view, fitBox); apply(); }
+        });
     }
 
     function drawTopoNode(layer, node, container, list) {
@@ -525,23 +632,34 @@
         el('title', {}, g).textContent = sub ? `${name}\n${sub}` : name;
         el('circle', { cx: 0, cy: 0, r: isLeaf ? 16 : 22 }, g);
         const glyph = el('text', { class: 'topo-glyph', x: 0, y: 6, 'text-anchor': 'middle' }, g);
+        // The internet node used to be 🌐 - the same glyph device_types.json
+        // gives a Router, so the two were indistinguishable.
         glyph.textContent = d ? icon(d)
-            : (node.kind === 'root' ? '🌐' : (GROUP_ICONS[node.groupKey] || '❓'));
+            : (node.kind === 'root' ? '☁️' : (GROUP_ICONS[node.groupKey] || '❓'));
 
         // Captions go under the node when the tree grows downwards, and to its
         // right when it grows sideways - otherwise they overlap the next row.
         const side = topoOrientation === 'horizontal';
-        const capAttrs = side
-            ? { x: (isLeaf ? 22 : 28), y: 0, 'text-anchor': 'start' }
-            : { x: 0, y: isLeaf ? 34 : 42, 'text-anchor': 'middle' };
-        const cap = el('text', { class: 'topo-caption', ...capAttrs }, g);
-        cap.textContent = clip(name, 15);
+        const capX = side ? (isLeaf ? 22 : 28) : 0;
+        const capY = side ? 0 : (isLeaf ? 34 : 42);
+        const anchor = side ? 'start' : 'middle';
+        const cap = el('text', {
+            class: 'topo-caption' + (node.kind === 'group' ? ' is-group' : ''),
+            x: capX, y: capY, 'text-anchor': anchor,
+        }, g);
+        // Names are wrapped, not truncated: six devices called "TP-Link IoT
+        // De…" are indistinguishable, which is the opposite of the point.
+        const lines = wrapLabel(name, 16, 3);
+        lines.forEach((line, i) => {
+            const span = el('tspan', { x: capX, dy: i === 0 ? 0 : 12 }, cap);
+            span.textContent = line;
+        });
         if (sub) {
-            const subAttrs = side
-                ? { x: (isLeaf ? 22 : 28), y: 13, 'text-anchor': 'start' }
-                : { x: 0, y: isLeaf ? 47 : 56, 'text-anchor': 'middle' };
-            const s = el('text', { class: 'topo-sub', ...subAttrs }, g);
-            s.textContent = clip(sub, 18);
+            const subEl = el('text', {
+                class: 'topo-sub', x: capX, y: capY + 13 + (lines.length - 1) * 12,
+                'text-anchor': anchor,
+            }, g);
+            subEl.textContent = sub;
         }
         if (d) {
             g.setAttribute('tabindex', '0');

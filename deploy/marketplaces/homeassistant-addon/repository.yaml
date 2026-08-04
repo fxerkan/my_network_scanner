@@ -1,0 +1,6 @@
+# Copy this file, plus the mynes/ folder next to it, into the ROOT of a dedicated
+# repo (e.g. github.com/fxerkan/mynes-addon). Home Assistant's Supervisor scans the
+# root of an add-on repository for folders containing a config.yaml.
+name: MyNeS Add-on Repository
+url: https://github.com/fxerkan/my_network_scanner
+maintainer: fxerkan <fxerkan@gmail.com>

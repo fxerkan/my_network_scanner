@@ -1,0 +1,69 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>MyNeS</Name>
+  <Beta>false</Beta>
+  <Category>Network:Management Network:Other Tools:Utilities</Category>
+  <Repository>fxerkan/my_network_scanner:latest</Repository>
+  <Registry>https://hub.docker.com/r/fxerkan/my_network_scanner</Registry>
+  <Network>host</Network>
+  <MyIP/>
+  <Shell>bash</Shell>
+  <Privileged>false</Privileged>
+  <PrivilegedReq>false</PrivilegedReq>
+  <ExtraParams>--cap-add=NET_ADMIN --cap-add=NET_RAW --restart=unless-stopped</ExtraParams>
+  <GitHub>https://github.com/fxerkan/my_network_scanner</GitHub>
+  <ReadMe>https://github.com/fxerkan/my_network_scanner#readme</ReadMe>
+  <Support>https://github.com/fxerkan/my_network_scanner/issues</Support>
+  <Project>https://github.com/fxerkan/my_network_scanner</Project>
+  <Overview>
+    MyNeS (My Network Scanner) discovers, identifies and monitors every device on your home network -
+    including the ones an IP scan cannot see.&#13;
+    &#13;
+    Beyond ARP and port scanning it speaks mDNS/Bonjour, SSDP/UPnP, Matter, Bluetooth LE and MQTT, so
+    Zigbee bulbs behind Zigbee2MQTT, Z-Wave sensors behind Z-Wave JS, BLE trackers and Tasmota nodes
+    show up next to your servers and phones.&#13;
+    &#13;
+    - Device inventory with vendor lookup over a 1000+ entry OUI database&#13;
+    - Automatic device-type classification (router, NAS, camera, console, smart plug, ...)&#13;
+    - Network topology and force-directed graph views&#13;
+    - Scan history: when a device first appeared, when it went quiet&#13;
+    - Rule-based monitoring with alerts by Web Push, webhook, e-mail or Home Assistant&#13;
+    - Two-way Home Assistant integration over MQTT Discovery and REST/WebSocket&#13;
+    - Turkish and English UI, light and dark themes, installable as a PWA&#13;
+    &#13;
+    No cloud, no account, no telemetry. Only scan networks you own.
+  </Overview>
+  <Requires>
+    **Host networking is required.** ARP, mDNS and SSDP discovery only work from the host network
+    namespace. NET_ADMIN and NET_RAW are added so MyNeS can send raw ARP frames; without them it
+    falls back to a ping sweep plus the OS ARP cache and finds fewer devices.&#13;
+    &#13;
+    After install, open http://[IP]:5883.
+  </Requires>
+  <WebUI>http://[IP]:[PORT:5883]</WebUI>
+  <TemplateURL>https://raw.githubusercontent.com/fxerkan/my_network_scanner/main/deploy/marketplaces/unraid/mynes.xml</TemplateURL>
+  <Icon>https://raw.githubusercontent.com/fxerkan/my_network_scanner/main/assets/mynes.png</Icon>
+  <Screenshot>https://raw.githubusercontent.com/fxerkan/my_network_scanner/main/assets/screenshots/home-view.png</Screenshot>
+  <Screenshot>https://raw.githubusercontent.com/fxerkan/my_network_scanner/main/assets/screenshots/graph-view.png</Screenshot>
+  <Screenshot>https://raw.githubusercontent.com/fxerkan/my_network_scanner/main/assets/screenshots/monitoring-alerts.png</Screenshot>
+  <Date>2026-08-04</Date>
+  <Changes>
+### 1.3.0&#13;
+- Web Push notifications sent by MyNeS itself, plus a direct Home Assistant alert channel&#13;
+- Editable regex identification patterns&#13;
+- Settings and home-plan pass
+  </Changes>
+
+  <Config Name="Web UI Port" Target="MYNES_PORT" Default="5883" Mode="tcp" Description="Port the MyNeS web interface listens on. Host networking is in use, so this is the real host port." Type="Variable" Display="always" Required="true" Mask="false">5883</Config>
+
+  <Config Name="Data" Target="/app/data" Default="/mnt/user/appdata/mynes/data" Mode="rw" Description="Device inventory, scan history and alerts." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/mynes/data</Config>
+  <Config Name="Config" Target="/app/config" Default="/mnt/user/appdata/mynes/config" Mode="rw" Description="Configuration and encrypted credentials." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/mynes/config</Config>
+
+  <Config Name="Master Password" Target="MYNES_PASSWORD" Default="" Description="Encrypts stored device credentials. Leave empty and MyNeS generates one on first start." Type="Variable" Display="always" Required="false" Mask="true"/>
+  <Config Name="MQTT Broker Host" Target="MYNES_MQTT_HOST" Default="" Description="Optional. Reads retained Zigbee2MQTT / Z-Wave JS / Tasmota / Home Assistant discovery topics - the only way to see radio devices." Type="Variable" Display="always" Required="false" Mask="false"/>
+  <Config Name="MQTT Username" Target="MYNES_MQTT_USERNAME" Default="" Description="Optional MQTT username." Type="Variable" Display="advanced" Required="false" Mask="false"/>
+  <Config Name="MQTT Password" Target="MYNES_MQTT_PASSWORD" Default="" Description="Optional MQTT password." Type="Variable" Display="advanced" Required="false" Mask="true"/>
+  <Config Name="Home Assistant URL" Target="MYNES_HA_URL" Default="" Description="Optional. e.g. http://homeassistant.local:8123" Type="Variable" Display="always" Required="false" Mask="false"/>
+  <Config Name="Home Assistant Token" Target="MYNES_HA_TOKEN" Default="" Description="Optional long-lived access token." Type="Variable" Display="always" Required="false" Mask="true"/>
+  <Config Name="Timezone" Target="TZ" Default="Europe/Istanbul" Description="Container timezone." Type="Variable" Display="advanced" Required="false" Mask="false"/>
+</Container>

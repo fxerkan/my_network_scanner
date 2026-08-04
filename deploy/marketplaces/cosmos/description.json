@@ -1,0 +1,8 @@
+{
+  "name": "MyNeS",
+  "description": "MyNeS - My Network Scanner discovers, identifies and monitors every device on your home network, including the ones an IP scan cannot see. It speaks ARP, mDNS/Bonjour, SSDP/UPnP, Matter, Bluetooth LE and MQTT, so Zigbee2MQTT bulbs, Z-Wave JS sensors, BLE trackers and Tasmota nodes show up next to your laptops and NAS. Vendor lookup over a 1000+ entry OUI database, automatic device-type classification, topology and graph views, scan history, rule-based alerts by Web Push / webhook / e-mail, and two-way Home Assistant integration. No cloud, no account, no telemetry.",
+  "tags": ["network", "monitoring", "homelab", "home-assistant", "iot", "security", "docker"],
+  "repository": "https://github.com/fxerkan/my_network_scanner",
+  "image": "https://hub.docker.com/r/fxerkan/my_network_scanner",
+  "supported_architectures": ["amd64", "arm64"]
+}

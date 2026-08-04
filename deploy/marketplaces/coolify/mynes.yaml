@@ -1,0 +1,30 @@
+# documentation: https://github.com/fxerkan/my_network_scanner#readme
+# slogan: Discover, identify and monitor every device on your LAN - Wi-Fi, Zigbee, Z-Wave, BLE and Matter.
+# tags: network, scanner, monitoring, homelab, home-assistant, iot, mdns, matter, zigbee
+# logo: svgs/mynes.svg
+# port: 5883
+
+services:
+  mynes:
+    image: fxerkan/my_network_scanner:latest
+    # Host networking is what makes ARP / mDNS / SSDP discovery see the LAN at all.
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    environment:
+      - MYNES_PORT=5883
+      - SERVICE_FQDN_MYNES_5883
+      - MYNES_PASSWORD=${SERVICE_PASSWORD_MYNES}
+      - MYNES_MQTT_HOST=${MYNES_MQTT_HOST:-}
+      - MYNES_HA_URL=${MYNES_HA_URL:-}
+      - MYNES_HA_TOKEN=${MYNES_HA_TOKEN:-}
+    volumes:
+      - mynes-data:/app/data
+      - mynes-config:/app/config
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5883/api/version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

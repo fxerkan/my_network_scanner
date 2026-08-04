@@ -574,5 +574,8 @@
   "orientation": "Yön",
   "orientation_vertical": "Dikey",
   "orientation_horizontal": "Yatay",
-  "uplink_field_hint": "Cihaz, MyNeS'in göremediği bir switch veya erişim noktasına bağlı değilse Otomatik bırakın."
+  "uplink_field_hint": "Cihaz, MyNeS'in göremediği bir switch veya erişim noktasına bağlı değilse Otomatik bırakın.",
+  "zoom_in": "Yakınlaştır",
+  "zoom_out": "Uzaklaştır",
+  "zoom_fit": "Ekrana sığdır"
 }

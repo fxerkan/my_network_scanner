@@ -100,14 +100,53 @@
   font-size: var(--text-sm);
   color: var(--text-tertiary);
 }
-.topo-scroller { overflow-x: auto; overflow-y: hidden; }
-/* Horizontal trees grow downwards, so they scroll vertically instead - which
-   is the direction a phone scrolls anyway. */
-.topo-scroller.is-horizontal {
-  overflow-x: auto;
-  overflow-y: auto;
-  max-height: clamp(420px, 70vh, 820px);
+/* The diagram is scaled into this box, so it is always fully visible on open
+   and follows the viewport when the window changes size. */
+.topo-stage {
+  position: relative;
+  /* The box takes the diagram's own shape, so a wide shallow tree is not
+     letterboxed in a tall panel. JS sets --topo-ratio from the layout. */
+  aspect-ratio: var(--topo-ratio, 2 / 1);
+  /* Width is the container's; aspect-ratio may only drive the height. Without
+     this, min-height fed back into the width and the stage overflowed. */
+  width: 100%;
+  height: auto;
+  min-height: 320px;
+  max-height: 820px;
+  border-radius: var(--radius-md);
+  background: var(--bg-surface-sunken);
+  overflow: hidden;
+  touch-action: none;      /* the stage handles its own pan/zoom gestures */
+  cursor: grab;
 }
+.topo-stage.is-panning { cursor: grabbing; }
+.topo-svg { width: 100%; height: 100%; display: block; }
+
+.topo-zoom {
+  position: absolute;
+  right: var(--space-3);
+  bottom: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.topo-zoom .icon-btn {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  font-size: var(--text-md);
+  line-height: 1;
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+}
+.topo-zoom .icon-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+
 .topo-orientation { flex: none; }
 .topo-orientation__rotated { transform: rotate(-90deg); }
 .topo-edges path.is-assumed { stroke-dasharray: 4 4; opacity: 0.4; }
@@ -152,6 +191,7 @@
 .topo-node:focus { outline: none; }
 .topo-glyph { font-size: 16px; }
 .topo-caption { font-size: 11px; fill: var(--text-primary); }
+.topo-caption.is-group { font-weight: 700; font-size: 12px; }
 .topo-sub { font-size: 10px; fill: var(--text-tertiary); }
 
 /* ---------- home plan ---------- */

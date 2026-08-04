@@ -574,5 +574,8 @@
   "orientation": "Orientation",
   "orientation_vertical": "Vertical",
   "orientation_horizontal": "Horizontal",
-  "uplink_field_hint": "Leave on Auto unless the device hangs off a switch or access point MyNeS cannot see."
+  "uplink_field_hint": "Leave on Auto unless the device hangs off a switch or access point MyNeS cannot see.",
+  "zoom_in": "Zoom in",
+  "zoom_out": "Zoom out",
+  "zoom_fit": "Fit to screen"
 }

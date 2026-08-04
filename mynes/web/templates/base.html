@@ -51,6 +51,55 @@
 
             <div class="ds-spacer"></div>
 
+            {% if active_page == 'devices' %}
+            <!-- The scan menu lives in the header so it is reachable at the
+                 same place on a phone and on a desktop. Devices page only:
+                 its handlers are in main.js. -->
+<div class="dropdown actions-menu">
+            <button class="btn btn-primary actions-menu__trigger" onclick="toggleToolsDropdown()"
+            id="toolsDropdown" aria-haspopup="true" aria-expanded="false">
+            <svg class="ds-icon" aria-hidden="true"><use href="#i-search"/></svg>
+            <span>{{ _('scan') if _('scan') != 'scan' else 'Scan' }}</span>
+            <svg class="ds-icon ds-icon--sm actions-menu__caret" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+            </button>
+            <div class="dropdown-menu" id="toolsDropdownMenu" style="display:none">
+            <button type="button" class="dropdown-item" id="scanBtn" onclick="startScan(); closeToolsDropdown();">
+            <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-search"/></svg>
+            {{ _('scan_network') }}
+            </button>
+            <button type="button" class="dropdown-item" onclick="startBulkAnalysis(); closeToolsDropdown();">
+            <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-microscope"/></svg>
+            {{ _('detailed_analysis') }}
+            </button>
+            <button type="button" class="dropdown-item" onclick="showDeviceManagementModal(); closeToolsDropdown();">
+            <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-settings"/></svg>
+            {{ _('device_management') }}
+            </button>
+            <div class="dropdown-divider"></div>
+            <button type="button" class="dropdown-item" onclick="exportData(); closeToolsDropdown();">
+            <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-download"/></svg>
+            {{ _('export_devices') }}
+            </button>
+            <button type="button" class="dropdown-item" onclick="document.getElementById('importFile').click(); closeToolsDropdown();">
+            <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-upload"/></svg>
+            {{ _('import_devices') }}
+            </button>
+            <div class="dropdown-divider"></div>
+            <button type="button" class="dropdown-item" onclick="sanitizeData(); closeToolsDropdown();">
+            <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-trash"/></svg>
+            {{ _('clean_sensitive_data') }}
+            </button>
+            </div>
+            </div>
+            <button id="stopBtn" class="btn btn-danger" onclick="stopScan()" style="display:none">
+            <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-stop"/></svg>
+            <span>{{ _('stop_scan') }}</span>
+            </button>
+            <input type="file" id="importFile" accept=".json" hidden onchange="importData()">
+            {% endif %}
+
+            <div class="ds-spacer"></div>
+
             <nav class="ds-nav" aria-label="{{ _('navigation') if _('navigation') != 'navigation' else 'Main' }}">
                 <a class="ds-nav__link" href="/" {% if active_page == 'devices' %}aria-current="page"{% endif %}>
                     <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-network"/></svg>

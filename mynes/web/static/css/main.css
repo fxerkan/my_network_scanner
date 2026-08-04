@@ -10,31 +10,42 @@
    base.html. main.css only styles the device-list content below it. */
 
 
-/* ---------- Primary action bar -------------------------------------------
-   One dropdown, not a row of buttons: full width on a phone, its own size on
-   a desktop. */
-.page-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-2);
-    align-items: center;
-    margin-bottom: var(--space-4);
-}
-.actions-menu { flex: 1 1 100%; }
+/* ---------- Scan menu (in the header) ------------------------------------
+   One dropdown rather than a row of buttons, and in the header rather than
+   the page body so it sits in the same place on a phone and on a desktop. */
+.actions-menu { flex: 0 0 auto; min-width: 0; }
 
 .actions-menu__trigger {
-    width: 100%;
-    min-height: 48px;
-    font-size: var(--text-md);
+    min-height: 40px;
+    padding: var(--space-2) var(--space-4);
     font-weight: var(--weight-semibold);
+    white-space: nowrap;
 }
-.actions-menu__caret { margin-left: auto; }
+.actions-menu__caret { margin-left: var(--space-1); }
 
 @media (min-width: 768px) {
-    .page-actions { gap: var(--space-3); }
-    .actions-menu { flex: 0 0 auto; }
-    .actions-menu__trigger { width: auto; min-width: 200px; }
-    .actions-menu__caret { margin-left: var(--space-2); }
+    .actions-menu__trigger {
+        min-height: 44px;
+        min-width: 168px;
+        font-size: var(--text-md);
+    }
+    .actions-menu__caret { margin-left: auto; }
+}
+
+/* A phone header holds brand + Scan + theme + language: give the trigger the
+   smallest padding that still reads as a button, and let the brand truncate. */
+@media (max-width: 480px) {
+    .actions-menu__trigger { padding: var(--space-2) var(--space-3); }
+    .actions-menu__trigger > span { max-width: 6ch; overflow: hidden; }
+}
+
+/* Centred under its trigger, and never wider than the viewport. */
+.actions-menu .dropdown-menu {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    min-width: 260px;
+    max-width: calc(100vw - var(--space-6));
 }
 
 /* The dropdown is a grid/flex item, so it must not collapse to zero width. */
@@ -1622,7 +1633,6 @@
 .enhanced-edit-modal .modal-header {
     margin-bottom: 0;
     padding: var(--space-5) var(--space-6);
-    border-bottom: 1px solid var(--border-subtle);
     flex-shrink: 0;
 }
 

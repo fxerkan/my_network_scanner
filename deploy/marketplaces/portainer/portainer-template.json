@@ -1,0 +1,37 @@
+{
+  "version": "3",
+  "templates": [
+    {
+      "type": 1,
+      "title": "MyNeS - My Network Scanner",
+      "name": "mynes",
+      "description": "Discovers, identifies and monitors every device on your home network - including the ones an IP scan cannot see. Speaks ARP, mDNS/Bonjour, SSDP/UPnP, Matter, Bluetooth LE and MQTT, so Zigbee2MQTT bulbs, Z-Wave JS sensors, BLE trackers and Tasmota nodes appear next to your servers and phones. Vendor lookup over a 1000+ entry OUI database, topology and graph views, scan history, rule-based alerts by Web Push / webhook / e-mail, and two-way Home Assistant integration. No cloud, no account, no telemetry.",
+      "note": "Host networking is required for ARP/mDNS/SSDP discovery. NET_ADMIN and NET_RAW let MyNeS send raw ARP frames; without them it falls back to a ping sweep and finds fewer devices. Open http://&lt;host-ip&gt;:5883 after deploy. Only scan networks you own.",
+      "categories": ["Network", "Monitoring", "Tools"],
+      "platform": "linux",
+      "logo": "https://raw.githubusercontent.com/fxerkan/my_network_scanner/main/assets/mynes.png",
+      "image": "fxerkan/my_network_scanner:latest",
+      "network": "host",
+      "restart_policy": "unless-stopped",
+      "privileged": false,
+      "cap_add": ["NET_ADMIN", "NET_RAW"],
+      "volumes": [
+        { "container": "/app/data", "bind": "/opt/mynes/data" },
+        { "container": "/app/config", "bind": "/opt/mynes/config" }
+      ],
+      "env": [
+        { "name": "MYNES_PORT", "label": "Web UI port", "default": "5883" },
+        { "name": "TZ", "label": "Timezone", "default": "Europe/Istanbul" },
+        { "name": "MYNES_PASSWORD", "label": "Master password (auto-generated if empty)", "default": "" },
+        { "name": "MYNES_MQTT_HOST", "label": "MQTT broker host (optional, reveals Zigbee/Z-Wave devices)", "default": "" },
+        { "name": "MYNES_HA_URL", "label": "Home Assistant URL (optional)", "default": "" },
+        { "name": "MYNES_HA_TOKEN", "label": "Home Assistant long-lived token (optional)", "default": "" }
+      ],
+      "maintainer": "fxerkan",
+      "repository": {
+        "url": "https://github.com/fxerkan/my_network_scanner",
+        "stackfile": "deploy/docker-compose.yml"
+      }
+    }
+  ]
+}
