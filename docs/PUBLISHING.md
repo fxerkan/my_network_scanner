@@ -67,6 +67,8 @@ Worth reading before the next store, because none of it is in any documentation:
   [Nmap](https://alternativeto.net/software/nmap/) and
   [Fingbox](https://alternativeto.net/software/fingbox) alternatives pages. Free, permanent,
   and it ranks in search. Highest value per minute of anything left on this list.
+  The full page list, the product-page fields and the per-page "why it's an alternative"
+  copy are in [`COMPARISON.md` §5](COMPARISON.md) — paste from there, do not re-write it.
 - **Unraid forum support thread** — AppFeed#39 offers to repoint `<Support>` at one. Create it at
   [forums.unraid.net](https://forums.unraid.net/) if they ask.
 - **awesome-home-assistant** and **awesome-docker** PRs — see §10.

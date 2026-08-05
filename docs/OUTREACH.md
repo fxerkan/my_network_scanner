@@ -76,7 +76,7 @@ Beyond Reddit, the same weekly sweep:
 | [lemmy.world/c/selfhosted](https://lemmy.world/c/selfhosted) | Smaller, friendlier, indexes well. |
 | [Hacker News "Show HN"](https://news.ycombinator.com/show) | One shot. See §4. |
 | [selfh.st weekly newsletter](https://selfh.st/) | Submit once; they cover new self-hosted releases. |
-| [AlternativeTo — Fing page](https://alternativeto.net/software/fing/) | Add MyNeS as an alternative. Fing has six pages of alternatives and steady traffic; this is free, permanent, and search-engine visible. Do the same on the [Nmap](https://alternativeto.net/software/nmap/) and [Fingbox](https://alternativeto.net/software/fingbox) pages. |
+| [AlternativeTo — Fing page](https://alternativeto.net/software/fing/) | Add MyNeS as an alternative. Fing has six pages of alternatives and steady traffic; this is free, permanent, and search-engine visible. Do the same on the [Nmap](https://alternativeto.net/software/nmap/) and [Fingbox](https://alternativeto.net/software/fingbox) pages. Ready-to-paste fields and per-page copy: [`COMPARISON.md` §5](COMPARISON.md). |
 | [awesome.casaos.io](https://awesome.casaos.io/) + awesome-lists | See [`PUBLISHING.md` §10](PUBLISHING.md). |
 
 ---
