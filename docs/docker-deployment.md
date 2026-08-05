@@ -569,7 +569,7 @@ docker run --log-driver=json-file --log-opt max-size=10m --log-opt max-file=3
 
 ```bash
 # Set up health check alerts
-docker run -d --health-cmd="curl -f http://localhost:5883/api/version" \
+docker run -d --health-cmd="python -c \"import http.client as h; c=h.HTTPConnection('localhost',5883,timeout=5); c.request('GET','/api/version'); exit(0 if c.getresponse().status < 500 else 1)\"" \
            --health-interval=30s \
            --health-timeout=10s \
            --health-retries=3 \

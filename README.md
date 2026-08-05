@@ -193,6 +193,17 @@ docker run -d \
 
 Arayüz: **http://\<sunucu-ip\>:5883**
 
+### ⚠️ İmajda `apt` yok
+
+İmaj `perl-base`, `debconf`, `gosu`, `curl`, `pip` ve `setuptools` olmadan
+gelir: hiçbiri çalışma anında kullanılmıyordu ama aralarında Debian'ın düzeltme
+yayınlamadığı 2 CRITICAL ve 18 HIGH dahil 70 CVE taşıyorlardı. Bunun bedeli
+`docker exec mynes apt-get install ...` komutunun çalışmaması.
+
+Konteyner içine ek bir araç gerekiyorsa `deploy/Dockerfile`'daki `apt-get
+install` satırına ekleyip yeniden derleyin — çalışan konteynere sonradan paket
+kurmak zaten kaybolan bir değişiklikti.
+
 ### ⚠️ Neden host ağı ve NET_RAW?
 
 MyNeS ham ARP paketleri gönderir ve mDNS/SSDP multicast dinler. İkisi de host ağ
