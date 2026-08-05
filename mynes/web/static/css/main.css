@@ -76,10 +76,6 @@
    hangs left-aligned. (It used to be right-aligned for a trigger that sat on
    the right; with one dropdown left that rule pushed the menu off-screen.) */
 .actions-menu .dropdown-menu { left: 0; right: auto; width: 100%; min-width: 0; }
-/* Items centred as a block: icon and label stay together instead of the label
-   drifting to the left edge with a lake of whitespace after it. */
-.actions-menu .dropdown-item { justify-content: center; text-align: center; }
-
 .dropdown-item {
     display: flex;
     align-items: center;
