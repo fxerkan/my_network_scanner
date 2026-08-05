@@ -125,6 +125,7 @@ def build_tree(devices: list, gateway_ip: str | None = None,
     """-> {"gateway": ip|None, "nodes": [{ip, parent, source, infra, ...}]}.
 
     source is one of: "gateway" (this IS the gateway), "manual", "traceroute",
+    "docker" (a container, parented to the machine its Engine runs on),
     "default" (assumed direct, because nothing said otherwise).
     """
     uplinks = uplinks or {}
@@ -144,12 +145,17 @@ def build_tree(devices: list, gateway_ip: str | None = None,
         if not ip:
             nodes.append({**device, "parent": None, "source": "radio", "infra": False})
             continue
+        host_ip = (device.get("docker_info") or {}).get("host_ip")
         if ip == gateway_ip:
             parent, source = None, "gateway"
         elif uplinks.get(ip) in by_ip and uplinks[ip] != ip:
             parent, source = uplinks[ip], "manual"
         elif traced.get(ip) in by_ip and traced[ip] != ip:
             parent, source = traced[ip], "traceroute"
+        elif host_ip in by_ip and host_ip != ip:
+            # A container is not "assumed direct to the gateway": the Engine
+            # told us exactly which machine it runs on.
+            parent, source = host_ip, "docker"
         else:
             parent, source = gateway_ip, "default"
         nodes.append({**device, "parent": parent, "source": source, "infra": is_infra(device)})
@@ -202,6 +208,22 @@ def demo():
     assert by_ip["192.168.1.10"]["source"] == "manual"
     assert by_ip["192.168.2.5"]["parent"] == "192.168.1.2"
     assert by_ip["192.168.2.5"]["source"] == "traceroute"
+
+    # A container hangs off the machine its Engine runs on, not off the gateway.
+    with_container = devices + [{
+        "ip": "192.168.32.5", "device_type": "Docker Container",
+        "docker_info": {"host_ip": "192.168.1.10", "stack": "telegram"},
+    }]
+    by_ip = {n.get("ip"): n for n in build_tree(with_container, "192.168.1.1")["nodes"]}
+    assert by_ip["192.168.32.5"]["parent"] == "192.168.1.10"
+    assert by_ip["192.168.32.5"]["source"] == "docker"
+
+    # A host we never scanned cannot be a parent: fall back, do not orphan.
+    orphan = [{"ip": "192.168.1.1", "device_type": "Router"},
+              {"ip": "192.168.32.5", "device_type": "Docker Container",
+               "docker_info": {"host_ip": "10.9.9.9"}}]
+    by_ip = {n.get("ip"): n for n in build_tree(orphan, "192.168.1.1")["nodes"]}
+    assert by_ip["192.168.32.5"]["parent"] == "192.168.1.1"
 
     # An uplink pointing at an unknown device is ignored, not honoured.
     tree = build_tree(devices, "192.168.1.1", uplinks={"192.168.1.10": "10.0.0.9"})

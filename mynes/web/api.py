@@ -102,13 +102,22 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
     # -- alerts -----------------------------------------------------------
     @bp.get("/alerts")
     def list_alerts():
+        severity = request.args.get("severity")
+        rule = request.args.get("rule")
+        query = request.args.get("q")
+        unread_only = request.args.get("unread") == "true"
+        limit = max(1, min(int(request.args.get("limit", 100)), 500))
+        offset = max(0, int(request.args.get("offset", 0)))
+        # `total` is the filtered count, not the file's: the pager has to know
+        # how many pages the *current* filter has, not how many alerts exist.
+        matched = store.filter_alerts(severity, unread_only, rule, query)
         return jsonify(
             {
-                "alerts": store.load_alerts(
-                    limit=int(request.args.get("limit", 100)),
-                    severity=request.args.get("severity"),
-                    unread_only=request.args.get("unread") == "true",
-                ),
+                "alerts": matched[offset:offset + limit],
+                "total": len(matched),
+                "offset": offset,
+                "limit": limit,
+                "rules": sorted({a.get("rule") for a in store.load_alerts() if a.get("rule")}),
                 "summary": store.summary(),
             }
         )

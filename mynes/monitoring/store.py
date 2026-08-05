@@ -34,12 +34,31 @@ def _write(path, payload):
     os.replace(tmp, path)  # atomic: a crash mid-write cannot truncate the history
 
 
-def load_alerts(limit: int | None = None, severity: str | None = None, unread_only: bool = False) -> list[dict]:
+def filter_alerts(severity: str | None = None, unread_only: bool = False,
+                  rule: str | None = None, query: str | None = None) -> list[dict]:
+    """Every alert matching the filters, newest first. No paging - see below."""
     alerts = _read(ALERTS_FILE, [])
     if severity:
         alerts = [a for a in alerts if a.get("severity") == severity]
     if unread_only:
         alerts = [a for a in alerts if not a.get("read")]
+    if rule:
+        alerts = [a for a in alerts if a.get("rule") == rule]
+    if query:
+        needle = query.lower()
+        alerts = [
+            a for a in alerts
+            if needle in " ".join(
+                str(a.get(k) or "") for k in ("title", "message", "device_name", "rule")
+            ).lower()
+            or needle in str((a.get("extra") or {}).get("ip") or "").lower()
+        ]
+    return alerts
+
+
+def load_alerts(limit: int | None = None, severity: str | None = None, unread_only: bool = False,
+                rule: str | None = None, query: str | None = None, offset: int = 0) -> list[dict]:
+    alerts = filter_alerts(severity, unread_only, rule, query)[offset:]
     return alerts[:limit] if limit else alerts
 
 

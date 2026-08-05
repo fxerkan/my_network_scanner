@@ -254,12 +254,32 @@
         return nodes;
     }
 
+    /** The machine a container runs on, when that machine is on screen too. */
+    function dockerHostIp(d) {
+        return (d.docker_info || {}).host_ip || null;
+    }
+
     function buildGraphModel(list) {
         const nodes = [], links = [], hubIndexes = [];
         const bySubnet = new Map();
         const radio = [];
 
+        // A container belongs to its host, not to whatever /24 Docker handed
+        // its bridge. Hanging it off a subnet hub drew a cluster of orphans
+        // next to the machine that was actually running them.
+        const byIp = new Map(list.filter(d => d.ip).map(d => [d.ip, d]));
+        const nodeIndexByIp = new Map();
+        const hosted = new Map();          // host ip -> containers
+        const containers = new Set();
         list.forEach(d => {
+            const host = dockerHostIp(d);
+            if (!host || host === d.ip || !byIp.has(host)) return;
+            if (!hosted.has(host)) hosted.set(host, []);
+            hosted.get(host).push(d);
+            containers.add(d);
+        });
+
+        list.filter(d => !containers.has(d)).forEach(d => {
             const net = subnetOf(d);
             if (net === null) { radio.push(d); return; }
             if (!bySubnet.has(net)) bySubnet.set(net, []);
@@ -281,6 +301,8 @@
             }) - 1;
             hubIndexes.push(hubIndex);
 
+            if (seg.gateway && seg.gateway.ip) nodeIndexByIp.set(seg.gateway.ip, hubIndex);
+
             seg.members.forEach(d => {
                 const idx = nodes.push({
                     hub: false,
@@ -288,7 +310,24 @@
                     name: label(d), sub: d.ip || d.mac || '',
                     device: d, cls: deviceClass(d), offline: d.status !== 'online',
                 }) - 1;
+                if (d.ip) nodeIndexByIp.set(d.ip, idx);
                 links.push([hubIndex, idx]);
+            });
+        });
+
+        // Containers last, so every possible host already has a node index.
+        hosted.forEach((kids, hostIp) => {
+            const hostIndex = nodeIndexByIp.get(hostIp);
+            if (hostIndex === undefined) return;
+            nodes[hostIndex].hostsContainers = true;
+            kids.forEach(d => {
+                const idx = nodes.push({
+                    hub: false, container: true,
+                    r: d.status === 'online' ? 9 : 7,
+                    name: label(d), sub: d.ip || d.mac || '',
+                    device: d, cls: deviceClass(d), offline: d.status !== 'online',
+                }) - 1;
+                links.push([hostIndex, idx]);
             });
         });
 
@@ -299,6 +338,62 @@
         return { nodes, links };
     }
 
+    /**
+     * The card that follows the cursor. A native SVG <title> waits a second,
+     * shows one unstyled line and cannot be read on a touch screen - not much
+     * use when the question is "what is this dot and where does it live".
+     */
+    function deviceTooltipHTML(d, fallbackName) {
+        if (!d) return `<div class="view-tip__title">${esc(fallbackName)}</div>`;
+        const docker = d.docker_info || {};
+        const rows = [
+            [tr('ip_address', 'IP'), d.ip],
+            [tr('mac_address', 'MAC'), d.mac && d.mac !== 'Unknown' ? d.mac : ''],
+            [tr('device_type', 'Type'), d.device_type],
+            [tr('vendor', 'Vendor'), d.vendor],
+            [tr('status', 'Status'), d.status],
+        ];
+        if (docker.container_id) {
+            const nets = (docker.networks && docker.networks.length)
+                ? docker.networks.join(', ') : docker.network;
+            rows.push(
+                ['—', ''],
+                [tr('docker_stack', 'Stack'), docker.stack || tr('none', '—')],
+                [tr('docker_network', 'Network'), nets],
+                [tr('docker_image', 'Image'), docker.image],
+                [tr('docker_host', 'Host'), docker.host_ip]);
+        }
+        const body = rows
+            .filter(([, v]) => v)
+            .map(([k, v]) => `<div class="view-tip__row"><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`)
+            .join('');
+        return `<div class="view-tip__title">${esc(label(d))}</div><dl class="view-tip__rows">${body}</dl>`;
+    }
+
+    /** One tooltip element per view, moved around; not one per node. */
+    function attachTooltip(stage) {
+        const tip = document.createElement('div');
+        tip.className = 'view-tip';
+        tip.hidden = true;
+        stage.appendChild(tip);
+
+        const place = e => {
+            const r = stage.getBoundingClientRect();
+            // Flip before the card runs off the right or bottom edge.
+            const w = tip.offsetWidth, h = tip.offsetHeight;
+            let x = e.clientX - r.left + 14, y = e.clientY - r.top + 14;
+            if (x + w > r.width) x = Math.max(0, e.clientX - r.left - w - 14);
+            if (y + h > r.height) y = Math.max(0, e.clientY - r.top - h - 14);
+            tip.style.transform = `translate(${x}px, ${y}px)`;
+        };
+
+        return {
+            show(html, e) { tip.innerHTML = html; tip.hidden = false; place(e); },
+            move: place,
+            hide() { tip.hidden = true; },
+        };
+    }
+
     function renderGraph(container, list) {
         if (!list.length) return emptyState(container);
 
@@ -307,16 +402,25 @@
 
         const pad = 60;
         const xs = nodes.map(n => n.x), ys = nodes.map(n => n.y);
-        const minX = Math.min(...xs) - pad, maxX = Math.max(...xs) + pad;
-        const minY = Math.min(...ys) - pad, maxY = Math.max(...ys) + pad;
+        const box = {
+            x: Math.min(...xs) - pad,
+            y: Math.min(...ys) - pad,
+            w: Math.max(...xs) - Math.min(...xs) + pad * 2,
+            h: Math.max(...ys) - Math.min(...ys) + pad * 2,
+        };
 
         container.innerHTML = '';
+        const stage = document.createElement('div');
+        stage.className = 'topo-stage graph-stage';
+        container.appendChild(stage);
+
         const svg = el('svg', {
             class: 'graph-svg',
-            viewBox: `${minX} ${minY} ${maxX - minX} ${maxY - minY}`,
+            viewBox: `${box.x} ${box.y} ${box.w} ${box.h}`,
+            preserveAspectRatio: 'xMidYMid meet',
             role: 'img',
             'aria-label': tr('graph_view', 'Network graph'),
-        }, container);
+        }, stage);
 
         const edgeLayer = el('g', { class: 'graph-edges' }, svg);
         links.forEach(([ai, bi]) => {
@@ -324,23 +428,40 @@
             el('line', { x1: a.x, y1: a.y, x2: b.x, y2: b.y }, edgeLayer);
         });
 
+        const tip = attachTooltip(stage);
         const nodeLayer = el('g', {}, svg);
         nodes.forEach(n => {
             const g = el('g', {
-                class: `graph-node graph-node--${n.cls}` + (n.hub ? ' is-hub' : '') + (n.offline ? ' is-offline' : ''),
+                class: `graph-node graph-node--${n.cls}`
+                    + (n.hub ? ' is-hub' : '')
+                    + (n.container ? ' is-container' : '')
+                    + (n.offline ? ' is-offline' : ''),
                 tabindex: '0', role: 'button',
             }, nodeLayer);
-            el('title', {}, g).textContent = `${n.name}\n${n.sub}`;
             el('circle', { cx: n.x, cy: n.y, r: n.r }, g);
             const text = el('text', { x: n.x, y: n.y + n.r + 14, 'text-anchor': 'middle' }, g);
             text.textContent = n.hub ? n.name : clip(n.name, 16);
+
+            const html = deviceTooltipHTML(n.device, n.name);
+            g.setAttribute('aria-label', `${n.name} ${n.sub}`);
+            g.addEventListener('pointerenter', e => tip.show(html, e));
+            g.addEventListener('pointermove', tip.move);
+            g.addEventListener('pointerleave', tip.hide);
+            g.addEventListener('focus', () => {
+                const r = g.getBoundingClientRect();
+                tip.show(html, { clientX: r.left + r.width / 2, clientY: r.bottom });
+            });
+            g.addEventListener('blur', tip.hide);
+
             if (n.device) {
-                const open = () => openDeviceDetails(n.device);
+                const open = () => { tip.hide(); openDeviceDetails(n.device); };
                 g.addEventListener('click', open);
                 g.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
             }
         });
 
+        stage.style.setProperty('--topo-ratio', `${box.w} / ${box.h}`);
+        attachZoomPan(stage, svg, box);
         container.appendChild(legend());
     }
 
@@ -520,8 +641,9 @@
         const edges = el('g', { class: 'topo-edges' }, svg);
         const nodeLayer = el('g', {}, svg);
 
+        const tip = attachTooltip(stage);
         (function walk(node) {
-            drawTopoNode(nodeLayer, node, container, list);
+            drawTopoNode(nodeLayer, node, container, list, tip);
             node.children.forEach(child => {
                 // Same elbow, rotated: the first leg runs along the generation
                 // axis, the second along the sibling axis.
@@ -599,7 +721,7 @@
             // A node opens its own menu, and the zoom buttons need their click
             // event - capturing the pointer here swallowed it, which is why
             // the buttons did nothing while the wheel worked.
-            if (e.target.closest('.topo-node') || e.target.closest('.topo-zoom')) return;
+            if (e.target.closest('.topo-node, .graph-node, .topo-zoom')) return;
 
             active.set(e.pointerId, { x: e.clientX, y: e.clientY });
             if (active.size === 2) {
@@ -657,7 +779,7 @@
         });
     }
 
-    function drawTopoNode(layer, node, container, list) {
+    function drawTopoNode(layer, node, container, list, tip) {
         const isLeaf = node.kind === 'leaf';
         const d = node.device;
         const name = d ? label(d) : node.name;
@@ -667,7 +789,14 @@
                 + (d && d.status && d.status !== 'online' ? ' is-offline' : ''),
             transform: `translate(${node.x},${node.y})`,
         }, layer);
-        el('title', {}, g).textContent = sub ? `${name}\n${sub}` : name;
+        if (tip) {
+            const html = deviceTooltipHTML(d, name);
+            g.addEventListener('pointerenter', e => tip.show(html, e));
+            g.addEventListener('pointermove', tip.move);
+            g.addEventListener('pointerleave', tip.hide);
+        } else {
+            el('title', {}, g).textContent = sub ? `${name}\n${sub}` : name;
+        }
         el('circle', { cx: 0, cy: 0, r: isLeaf ? 16 : 22 }, g);
         const glyph = el('text', { class: 'topo-glyph', x: 0, y: 6, 'text-anchor': 'middle' }, g);
         // The internet node used to be 🌐 - the same glyph device_types.json
@@ -1061,6 +1190,7 @@
             else if (view === 'home') renderHome(container, devicesList);
         },
         // exported for tests / console poking
-        _internals: { groupOf, byGroup, deviceClass, deviceKey, layoutForce, layoutTree, isInfra, buildTopoTree },
+        _internals: { groupOf, byGroup, deviceClass, deviceKey, layoutForce, layoutTree, isInfra,
+                      buildTopoTree, buildGraphModel },
     };
 })();

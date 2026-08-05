@@ -649,6 +649,34 @@ hr { border: 0; border-top: 1px solid var(--border-subtle); margin: var(--space-
 .ds-badge--online   { background: var(--status-online-bg);  color: var(--status-online-fg);  border-color: transparent; }
 .ds-badge--offline  { background: var(--status-offline-bg); color: var(--status-offline-fg); border-color: transparent; }
 .ds-badge--info     { background: var(--severity-info-bg);     color: var(--severity-info-fg);     border-color: transparent; }
+
+.mute-add {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto;
+  gap: var(--space-2);
+}
+.mute-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+}
+@media (max-width: 640px) {
+  .mute-add { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Pager: prev / position / next, centred under a paged list. */
+.alert-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding-top: var(--space-3);
+}
+.alert-pager[hidden] { display: none; }
 .ds-badge--warning  { background: var(--severity-warning-bg);  color: var(--severity-warning-fg);  border-color: transparent; }
 .ds-badge--critical { background: var(--severity-critical-bg); color: var(--severity-critical-fg); border-color: transparent; }
 .ds-badge--success  { background: var(--severity-success-bg);  color: var(--severity-success-fg);  border-color: transparent; }

@@ -89,3 +89,15 @@ def test_capabilities_endpoint(client):
     assert isinstance(data["raw_sockets"]["available"], bool)
     # Every claim must come with a human-readable reason, not a bare bool.
     assert data["raw_sockets"]["detail"] and data["nmap"]["detail"]
+
+
+def test_release_bump_rules():
+    """Version policy: SemVer from commit type, no release for docs/tests-only."""
+    import importlib.util
+    import pathlib
+
+    path = pathlib.Path(__file__).resolve().parent.parent / "scripts" / "release_bump.py"
+    spec = importlib.util.spec_from_file_location("release_bump", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    module.demo()

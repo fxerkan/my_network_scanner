@@ -16,6 +16,15 @@ import ipaddress
 from ..core.network import is_container
 
 
+def _cli_label(container: dict, key: str) -> str:
+    """Pull one label out of `docker ps --format json`'s flattened "k=v,k=v"."""
+    for pair in str(container.get('Labels') or '').split(','):
+        name, _, value = pair.partition('=')
+        if name.strip() == key:
+            return value
+    return ''
+
+
 class _UnixHTTPConnection(http.client.HTTPConnection):
     """http.client over an AF_UNIX socket - the whole Docker Engine API client.
 
@@ -294,7 +303,11 @@ class DockerManager:
                             'ports': container.get('Ports', ''),
                             'created': container['CreatedAt'],
                             'networks': detailed_info.get('networks', []),
-                            'ip_addresses': detailed_info.get('ip_addresses', [])
+                            'ip_addresses': detailed_info.get('ip_addresses', []),
+                            # The CLI flattens labels to "k=v,k=v"; the API gives
+                            # a dict. Both feed the same 'stack' field.
+                            'stack': _cli_label(container, 'com.docker.compose.project'),
+                            'service': _cli_label(container, 'com.docker.compose.service'),
                         })
                     except json.JSONDecodeError:
                         continue
@@ -330,6 +343,7 @@ class DockerManager:
                 f"{p.get('PublicPort')}->{p.get('PrivatePort')}/{p.get('Type')}"
                 if p.get('PublicPort') else f"{p.get('PrivatePort')}/{p.get('Type')}"
                 for p in (c.get('Ports') or []))
+            labels = c.get('Labels') or {}
             containers.append({
                 'id': (c.get('Id') or '')[:12],
                 # API gives "/name"; the CLI gives "name". Match the CLI.
@@ -340,6 +354,10 @@ class DockerManager:
                 'created': c.get('Created', ''),
                 'networks': list(networks_info.keys()),
                 'ip_addresses': ip_addresses,
+                # "Stack" in the UI. Compose writes the project name as a label;
+                # a container started by plain `docker run` simply has none.
+                'stack': labels.get('com.docker.compose.project', ''),
+                'service': labels.get('com.docker.compose.service', ''),
             })
         return containers
 

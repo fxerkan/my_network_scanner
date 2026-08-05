@@ -43,6 +43,21 @@ class ConfigManager:
                 }
             },
             'detection_rules': {
+                # Vendor AND hostname, both required. A single-signal rule cannot
+                # tell an iPhone from a MacBook: both are "Apple". These run
+                # first, before the fingerprint heuristics, because a rule the
+                # user wrote by hand outranks anything we infer.
+                'combined_rules': [
+                    {'vendor': r'Apple', 'hostname': r'macbook|imac|mac-?mini|mac-?pro|mac-?studio',
+                     'type': 'Laptop'},
+                    {'vendor': r'Apple', 'hostname': r'iphone', 'type': 'Smartphone'},
+                    {'vendor': r'Apple', 'hostname': r'ipad', 'type': 'Tablet'},
+                    {'vendor': r'Apple', 'hostname': r'apple-?tv|appletv', 'type': 'Smart TV'},
+                    {'vendor': r'Apple', 'hostname': r'watch', 'type': 'Smart Watch'},
+                    {'vendor': r'Samsung', 'hostname': r'galaxy|sm-[a-z]', 'type': 'Smartphone'},
+                    {'vendor': r'Samsung|LG', 'hostname': r'\btv\b|smart-?tv', 'type': 'Smart TV'},
+                    {'vendor': r'Raspberry', 'hostname': r'.*', 'type': 'Single Board Computer'},
+                ],
                 'hostname_patterns': [
                     {'pattern': r'.*router.*|.*gateway.*|.*modem.*', 'type': 'Router'},
                     {'pattern': r'.*camera.*|.*cam.*|.*ipcam.*', 'type': 'IP Camera'},
@@ -50,7 +65,7 @@ class ConfigManager:
                     {'pattern': r'.*tv.*|.*smart.*tv.*', 'type': 'Smart TV'},
                     {'pattern': r'.*nas.*|.*storage.*', 'type': 'NAS'},
                     {'pattern': r'.*phone.*|.*mobile.*', 'type': 'Smartphone'},
-                    {'pattern': r'.*iphone.*|.*ipad.*|.*macbook.*|.*imac.*', 'type': 'Apple Device'},
+                    {'pattern': r'.*ipod.*', 'type': 'Apple Device'},
                     {'pattern': r'.*xbox.*|.*playstation.*|.*ps[345].*|.*nintendo.*', 'type': 'Game Console'},
                     {'pattern': r'.*ac.*|.*aircon.*|.*hvac.*|.*climate.*', 'type': 'Air Conditioner'},
                     {'pattern': r'.*pet.*|.*feeder.*|.*litter.*', 'type': 'Pet Camera'},
@@ -119,7 +134,12 @@ class ConfigManager:
             'Pet Tracker': {'icon': '🐾', 'category': 'smart_home'},
             'NAS': {'icon': '💾', 'category': 'storage'},
             'IoT Device': {'icon': '🔗', 'category': 'iot'},
-            'Smart Home': {'icon': '🏠', 'category': 'smart_home'}
+            'Smart Home': {'icon': '🏠', 'category': 'smart_home'},
+            # Base names for the qualified types the scanner mints at runtime -
+            # "Local Machine (Docker)", "Desktop/Laptop (WiFi)". The UI strips
+            # the parenthesised qualifier before looking an icon up.
+            'Local Machine': {'icon': '🖲️', 'category': 'computer'},
+            'Desktop/Laptop': {'icon': '💻', 'category': 'computer'},
         }
         
         self.default_oui_database = {
@@ -209,6 +229,13 @@ class ConfigManager:
             if os.path.exists(self.config_file):
                 with open(self.config_file, 'r', encoding='utf-8') as f:
                     self.config = json.load(f)
+                # A config written by an older version has no combined_rules key
+                # and there is no merge step, so seed it from the defaults once.
+                rules = self.config.setdefault('detection_rules', {})
+                if 'combined_rules' not in rules:
+                    rules['combined_rules'] = [
+                        dict(r) for r in self.default_config['detection_rules']['combined_rules']]
+                    self.save_config()
             else:
                 self.config = self.default_config.copy()
                 self.save_config()

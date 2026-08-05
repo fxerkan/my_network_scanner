@@ -216,6 +216,27 @@
 
             <!-- Tanıma Kuralları -->
             <div id="detection" class="tab-content">
+                <div class="card" style="margin-bottom: var(--space-4);">
+                    <h3 class="card-title"><svg class="ds-icon" aria-hidden="true"><use href="#i-search"/></svg>{{ _('combined_rules') }}</h3>
+                    <p style="margin-bottom: 15px; color: var(--text-secondary);">
+                        {{ _('combined_rules_desc') }}
+                    </p>
+
+                    <div class="form-group">
+                        <label class="form-label">{{ _('add_new_pattern') }}</label>
+                        <div class="combined-rule-add">
+                            <input type="text" class="form-input" id="newCombinedVendor" placeholder="Apple" aria-label="{{ _('vendor') }}">
+                            <input type="text" class="form-input" id="newCombinedHostname" placeholder="macbook|imac" aria-label="{{ _('hostname') }}">
+                            <select class="form-select" id="newCombinedDeviceType" aria-label="{{ _('device_type') }}">
+                                <option value="">{{ _('select_device_type') }}</option>
+                            </select>
+                            <button type="button" class="btn btn-small" onclick="addCombinedRule()"><svg class="ds-icon" aria-hidden="true"><use href="#i-plus"/></svg>{{ _('add') }}</button>
+                        </div>
+                    </div>
+
+                    <div class="pattern-list" id="combinedRules"></div>
+                </div>
+
                 <div class="grid">
                     <div class="card">
                         <h3 class="card-title"><svg class="ds-icon" aria-hidden="true"><use href="#i-search"/></svg>{{ _('hostname_patterns') }}</h3>
@@ -277,6 +298,18 @@
 
             <!-- Docker Network -->
             <div id="docker" class="tab-content">
+                <!-- One filter bar over both lists below: networks and containers
+                     answer the same question and are filtered together. -->
+                <div class="card" style="margin-bottom: var(--space-4);">
+                    <h3 class="card-title"><svg class="ds-icon" aria-hidden="true"><use href="#i-search"/></svg>{{ _('docker_filter') }}</h3>
+                    <div class="docker-filters">
+                        <input type="search" class="form-input" id="dockerSearch"
+                               placeholder="{{ _('docker_search_placeholder') }}" aria-label="{{ _('search') }}">
+                        <select class="form-select" id="dockerStackFilter" aria-label="{{ _('docker_stack') }}"></select>
+                        <select class="form-select" id="dockerNetworkFilter" aria-label="{{ _('docker_network') }}"></select>
+                    </div>
+                </div>
+
                 <div class="grid">
                     <div class="card">
                         <h3 class="card-title"><svg class="ds-icon" aria-hidden="true"><use href="#i-plug"/></svg>{{ _('docker_status') }}</h3>

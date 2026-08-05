@@ -246,6 +246,48 @@
         "pattern": "Petkit.*",
         "type": "Pet Feeder"
       }
+    ],
+    "combined_rules": [
+      {
+        "vendor": "Apple",
+        "hostname": "macbook|imac|mac-?mini|mac-?pro|mac-?studio",
+        "type": "Laptop"
+      },
+      {
+        "vendor": "Apple",
+        "hostname": "iphone",
+        "type": "Smartphone"
+      },
+      {
+        "vendor": "Apple",
+        "hostname": "ipad",
+        "type": "Tablet"
+      },
+      {
+        "vendor": "Apple",
+        "hostname": "apple-?tv|appletv",
+        "type": "Smart TV"
+      },
+      {
+        "vendor": "Apple",
+        "hostname": "watch",
+        "type": "Smart Watch"
+      },
+      {
+        "vendor": "Samsung",
+        "hostname": "galaxy|sm-[a-z]",
+        "type": "Smartphone"
+      },
+      {
+        "vendor": "Samsung|LG",
+        "hostname": "\\btv\\b|smart-?tv",
+        "type": "Smart TV"
+      },
+      {
+        "vendor": "Raspberry",
+        "hostname": ".*",
+        "type": "Single Board Computer"
+      }
     ]
   },
   "smart_naming": {

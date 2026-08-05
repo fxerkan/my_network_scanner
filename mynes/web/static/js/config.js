@@ -562,12 +562,111 @@ function renderPatternRules(container, rules, kind) {
     });
 }
 
+/**
+ * Combined rules: vendor AND hostname, both required.
+ *
+ * A single-signal rule cannot separate a MacBook from an iPhone - the vendor
+ * is "Apple" either way - which is why a laptop kept coming back as a generic
+ * "Apple Device". These are evaluated before every heuristic the scanner has.
+ */
+function renderCombinedRules(container, rules) {
+    if (!rules.length) {
+        container.innerHTML = `<div class="pattern-empty">${t('no_patterns_yet')}</div>`;
+        return;
+    }
+    const esc = v => String(v ?? '').replace(/[&<>"']/g, c =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    container.innerHTML = rules.map((rule, index) => `
+        <div class="pattern-item pattern-item--combined">
+            <input type="text" class="form-input pattern-item__pattern" value="${esc(rule.vendor || '')}"
+                   data-combined-index="${index}" data-combined-field="vendor" spellcheck="false"
+                   placeholder="${t('vendor')}" aria-label="${t('vendor')}">
+            <span class="pattern-item__and">${t('and')}</span>
+            <input type="text" class="form-input pattern-item__pattern" value="${esc(rule.hostname || '')}"
+                   data-combined-index="${index}" data-combined-field="hostname" spellcheck="false"
+                   placeholder="${t('hostname')}" aria-label="${t('hostname')}">
+            <select class="form-select pattern-item__type" data-combined-type="${index}"
+                    aria-label="${t('device_type')}">${deviceTypeOptions(rule.type)}</select>
+            <button type="button" class="icon-btn icon-btn--danger" data-combined-remove="${index}"
+                    title="${t('delete')}">
+                <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-trash"/></svg>
+            </button>
+        </div>`).join('');
+
+    container.querySelectorAll('[data-combined-index]').forEach(input => {
+        const commit = () => {
+            const value = input.value.trim();
+            const rule = rules[Number(input.dataset.combinedIndex)];
+            const field = input.dataset.combinedField;
+            // An empty side means "any", which is what `.*` does in the scanner.
+            if (value) {
+                try {
+                    new RegExp(value, 'i');
+                } catch (e) {
+                    input.classList.add('is-invalid');
+                    input.title = t('invalid_regex') + ' ' + e.message;
+                    return;
+                }
+            }
+            input.classList.remove('is-invalid');
+            input.title = value;
+            if (rule[field] !== value) {
+                rule[field] = value;
+                showAlert(t('detection_rule_updated'));
+            }
+        };
+        input.addEventListener('change', commit);
+        input.addEventListener('blur', commit);
+        input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); input.blur(); } });
+    });
+
+    container.querySelectorAll('[data-combined-type]').forEach(select => {
+        select.addEventListener('change', () => {
+            rules[Number(select.dataset.combinedType)].type = select.value;
+            showAlert(t('detection_rule_updated'));
+        });
+    });
+    container.querySelectorAll('[data-combined-remove]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            rules.splice(Number(btn.dataset.combinedRemove), 1);
+            displayDetectionRules();
+            showAlert(t('detection_rule_removed'));
+        });
+    });
+}
+
+function addCombinedRule() {
+    const vendor = document.getElementById('newCombinedVendor').value.trim();
+    const hostname = document.getElementById('newCombinedHostname').value.trim();
+    const deviceType = document.getElementById('newCombinedDeviceType').value;
+
+    // One of the two may be blank ("any Raspberry Pi"), but not both - a rule
+    // that matches everything would swallow the whole device list.
+    if ((!vendor && !hostname) || !deviceType) {
+        showAlert(t('pattern_fields_required'), 'error');
+        return;
+    }
+
+    if (!currentSettings.detection_rules) currentSettings.detection_rules = {};
+    if (!currentSettings.detection_rules.combined_rules) currentSettings.detection_rules.combined_rules = [];
+    currentSettings.detection_rules.combined_rules.push({ vendor, hostname, type: deviceType });
+
+    document.getElementById('newCombinedVendor').value = '';
+    document.getElementById('newCombinedHostname').value = '';
+    document.getElementById('newCombinedDeviceType').value = '';
+    displayDetectionRules();
+    showAlert(t('detection_rule_added'));
+}
+
 function displayDetectionRules() {
     const hostnamePatterns = document.getElementById('hostnamePatterns');
     const vendorPatterns = document.getElementById('vendorPatterns');
     if (!hostnamePatterns || !vendorPatterns) return;
 
     const detectionRules = currentSettings.detection_rules || {};
+    const combined = document.getElementById('combinedRules');
+    if (combined) renderCombinedRules(combined, detectionRules.combined_rules || []);
     renderPatternRules(hostnamePatterns, detectionRules.hostname_patterns || [], 'hostname');
     renderPatternRules(vendorPatterns, detectionRules.vendor_patterns || [], 'vendor');
 }
@@ -723,6 +822,59 @@ function removeDevicePortRule(deviceType) {
 /**
  * Network Management
  */
+/**
+ * Interfaces grouped by the network range they sit on.
+ *
+ * A flat list hid the one fact that matters on a multi-homed box: end0 and
+ * wlan0 are two doors into the *same* 192.168.1.0/24, while every br-* is its
+ * own island. Grouping by range says that at a glance; the old list made you
+ * compare CIDRs by eye down a page of identical cards.
+ */
+function renderNetworkGroups(host, networks) {
+    const esc = v => String(v ?? '').replace(/[&<>"']/g, c =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    const groups = new Map();
+    (networks || []).forEach(n => {
+        const key = n.network_range || n.ip || '?';
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(n);
+    });
+
+    if (!groups.size) {
+        host.innerHTML = `<div class="pattern-empty">${t('no_networks_found')}</div>`;
+        return;
+    }
+
+    // Shared ranges first - those are the ones worth a second look.
+    const ordered = [...groups.entries()].sort((a, b) =>
+        b[1].length - a[1].length || a[0].localeCompare(b[0]));
+
+    host.innerHTML = ordered.map(([range, members]) => `
+        <section class="net-group">
+            <header class="net-group__head">
+                <div>
+                    <span class="net-group__range mono">${esc(range)}</span>
+                    <span class="net-group__count">${members.length} ${t(members.length === 1 ? 'interface' : 'interfaces')}</span>
+                </div>
+                ${members.length > 1
+                    ? `<span class="ds-badge ds-badge--info">${t('shared_segment')}</span>` : ''}
+            </header>
+            <div class="net-group__body">
+                ${members.map(n => `
+                    <article class="net-iface">
+                        <div class="net-iface__name mono">${esc(n.interface)}</div>
+                        <span class="network-type">${esc(n.type)}</span>
+                        <dl class="net-iface__facts">
+                            <div><dt>IP</dt><dd class="mono">${esc(n.ip)}</dd></div>
+                            <div><dt>${t('netmask')}</dt><dd class="mono">${esc(n.netmask)}</dd></div>
+                            ${n.description ? `<div><dt>${t('description')}</dt><dd>${esc(n.description)}</dd></div>` : ''}
+                        </dl>
+                    </article>`).join('')}
+            </div>
+        </section>`).join('');
+}
+
 async function loadNetworks() {
     try {
         const response = await fetch('/api/networks');
@@ -731,23 +883,7 @@ async function loadNetworks() {
         const networksList = document.getElementById('networksList');
         if (!networksList) return;
         
-        networksList.innerHTML = '';
-        
-        networks.forEach(network => {
-            const div = document.createElement('div');
-            div.className = 'network-item';
-            div.innerHTML = `
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                    <h4>${network.interface}</h4>
-                    <span class="network-type">${network.type}</span>
-                </div>
-                <p><strong>IP:</strong> ${network.ip}</p>
-                <p><strong>Netmask:</strong> ${network.netmask}</p>
-                <p><strong>Network:</strong> ${network.network_range}</p>
-            `;
-            networksList.appendChild(div);
-        });
-        
+        renderNetworkGroups(networksList, networks);
     } catch (error) {
         showAlert(t('networks_load_error') + error.message, 'error');
     }
@@ -959,9 +1095,16 @@ function updateDetectionRuleSelects() {
     const hostnameSelect = document.getElementById('newHostnameDeviceType');
     const vendorSelect = document.getElementById('newVendorDeviceType');
     const devicePortSelect = document.getElementById('deviceTypePortSelect');
-    
+    const combinedSelect = document.getElementById('newCombinedDeviceType');
+
     if (!hostnameSelect || !vendorSelect || !devicePortSelect) return;
-    
+
+    // Leading placeholder: without it the picker silently pre-selects whatever
+    // sorts first, and "Add" quietly files the rule under Access Point.
+    if (combinedSelect) {
+        combinedSelect.innerHTML =
+            `<option value="">${t('select_device_type')}</option>` + deviceTypeOptions('');
+    }
     hostnameSelect.innerHTML = `<option value="">${t('select_device_type')}</option>`;
     vendorSelect.innerHTML = `<option value="">${t('select_device_type')}</option>`;
     devicePortSelect.innerHTML = `<option value="">${t('select_device_type_for_ports')}</option>`;
@@ -997,6 +1140,11 @@ document.addEventListener('DOMContentLoaded', function() {
             apiBtn.disabled = value.length !== 6;
         });
     }
+
+    ['dockerSearch', 'dockerStackFilter', 'dockerNetworkFilter'].forEach(id => {
+        const node = document.getElementById(id);
+        if (node) node.addEventListener('input', renderDocker);
+    });
 });
 
 /**
@@ -1087,114 +1235,173 @@ async function loadDockerStatus() {
     }
 }
 
-async function loadDockerNetworks() {
-    try {
-        const response = await fetch('/api/docker/networks');
-        const data = await response.json();
-        
-        const networksContainer = document.getElementById('dockerNetworksList');
-        if (!networksContainer) return;
-        
-        if (!data.success || !data.networks || data.networks.length === 0) {
-            networksContainer.innerHTML = `<div class="pattern-empty">${t('no_docker_networks')}</div>`;
-            return;
-        }
-        
-        let networksHtml = '';
-        data.networks.forEach(network => {
-            const containerCount = network.containers ? network.containers.length : 0;
-            const subnetDisplay = network.subnets && network.subnets.length > 0 ? network.subnets.join(', ') : 'N/A';
-            
-            networksHtml += `
-                <div style="background: var(--bg-surface-sunken); padding: 15px; border-radius: 6px; margin-bottom: 10px;">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                        <div style="flex: 1;">
-                            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                                <strong style="color: #0066cc;">${network.name}</strong>
-                                <span style="background: #007bff; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.8em;">${network.driver}</span>
-                                ${network.internal ? '<span style="background: #dc3545; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.8em;">Internal</span>' : ''}
-                            </div>
-                            <div style="font-size: 0.9em; color: var(--text-tertiary); margin-bottom: 5px;">
-                                <strong>ID:</strong> ${network.id}
-                            </div>
-                            <div style="font-size: 0.9em; color: var(--text-tertiary); margin-bottom: 5px;">
-                                <strong>Subnet:</strong> ${subnetDisplay}
-                            </div>
-                            ${network.gateway ? `<div style="font-size: 0.9em; color: var(--text-tertiary); margin-bottom: 5px;"><strong>Gateway:</strong> ${network.gateway}</div>` : ''}
-                            <div style="font-size: 0.9em; color: var(--text-tertiary);">
-                                <strong>Containers:</strong> ${containerCount} adet
-                            </div>
-                        </div>
-                    </div>
+/*
+ * Docker tab: one filter bar over both lists.
+ *
+ * Networks and containers were two unrelated walls of cards, each written with
+ * hardcoded hex colours. They are now filtered together by text / stack /
+ * network, because "which containers are in the telegram stack" was a question
+ * you could only answer by scrolling.
+ */
+const dockerState = { networks: [], containers: [] };
+
+function dockerEsc(value) {
+    return String(value ?? '').replace(/[&<>"']/g, c =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function dockerFilters() {
+    const value = id => (document.getElementById(id) || {}).value || '';
+    return {
+        text: value('dockerSearch').trim().toLowerCase(),
+        stack: value('dockerStackFilter'),
+        network: value('dockerNetworkFilter'),
+    };
+}
+
+function containerMatches(c, f) {
+    if (f.stack && (c.stack || '') !== f.stack) return false;
+    if (f.network && !(c.networks || []).includes(f.network)) return false;
+    if (!f.text) return true;
+    return [c.name, c.image, c.stack, c.service, c.id, (c.networks || []).join(' ')]
+        .join(' ').toLowerCase().includes(f.text);
+}
+
+function networkMatches(n, f) {
+    if (f.network && n.name !== f.network) return false;
+    // A stack filter narrows networks to the ones its containers actually use.
+    if (f.stack) {
+        const used = dockerState.containers
+            .filter(c => (c.stack || '') === f.stack)
+            .some(c => (c.networks || []).includes(n.name));
+        if (!used) return false;
+    }
+    if (!f.text) return true;
+    return [n.name, n.driver, n.id, (n.subnets || []).join(' ')]
+        .join(' ').toLowerCase().includes(f.text);
+}
+
+/** Rebuild the two selects from whatever the daemon currently reports. */
+function refreshDockerFilterOptions() {
+    const stacks = [...new Set(dockerState.containers.map(c => c.stack).filter(Boolean))].sort();
+    const nets = [...new Set([
+        ...dockerState.networks.map(n => n.name),
+        ...dockerState.containers.flatMap(c => c.networks || []),
+    ].filter(Boolean))].sort();
+
+    const fill = (id, values, allLabel) => {
+        const select = document.getElementById(id);
+        if (!select) return;
+        const previous = select.value;
+        select.innerHTML = `<option value="">${allLabel}</option>` +
+            values.map(v => `<option value="${dockerEsc(v)}">${dockerEsc(v)}</option>`).join('');
+        if (values.includes(previous)) select.value = previous;
+    };
+    fill('dockerStackFilter', stacks, t('all_stacks'));
+    fill('dockerNetworkFilter', nets, t('all_networks'));
+}
+
+function renderDockerNetworks() {
+    const host = document.getElementById('dockerNetworksList');
+    if (!host) return;
+    const shown = dockerState.networks.filter(n => networkMatches(n, dockerFilters()));
+    if (!shown.length) {
+        host.innerHTML = `<div class="pattern-empty">${t('no_docker_networks')}</div>`;
+        return;
+    }
+    host.innerHTML = shown.map(n => {
+        const count = (n.containers || []).length;
+        const subnets = (n.subnets || []).length ? n.subnets.join(', ') : '—';
+        return `
+            <article class="docker-card">
+                <header class="docker-card__head">
+                    <span class="docker-card__name mono">${dockerEsc(n.name)}</span>
+                    <span class="network-type">${dockerEsc(n.driver)}</span>
+                    ${n.internal ? `<span class="ds-badge ds-badge--critical">${t('internal')}</span>` : ''}
+                </header>
+                <dl class="docker-card__facts">
+                    <div><dt>ID</dt><dd class="mono">${dockerEsc(n.id)}</dd></div>
+                    <div><dt>${t('subnet')}</dt><dd class="mono">${dockerEsc(subnets)}</dd></div>
+                    ${n.gateway ? `<div><dt>Gateway</dt><dd class="mono">${dockerEsc(n.gateway)}</dd></div>` : ''}
+                    <div><dt>${t('docker_containers')}</dt><dd>${count}</dd></div>
+                </dl>
+            </article>`;
+    }).join('');
+}
+
+function renderDockerContainers() {
+    const host = document.getElementById('dockerContainersList');
+    if (!host) return;
+    const shown = dockerState.containers.filter(c => containerMatches(c, dockerFilters()));
+    if (!shown.length) {
+        host.innerHTML = `<div class="pattern-empty">${t('no_docker_containers')}</div>`;
+        return;
+    }
+
+    // Grouped by stack: a compose project is the unit people think in, and
+    // loose `docker run` containers collect under one "no stack" heading.
+    const byStack = new Map();
+    shown.forEach(c => {
+        const key = c.stack || '';
+        if (!byStack.has(key)) byStack.set(key, []);
+        byStack.get(key).push(c);
+    });
+    const ordered = [...byStack.entries()].sort((a, b) =>
+        (a[0] ? 0 : 1) - (b[0] ? 0 : 1) || a[0].localeCompare(b[0]));
+
+    host.innerHTML = ordered.map(([stack, list]) => `
+        <section class="net-group">
+            <header class="net-group__head">
+                <div>
+                    <span class="net-group__range">${dockerEsc(stack || t('no_stack'))}</span>
+                    <span class="net-group__count">${list.length}</span>
                 </div>
-            `;
-        });
-        
-        networksContainer.innerHTML = networksHtml;
-        
+            </header>
+            <div class="net-group__body">
+                ${list.map(c => `
+                    <article class="docker-card">
+                        <header class="docker-card__head">
+                            <span class="docker-card__name mono">${dockerEsc(c.name)}</span>
+                            <span class="ds-badge ds-badge--success">${t('running')}</span>
+                        </header>
+                        <dl class="docker-card__facts">
+                            <div><dt>${t('docker_image')}</dt><dd>${dockerEsc(c.image)}</dd></div>
+                            ${c.service ? `<div><dt>${t('service')}</dt><dd>${dockerEsc(c.service)}</dd></div>` : ''}
+                            <div><dt>${t('docker_network')}</dt><dd class="mono">${dockerEsc((c.networks || []).join(', ') || '—')}</dd></div>
+                            <div><dt>IP</dt><dd class="mono">${dockerEsc((c.ip_addresses || []).map(a => a.ipv4).filter(Boolean).join(', ') || '—')}</dd></div>
+                            <div><dt>${t('status')}</dt><dd>${dockerEsc(c.status)}</dd></div>
+                        </dl>
+                    </article>`).join('')}
+            </div>
+        </section>`).join('');
+}
+
+function renderDocker() {
+    renderDockerNetworks();
+    renderDockerContainers();
+}
+
+async function loadDockerNetworks() {
+    const host = document.getElementById('dockerNetworksList');
+    try {
+        const data = await (await fetch('/api/docker/networks')).json();
+        dockerState.networks = (data.success && data.networks) || [];
+        refreshDockerFilterOptions();
+        renderDockerNetworks();
     } catch (error) {
-        const networksContainer = document.getElementById('dockerNetworksList');
-        if (networksContainer) {
-            networksContainer.innerHTML = `<div class="pattern-empty">Docker networks: ${error.message}</div>`;
-        }
+        if (host) host.innerHTML = `<div class="pattern-empty">Docker networks: ${dockerEsc(error.message)}</div>`;
     }
 }
 
 async function loadDockerContainers() {
+    const host = document.getElementById('dockerContainersList');
     try {
-        const response = await fetch('/api/docker/containers');
-        const data = await response.json();
-        
-        const containersContainer = document.getElementById('dockerContainersList');
-        if (!containersContainer) return;
-        
-        if (!data.success || !data.containers || data.containers.length === 0) {
-            containersContainer.innerHTML = `<div class="pattern-empty">${t('no_docker_containers')}</div>`;
-            return;
-        }
-        
-        let containersHtml = '';
-        data.containers.forEach(container => {
-            const ipAddresses = container.ip_addresses || [];
-            const networks = container.networks || [];
-            
-            containersHtml += `
-                <div style="background: var(--bg-surface-sunken); padding: 15px; border-radius: 6px; margin-bottom: 10px;">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                        <div style="flex: 1;">
-                            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                                <strong style="color: #0066cc;">${container.name}</strong>
-                                <span style="background: #28a745; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.8em;">Running</span>
-                            </div>
-                            <div style="font-size: 0.9em; color: var(--text-tertiary); margin-bottom: 5px;">
-                                <strong>ID:</strong> ${container.id}
-                            </div>
-                            <div style="font-size: 0.9em; color: var(--text-tertiary); margin-bottom: 5px;">
-                                <strong>Image:</strong> ${container.image}
-                            </div>
-                            <div style="font-size: 0.9em; color: var(--text-tertiary); margin-bottom: 5px;">
-                                <strong>Networks:</strong> ${networks.join(', ') || 'N/A'}
-                            </div>
-                            ${ipAddresses.length > 0 ? `
-                                <div style="font-size: 0.9em; color: var(--text-tertiary); margin-bottom: 5px;">
-                                    <strong>IP Addresses:</strong>
-                                    ${ipAddresses.map(ip => `<span style="background: #e9ecef; padding: 2px 6px; border-radius: 4px; margin-right: 5px;">${ip.ipv4} (${ip.network})</span>`).join('')}
-                                </div>
-                            ` : ''}
-                            ${container.ports ? `<div style="font-size: 0.9em; color: var(--text-tertiary);"><strong>Ports:</strong> ${container.ports}</div>` : ''}
-                        </div>
-                    </div>
-                </div>
-            `;
-        });
-        
-        containersContainer.innerHTML = containersHtml;
-        
+        const data = await (await fetch('/api/docker/containers')).json();
+        dockerState.containers = (data.success && data.containers) || [];
+        refreshDockerFilterOptions();
+        renderDockerContainers();
     } catch (error) {
-        const containersContainer = document.getElementById('dockerContainersList');
-        if (containersContainer) {
-            containersContainer.innerHTML = `<div class="pattern-empty">Docker containers: ${error.message}</div>`;
-        }
+        if (host) host.innerHTML = `<div class="pattern-empty">Docker containers: ${dockerEsc(error.message)}</div>`;
     }
 }
 

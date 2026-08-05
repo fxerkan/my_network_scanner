@@ -183,17 +183,45 @@
     </div>
   </section>
 
+  <!-- Per-device notification muting -->
+  <section class="ds-card">
+    <div class="ds-card__header">
+      <svg class="ds-icon" aria-hidden="true"><use href="#i-bell-off"/></svg>
+      <h2 class="ds-card__title">Muted devices</h2>
+    </div>
+    <div class="ds-card__body ds-stack">
+      <p class="ds-muted" style="margin:0">
+        A muted device still appears in the alert history and the availability strip —
+        it just stops sending notifications. Use it for the plug that drops off
+        the network six times a night on purpose.
+      </p>
+      <div class="mute-add">
+        <select class="ds-select" id="muteDevice" aria-label="Device"></select>
+        <select class="ds-select" id="muteRule" aria-label="Alert type">
+          <option value="">All alert types</option>
+        </select>
+        <button type="button" class="ds-btn ds-btn--sm" id="muteAddBtn">Mute</button>
+      </div>
+      <div id="muteList" class="ds-stack"></div>
+    </div>
+  </section>
+
   <!-- Alert feed -->
   <section class="ds-card">
     <div class="ds-card__header">
       <svg class="ds-icon" aria-hidden="true"><use href="#i-alert"/></svg>
       <h2 class="ds-card__title">Alert history</h2>
       <div class="ds-spacer"></div>
+      <input class="ds-input" id="alertSearch" type="search" placeholder="Search device, IP, message…"
+             style="width:auto;min-width:200px" aria-label="Search alerts">
       <select class="ds-select" id="severityFilter" style="width:auto">
         <option value="">All severities</option>
         <option value="critical">Critical</option>
         <option value="warning">Warning</option>
         <option value="info">Info</option>
+      </select>
+      <select class="ds-select" id="ruleFilter" style="width:auto" aria-label="Filter by rule">
+        <option value="">All rules</option>
       </select>
       <button class="ds-btn ds-btn--sm" id="markReadBtn">
         <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-check"/></svg> Mark all read
@@ -203,6 +231,11 @@
       </button>
     </div>
     <div id="alertFeed"></div>
+    <div class="alert-pager" id="alertPager" hidden>
+      <button type="button" class="ds-btn ds-btn--sm" id="alertPrev">← Previous</button>
+      <span class="ds-muted" id="alertPageInfo"></span>
+      <button type="button" class="ds-btn ds-btn--sm" id="alertNext">Next →</button>
+    </div>
   </section>
 </div>
 

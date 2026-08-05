@@ -26,6 +26,9 @@ DEFAULTS = {
     "discovery_timeout": 6,
     "notify_channels": [],
     "enabled_rules": None,  # None = all rules
+    # [{"id": "<mac or ip>", "name": "...", "rules": ["device_offline"]|None}]
+    # An entry with rules=None silences that device entirely.
+    "muted_devices": [],
     "thresholds": {},
     "publish_to_mqtt": False,
 }
@@ -188,6 +191,10 @@ class MonitorScheduler:
         )
 
         alert_dicts = [a.to_dict() for a in alerts]
+        # Muted devices still get recorded - the History strip and the alert log
+        # stay honest - they just do not wake anybody up. A flapping IoT plug
+        # should be silenceable without going blind to it.
+        notifiable = [a for a in alert_dicts if not rules.is_muted(a, settings["muted_devices"])]
         store.add_alerts(alert_dicts)
         self.last_run = datetime.now(timezone.utc).isoformat()
         store.save_state({"snapshot": current, "miss_counts": misses, "last_run": self.last_run})
@@ -203,7 +210,7 @@ class MonitorScheduler:
         except OSError as e:
             log.warning("could not record uptime history: %s", e)
 
-        deliveries = notify.dispatch(settings["notify_channels"], alert_dicts)
+        deliveries = notify.dispatch(settings["notify_channels"], notifiable)
 
         if settings["publish_to_mqtt"]:
             self._publish(devices, alert_dicts)

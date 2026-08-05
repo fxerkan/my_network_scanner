@@ -184,6 +184,24 @@ Home Assistant credentials are accepted under either `MYNES_HA_URL`/
 Skill scripts referencing `${CLAUDE_PLUGIN_ROOT}` resolve to the repo root here;
 use `.claude/skills/<name>/scripts/...` directly.
 
+## Versioning
+
+SemVer as GitHub recommends it, derived from the commits, not from taste:
+
+- `feat!:` / `fix!:` / a `BREAKING CHANGE:` trailer → **major**
+- `feat:` → **minor**
+- everything else that ships → **patch**
+
+**A change that never reaches a user's install is not a release.** `docs/`,
+`deploy/`, `tests/`, `.github/` and the top-level markdown are outside the
+package; a README typo is not `1.4.1`. Only `mynes/`, `config/`, `scripts/`
+and `pyproject.toml` count.
+
+```bash
+python scripts/release_bump.py            # what would the next version be
+python scripts/release_bump.py --apply    # write it to pyproject + version.py
+```
+
 ## Phase 2
 
 Mobile (React Native + Expo, App Store + Play Store) is planned in

@@ -41,3 +41,22 @@ def test_generated_type_is_refreshed_but_a_user_choice_is_not():
     merged = models.UnifiedDeviceModel().merge_device_data(chosen, corrected)
     assert merged["device_type"] == "Smart TV"
     assert merged["device_type_source"] == "user"
+
+
+def test_combined_rules_split_one_vendor_into_real_device_types():
+    """Vendor alone calls a MacBook, an iPhone and an Apple TV the same thing."""
+    from mynes.core.scanner import match_combined_rule
+
+    rules = [
+        {"vendor": r"Apple", "hostname": r"macbook", "type": "Laptop"},
+        {"vendor": r"Apple", "hostname": r"iphone", "type": "Smartphone"},
+        {"vendor": r"Apple", "hostname": r"[", "type": "Never"},   # broken regex
+    ]
+    assert match_combined_rule(rules, "apple, inc.", "fx-macbook-pro.local") == "Laptop"
+    assert match_combined_rule(rules, "apple, inc.", "fx-iphone.local") == "Smartphone"
+    # Vendor matches, hostname does not: no verdict, the heuristics get their turn.
+    assert match_combined_rule(rules, "apple, inc.", "fx-ipad.local") is None
+    # Hostname matches, vendor does not: a hostname called "macbook" on a TP-Link
+    # NIC is not enough on its own - that is the whole point of the rule.
+    assert match_combined_rule(rules, "tp-link", "macbook") is None
+    assert match_combined_rule([], "apple", "macbook") is None

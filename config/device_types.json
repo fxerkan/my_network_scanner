@@ -15,6 +15,10 @@
     "category": "computer",
     "icon": "🖥️"
   },
+  "Desktop/Laptop": {
+    "category": "computer",
+    "icon": "💻"
+  },
   "Dishwasher": {
     "category": "appliance",
     "icon": "🍽️"
@@ -23,13 +27,13 @@
     "category": "iot",
     "icon": "🐳"
   },
-  "Gaming Console": {
-    "category": "entertainment",
-    "icon": "🎮"
-  },
   "Game Console": {
     "category": "entertainment",
     "icon": "🕹️"
+  },
+  "Gaming Console": {
+    "category": "entertainment",
+    "icon": "🎮"
   },
   "IP Camera": {
     "category": "security",
@@ -43,6 +47,10 @@
     "category": "computer",
     "icon": "💻"
   },
+  "Local Machine": {
+    "category": "computer",
+    "icon": "🖲️"
+  },
   "Modem": {
     "category": "network",
     "icon": "📶"
@@ -55,9 +63,21 @@
     "category": "peripheral",
     "icon": "☎️"
   },
+  "Pet Camera": {
+    "icon": "🐕",
+    "category": "smart_home"
+  },
   "Pet Feeder": {
     "category": "smart_home",
     "icon": "🐯"
+  },
+  "Pet Toilet": {
+    "icon": "💩",
+    "category": "smart_home"
+  },
+  "Pet Tracker": {
+    "icon": "🐾",
+    "category": "smart_home"
   },
   "Pet Water Fountain": {
     "category": "smart_home",
@@ -91,6 +111,10 @@
     "category": "computer",
     "icon": "🖧"
   },
+  "Single Board Computer": {
+    "category": "computer",
+    "icon": "🍓"
+  },
   "Smart Home": {
     "category": "smart_home",
     "icon": "🏠"
@@ -115,6 +139,10 @@
     "category": "smart_home",
     "icon": "🌡️"
   },
+  "Smart Watch": {
+    "category": "mobile",
+    "icon": "⌚"
+  },
   "Smartphone": {
     "category": "mobile",
     "icon": "📱"
@@ -129,7 +157,7 @@
   },
   "Tablet": {
     "category": "mobile",
-    "icon": "📃"
+    "icon": "📟"
   },
   "Unknown": {
     "category": "unknown",
@@ -142,17 +170,5 @@
   "Washing Machine": {
     "category": "appliance",
     "icon": "🧺"
-  },
-  "Pet Toilet": {
-    "icon": "💩",
-    "category": "smart_home"
-  },
-  "Pet Camera": {
-    "icon": "🐕",
-    "category": "smart_home"
-  },
-  "Pet Tracker": {
-    "icon": "🐾",
-    "category": "smart_home"
   }
 }

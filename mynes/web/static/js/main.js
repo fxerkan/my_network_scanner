@@ -276,7 +276,14 @@ function populateDeviceTypeDropdowns() {
 }
 
 function getDeviceIcon(deviceType) {
-    return deviceTypes[deviceType]?.icon || '❓';
+    if (!deviceType) return '❓';
+    if (deviceTypes[deviceType]?.icon) return deviceTypes[deviceType].icon;
+    // The scanner mints qualified names at runtime ("Local Machine (Docker)",
+    // "Desktop/Laptop (WiFi)") that no config file can enumerate. Fall back to
+    // the base name before giving up, so those rows are not the only iconless
+    // entries in every dropdown.
+    const base = deviceType.replace(/\s*\(.*\)\s*$/, '').trim();
+    return deviceTypes[base]?.icon || '❓';
 }
 
 async function checkScanStatus() {
@@ -560,9 +567,9 @@ function performFiltersUpdate() {
     
     deviceTypeFilter.innerHTML = `<option value="">${t('all')}</option>` + 
         detectedTypes.map(type => {
-            const icon = deviceTypes && deviceTypes[type] ? deviceTypes[type].icon : '';
+            const icon = getDeviceIcon(type);
             const translatedType = getTranslatedDeviceType(type);
-            const displayText = icon ? `${icon} ${translatedType}` : translatedType;
+            const displayText = `${icon} ${translatedType}`;
             return `<option value="${type}">${displayText}</option>`;
         }).join('');
     

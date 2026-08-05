@@ -53,6 +53,27 @@ class Alert:
         return asdict(self)
 
 
+def is_muted(alert: dict, muted: list[dict] | None) -> bool:
+    """Should this alert stay out of the notification channels?
+
+    A mute entry is matched on device_id, mac or ip - whichever the user picked
+    in the UI - because the same device is keyed by MAC on one scan and by IP on
+    the next when the ARP cache is all we got. `rules` narrows the mute to
+    specific rule names; omit it to silence the device outright.
+    """
+    if not muted:
+        return False
+    keys = {str(alert.get(k)).lower() for k in ("device_id", "mac", "ip") if alert.get(k)}
+    for entry in muted:
+        target = str(entry.get("id") or "").lower()
+        if not target or target not in keys:
+            continue
+        only = entry.get("rules")
+        if not only or alert.get("rule") in only:
+            return True
+    return False
+
+
 def _identity(device: dict) -> str:
     return (device.get("mac") or device.get("ip") or device.get("id") or "").lower()
 
@@ -341,6 +362,16 @@ def demo():
 
     # No baseline yet -> record it silently rather than report the whole network.
     assert evaluate({}, cur)[0] == [], "the first run must not alert"
+
+    # Muting silences notifications, and only for what the user picked.
+    offline = {"rule": "device_offline", "device_id": "AA:BB:CC:DD:EE:01", "ip": "192.168.1.9"}
+    online = {**offline, "rule": "device_online"}
+    assert is_muted(offline, None) is False
+    assert is_muted(offline, [{"id": "aa:bb:cc:dd:ee:01"}]) is True   # whole device
+    assert is_muted(offline, [{"id": "192.168.1.9"}]) is True         # matched by IP
+    assert is_muted(offline, [{"id": "aa:bb:cc:dd:ee:01", "rules": ["device_offline"]}]) is True
+    assert is_muted(online, [{"id": "aa:bb:cc:dd:ee:01", "rules": ["device_offline"]}]) is False
+    assert is_muted(offline, [{"id": "other"}]) is False
     print("rules demo OK")
 
 

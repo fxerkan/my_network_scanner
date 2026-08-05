@@ -58,3 +58,27 @@ def demo():
 
 if __name__ == "__main__":
     demo()
+
+
+def test_graph_and_tooltip_wiring():
+    """Static guards for the graph's zoom/hover work — no browser needed."""
+    # The graph reuses the topology's viewBox zoom/pan instead of a second one.
+    assert "attachZoomPan(stage, svg, box)" in VIEWS_JS
+    assert VIEWS_JS.count("function attachZoomPan") == 1
+    # Zoom buttons must not be swallowed by the pan handler, and neither must
+    # graph nodes - a node that starts a drag never fires its click.
+    assert ".topo-node, .graph-node, .topo-zoom" in VIEWS_JS
+    # Hover card, including the Docker facts the plain <title> could not show.
+    for key in ("docker_stack", "docker_network", "docker_image", "docker_host"):
+        assert key in VIEWS_JS, key
+    # Containers hang off their host, so no subnet hub is minted for them.
+    assert "dockerHostIp" in VIEWS_JS
+
+
+def test_tooltip_and_docker_keys_exist_in_both_languages():
+    keys = ("docker_stack", "docker_image", "docker_host", "combined_rules",
+            "shared_segment", "all_stacks", "no_stack")
+    for lang in ("en", "tr"):
+        table = json.loads((WEB / "locales" / lang / "translations.json").read_text(encoding="utf-8"))
+        for key in keys:
+            assert key in table, f"{key} missing from {lang}"

@@ -356,7 +356,83 @@
       $('monBattery').value = th.battery_percent != null ? th.battery_percent : 20;
       $('monLatency').value = th.latency_ms != null ? th.latency_ms : 500;
       renderChannels();
+      renderMutes();
     });
+  }
+
+  // -- muted devices ------------------------------------------------------
+  // The store keeps every alert either way; muting only stops the delivery.
+
+  var RULE_LABELS = {
+    device_offline: 'Went offline',
+    device_online: 'Came back online',
+    new_device: 'New device',
+    ip_changed: 'IP changed',
+    new_port: 'New open port',
+    risky_port: 'Risky port open',
+    low_battery: 'Low battery',
+    low_voltage: 'Low voltage',
+    high_latency: 'High latency'
+  };
+
+  function mutes() {
+    return (settings && settings.muted_devices) || [];
+  }
+
+  function saveMutes(list) {
+    return api('/api/monitoring/settings', { method: 'POST', body: { muted_devices: list } })
+      .then(function (data) { settings = data; renderMutes(); })
+      .catch(function (e) { toast('Could not save: ' + e.message, 'critical'); });
+  }
+
+  function renderMutes() {
+    var host = $('muteList');
+    if (!host) return;
+    var list = mutes();
+    if (!list.length) {
+      host.innerHTML = '<p class="ds-muted" style="margin:0">Nothing muted — every alert reaches your channels.</p>';
+      return;
+    }
+    host.innerHTML = list.map(function (m, i) {
+      var scope = (m.rules && m.rules.length)
+        ? m.rules.map(function (r) { return RULE_LABELS[r] || r; }).join(', ')
+        : 'All alert types';
+      return '<div class="mute-row">' +
+        '<div><strong>' + esc(m.name || m.id) + '</strong> <span class="mono ds-muted">' + esc(m.id) + '</span>' +
+        '<div class="ds-muted">' + esc(scope) + '</div></div>' +
+        '<button type="button" class="ds-btn ds-btn--sm ds-btn--ghost" data-unmute="' + i + '">Unmute</button>' +
+        '</div>';
+    }).join('');
+    host.querySelectorAll('[data-unmute]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var next = mutes().slice();
+        next.splice(Number(btn.dataset.unmute), 1);
+        saveMutes(next);
+      });
+    });
+  }
+
+  /** Populate the device picker from the devices the scanner already knows. */
+  function loadMuteOptions() {
+    var ruleSelect = $('muteRule');
+    if (ruleSelect) {
+      ruleSelect.innerHTML = '<option value="">All alert types</option>' +
+        Object.keys(RULE_LABELS).map(function (r) {
+          return '<option value="' + r + '">' + esc(RULE_LABELS[r]) + '</option>';
+        }).join('');
+    }
+    return fetch('/get_devices').then(function (r) { return r.json(); }).then(function (data) {
+      var devices = data.devices || data || [];
+      var select = $('muteDevice');
+      if (!select) return;
+      select.innerHTML = devices.map(function (d) {
+        // MAC first: an IP is a lease, a MAC is the device.
+        var id = (d.mac && d.mac !== 'Unknown') ? d.mac : d.ip;
+        var name = d.alias || d.hostname || d.ip || id;
+        return id ? '<option value="' + esc(id) + '" data-name="' + esc(name) + '">' +
+          esc(name) + ' — ' + esc(id) + '</option>' : '';
+      }).join('');
+    }).catch(function () { /* the picker stays empty; the page still works */ });
   }
 
   function saveSettings() {
@@ -496,17 +572,59 @@
     });
   }
 
+  // Server-side paging: the store keeps hundreds of rows and dumping all of
+  // them into one table was the reason this page felt like a wall of red.
+  var FEED_PAGE = 50;
+  var feedOffset = 0;
+  var knownRules = [];
+
+  function renderRuleOptions(rules) {
+    if (rules.join(' ') === knownRules.join(' ')) return;
+    knownRules = rules;
+    var select = $('ruleFilter');
+    var previous = select.value;
+    select.innerHTML = '<option value="">All rules</option>' +
+      rules.map(function (r) { return '<option value="' + esc(r) + '">' + esc(r) + '</option>'; }).join('');
+    if (rules.indexOf(previous) !== -1) select.value = previous;
+  }
+
+  function renderPager(total) {
+    var pager = $('alertPager');
+    pager.hidden = total <= FEED_PAGE;
+    if (pager.hidden) return;
+    var from = feedOffset + 1;
+    var to = Math.min(feedOffset + FEED_PAGE, total);
+    $('alertPageInfo').textContent = from + '–' + to + ' of ' + total;
+    $('alertPrev').disabled = feedOffset === 0;
+    $('alertNext').disabled = to >= total;
+  }
+
   function loadFeed() {
+    var params = ['limit=' + FEED_PAGE, 'offset=' + feedOffset];
     var sev = $('severityFilter').value;
-    return api('/api/alerts?limit=200' + (sev ? '&severity=' + sev : '')).then(function (data) {
+    var rule = $('ruleFilter').value;
+    var q = $('alertSearch').value.trim();
+    if (sev) params.push('severity=' + encodeURIComponent(sev));
+    if (rule) params.push('rule=' + encodeURIComponent(rule));
+    if (q) params.push('q=' + encodeURIComponent(q));
+
+    return api('/api/alerts?' + params.join('&')).then(function (data) {
       var host = $('alertFeed');
+      renderRuleOptions(data.rules || []);
+      var total = data.total || 0;
+      // A filter change can leave us past the end of the new result set.
+      if (feedOffset && feedOffset >= total) { feedOffset = 0; return loadFeed(); }
       if (!data.alerts.length) {
+        $('alertPager').hidden = true;
         host.innerHTML = '<div class="ds-empty">' +
           '<svg class="ds-icon ds-icon--xl ds-empty__icon" aria-hidden="true"><use href="#i-check"/></svg>' +
           '<div class="ds-empty__title">Nothing to report</div>' +
-          '<p class="ds-muted" style="margin:0 auto">No alerts recorded. That is the good outcome.</p></div>';
+          '<p class="ds-muted" style="margin:0 auto">' +
+          ((sev || rule || q) ? 'No alerts match this filter.' : 'No alerts recorded. That is the good outcome.') +
+          '</p></div>';
         return;
       }
+      renderPager(total);
       host.innerHTML = '<div class="ds-table-wrap"><table class="ds-table">' +
         '<thead><tr><th>Severity</th><th>Alert</th><th>Device</th><th>When</th></tr></thead><tbody>' +
         data.alerts.map(function (a) {
@@ -532,7 +650,38 @@
       $('monEnabledLabel').textContent = this.checked ? 'Enabled' : 'Disabled';
     });
     $('saveMonBtn').addEventListener('click', saveSettings);
-    $('severityFilter').addEventListener('change', loadFeed);
+    loadMuteOptions();
+    $('muteAddBtn').addEventListener('click', function () {
+      var select = $('muteDevice');
+      var id = select.value;
+      if (!id) { toast('Pick a device first.', 'warning'); return; }
+      var rule = $('muteRule').value;
+      var next = mutes().filter(function (m) { return m.id !== id; });
+      next.push({
+        id: id,
+        name: select.selectedOptions[0] ? select.selectedOptions[0].dataset.name : id,
+        rules: rule ? [rule] : null
+      });
+      saveMutes(next);
+    });
+
+    // Any filter change starts over at page one.
+    ['severityFilter', 'ruleFilter'].forEach(function (id) {
+      $(id).addEventListener('change', function () { feedOffset = 0; loadFeed(); });
+    });
+    var searchTimer = null;
+    $('alertSearch').addEventListener('input', function () {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(function () { feedOffset = 0; loadFeed(); }, 250);
+    });
+    $('alertPrev').addEventListener('click', function () {
+      feedOffset = Math.max(0, feedOffset - FEED_PAGE);
+      loadFeed();
+    });
+    $('alertNext').addEventListener('click', function () {
+      feedOffset += FEED_PAGE;
+      loadFeed();
+    });
 
     $('runNowBtn').addEventListener('click', function () {
       var btn = this;

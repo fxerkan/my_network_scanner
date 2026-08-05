@@ -26,10 +26,14 @@
 @media (min-width: 768px) {
     /* Wide enough to be the obvious primary action, with its own margin so it
        never crowds the brand on one side or the nav on the other. */
-    .actions-menu { margin: 0 var(--space-6); }
+    /* The width lives on the wrapper, not the trigger: a later `.btn` rule sets
+       min-width: 0 at the same specificity and was winning, which left the
+       button - and now the menu that matches it - about half this wide. */
+    /* Compound selector on purpose: the generic `.dropdown { min-width: 0 }`
+       below is later in the file, and a media query adds no specificity. */
+    .dropdown.actions-menu { margin: 0 var(--space-6); min-width: 230px; }
     .actions-menu__trigger {
         min-height: 48px;
-        min-width: 230px;
         padding: var(--space-2) var(--space-6);
         font-size: var(--text-md);
     }
@@ -43,12 +47,12 @@
     .actions-menu__trigger > span { max-width: 6ch; overflow: hidden; }
 }
 
-/* Centred under its trigger, and never wider than the viewport. */
+/* Same width as its trigger, so the menu reads as the button opening up. */
 .actions-menu .dropdown-menu {
-    left: 50%;
+    left: 0;
     right: auto;
-    transform: translateX(-50%);
-    min-width: 260px;
+    width: 100%;
+    min-width: 0;
     max-width: calc(100vw - var(--space-6));
 }
 
@@ -71,7 +75,10 @@
 /* The action menu's trigger is the leftmost thing on the page, so its menu
    hangs left-aligned. (It used to be right-aligned for a trigger that sat on
    the right; with one dropdown left that rule pushed the menu off-screen.) */
-.actions-menu .dropdown-menu { left: 0; right: auto; min-width: max(100%, 260px); }
+.actions-menu .dropdown-menu { left: 0; right: auto; width: 100%; min-width: 0; }
+/* Items centred as a block: icon and label stay together instead of the label
+   drifting to the left edge with a lake of whitespace after it. */
+.actions-menu .dropdown-item { justify-content: center; text-align: center; }
 
 .dropdown-item {
     display: flex;

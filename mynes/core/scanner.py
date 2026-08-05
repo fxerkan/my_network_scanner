@@ -63,6 +63,31 @@ import threading
 import base64
 from mynes.core.models import unified_model
 
+
+def match_combined_rule(rules, vendor_lower, hostname_lower):
+    """First rule whose vendor AND hostname patterns both match -> its type.
+
+    Pure, so it is testable without a network. Either side may be omitted or
+    left as `.*`, which degrades the rule to the single-signal behaviour the
+    old hostname/vendor lists already had. An unparseable regex is skipped
+    rather than raised: the rules come from a config file the user edits by
+    hand, and one typo must not stop every device from being classified.
+    """
+    for rule in rules or []:
+        vendor_pat = rule.get('vendor') or '.*'
+        hostname_pat = rule.get('hostname') or '.*'
+        try:
+            if not re.search(vendor_pat, vendor_lower, re.IGNORECASE):
+                continue
+            if not re.search(hostname_pat, hostname_lower, re.IGNORECASE):
+                continue
+        except re.error:
+            continue
+        if rule.get('type'):
+            return rule['type']
+    return None
+
+
 class LANScanner:
     def __init__(self):
         self.last_arp_method = None
@@ -192,14 +217,39 @@ class LANScanner:
         
         return docker_networks
 
+    def _docker_host_ip(self):
+        """This machine's LAN address - the box the local containers run on.
+
+        Docker's own bridges (docker0, br-*) are skipped: parenting a container
+        to the bridge it is plugged into is circular and tells the user nothing.
+        """
+        try:
+            for iface in get_network_interfaces():
+                name = iface.get('name') or iface.get('interface') or ''
+                ip = iface.get('ip', '')
+                if not ip or ip.startswith('127.'):
+                    continue
+                if name.startswith(('docker', 'br-', 'veth', 'lo')):
+                    continue
+                return ip
+        except Exception:  # noqa: BLE001 - a missing host IP only costs nesting
+            pass
+        return ''
+
     def scan_docker_containers_directly(self):
         """Docker container'larını doğrudan tespit et ve cihazlar listesine ekle"""
         docker_devices = []
         
+        # Every container we can see comes from the local Engine, so the host is
+        # this machine. Recording its LAN address is what lets the graph and the
+        # topology hang containers off the box they actually run on instead of
+        # off the gateway.
+        host_ip = self._docker_host_ip()
+
         try:
             # Çalışan container'ları al
             containers = docker_manager.get_docker_containers()
-            
+
             for container in containers:
                 ip_addresses = container.get('ip_addresses', [])
                 
@@ -233,6 +283,10 @@ class LANScanner:
                                 'container_name': container_name,
                                 'image': container['image'],
                                 'network': network,
+                                'networks': container.get('networks', []),
+                                'stack': container.get('stack', ''),
+                                'service': container.get('service', ''),
+                                'host_ip': host_ip,
                                 'status': container['status']
                             }
                         }
@@ -497,6 +551,16 @@ class LANScanner:
                 'hostname': hostname or '', 'rtsp': None, 'http': [], 'ssh': None,
                 'is_gateway': ip == self.get_gateway_ip(),
             }
+
+        # 0. Two-signal rules the user wrote by hand. Vendor alone says "Apple"
+        #    for a MacBook, an iPhone and an Apple TV alike, and the strongest
+        #    single-signal heuristic below (AirPlay -> "Apple Device") is happy
+        #    to stop there. A rule that pins vendor *and* hostname is the only
+        #    thing that knows which of the three it is, so it goes first.
+        combined = match_combined_rule(
+            self.detection_rules.get('combined_rules', []), vendor_lower, hostname_lower)
+        if combined:
+            return combined
 
         # 1. Strong, self-reported evidence wins outright.
         verdict = fingerprint.classify(signals)
