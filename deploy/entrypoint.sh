@@ -34,7 +34,10 @@ if [ "$(id -u)" = "0" ]; then
         [ -d "$dir" ] && chown -R scanner:scanner "$dir" 2>/dev/null || true
     done
 
-    exec gosu scanner "$@"
+    # setpriv, not gosu: gosu is a Go binary whose stdlib carried 39 CVEs, and
+    # setpriv ships with util-linux in the base image. --init-groups picks up
+    # the docker-socket group joined just above, same as gosu did.
+    exec setpriv --reuid=scanner --regid=scanner --init-groups "$@"
 fi
 
 # Already unprivileged (user: override in compose, or a rootless runtime).

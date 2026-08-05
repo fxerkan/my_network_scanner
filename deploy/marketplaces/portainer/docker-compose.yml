@@ -26,7 +26,7 @@ services:
       # br-* bridges. Remove it to keep the Docker API out of MyNeS.
       - /var/run/docker.sock:/var/run/docker.sock
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5883/api/version"]
+      test: ["CMD", "python", "-c", "import http.client as h; c=h.HTTPConnection('localhost',5883,timeout=5); c.request('GET','/api/version'); exit(0 if c.getresponse().status < 500 else 1)"]
       interval: 30s
       timeout: 10s
       retries: 3
