@@ -45,6 +45,52 @@
 }
 .view-legend__line--dashed { border-top-style: dashed; }
 
+/* ---------- subnet overlay + breakdown, shared by graph and topology ---------- */
+.subnet-overlay__rect {
+  fill: var(--bg-surface-sunken);
+  fill-opacity: 0.35;
+  stroke: var(--border-strong);
+  stroke-width: 1.5;
+  stroke-dasharray: 6 5;
+  pointer-events: none;
+}
+.subnet-overlay__label {
+  fill: var(--text-tertiary);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  pointer-events: none;
+}
+.view-subnets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+.view-subnets__item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  background: var(--bg-surface-raised);
+}
+.view-subnets__item strong { color: var(--text-primary); font-weight: 600; }
+.view-subnets__item--guessed { border-style: dashed; }
+.view-subnets__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-full);
+  background: var(--bg-surface-sunken);
+  font-weight: 600;
+}
+
 .view-loading {
   padding: var(--space-12);
   text-align: center;

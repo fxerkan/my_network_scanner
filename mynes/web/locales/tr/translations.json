@@ -397,6 +397,8 @@
   "uplink_auto": "Otomatik (tespit edilen)",
   "uplink_known": "Bilinen bağlantı",
   "uplink_assumed": "Doğrudan varsayıldı",
+  "subnet_known": "Tespit edilen ağ",
+  "subnet_guessed": "IP'den tahmin edildi - doğrulanmış bir arayüz değil",
   "topology_discover": "Bağlantıları keşfet",
   "topology_discovering": "İzleniyor…",
   "topology_hint": "Traceroute yalnızca yönlendirilen atlamaları bulur. Köprü modundaki switch veya erişim noktası ağ üzerinde görünmez — cihaza tıklayıp neye bağlı olduğunu belirtin.",

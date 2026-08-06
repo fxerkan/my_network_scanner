@@ -11,6 +11,7 @@ import logging
 
 from flask import Blueprint, jsonify, request
 
+from mynes.core import subnets as subnets_mod
 from mynes.core import topology
 from mynes.core.network import get_default_gateway
 from mynes.discovery import discover_all
@@ -253,22 +254,51 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
         ).to_dict()
         return jsonify(push.send(probe))
 
+    def _known_subnets():
+        """Real interface/Docker CIDRs, best-effort - a scan that hasn't run
+        yet, or a Docker-detection error, must not break the topology view."""
+        try:
+            return subnets_mod.known_subnets_from_interfaces(scanner.get_available_networks())
+        except Exception:  # noqa: BLE001 - degrade to IP-guessed grouping only
+            return []
+
     # -- topology ---------------------------------------------------------
     @bp.get("/topology")
     def topology_tree():
         """Parent/child tree for the topology view. See core/topology.py for
-        why most edges come back as "default" on a flat home LAN."""
+        why most edges come back as "default" on a flat home LAN.
+
+        Every node also carries the subnet it was matched to (a real
+        interface/Docker CIDR when we have one, else the device's own /24),
+        and ``subnets`` is a device-count breakdown - both of which the
+        graph and topology renderers use to draw a dashed CIDR boundary
+        around each subnet's devices instead of one flat mesh.
+        """
         state = topology.load_state()
+        devices = _devices()
+        known = _known_subnets()
+        tree = topology.build_tree(
+            devices, get_default_gateway(),
+            uplinks=state["uplinks"], traced=state["traced"],
+        )
+        for node in tree["nodes"]:
+            node["subnet"] = subnets_mod.subnet_for_ip(node.get("ip"), known)
         return jsonify(
             {
-                **topology.build_tree(
-                    _devices(), get_default_gateway(),
-                    uplinks=state["uplinks"], traced=state["traced"],
-                ),
+                **tree,
                 "uplinks": state["uplinks"],
                 "traced": state["traced"],
+                "subnets": subnets_mod.subnet_summary(devices, known),
             }
         )
+
+    @bp.get("/subnets")
+    def subnets_breakdown():
+        """Standalone subnet breakdown - device count, known/guessed CIDR,
+        online count - for anywhere a full topology fetch is overkill."""
+        devices = _devices()
+        known = _known_subnets()
+        return jsonify({"subnets": subnets_mod.subnet_summary(devices, known)})
 
     @bp.post("/topology/uplinks")
     def topology_set_uplinks():

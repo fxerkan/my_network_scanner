@@ -460,6 +460,8 @@
   "uplink_auto": "Auto (detected)",
   "uplink_known": "Known uplink",
   "uplink_assumed": "Assumed direct",
+  "subnet_known": "Detected network",
+  "subnet_guessed": "Guessed from IP - not a confirmed interface",
   "topology_discover": "Discover uplinks",
   "topology_discovering": "Tracing…",
   "topology_hint": "Traceroute only finds routed hops. A bridged switch or access point is invisible on the wire — click a device to say what it is plugged into.",

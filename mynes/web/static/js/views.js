@@ -181,6 +181,66 @@
         if (typeof openEnhancedEditModal === 'function') openEnhancedEditModal(d.ip || d.mac);
     }
 
+    // --------------------------------------------------------- subnet overlay
+    //
+    // A dashed CIDR-labelled box drawn behind whichever devices landed in
+    // that subnet - the diagram gains an actual network boundary instead of
+    // implying the LAN is one flat mesh. Positions are read from nodes the
+    // caller already laid out; this never touches layout itself, so it can
+    // be added to any view without risking its node placement.
+
+    /** {x, y, r, cidr, label} entries -> one padded bounding box per cidr. */
+    function subnetBoundingBoxes(entries) {
+        const groups = new Map();
+        entries.forEach(e => {
+            if (!e.cidr || e.cidr === 'no-ip') return;
+            if (!groups.has(e.cidr)) groups.set(e.cidr, { cidr: e.cidr, label: e.label, points: [] });
+            groups.get(e.cidr).points.push(e);
+        });
+        // A single subnet boxing the whole canvas tells the user nothing they
+        // did not already know - only draw once there is an actual breakdown.
+        if (groups.size < 2) return [];
+
+        const PAD = 34;
+        return [...groups.values()].map(g => {
+            const xs = g.points.map(p => p.x - (p.r || 0)), xe = g.points.map(p => p.x + (p.r || 0));
+            const ys = g.points.map(p => p.y - (p.r || 0)), ye = g.points.map(p => p.y + (p.r || 0));
+            const x = Math.min(...xs) - PAD, y = Math.min(...ys) - PAD - 12;
+            return {
+                cidr: g.cidr, label: g.label,
+                x, y, w: Math.max(...xe) - Math.min(...xs) + PAD * 2,
+                h: Math.max(...ye) - Math.min(...ys) + PAD * 2 + 12,
+            };
+        });
+    }
+
+    /** Inserts the overlay as the first child of `svg`, so it paints behind
+        every edge and node drawn after this call. */
+    function drawSubnetOverlay(svg, boxes) {
+        if (!boxes.length) return;
+        const layer = el('g', { class: 'subnet-overlay' }, null);
+        svg.insertBefore(layer, svg.firstChild);
+        boxes.forEach(b => {
+            el('rect', { class: 'subnet-overlay__rect', x: b.x, y: b.y, width: b.w, height: b.h, rx: 16 }, layer);
+            const text = el('text', { class: 'subnet-overlay__label', x: b.x + 12, y: b.y + 18 }, layer);
+            text.textContent = b.label;
+        });
+    }
+
+    /** Pills summarising device counts per subnet - the "kırılım" the user
+        gets alongside the diagram, from GET /api/topology's `subnets` (or
+        GET /api/subnets directly). */
+    function subnetPanel(subnetRows) {
+        if (!subnetRows || subnetRows.length < 2) return '';
+        const items = subnetRows.map(s => `
+            <span class="view-subnets__item${s.known ? '' : ' view-subnets__item--guessed'}"
+                  title="${esc(s.known ? tr('subnet_known', 'Detected network') : tr('subnet_guessed', 'Guessed from IP - not a confirmed interface'))}">
+                <strong>${esc(s.cidr)}</strong>
+                <span class="view-subnets__count">${s.device_count}</span>
+            </span>`).join('');
+        return `<div class="view-subnets">${items}</div>`;
+    }
+
     function legend(extra) {
         const classes = [
             ['net', tr('network_gear', 'Network')],
@@ -462,7 +522,22 @@
 
         stage.style.setProperty('--topo-ratio', `${box.w} / ${box.h}`);
         attachZoomPan(stage, svg, box);
-        container.appendChild(legend());
+        const legendEl = legend();
+        container.appendChild(legendEl);
+
+        // Subnet boundaries need the server's real interface/Docker CIDRs
+        // (core/subnets.py) - not knowable from the device list alone - so
+        // they are drawn as a follow-up once /api/topology answers, instead
+        // of blocking the graph's normal instant paint on that fetch.
+        fetchTopology().then(topo => {
+            const byIp = new Map((topo.nodes || []).filter(n => n.ip).map(n => [n.ip, n.subnet]));
+            const entries = nodes
+                .filter(n => n.device && n.device.ip && byIp.has(n.device.ip))
+                .map(n => ({ x: n.x, y: n.y, r: n.r, ...byIp.get(n.device.ip) }));
+            drawSubnetOverlay(svg, subnetBoundingBoxes(entries));
+            const panel = subnetPanel(topo.subnets);
+            if (panel) legendEl.insertAdjacentHTML('beforebegin', panel);
+        });
     }
 
     // --------------------------------------------------------- topology view
@@ -641,6 +716,22 @@
         const edges = el('g', { class: 'topo-edges' }, svg);
         const nodeLayer = el('g', {}, svg);
 
+        // Subnet boundaries: every real device (infra or leaf - a "group"
+        // pill has none of its own, its children already carry theirs) gets
+        // matched to the CIDR /api/topology assigned it, then boxed per CIDR.
+        const subnetByIp = new Map((topo.nodes || []).filter(n => n.ip).map(n => [n.ip, n.subnet]));
+        const subnetEntries = [];
+        (function collect(node) {
+            if (node.device && node.device.ip && subnetByIp.has(node.device.ip)) {
+                subnetEntries.push({
+                    x: node.x, y: node.y, r: node.kind === 'leaf' ? 16 : 22,
+                    ...subnetByIp.get(node.device.ip),
+                });
+            }
+            (node.children || []).forEach(collect);
+        })(root);
+        drawSubnetOverlay(svg, subnetBoundingBoxes(subnetEntries));
+
         const tip = attachTooltip(stage);
         (function walk(node) {
             drawTopoNode(nodeLayer, node, container, list, tip);
@@ -663,6 +754,8 @@
         stage.style.setProperty('--topo-ratio', `${box.w} / ${box.h}`);
 
         attachZoomPan(stage, svg, box);
+        const panel = subnetPanel(topo.subnets);
+        if (panel) container.insertAdjacentHTML('beforeend', panel);
         container.appendChild(legend(
             `<span class="view-legend__item"><i class="view-legend__line"></i>${tr('uplink_known', 'Known uplink')}</span>
              <span class="view-legend__item"><i class="view-legend__line view-legend__line--dashed"></i>${tr('uplink_assumed', 'Assumed direct')}</span>`
