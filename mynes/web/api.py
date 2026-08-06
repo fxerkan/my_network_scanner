@@ -21,6 +21,7 @@ from mynes.integrations.home_assistant import HomeAssistantClient, publish_devic
 from mynes.monitoring import notify, push, store, uptime
 from mynes.monitoring.scheduler import MonitorScheduler
 from mynes.platform import privileges, service
+from mynes.security import cve as cve_mod
 
 log = logging.getLogger(__name__)
 
@@ -300,6 +301,25 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
         timeout = min(max(float(body.get("timeout", 1.5)), 0.2), 5.0)
         return jsonify(diagnostics.port_probe(ip, ports, timeout=timeout))
 
+    # -- security / attack surface -----------------------------------------
+    # Curated CVE-pattern matching + port-based exposure heuristics against
+    # data a scan already collected - see security/cve.py for why this is
+    # deliberately not a live NVD/vulners feed.
+    @bp.get("/security/vulnerabilities/<ip>")
+    def security_device_assessment(ip):
+        if not _valid_ip(ip):
+            return jsonify({"error": "invalid IP address"}), 400
+        device = next((d for d in _devices() if d.get("ip") == ip), None)
+        if not device:
+            return jsonify({"error": "device not found"}), 404
+        return jsonify(cve_mod.assess_device(device))
+
+    @bp.get("/security/vulnerabilities")
+    def security_fleet_assessment():
+        """Attack-surface overview across every known device, worst first -
+        the "what should I fix" view instead of clicking through each one."""
+        return jsonify(cve_mod.fleet_summary(_devices()))
+
     def _known_subnets():
         """Real interface/Docker CIDRs, best-effort - a scan that hasn't run
         yet, or a Docker-detection error, must not break the topology view."""
@@ -508,6 +528,15 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
                 "privileges": privileges.plan().to_dict(),
                 "service": service.status(),
                 "tray": {"available": _tray_available()},
+                "diagnostics": {
+                    "ping": bool(shutil.which("ping")),
+                    "traceroute": bool(shutil.which("traceroute") or shutil.which("tracert")),
+                },
+                "vulnerability_scan": {
+                    "available": True,
+                    "detail": "curated CVE pattern table matched against known service "
+                             "banners - not a live NVD/vulners feed",
+                },
             }
         )
 
