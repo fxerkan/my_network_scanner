@@ -25,7 +25,7 @@ logging.getLogger("scapy").setLevel(logging.ERROR)
 import nmap
 # import netifaces  # Use network_utils instead for Docker compatibility
 from mynes.core.network import get_network_interfaces, get_default_gateway, get_local_ip_ranges, get_host_network_ranges, is_docker_environment
-from mynes.analysis import fingerprint
+from mynes.analysis import fingerprint, os_detect
 import json
 import socket
 import re
@@ -1128,11 +1128,24 @@ class LANScanner:
             'rtsp': signals.get('rtsp'),
             'http': signals.get('http'),
             'ssh': signals.get('ssh'),
+            'ftp': signals.get('ftp'),
+            'smb': signals.get('smb'),
             'is_gateway': signals.get('is_gateway', False),
             'reasons': fingerprint.classify(signals).get('reasons', []),
         }
         if signals.get('rtsp'):
             device_info['stream_url'] = signals['rtsp']['url']
+
+        # OS family and WiFi-vs-wired are both best-effort guesses, never
+        # claimed as measured fact - see mynes/analysis/os_detect.py. A ping
+        # TTL from an earlier detailed analysis sharpens the OS guess when
+        # nothing else named it; a fresh basic scan has none yet, which is
+        # fine, the banner-based signals above already cover most devices.
+        ttl_hint = ((existing_device.get('enhanced_info') or {})
+                    .get('ping_analysis', {}) or {}).get('ttl')
+        device_info['os_guess'] = os_detect.guess_os(signals, ttl=ttl_hint)
+        device_info['connection_medium'] = os_detect.guess_connection_medium(
+            device_type, vendor, signals)
 
         # Auto-name. A name the *user* typed is never touched; a name we
         # generated earlier is refreshed, because a later scan knows more.
