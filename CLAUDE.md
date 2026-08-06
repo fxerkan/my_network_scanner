@@ -53,6 +53,15 @@ mynes/
 │   ├── models.py         Unified device model / normalisation
 │   ├── network.py        Interface + gateway detection
 │   ├── config.py         ConfigManager: config/config.json read/write
+│   ├── topology.py       Parent/child uplink tree (traceroute + manual + infra
+│   │                     heuristics). See core/subnets.py for the L3 grouping
+│   │                     it hangs off, not the same question.
+│   ├── subnets.py        Which subnet each device is actually in - a real
+│   │                     interface/Docker CIDR when known, else the device's
+│   │                     own /24. Feeds the topology/graph subnet overlay.
+│   ├── diagnostics.py    On-demand ping/traceroute/port-probe/DNS for one
+│   │                     device - thin OS-binary wrappers, parsing kept pure
+│   │                     and tested separately from the subprocess calls.
 │   └── version.py        Git-derived version
 ├── discovery/            One module per protocol, all optional, all isolated.
 │   ├── base.py           DiscoveryBackend + DiscoveredDevice. safe_discover()
@@ -65,6 +74,13 @@ mynes/
 │   └── mqtt.py           Reads Zigbee2MQTT / Z-Wave JS / Tasmota / HA discovery
 │                         retained topics — the only way to see radio devices.
 ├── analysis/             oui, identifier, hostname, advanced, enhanced
+│   ├── fingerprint.py    Active service fingerprinting: RTSP/HTTP/SSH/FTP
+│   │                     banners + an NBNS (UDP 137) SMB/NetBIOS probe, pure
+│   │                     classify()/suggest_name() over the signals gathered.
+│   └── os_detect.py      OS family + best-effort WiFi-vs-wired connection-
+│                         medium guessing, consolidated from what used to be
+│                         three separate, duplicated guessers. Everything here
+│                         is a scored guess, never claimed as measured fact.
 ├── monitoring/
 │   ├── rules.py          PURE functions: (previous, current) -> [Alert].
 │   │                     No I/O. Test here first; it is the cheapest layer.
@@ -83,10 +99,17 @@ mynes/
 │   └── files/            ChmodBPF script + its LaunchDaemon plist
 ├── tray.py               pystray menu bar / notification area icon (optional)
 ├── security/             credentials (Fernet + PBKDF2), sanitizer
+│   └── cve.py            Curated CVE-pattern table (real CVE IDs, banner-
+│                         anchored regexes) + port-based attack-surface
+│                         exposures, matched against a device's already-
+│                         collected fingerprint. Deliberately not a live
+│                         NVD/vulners feed - see the module docstring.
 └── web/
     ├── app.py            Legacy routes + page rendering (large, historic)
     ├── api.py            v2 blueprint: /api/discovery, /monitoring, /alerts,
-    │                     /notifications, /integrations, /health, /capabilities
+    │                     /notifications, /integrations, /health, /capabilities,
+    │                     /topology, /subnets, /diagnostics/<ip>/*,
+    │                     /security/vulnerabilities[/<ip>]
     ├── i18n.py           tr/en translation loader
     ├── templates/        base.html is the shell; pages extend it
     └── static/           design-system.css is the single source of style truth
