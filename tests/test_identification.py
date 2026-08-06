@@ -5,7 +5,7 @@ a real home LAN, so they are regression tests rather than illustrations.
 """
 
 from mynes.analysis import fingerprint, os_detect
-from mynes.core import models, subnets, topology
+from mynes.core import diagnostics, models, subnets, topology
 from mynes.discovery import onvif
 
 
@@ -19,6 +19,10 @@ def test_os_detect_self_check():
 
 def test_subnets_self_check():
     subnets.demo()
+
+
+def test_diagnostics_self_check():
+    diagnostics.demo()
 
 
 def test_onvif_self_check():

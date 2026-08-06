@@ -7,10 +7,12 @@ plain JSON with no template coupling.
 
 from __future__ import annotations
 
+import ipaddress
 import logging
 
 from flask import Blueprint, jsonify, request
 
+from mynes.core import diagnostics
 from mynes.core import subnets as subnets_mod
 from mynes.core import topology
 from mynes.core.network import get_default_gateway
@@ -253,6 +255,50 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
             message="If you can read this, push from MyNeS works on this device.",
         ).to_dict()
         return jsonify(push.send(probe))
+
+    # -- diagnostics --------------------------------------------------------
+    # On-demand network tools for one device (ping/traceroute/port probe/DNS)
+    # - see core/diagnostics.py. Every route validates the IP itself: the
+    # subprocess calls use argument lists, never a shell, so this is not
+    # about injection - it is about not shelling out to garbage input and
+    # returning a clean 400 instead of a confusing subprocess failure.
+    def _valid_ip(value):
+        try:
+            ipaddress.ip_address(value)
+            return True
+        except ValueError:
+            return False
+
+    @bp.get("/diagnostics/<ip>/ping")
+    def diagnostics_ping(ip):
+        if not _valid_ip(ip):
+            return jsonify({"error": "invalid IP address"}), 400
+        count = min(max(int(request.args.get("count", 4)), 1), 10)
+        timeout = min(max(float(request.args.get("timeout", 1.0)), 0.2), 5.0)
+        return jsonify(diagnostics.ping(ip, count=count, timeout=timeout))
+
+    @bp.get("/diagnostics/<ip>/traceroute")
+    def diagnostics_traceroute(ip):
+        if not _valid_ip(ip):
+            return jsonify({"error": "invalid IP address"}), 400
+        max_hops = min(max(int(request.args.get("max_hops", 15)), 1), 30)
+        timeout = min(max(float(request.args.get("timeout", 1.0)), 0.2), 5.0)
+        return jsonify(diagnostics.traceroute(ip, max_hops=max_hops, timeout=timeout))
+
+    @bp.get("/diagnostics/<ip>/dns")
+    def diagnostics_dns(ip):
+        if not _valid_ip(ip):
+            return jsonify({"error": "invalid IP address"}), 400
+        return jsonify(diagnostics.dns_lookup(ip))
+
+    @bp.post("/diagnostics/<ip>/ports")
+    def diagnostics_ports(ip):
+        if not _valid_ip(ip):
+            return jsonify({"error": "invalid IP address"}), 400
+        body = request.get_json(silent=True) or {}
+        ports = (body.get("ports") or [])[:64]
+        timeout = min(max(float(body.get("timeout", 1.5)), 0.2), 5.0)
+        return jsonify(diagnostics.port_probe(ip, ports, timeout=timeout))
 
     def _known_subnets():
         """Real interface/Docker CIDRs, best-effort - a scan that hasn't run

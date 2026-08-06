@@ -252,6 +252,14 @@
                     <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-shield"/></svg>
                     <span>{{ _('access_tab') }}</span>
                 </button>
+                <button class="tab-button" onclick="switchEditTab('tools')">
+                    <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-radar"/></svg>
+                    <span>{{ _('tools_tab') }}</span>
+                </button>
+                <button class="tab-button" onclick="switchEditTab('security')">
+                    <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-alert"/></svg>
+                    <span>{{ _('security_tab') }}</span>
+                </button>
             </div>
             
             <!-- Tab Content -->
@@ -380,7 +388,53 @@
                         </div>
                     </div>
                 </div>
-                
+
+                <!-- Network Tools Tab -->
+                <div id="tools-tab" class="tab-pane">
+                    <div class="net-tools">
+                        <div class="net-tools__actions">
+                            <button type="button" class="btn btn-secondary btn-small" onclick="runDeviceDiagnostic('ping')">
+                                <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-radar"/></svg>
+                                {{ _('tool_ping') }}
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-small" onclick="runDeviceDiagnostic('traceroute')">
+                                <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-topology"/></svg>
+                                {{ _('tool_traceroute') }}
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-small" onclick="runDeviceDiagnostic('dns')">
+                                <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-globe"/></svg>
+                                {{ _('tool_dns_lookup') }}
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-small" onclick="runDevicePortProbe()">
+                                <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-plug"/></svg>
+                                {{ _('tool_port_probe') }}
+                            </button>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="netToolsPortsInput">{{ _('tool_port_probe_ports') }}</label>
+                            <input type="text" id="netToolsPortsInput" class="form-input" placeholder="21,22,80,443,445,3389">
+                        </div>
+                        <div id="netToolsResult" class="net-tools__result">
+                            <p class="details-no-data">{{ _('tool_run_hint') }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Security / Vulnerability Tab -->
+                <div id="security-tab" class="tab-pane">
+                    <div class="net-tools">
+                        <div class="net-tools__actions">
+                            <button type="button" class="btn btn-secondary btn-small" onclick="runDeviceVulnScan()">
+                                <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-alert"/></svg>
+                                {{ _('security_scan_run') }}
+                            </button>
+                        </div>
+                        <div id="securityScanResult" class="net-tools__result">
+                            <p class="details-no-data">{{ _('security_scan_hint') }}</p>
+                        </div>
+                    </div>
+                </div>
+
             </div>
             
             <!-- Modal Footer -->

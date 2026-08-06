@@ -2340,6 +2340,152 @@ function closeEnhancedEditModal() {
     currentEnhancedEditingIp = null;
 }
 
+/*
+ * Network Tools tab: on-demand ping/traceroute/DNS/port-probe for whichever
+ * device is open in the edit modal - see core/diagnostics.py and
+ * /api/diagnostics/<ip>/*. A DNS/traceroute answer can contain attacker-
+ * chosen text (a malicious PTR record, a hop's rDNS), so everything here is
+ * escaped before it reaches innerHTML.
+ */
+function escHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+async function runDeviceDiagnostic(tool) {
+    if (!currentEnhancedEditingIp) return;
+    const box = document.getElementById('netToolsResult');
+    box.innerHTML = `<p class="details-no-data">${t('tool_running')}</p>`;
+    try {
+        const res = await fetch(`/api/diagnostics/${encodeURIComponent(currentEnhancedEditingIp)}/${tool}`);
+        box.innerHTML = renderDiagnosticResult(tool, await res.json());
+    } catch (error) {
+        box.innerHTML = `<p class="details-no-data">${t('tool_error')}: ${escHtml(error)}</p>`;
+    }
+}
+
+async function runDevicePortProbe() {
+    if (!currentEnhancedEditingIp) return;
+    const box = document.getElementById('netToolsResult');
+    const ports = (document.getElementById('netToolsPortsInput').value || '')
+        .split(',').map(s => s.trim()).filter(Boolean);
+    if (!ports.length) { showToast(t('tool_port_probe_ports'), 'error'); return; }
+
+    box.innerHTML = `<p class="details-no-data">${t('tool_running')}</p>`;
+    try {
+        const res = await fetch(`/api/diagnostics/${encodeURIComponent(currentEnhancedEditingIp)}/ports`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ports }),
+        });
+        box.innerHTML = renderDiagnosticResult('ports', await res.json());
+    } catch (error) {
+        box.innerHTML = `<p class="details-no-data">${t('tool_error')}: ${escHtml(error)}</p>`;
+    }
+}
+
+function renderDiagnosticResult(tool, data) {
+    if (tool === 'ping') {
+        if (!data.success) {
+            return `<div class="net-tools__summary net-tools__summary--fail">${t('tool_ping_failed')}${data.error ? ': ' + escHtml(data.error) : ''}</div>`;
+        }
+        return `<div class="net-tools__summary">
+            <span class="ds-badge ds-badge--success">${data.received}/${data.sent} ${t('tool_ping_received')}</span>
+            <span>${t('tool_loss')}: ${data.loss_pct}%</span>
+            ${data.avg_ms != null ? `<span>${t('tool_avg')}: ${data.avg_ms} ms</span>` : ''}
+            ${data.ttl != null ? `<span>TTL: ${data.ttl}</span>` : ''}
+        </div>`;
+    }
+    if (tool === 'traceroute') {
+        if (!data.hop_count) {
+            return `<div class="net-tools__summary net-tools__summary--fail">${t('tool_traceroute_failed')}${data.error ? ': ' + escHtml(data.error) : ''}</div>`;
+        }
+        const rows = data.hops.map(h => `<tr>
+            <td>${h.hop}</td>
+            <td>${h.timed_out ? '*' : escHtml(h.ip || '?')}</td>
+            <td>${h.rtt_ms != null ? h.rtt_ms + ' ms' : '-'}</td>
+        </tr>`).join('');
+        return `<table class="ds-table"><thead><tr><th>#</th><th>IP</th><th>RTT</th></tr></thead><tbody>${rows}</tbody></table>`;
+    }
+    if (tool === 'dns') {
+        if (!data.success) {
+            return `<div class="net-tools__summary net-tools__summary--fail">${t('tool_dns_failed')}${data.error ? ': ' + escHtml(data.error) : ''}</div>`;
+        }
+        const aliases = (data.aliases || []).filter(a => a && a !== data.hostname);
+        return `<div class="net-tools__summary"><strong>${escHtml(data.hostname)}</strong>${aliases.length ? '<br>' + escHtml(aliases.join(', ')) : ''}</div>`;
+    }
+    if (tool === 'ports') {
+        if (!data.checked || !data.checked.length) return `<p class="details-no-data">${t('tool_port_probe_ports')}</p>`;
+        const open = new Set(data.open || []);
+        const chips = data.checked.map(p =>
+            `<span class="ds-badge ${open.has(p) ? 'ds-badge--success' : 'ds-badge--info'}">${p} ${open.has(p) ? '✓' : '✕'}</span>`
+        ).join(' ');
+        return `<div class="net-tools__summary">${chips}</div>`;
+    }
+    return `<pre>${escHtml(JSON.stringify(data, null, 2))}</pre>`;
+}
+
+/*
+ * Security tab: curated CVE-pattern matching + attack-surface risk scoring
+ * against the device's already-known fingerprint (services/banners) - see
+ * security/cve.py and /api/security/vulnerabilities/<ip>. Pattern matches
+ * against open-source vulnerability databases, not a live feed.
+ */
+async function runDeviceVulnScan() {
+    if (!currentEnhancedEditingIp) return;
+    const box = document.getElementById('securityScanResult');
+    box.innerHTML = `<p class="details-no-data">${t('tool_running')}</p>`;
+    try {
+        const res = await fetch(`/api/security/vulnerabilities/${encodeURIComponent(currentEnhancedEditingIp)}`);
+        box.innerHTML = renderVulnScanResult(await res.json());
+    } catch (error) {
+        box.innerHTML = `<p class="details-no-data">${t('tool_error')}: ${escHtml(error)}</p>`;
+    }
+}
+
+function renderVulnScanResult(data) {
+    const riskClass = { critical: 'ds-badge--critical', high: 'ds-badge--critical',
+                        medium: 'ds-badge--warning', low: 'ds-badge--info',
+                        none: 'ds-badge--success' }[data.risk_level] || 'ds-badge--info';
+    const header = `<div class="net-tools__summary">
+        <span class="ds-badge ${riskClass}">${t('security_risk_' + (data.risk_level || 'none'))}</span>
+        <span>${t('security_score')}: ${data.risk_score ?? 0}/100</span>
+    </div>`;
+
+    const findingRows = (data.findings || []).map(f => `
+        <div class="ds-disclosure">
+            <details>
+                <summary>
+                    <span class="ds-badge ${riskClass2(f.severity)}">${escHtml((f.severity || '').toUpperCase())}</span>
+                    ${escHtml(f.title)}
+                    ${f.cve_id ? `<code>${escHtml(f.cve_id)}</code>` : ''}
+                </summary>
+                <p>${escHtml(f.description)}</p>
+                ${f.reference ? `<a href="${escHtml(f.reference)}" target="_blank" rel="noopener noreferrer">${escHtml(f.reference)}</a>` : ''}
+            </details>
+        </div>`).join('');
+
+    const exposureRows = (data.exposures || []).map(e => `
+        <div class="ds-disclosure">
+            <details>
+                <summary>
+                    <span class="ds-badge ${riskClass2(e.severity)}">${escHtml((e.severity || '').toUpperCase())}</span>
+                    ${escHtml(e.title)}
+                </summary>
+                <p>${escHtml(e.description)}</p>
+            </details>
+        </div>`).join('');
+
+    if (!findingRows && !exposureRows) {
+        return header + `<p class="details-no-data">${t('security_no_findings')}</p>`;
+    }
+    return header + findingRows + exposureRows;
+}
+
+function riskClass2(severity) {
+    return { critical: 'ds-badge--critical', high: 'ds-badge--critical',
+            medium: 'ds-badge--warning', low: 'ds-badge--info' }[severity] || 'ds-badge--info';
+}
+
 function switchEditTab(tabName) {
     // Hide all tab panes
     const tabPanes = document.querySelectorAll('.tab-pane');
