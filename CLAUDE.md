@@ -209,19 +209,35 @@ use `.claude/skills/<name>/scripts/...` directly.
 
 ## Versioning
 
-SemVer as GitHub recommends it, derived from the commits, not from taste:
+SemVer, GitHub-standard, but **scope-driven, not commit-triggered**. PATCH is
+the floor; MINOR and MAJOR are earned, not tripped by a keyword. This is a hard
+rule for every contributor, human or agent — apply it identically:
 
-- `feat!:` / `fix!:` / a `BREAKING CHANGE:` trailer → **major**
-- `feat:` → **minor**
-- everything else that ships → **patch**
+- **PATCH** (`1.4.1` → `1.4.2` → … → `1.4.12`) — the **default for almost
+  everything that ships**: bug fixes, small features, UI tweaks, refactors,
+  perf, a new tool or two. When in doubt, it is a patch. Patches accumulate;
+  there is nothing wrong with `1.4.19`.
+- **MINOR** (`1.4.x` → `1.5.0`) — **opt-in only**, for a genuine milestone: a
+  whole new subsystem or discovery protocol, a redesigned page, a feature set
+  a user would notice as "a new thing." A single `feat:` commit is **not**
+  automatically a minor. You must pass `--minor` and mean it.
+- **MAJOR** (`1.x` → `2.0.0`) — a breaking, root change: an incompatible config
+  or API shape the user must react to. Auto-detected from `feat!:` / `fix!:` /
+  a `BREAKING CHANGE:` trailer (never silent) or forced with `--major`. Rare.
+
+Rule of thumb for the minor call: could you write a one-line release headline a
+user would care about? Then `--minor`. Otherwise `--patch`. Ten small features
+in a row are ten patches, not one minor — unless together they form a milestone
+worth announcing, and then it's a deliberate `--minor`, once.
 
 **A change that never reaches a user's install is not a release.** `docs/`,
 `deploy/`, `tests/`, `.github/` and the top-level markdown are outside the
-package; a README typo is not `1.4.1`. Only `mynes/`, `config/`, `scripts/`
-and `pyproject.toml` count.
+package; a README typo is not a version bump. Only `mynes/`, `config/`,
+`scripts/` and `pyproject.toml` count.
 
 ```bash
-python scripts/release_bump.py            # what would the next version be
+python scripts/release_bump.py            # preview — defaults to a PATCH bump
+python scripts/release_bump.py --minor    # cut a milestone instead
 python scripts/release_bump.py --apply    # write it to pyproject + version.py
 ```
 

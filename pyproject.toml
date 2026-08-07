@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mynes"
-version = "1.5.0"
+version = "1.4.1"
 description = "MyNeS - My Network Scanner: home-lab network discovery, monitoring and Home Assistant integration"
 readme = "README.md"
 license = { file = "LICENSE" }
