@@ -37,5 +37,11 @@
   "Washing Machine": "Çamaşır Makinesi",
   "Pet Toilet": "Evcil Hayvan Tuvaleti",
   "Pet Camera": "Evcil Hayvan Kamerası",
-  "Pet Tracker": "Evcil Hayvan Takipçisi"
+  "Pet Tracker": "Evcil Hayvan Takipçisi",
+  "Bluetooth Device": "Bluetooth Cihazı",
+  "Bluetooth Tracker": "Bluetooth Takip Cihazı",
+  "Headphones": "Kulaklık",
+  "Wearable": "Giyilebilir Cihaz",
+  "Sensor": "Sensör",
+  "Beacon": "Beacon"
 }

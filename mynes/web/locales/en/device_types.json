@@ -37,5 +37,11 @@
   "Washing Machine": "Washing Machine",
   "Pet Toilet": "Pet Toilet",
   "Pet Camera": "Pet Camera",
-  "Pet Tracker": "Pet Tracker"
+  "Pet Tracker": "Pet Tracker",
+  "Bluetooth Device": "Bluetooth Device",
+  "Bluetooth Tracker": "Bluetooth Tracker",
+  "Headphones": "Headphones",
+  "Wearable": "Wearable",
+  "Sensor": "Sensor",
+  "Beacon": "Beacon"
 }

@@ -720,21 +720,53 @@ async function loadUptime() {
         to: last ? new Date(last).toLocaleString(pageLocale()) : '—'
     });
 
-    document.getElementById('uptimeList').innerHTML = data.devices.map(function (d) {
-        const cells = d.cells.map(function (state, i) {
-            const stamp = data.checks[i] ? new Date(data.checks[i]).toLocaleString(pageLocale()) : '';
-            const label = state ? t('uptime_' + state) : t('uptime_unknown');
-            return '<i class="uptime-cell uptime-cell--' + (state || 'none') + '"' +
-                   ' title="' + esc(stamp + ' — ' + label) + '"></i>';
+    // Sort primarily by IP (numeric), then name for the IP-less radio devices.
+    const ipParts = ip => (ip || '').split('.').map(n => parseInt(n, 10) || 0);
+    const sorted = data.devices.slice().sort(function (a, b) {
+        if (!a.ip || !b.ip) {
+            if (Boolean(a.ip) !== Boolean(b.ip)) return a.ip ? -1 : 1;
+            return String(a.name || '').localeCompare(String(b.name || ''));
+        }
+        const pa = ipParts(a.ip), pb = ipParts(b.ip);
+        for (let i = 0; i < 4; i++) if (pa[i] !== pb[i]) return pa[i] - pb[i];
+        return 0;
+    });
+
+    // Last non-null cell = the device's most recent known reachability.
+    const lastState = d => [...d.cells].reverse().find(s => s) || null;
+
+    const render = function () {
+        const statusF = (document.getElementById('uptimeStatusFilter') || {}).value || 'all';
+        const ipF = (document.getElementById('uptimeIpFilter') || {}).value || 'all';
+        const rows = sorted.filter(function (d) {
+            if (ipF === 'with_ip' && !d.ip) return false;
+            if (ipF === 'no_ip' && d.ip) return false;
+            if (statusF === 'active' && lastState(d) !== 'up') return false;
+            if (statusF === 'passive' && lastState(d) === 'up') return false;
+            return true;
+        });
+        document.getElementById('uptimeList').innerHTML = rows.map(function (d) {
+            const cells = d.cells.map(function (state, i) {
+                const stamp = data.checks[i] ? new Date(data.checks[i]).toLocaleString(pageLocale()) : '';
+                const label = state ? t('uptime_' + state) : t('uptime_unknown');
+                return '<i class="uptime-cell uptime-cell--' + (state || 'none') + '"' +
+                       ' title="' + esc(stamp + ' — ' + label) + '"></i>';
+            }).join('');
+            const pctClass = d.uptime >= 99 ? '' : (d.uptime >= 90 ? ' is-degraded' : ' is-down');
+            return '<div class="uptime-row">' +
+                '<div class="uptime-row__name">' + icon(d.device_type) +
+                    '<span title="' + esc(d.name) + '">' + esc(d.name) + '</span>' +
+                    (d.ip ? '<span class="uptime-row__ip">' + esc(d.ip) + '</span>' : '') +
+                '</div>' +
+                '<div class="uptime-row__bars">' + cells + '</div>' +
+                '<div class="uptime-row__pct' + pctClass + '">' + d.uptime + '%</div>' +
+            '</div>';
         }).join('');
-        const pctClass = d.uptime >= 99 ? '' : (d.uptime >= 90 ? ' is-degraded' : ' is-down');
-        return '<div class="uptime-row">' +
-            '<div class="uptime-row__name">' + icon(d.device_type) +
-                '<span title="' + esc(d.name) + '">' + esc(d.name) + '</span>' +
-                (d.ip ? '<span class="uptime-row__ip">' + esc(d.ip) + '</span>' : '') +
-            '</div>' +
-            '<div class="uptime-row__bars">' + cells + '</div>' +
-            '<div class="uptime-row__pct' + pctClass + '">' + d.uptime + '%</div>' +
-        '</div>';
-    }).join('');
+    };
+
+    ['uptimeStatusFilter', 'uptimeIpFilter'].forEach(function (id) {
+        const el = document.getElementById(id);
+        if (el && !el.dataset.wired) { el.dataset.wired = '1'; el.addEventListener('change', render); }
+    });
+    render();
 }

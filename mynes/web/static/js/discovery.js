@@ -141,10 +141,14 @@
       body: JSON.stringify({ devices: lastResults })
     })
       .then(function (r) {
-        var extra = r.unmatched.length
-          ? ' ' + r.unmatched.length + ' had no matching device (radio-only or not yet scanned).'
+        var created = r.created
+          ? ' ' + r.created + ' radio-only devices added (BLE trackers, headphones).'
           : '';
-        toast(r.updated + ' devices enriched.' + extra, r.updated ? 'success' : 'info');
+        var extra = r.unmatched.length
+          ? ' ' + r.unmatched.length + ' had no matching device (not yet scanned).'
+          : '';
+        toast(r.updated + ' devices enriched.' + created + extra,
+              (r.updated || r.created) ? 'success' : 'info');
       })
       .catch(function (e) { toast('Save failed: ' + e.message, 'critical'); })
       .finally(function () { btn.disabled = !lastResults.length; });

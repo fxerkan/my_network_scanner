@@ -135,6 +135,14 @@ class ConfigManager:
             'NAS': {'icon': '💾', 'category': 'storage'},
             'IoT Device': {'icon': '🔗', 'category': 'iot'},
             'Smart Home': {'icon': '🏠', 'category': 'smart_home'},
+            # Radio-only devices surfaced by BLE discovery (no IP). Without these
+            # every AirTag/AirPods/sensor rendered with the ❓ fallback icon.
+            'Bluetooth Device': {'icon': '📶', 'category': 'smart_home'},
+            'Bluetooth Tracker': {'icon': '🏷️', 'category': 'smart_home'},
+            'Headphones': {'icon': '🎧', 'category': 'entertainment'},
+            'Wearable': {'icon': '⌚', 'category': 'mobile'},
+            'Sensor': {'icon': '🌡️', 'category': 'iot'},
+            'Beacon': {'icon': '📍', 'category': 'iot'},
             # Base names for the qualified types the scanner mints at runtime -
             # "Local Machine (Docker)", "Desktop/Laptop (WiFi)". The UI strips
             # the parenthesised qualifier before looking an icon up.

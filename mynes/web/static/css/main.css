@@ -297,6 +297,15 @@
     color: var(--accent-bg);
 }
 
+/* Radio-only devices (BLE) have no IP: show the name/MAC, muted, not clickable. */
+.device-ip--none {
+    font-size: 1em;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: default;
+}
+.device-ip--none:hover { color: var(--text-secondary); }
+
 .device-type {
     font-size: 0.9em;
     color: var(--text-secondary);

@@ -228,6 +228,12 @@ class UnifiedDeviceModel:
         for field in basic_fields:
             if field in legacy_device:
                 unified_device[field] = legacy_device[field]
+
+        # Discovery sweep verisi (BLE/Zigbee radyo cihazları buna dayanır) ve
+        # radyo-only işareti rescan'de kaybolmasın diye taşınır.
+        for field in ("discovery", "discovery_only"):
+            if field in legacy_device:
+                unified_device[field] = legacy_device[field]
         
         # Port'ları dönüştür
         if "open_ports" in legacy_device:
