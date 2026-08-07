@@ -1,4 +1,4 @@
-"""MyNeS - My Network Scanner.
+"""My Network Scanner (MyNeS).
 
 `.env` is loaded here, at package import, so every entry point gets it: the web
 app, `python -m mynes`, the tray icon, and one-off scripts alike. Doing it in a

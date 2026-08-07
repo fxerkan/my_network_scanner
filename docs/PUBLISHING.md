@@ -137,7 +137,7 @@ static host. Users paste the resulting URL into CasaOS → App Store → **Add S
    ```json
    {
      "name": "MyNeS Store",
-     "description": "MyNeS - My Network Scanner",
+     "description": "My Network Scanner (MyNeS)",
      "author": "fxerkan",
      "url": "https://fxerkan.github.io/mynes-casaos-store"
    }
