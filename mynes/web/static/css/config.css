@@ -54,6 +54,21 @@
     display: block;
 }
 
+/* Save actions pinned to the top of each tab so they stay visible on long pages */
+.save-bar {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-3) 0;
+    margin-bottom: var(--space-4);
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border-subtle);
+}
+
 .form-group {
     margin-bottom: var(--space-4);
 }
