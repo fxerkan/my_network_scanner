@@ -197,9 +197,12 @@
             if (!groups.has(e.cidr)) groups.set(e.cidr, { cidr: e.cidr, label: e.label, points: [] });
             groups.get(e.cidr).points.push(e);
         });
-        // A single subnet boxing the whole canvas tells the user nothing they
-        // did not already know - only draw once there is an actual breakdown.
-        if (groups.size < 2) return [];
+        // Draw the boundary even for a single subnet: the CIDR-labelled box is
+        // the only place the graph/topology says which network these devices
+        // are on, and users expect to see that grouping (not just an implicit
+        // "everything is one blob"). It splits automatically once Docker/VLAN
+        // CIDRs appear.
+        if (groups.size < 1) return [];
 
         const PAD = 34;
         return [...groups.values()].map(g => {
@@ -231,7 +234,7 @@
         gets alongside the diagram, from GET /api/topology's `subnets` (or
         GET /api/subnets directly). */
     function subnetPanel(subnetRows) {
-        if (!subnetRows || subnetRows.length < 2) return '';
+        if (!subnetRows || !subnetRows.length) return '';
         const items = subnetRows.map(s => `
             <span class="view-subnets__item${s.known ? '' : ' view-subnets__item--guessed'}"
                   title="${esc(s.known ? tr('subnet_known', 'Detected network') : tr('subnet_guessed', 'Guessed from IP - not a confirmed interface'))}">

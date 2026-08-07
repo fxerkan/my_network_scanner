@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}{{ _('security') if _('security') != 'security' else 'Security' }} · MyNeS{% endblock %}
+
+{% block content %}
+<div class="ds-stack">
+
+  <div class="ds-row">
+    <div>
+      <h1 style="margin-bottom:var(--space-1)">{{ _('security') if _('security') != 'security' else 'Security' }}</h1>
+      <p class="ds-muted" style="margin:0">
+        {{ _('security_page_sub') if _('security_page_sub') != 'security_page_sub'
+           else 'Attack surface and known-CVE exposure across every device — worst first. Curated offline match, not a live feed.' }}
+      </p>
+    </div>
+    <div class="ds-spacer"></div>
+    <button class="ds-btn" id="secRefresh">
+      <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-refresh"/></svg>
+      {{ _('refresh') if _('refresh') != 'refresh' else 'Refresh' }}
+    </button>
+  </div>
+
+  <!-- Summary stats -->
+  <div class="ds-grid ds-grid--stats">
+    <div class="ds-stat"><div class="ds-stat__value" id="secStatDevices">—</div>
+      <div class="ds-stat__label">{{ _('total_devices') if _('total_devices') != 'total_devices' else 'Devices' }}</div></div>
+    <div class="ds-stat ds-stat--warning"><div class="ds-stat__value" id="secStatAtRisk">—</div>
+      <div class="ds-stat__label">{{ _('security_at_risk') if _('security_at_risk') != 'security_at_risk' else 'At risk' }}</div></div>
+    <div class="ds-stat ds-stat--critical"><div class="ds-stat__value" id="secStatFindings">—</div>
+      <div class="ds-stat__label">{{ _('security_findings') if _('security_findings') != 'security_findings' else 'CVE findings' }}</div></div>
+    <div class="ds-stat"><div class="ds-stat__value" id="secStatExposures">—</div>
+      <div class="ds-stat__label">{{ _('security_exposures') if _('security_exposures') != 'security_exposures' else 'Exposures' }}</div></div>
+  </div>
+
+  <!-- Bulk toolbar -->
+  <div class="ds-toolbar" id="secToolbar" style="gap:var(--space-2);flex-wrap:wrap;align-items:center">
+    <label class="ds-check" style="display:inline-flex;gap:6px;align-items:center">
+      <input type="checkbox" id="secSelectAll"> <span id="secSelCount">0 selected</span>
+    </label>
+    <div class="ds-spacer"></div>
+    <button class="ds-btn ds-btn--sm" id="secAck" disabled>
+      <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-check"/></svg> Acknowledge</button>
+    <button class="ds-btn ds-btn--sm" id="secUnack" disabled>Un-acknowledge</button>
+    <button class="ds-btn ds-btn--sm" id="secWatch" disabled>
+      <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-bell"/></svg> Watch &amp; alert</button>
+    <button class="ds-btn ds-btn--sm" id="secExport" disabled>
+      <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-download"/></svg> Export</button>
+    <button class="ds-btn ds-btn--sm ds-btn--primary" id="secRescan" disabled>
+      <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-refresh"/></svg> Re-scan</button>
+  </div>
+
+  <div id="secList" class="ds-stack"></div>
+  <p class="ds-muted" id="secEmpty" hidden>No devices assessed yet. Run a scan first.</p>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/security.js"></script>
+{% endblock %}

@@ -32,6 +32,7 @@ _TIME_RE = re.compile(r'time[=<]([\d.]+)\s*ms', re.I)
 _TTL_RE = re.compile(r'ttl=(\d+)', re.I)
 _HOP_IP_RE = re.compile(r'\b(\d{1,3}(?:\.\d{1,3}){3})\b')
 _HOP_TIME_RE = re.compile(r'([\d.]+)\s*ms')
+_HOP_LINE_RE = re.compile(r'^\s*(\d+)\s+(.*)$')   # a hop line starts with its hop number
 
 
 # ---------------------------------------------------------------------------
@@ -82,17 +83,24 @@ def ping(ip: str, count: int = 4, timeout: float = 1.0) -> dict:
 # ---------------------------------------------------------------------------
 
 def _parse_traceroute(raw: str) -> list:
-    """Pure: traceroute's stdout -> one entry per hop line. A ``* * *`` line
-    (nothing answered that hop) becomes ``{"timed_out": True}``, not a gap."""
+    """Pure: traceroute's/tracert's stdout -> one entry per hop line. A hop line
+    is identified by its leading hop number, so the banner is skipped whether it
+    lands on stdout (Windows tracert) or stderr and never reaches us (macOS/Linux
+    traceroute) - a positional ``[1:]`` skip drops the first real hop in the
+    latter case. A ``* * *`` hop (nothing answered) becomes ``{"timed_out": True}``."""
     hops = []
-    for i, line in enumerate((raw or '').splitlines()[1:], start=1):   # skip the banner
-        ips = _HOP_IP_RE.findall(line)
-        if not ips:
-            if '*' in line:
-                hops.append({'hop': i, 'ip': None, 'rtt_ms': None, 'timed_out': True})
+    for line in (raw or '').splitlines():
+        m = _HOP_LINE_RE.match(line)
+        if not m:
             continue
-        times = [float(t) for t in _HOP_TIME_RE.findall(line)]
-        hops.append({'hop': i, 'ip': ips[0], 'rtt_ms': times[0] if times else None,
+        hop_num, rest = int(m.group(1)), m.group(2)
+        ips = _HOP_IP_RE.findall(rest)
+        if not ips:
+            if '*' in rest:
+                hops.append({'hop': hop_num, 'ip': None, 'rtt_ms': None, 'timed_out': True})
+            continue
+        times = [float(t) for t in _HOP_TIME_RE.findall(rest)]
+        hops.append({'hop': hop_num, 'ip': ips[0], 'rtt_ms': times[0] if times else None,
                      'timed_out': False})
     return hops
 
@@ -187,6 +195,16 @@ def demo():
     assert hops[0] == {'hop': 1, 'ip': '192.168.1.1', 'rtt_ms': 0.512, 'timed_out': False}
     assert hops[1] == {'hop': 2, 'ip': None, 'rtt_ms': None, 'timed_out': True}
     assert hops[2]['ip'] == '192.168.1.10'
+
+    # Real macOS/Linux traceroute puts the banner on stderr, so stdout is hop
+    # lines only. The first hop must survive (a positional skip ate it before).
+    no_banner = " 1  192.168.1.1  1.917 ms\n 2  10.45.128.1  4.935 ms\n"
+    hops2 = _parse_traceroute(no_banner)
+    assert len(hops2) == 2 and hops2[0]['ip'] == '192.168.1.1' and hops2[0]['hop'] == 1
+
+    # One-hop route to the gateway: a single line, still a reachable hop.
+    hops3 = _parse_traceroute(" 1  192.168.1.1  1.403 ms\n")
+    assert hops3 == [{'hop': 1, 'ip': '192.168.1.1', 'rtt_ms': 1.403, 'timed_out': False}]
 
     # A port probe against nothing listening: never raises, empty open list.
     result = port_probe('192.0.2.1', [65535], timeout=0.05)

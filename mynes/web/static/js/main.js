@@ -121,6 +121,12 @@ function sortDevices(devicesArray) {
 
         switch (sortColumn) {
             case 'ip': {
+                // Radio-only devices (BLE) have no IP - keep them grouped after
+                // the IP devices instead of letting NaN scatter them.
+                if (!a.ip || !b.ip) {
+                    if (a.ip === b.ip) return (a.hostname || a.mac || '').localeCompare(b.hostname || b.mac || '');
+                    return a.ip ? -1 : 1;
+                }
                 const aIP = a.ip.split('.').map(num => parseInt(num));
                 const bIP = b.ip.split('.').map(num => parseInt(num));
 
@@ -412,7 +418,9 @@ function displayDevicesCard() {
             <div class="device-header">
                 <div class="device-icon">${getDeviceIcon(device.device_type)}</div>
                 <div class="device-main-info">
-                    <div class="device-ip" onclick="openDevice('${device.ip}')">${device.ip}</div>
+                    ${device.ip
+                        ? `<div class="device-ip" onclick="openDevice('${device.ip}')">${device.ip}</div>`
+                        : `<div class="device-ip device-ip--none" title="${t('discovery_only')}">${device.hostname || device.mac || '—'}</div>`}
                     <div class="device-type">${getTranslatedDeviceType(device.device_type)}</div>
                 </div>
                 <div class="device-status">
@@ -470,9 +478,9 @@ function displayDevicesCard() {
             ` : ''}
 
             <div class="device-actions">
-                <button class="btn btn-primary btn-small" onclick="openEnhancedEditModal('${device.ip}')"><svg class="ds-icon" aria-hidden="true"><use href="#i-wrench"/></svg> ${t('edit')}</button>
-                <button class="btn btn-warning btn-small" onclick="openSingleDeviceAnalysisPage('${device.ip}')" title="${t('detailed_analysis')}" aria-label="${t('detailed_analysis')}"><svg class="ds-icon" aria-hidden="true"><use href="#i-microscope"/></svg> ${t('detailed_analysis')}</button>
-                ${hasEnhancedInfo(device) ? 
+                ${device.ip ? `<button class="btn btn-primary btn-small" onclick="openEnhancedEditModal('${device.ip}')"><svg class="ds-icon" aria-hidden="true"><use href="#i-wrench"/></svg> ${t('edit')}</button>
+                <button class="btn btn-warning btn-small" onclick="openSingleDeviceAnalysisPage('${device.ip}')" title="${t('detailed_analysis')}" aria-label="${t('detailed_analysis')}"><svg class="ds-icon" aria-hidden="true"><use href="#i-microscope"/></svg> ${t('detailed_analysis')}</button>` : ''}
+                ${hasEnhancedInfo(device) ?
                     `<button class="btn btn-success btn-small" onclick="openEnhancedDetailsModal(${JSON.stringify(device).replace(/"/g, '&quot;')})" title="${t('details')}"><svg class="ds-icon" aria-hidden="true"><use href="#i-graph"/></svg> ${t('details')}</button>` : 
                     ''
                 }
@@ -1676,9 +1684,9 @@ function displayDevicesTable() {
         return `
             <tr class="table-row" onclick="selectTableRow(this)">
                 <td class="table-cell">
-                    <div class="ip-cell" onclick="openDevice('${device.ip}'); event.stopPropagation();">
+                    <div class="ip-cell"${device.ip ? ` onclick="openDevice('${device.ip}'); event.stopPropagation();"` : ''}>
                         <span class="device-status ${device.status === 'online' ? 'online' : 'offline'}">${device.status === 'online' ? '🟢' : '🔴'}</span>
-                        ${device.ip}
+                        ${device.ip || `<span class="device-ip--none" title="${t('discovery_only')}">${device.hostname || device.mac || '—'}</span>`}
                     </div>
                 </td>
                 <td class="table-cell">${device.alias || '-'}</td>
@@ -1704,9 +1712,9 @@ function displayDevicesTable() {
                 </td>
                 <td class="table-cell">
                     <div class="device-actions">
-                        <button class="btn btn-primary btn-small" onclick="openEnhancedEditModal('${device.ip}'); event.stopPropagation();" title="${t('edit')}" aria-label="${t('edit')}"><svg class="ds-icon" aria-hidden="true"><use href="#i-wrench"/></svg></button>
-                        <button class="btn btn-warning btn-small" onclick="openSingleDeviceAnalysisPage('${device.ip}'); event.stopPropagation();" title="${t('detailed_analysis')}" aria-label="${t('detailed_analysis')}"><svg class="ds-icon" aria-hidden="true"><use href="#i-microscope"/></svg></button>
-                        ${hasEnhancedInfo(device) ? 
+                        ${device.ip ? `<button class="btn btn-primary btn-small" onclick="openEnhancedEditModal('${device.ip}'); event.stopPropagation();" title="${t('edit')}" aria-label="${t('edit')}"><svg class="ds-icon" aria-hidden="true"><use href="#i-wrench"/></svg></button>
+                        <button class="btn btn-warning btn-small" onclick="openSingleDeviceAnalysisPage('${device.ip}'); event.stopPropagation();" title="${t('detailed_analysis')}" aria-label="${t('detailed_analysis')}"><svg class="ds-icon" aria-hidden="true"><use href="#i-microscope"/></svg></button>` : ''}
+                        ${hasEnhancedInfo(device) ?
                             `<button class="btn btn-success btn-small" onclick="openEnhancedDetailsModal(${JSON.stringify(device).replace(/"/g, '&quot;')}); event.stopPropagation();" title="${t('details')}" aria-label="${t('details')}"><svg class="ds-icon" aria-hidden="true"><use href="#i-graph"/></svg></button>` : 
                             ''
                         }
@@ -2367,8 +2375,9 @@ async function runDeviceDiagnostic(tool) {
 async function runDevicePortProbe() {
     if (!currentEnhancedEditingIp) return;
     const box = document.getElementById('netToolsResult');
-    const ports = (document.getElementById('netToolsPortsInput').value || '')
-        .split(',').map(s => s.trim()).filter(Boolean);
+    const portsEl = document.getElementById('netToolsPortsInput');
+    const ports = ((portsEl.value || portsEl.placeholder || '')
+        .split(',').map(s => s.trim()).filter(Boolean));
     if (!ports.length) { showToast(t('tool_port_probe_ports'), 'error'); return; }
 
     box.innerHTML = `<p class="details-no-data">${t('tool_running')}</p>`;
@@ -2408,7 +2417,9 @@ function renderDiagnosticResult(tool, data) {
     }
     if (tool === 'dns') {
         if (!data.success) {
-            return `<div class="net-tools__summary net-tools__summary--fail">${t('tool_dns_failed')}${data.error ? ': ' + escHtml(data.error) : ''}</div>`;
+            // No PTR record is a normal state for most LAN devices, not a tool
+            // failure - show it as a neutral note so it does not read as broken.
+            return `<div class="net-tools__summary">${t('tool_dns_failed')}</div>`;
         }
         const aliases = (data.aliases || []).filter(a => a && a !== data.hostname);
         return `<div class="net-tools__summary"><strong>${escHtml(data.hostname)}</strong>${aliases.length ? '<br>' + escHtml(aliases.join(', ')) : ''}</div>`;

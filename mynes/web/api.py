@@ -9,8 +9,11 @@ from __future__ import annotations
 
 import ipaddress
 import logging
+import re
 
 from flask import Blueprint, jsonify, request
+
+from mynes.paths import load_local, save_local
 
 from mynes.core import diagnostics
 from mynes.core import subnets as subnets_mod
@@ -56,8 +59,9 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
 
         A sweep on its own is ephemeral - this is what makes it stick. Only
         empty fields are filled: a name the user set by hand always wins.
-        Discovery-only devices (BLE, Zigbee) have no IP and no ARP entry, so
-        they are reported as unmatched rather than invented as devices.
+        Radio-only devices (BLE, Zigbee) have no IP and no ARP entry; they are
+        minted as standalone `discovery_only` entries so AirTags, SmartTags and
+        BLE headphones show up on the Devices page instead of vanishing.
         """
         body = request.get_json(silent=True) or {}
         found = body.get("devices")
@@ -90,9 +94,16 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
 
     @bp.post("/monitoring/run")
     def monitoring_run_now():
-        """Run one scan+diff cycle synchronously and return its summary."""
+        """Run one scan+diff cycle synchronously and return its summary. Also
+        re-checks security watches against the fresh data, so a watched exposure
+        that is still open re-alerts."""
         try:
-            return jsonify(monitor.run_once())
+            result = monitor.run_once()
+            try:
+                result["security_watch_alerts"] = _recheck_watches()
+            except Exception:  # noqa: BLE001 - a watch error must not fail the scan
+                log.exception("security watch re-check failed")
+            return jsonify(result)
         except Exception as e:  # noqa: BLE001
             log.exception("manual monitoring run failed")
             return jsonify({"error": f"{type(e).__name__}: {e}"}), 500
@@ -319,6 +330,132 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
         """Attack-surface overview across every known device, worst first -
         the "what should I fix" view instead of clicking through each one."""
         return jsonify(cve_mod.fleet_summary(_devices()))
+
+    # -- security page: acknowledge / watch / overview --------------------
+    # User state (which findings are accepted, which are watched) lives in the
+    # data dir, never in the tracked config - see load_local's docstring.
+    SECURITY_STATE = "security_state.json"
+
+    def _finding_key(item):
+        """A stable id for a finding across scans: the CVE when we have one,
+        else a slug of the title (the port-based exposures have no CVE)."""
+        if item.get("cve_id"):
+            return item["cve_id"]
+        return "exp:" + re.sub(r"\W+", "-", (item.get("title") or "").lower()).strip("-")
+
+    def _security_state():
+        st = load_local(SECURITY_STATE)
+        st.setdefault("acks", {})     # {ip: [finding_key, ...]}
+        st.setdefault("watches", {})  # {ip: [finding_key, ...]}
+        return st
+
+    def _annotate(fleet, st):
+        """Tag every finding/exposure with its key + acknowledged/watched state
+        and recompute at-risk excluding fully-acknowledged devices."""
+        acks, watches = st["acks"], st["watches"]
+        at_risk = 0
+        for dev in fleet.get("devices", []):
+            ip = dev.get("ip")
+            dev_acks, dev_watch = set(acks.get(ip, [])), set(watches.get(ip, []))
+            active = 0
+            for item in dev.get("findings", []) + dev.get("exposures", []):
+                key = _finding_key(item)
+                item["key"] = key
+                item["acknowledged"] = key in dev_acks
+                item["watched"] = key in dev_watch
+                if not item["acknowledged"]:
+                    active += 1
+            dev["active_count"] = active
+            dev["acknowledged_count"] = (
+                len(dev.get("findings", [])) + len(dev.get("exposures", [])) - active
+            )
+            if active:
+                at_risk += 1
+        fleet["at_risk_count"] = at_risk
+        return fleet
+
+    @bp.get("/security/overview")
+    def security_overview():
+        """Fleet assessment annotated with the user's acknowledge/watch state -
+        the data behind the dedicated Security page."""
+        return jsonify(_annotate(cve_mod.fleet_summary(_devices()), _security_state()))
+
+    @bp.post("/security/acknowledge")
+    def security_acknowledge():
+        """Accept (or un-accept) risk for a set of {ip, key} findings in bulk."""
+        body = request.get_json(silent=True) or {}
+        accepted = bool(body.get("accepted", True))
+        st = _security_state()
+        for it in body.get("items") or []:
+            ip, key = it.get("ip"), it.get("key")
+            if not ip or not key:
+                continue
+            lst = st["acks"].setdefault(ip, [])
+            if accepted and key not in lst:
+                lst.append(key)
+            elif not accepted and key in lst:
+                lst.remove(key)
+            if not lst:
+                st["acks"].pop(ip, None)
+        save_local(SECURITY_STATE, st)
+        return jsonify({"ok": True,
+                        "acknowledged": sum(len(v) for v in st["acks"].values())})
+
+    def _emit_watch_alerts(items):
+        from mynes.monitoring.rules import Alert
+        alerts = [Alert(rule="security_watch", severity=(it.get("severity") or "medium"),
+                        title=it.get("title") or it.get("key"),
+                        message=f"Security watch on {it.get('ip')}: {it.get('title') or it.get('key')}",
+                        ip=it.get("ip")).to_dict()
+                  for it in items if it.get("ip") and it.get("key")]
+        return store.add_alerts(alerts) if alerts else 0
+
+    @bp.post("/security/watch")
+    def security_watch():
+        """Watch (or un-watch) findings: persists the watch and raises an alert
+        now, so it shows on the Alerts page and fires the notification channels.
+        A later scan re-checks watches - see the monitoring/run hook below."""
+        body = request.get_json(silent=True) or {}
+        active = bool(body.get("active", True))
+        items = body.get("items") or []
+        st = _security_state()
+        for it in items:
+            ip, key = it.get("ip"), it.get("key")
+            if not ip or not key:
+                continue
+            lst = st["watches"].setdefault(ip, [])
+            if active and key not in lst:
+                lst.append(key)
+            elif not active and key in lst:
+                lst.remove(key)
+            if not lst:
+                st["watches"].pop(ip, None)
+        save_local(SECURITY_STATE, st)
+        created = _emit_watch_alerts(items) if active else 0
+        return jsonify({"ok": True, "alerts_created": created})
+
+    def _recheck_watches():
+        """Re-alert for any watched finding still present on the latest data -
+        called after a monitoring scan so 'watch' means 'tell me while it lasts'
+        rather than a one-shot. ponytail: re-emits each cycle; dedupe belongs in
+        the alert store if this ever gets noisy."""
+        st = _security_state()
+        if not st["watches"]:
+            return 0
+        by_ip = {d.get("ip"): d for d in _devices()}
+        still = []
+        for ip, keys in st["watches"].items():
+            dev = by_ip.get(ip)
+            if not dev:
+                continue
+            assessment = cve_mod.assess_device(dev)
+            present = {_finding_key(i): i for i in assessment["findings"] + assessment["exposures"]}
+            for key in keys:
+                if key in present:
+                    it = present[key]
+                    still.append({"ip": ip, "key": key, "title": it.get("title"),
+                                  "severity": it.get("severity")})
+        return _emit_watch_alerts(still)
 
     def _known_subnets():
         """Real interface/Docker CIDRs, best-effort - a scan that hasn't run
@@ -565,6 +702,35 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
     return bp, monitor
 
 
+def _discovery_device(row: dict) -> dict:
+    """A radio-only discovery row (BLE/Zigbee - MAC, no IP) as a device entry.
+
+    These never appear in an ARP/nmap sweep, so if discovery doesn't mint them
+    they stay invisible on the Devices page even though the sweep saw them.
+    """
+    from datetime import datetime
+
+    return {
+        "ip": "",
+        "mac": row.get("mac") or "",
+        "hostname": row.get("name") or "",
+        "vendor": row.get("vendor") or "",
+        "device_type": row.get("device_type") or "Bluetooth Device",
+        "status": "online",
+        "last_seen": datetime.now().isoformat(),
+        "alias": "",
+        "notes": "",
+        "open_ports": [],
+        "discovery_only": True,
+        "discovery": {
+            "sources": sorted(set(row.get("sources", []))),
+            "services": sorted(set(row.get("services", []))),
+            "attributes": row.get("attributes", {}),
+            "model": row.get("model"),
+        },
+    }
+
+
 def _apply_discovery(scanner, found: list[dict]) -> dict:
     """Merge discovery rows into scanner.devices. Pure enough to test directly."""
     devices = scanner.get_devices()
@@ -572,11 +738,18 @@ def _apply_discovery(scanner, found: list[dict]) -> dict:
     by_ip = {d.get("ip"): d for d in devices if d.get("ip")}
     by_mac = {d.get("mac", "").lower(): d for d in devices if d.get("mac")}
 
-    updated, unmatched = 0, []
+    updated, new_devices, unmatched = 0, [], []
     for row in found:
         target = by_mac.get((row.get("mac") or "").lower()) or by_ip.get(row.get("ip"))
         if target is None:
-            unmatched.append({k: row.get(k) for k in ("name", "ip", "mac", "sources")})
+            # A radio device with a MAC but no IP becomes a standalone entry;
+            # anything with neither we genuinely can't place, so report it.
+            if row.get("mac") and not row.get("ip"):
+                new_dev = _discovery_device(row)
+                new_devices.append(new_dev)
+                by_mac[new_dev["mac"].lower()] = new_dev
+            else:
+                unmatched.append({k: row.get(k) for k in ("name", "ip", "mac", "sources")})
             continue
 
         changed = False
@@ -598,9 +771,19 @@ def _apply_discovery(scanner, found: list[dict]) -> dict:
             changed = True
         updated += changed
 
-    if updated:
+    # Append to the scanner's own list so the additions actually stick (the
+    # `devices` local can be a fresh copy when the store was empty).
+    if new_devices and isinstance(getattr(scanner, "devices", None), list):
+        scanner.devices.extend(new_devices)
+
+    if updated or new_devices:
         scanner.save_devices()
-    return {"updated": updated, "matched": len(found) - len(unmatched), "unmatched": unmatched}
+    return {
+        "updated": updated,
+        "created": len(new_devices),
+        "matched": len(found) - len(unmatched),
+        "unmatched": unmatched,
+    }
 
 
 def _tray_available() -> bool:
