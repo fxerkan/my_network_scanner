@@ -7,11 +7,25 @@ on the IP network; the merger treats them as standalone entries.
 
 Requires: pip install "mynes[bluetooth]" and OS Bluetooth permission
 (macOS: Terminal needs Bluetooth access in System Settings > Privacy).
+
+In a container this also needs the host's D-Bus system bus socket bind-mounted
+in - see `available()` and deploy/docker-compose.yml. It does NOT need a USB
+dongle passed through: on Linux bleak never touches the adapter directly, it
+asks BlueZ over D-Bus, and BlueZ runs on the host.
 """
 
 from __future__ import annotations
 
+import os
+import stat
+import sys
+
 from mynes.discovery.base import DiscoveredDevice, DiscoveryBackend
+
+# Where D-Bus puts the system bus socket on every mainstream Linux. bleak talks
+# to BlueZ through it; without it the adapter is unreachable no matter how
+# healthy `hciconfig` looks on the host.
+DBUS_SYSTEM_SOCKET = "/run/dbus/system_bus_socket"
 
 # Bluetooth SIG company identifiers seen most often in a home.
 COMPANY_IDS = {
@@ -45,9 +59,66 @@ SERVICE_HINTS = {
 }
 
 
+def _is_socket(path: str) -> bool:
+    """Socket, not merely present.
+
+    Deliberately not os.path.exists: docker creates an empty *directory* at the
+    source of a bind mount that does not exist on the host, so a typo'd or
+    Docker-Desktop-shaped mount leaves a plausible-looking path that can never
+    be connected to. Checking the type turns that into a clear reason.
+    """
+    try:
+        return stat.S_ISSOCK(os.stat(path).st_mode)
+    except OSError:
+        return False
+
+
+def _dbus_system_bus_reachable() -> bool:
+    """Is there a system bus socket to talk to?
+
+    DBUS_SYSTEM_BUS_ADDRESS wins when set, since that is how an operator moves
+    the bus. Its value is a semicolon-separated list of addresses; we can only
+    verify the unix ones, so anything else (tcp:, autolaunch:) is taken on faith
+    rather than reported as broken.
+    """
+    address = os.environ.get("DBUS_SYSTEM_BUS_ADDRESS")
+    if not address:
+        return _is_socket(DBUS_SYSTEM_SOCKET)
+
+    checkable = False
+    for candidate in address.split(";"):
+        for part in candidate.split(","):
+            if part.startswith("unix:path="):
+                checkable = True
+                if _is_socket(part.split("=", 1)[1]):
+                    return True
+    return not checkable
+
+
 class BluetoothBackend(DiscoveryBackend):
     name = "ble"
     requires = ("bleak",)
+
+    def available(self) -> tuple[bool, str]:
+        """(usable?, reason), with the reason an operator can act on.
+
+        bleak imports fine without a reachable bus and only fails once a scan is
+        already running, where the error surfaces as a bare
+        "[Errno 2] No such file or directory". That reported `ble: ok, count 0`
+        - indistinguishable from "scanned, found nothing" - so the missing mount
+        is caught here instead, where /api/capabilities can say so.
+        """
+        ok, reason = super().available()
+        if not ok:
+            return ok, reason
+        # Only Linux routes through D-Bus. macOS uses CoreBluetooth and Windows
+        # WinRT, neither of which has a socket to look for.
+        if sys.platform.startswith("linux") and not _dbus_system_bus_reachable():
+            return False, (
+                f"no D-Bus system bus - bind-mount {DBUS_SYSTEM_SOCKET} "
+                "into the container (host BlueZ is what actually scans)"
+            )
+        return True, "ok"
 
     def discover(self, timeout: float = 8.0) -> list[DiscoveredDevice]:
         import asyncio

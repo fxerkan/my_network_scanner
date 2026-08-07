@@ -1,5 +1,4 @@
 # Container image deps: core + discovery + analysis.
-# Bluetooth (bleak) is omitted - containers have no BLE adapter.
 flask>=3.0
 python-nmap>=0.7
 requests>=2.31
@@ -16,3 +15,11 @@ websocket-client>=1.7
 # Web push: the server half of the alert notifications. Without it the whole
 # feature reports "unsupported" no matter what the browser can do.
 pywebpush>=1.14
+# BLE. This was left out on the assumption that a container has no adapter,
+# which is wrong for the way MyNeS is actually deployed: network_mode: host on a
+# box whose BlueZ is already running. bleak asks BlueZ over D-Bus rather than
+# driving the radio, so the image needs no BlueZ packages and no device
+# passthrough - only the bus socket mounted at run time. Its Linux backend
+# (dbus-fast) ships prebuilt wheels for amd64 and aarch64, so this does not
+# put a compiler in the build.
+bleak>=0.22

@@ -21,6 +21,16 @@ services:
       # :ro would only break the mount without restricting the API anyway.
       # Drop this line if you would rather not expose the Docker API.
       - /var/run/docker.sock:/var/run/docker.sock
+      # Optional, Linux only. Turns on Bluetooth LE discovery - trackers,
+      # sensors, watches and BLE smart-home gear have no IP and cannot be
+      # scanned any other way. bleak reaches the host's BlueZ over the D-Bus
+      # system bus; no USB passthrough and no privileged: true involved, and
+      # the app still runs as the unprivileged `scanner` user.
+      # Not :ro - connecting to a unix socket needs write permission on it.
+      # Uncomment only if the host runs bluetoothd. If the path does not exist
+      # docker silently creates a directory there, and MyNeS will report the
+      # bus as unreachable on the Discovery page rather than guess.
+      # - /run/dbus/system_bus_socket:/run/dbus/system_bus_socket
     environment:
       MYNES_PORT: 5883
       # Set in a .env file next to this compose file. Leave unset to auto-generate.

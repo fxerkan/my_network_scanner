@@ -4,6 +4,36 @@ All notable changes to MyNeS (My Network Scanner) are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- **Bluetooth LE discovery actually works in a container.** The README, the
+  add-on description and the marketplace listings have all promised "including
+  the Zigbee, Z-Wave, Matter and Bluetooth LE ones an IP scan cannot find" since
+  1.3.0, but `deploy/requirements-docker.txt` left `bleak` out on the grounds
+  that "containers have no BLE adapter". That is true of a bridged container and
+  false of the way MyNeS is actually deployed: `network_mode: host` on a box
+  whose `bluetoothd` is already running. bleak does not drive the radio on
+  Linux, it asks BlueZ over the D-Bus system bus — so the image needs no BlueZ
+  packages, no USB passthrough and no `privileged: true`, only the bus socket
+  mounted at run time. The image now ships `bleak`, and the manifests mount
+  `/run/dbus/system_bus_socket`. The app still runs as the unprivileged
+  `scanner` user; BlueZ's default D-Bus policy already allows it.
+
+### Fixed
+
+- **`ble: ok` while finding nothing.** `available()` only checked that `bleak`
+  imports, which says nothing about whether the bus is reachable. A container
+  without the socket therefore reported the backend as healthy with a count of
+  zero — identical to a scan that legitimately found no BLE devices — and the
+  underlying failure surfaced only as a logged `[Errno 2] No such file or
+  directory`. The backend now checks for the system bus up front and reports the
+  mount that is missing, so `/api/capabilities` and the Discovery page name the
+  cause. The check tests for a *socket* rather than mere existence, because
+  docker creates an empty directory at a bind mount whose source is absent,
+  which would otherwise look healthy and fail later.
+
 ## [1.4.0] — 2026-08-04
 
 Everything here came out of installing 1.3.0 from the CasaOS store onto a
