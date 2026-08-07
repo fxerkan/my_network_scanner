@@ -266,6 +266,103 @@ def ssh_banner(ip, port=22, timeout=READ_TIMEOUT):
     return line if line.startswith('SSH-') else None
 
 
+def ftp_banner(ip, port=21, timeout=READ_TIMEOUT):
+    """FTP servers greet first too: ``220 ProFTPD 1.3.6 Server``.
+
+    The whole welcome line is kept, not just the message - it usually names
+    both the daemon and, for the Microsoft/FileZilla ones, the OS.
+    """
+    try:
+        with socket.create_connection((ip, port), timeout=timeout) as sock:
+            sock.settimeout(timeout)
+            line = sock.recv(512).decode('utf-8', 'replace').strip().split('\r\n')[0]
+    except OSError:
+        return None
+    return line if line[:3].isdigit() else None
+
+
+# ---------------------------------------------------------------------------
+# NBNS (NetBIOS Name Service, UDP 137) - the only SMB signal obtainable
+# without a client library, a helper binary, or credentials.
+# ---------------------------------------------------------------------------
+
+def _nbns_encode(name):
+    """First-level NetBIOS encoding: 16 raw bytes -> 32 ASCII A-P nibbles."""
+    padded = (name.upper() + ' ' * 16)[:16].encode('ascii', 'replace')
+    out = bytearray()
+    for byte in padded:
+        out.append(0x41 + (byte >> 4))
+        out.append(0x41 + (byte & 0x0F))
+    return bytes(out)
+
+
+def _nbns_decode(raw):
+    """Reverse of ``_nbns_encode``, best-effort."""
+    try:
+        chars = [chr(b) for b in raw]
+        decoded = bytes(
+            ((ord(chars[i]) - 0x41) << 4) | (ord(chars[i + 1]) - 0x41)
+            for i in range(0, len(chars), 2)
+        )
+        return decoded.decode('ascii', 'replace').strip()
+    except (IndexError, ValueError):
+        return ''
+
+
+def smb_probe(ip, port=137, timeout=READ_TIMEOUT):
+    """NBNS node-status query: the NetBIOS name and workgroup a Windows or
+    Samba box announces itself under, with no auth and no smbclient binary.
+
+    Answers a query for the wildcard name ``*`` with every name the machine
+    holds - the un-suffixed one (0x00) is the computer name, the one ending
+    in the 0x1D/0x1E group suffixes is the workgroup/domain. Machines with
+    NetBIOS disabled (SMB-only, common on recent Windows/Samba) simply do
+    not answer - this degrades to ``None``, same as every other probe here.
+    """
+    import struct
+
+    transaction_id = 0x1337
+    # id, flags=0 (standard query), qdcount=1, ancount=nscount=arcount=0
+    header = struct.pack('>HHHHHH', transaction_id, 0, 1, 0, 0, 0)
+    # length-prefixed encoded name, root label, qtype=NBSTAT(0x21), qclass=IN(1)
+    question = bytes([32]) + _nbns_encode('*') + b'\x00' + struct.pack('>HH', 0x21, 1)
+    packet = header + question
+
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+            sock.settimeout(timeout)
+            sock.sendto(packet, (ip, port))
+            raw, _ = sock.recvfrom(2048)
+    except OSError:
+        return None
+
+    if len(raw) < 57 or raw[:2] != transaction_id.to_bytes(2, 'big'):
+        return None
+
+    try:
+        num_names = raw[56]
+        offset = 57
+        computer_name, workgroup = '', ''
+        for _ in range(num_names):
+            if offset + 18 > len(raw):
+                break
+            entry = raw[offset:offset + 18]
+            raw_name, suffix, flags = entry[:15], entry[15], entry[16]
+            name = raw_name.decode('ascii', 'replace').strip()
+            is_group = bool(flags & 0x80)
+            if suffix == 0x00 and not is_group and not computer_name:
+                computer_name = name
+            elif suffix in (0x1D, 0x1E) or (suffix == 0x00 and is_group):
+                workgroup = workgroup or name
+            offset += 18
+    except (IndexError, ValueError):
+        return None
+
+    if not computer_name and not workgroup:
+        return None
+    return {'netbios_name': computer_name, 'workgroup': workgroup}
+
+
 def gather(ip, open_ports=None, vendor='', hostname='', is_gateway=False,
            deep=True):
     """Collect every signal we can get about one host.
@@ -287,6 +384,8 @@ def gather(ip, open_ports=None, vendor='', hostname='', is_gateway=False,
         'rtsp': None,
         'http': [],
         'ssh': None,
+        'ftp': None,
+        'smb': None,
     }
     if not deep:
         return signals
@@ -302,6 +401,12 @@ def gather(ip, open_ports=None, vendor='', hostname='', is_gateway=False,
     if 22 in open_ports:
         signals['ssh'] = ssh_banner(ip)
 
+    if 21 in open_ports:
+        signals['ftp'] = ftp_banner(ip)
+
+    if 445 in open_ports or 139 in open_ports:
+        signals['smb'] = smb_probe(ip)
+
     return signals
 
 
@@ -312,12 +417,14 @@ def gather(ip, open_ports=None, vendor='', hostname='', is_gateway=False,
 def _corpus(signals):
     """Every piece of text we know about the device, lowercased, in one blob."""
     parts = [signals.get('hostname', ''), signals.get('vendor', ''),
-             signals.get('ssh') or '']
+             signals.get('ssh') or '', signals.get('ftp') or '']
     rtsp = signals.get('rtsp') or {}
     parts += [rtsp.get('server', ''), rtsp.get('realm', '')]
     onvif = signals.get('onvif') or {}
     parts += [onvif.get('name') or '', onvif.get('model') or '',
               onvif.get('vendor') or '']
+    smb = signals.get('smb') or {}
+    parts += [smb.get('netbios_name') or '', smb.get('workgroup') or '']
     for banner in signals.get('http') or []:
         parts += [banner.get('server', ''), banner.get('title', ''),
                   banner.get('realm', ''), banner.get('powered_by', '')]
@@ -410,6 +517,8 @@ def classify(signals):
     if _has(vendor, IOT_VENDORS):
         return verdict('IoT Device', 0.65, 'IoT vendor OUI')
 
+    if signals.get('smb'):
+        return verdict('Desktop', 0.65, 'NetBIOS/SMB computer name')
     if 445 in ports or 139 in ports:
         return verdict('Desktop', 0.55, 'SMB')
 
@@ -486,6 +595,12 @@ def suggest_name(signals, device_type='Unknown'):
     hostname = (signals.get('hostname') or '').strip()
     if hostname and not _is_ipish(hostname):
         return _NOISE.sub('', hostname).strip('.') or hostname
+
+    # Reverse DNS is often blank on a home LAN, but a Windows/Samba box still
+    # announces its real computer name over NetBIOS - the best name for it.
+    smb_name = (signals.get('smb') or {}).get('netbios_name') or ''
+    if smb_name and not _is_ipish(smb_name):
+        return smb_name
 
     # A camera's RTSP or HTTP realm is usually its configured device name.
     rtsp = signals.get('rtsp') or {}
@@ -652,6 +767,25 @@ def demo():
              'vendor': 'Beijing Xiaomi Mobile Software Co., Ltd',
              'is_gateway': False, 'rtsp': None, 'http': [], 'ssh': None}
     assert classify(phone)['device_type'] == 'Smartphone', classify(phone)
+
+    # A Windows/Samba box with no reverse DNS still names itself over NetBIOS -
+    # that beats guessing "Desktop 40" from vendor and IP alone.
+    smb_host = {'ip': '192.168.1.40', 'open_ports': [445], 'vendor': '',
+                'hostname': '', 'is_gateway': False, 'rtsp': None, 'ssh': None,
+                'http': [], 'smb': {'netbios_name': 'FAMILY-PC', 'workgroup': 'WORKGROUP'}}
+    assert classify(smb_host)['device_type'] == 'Desktop', classify(smb_host)
+    assert suggest_name(smb_host, 'Desktop') == 'FAMILY-PC'
+
+    # SMB/FTP banner text reaches the classifier's corpus, closing the gap
+    # where a NAS's real identity only ever showed up over those services.
+    nas_over_ftp = dict(pi, vendor='', open_ports=[21], ftp='220 DiskStation FTP server ready')
+    assert classify(nas_over_ftp)['device_type'] == 'NAS', classify(nas_over_ftp)
+
+    # NBNS encode/decode round-trips: the wire format is 32 ASCII nibbles for
+    # 16 raw bytes, first-level encoded.
+    encoded = _nbns_encode('FAMILY-PC')
+    assert len(encoded) == 32 and encoded.isupper()
+    assert _nbns_decode(encoded) == 'FAMILY-PC'
 
     print('fingerprint: OK')
     return True

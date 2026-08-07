@@ -21,6 +21,9 @@
 
             <!-- Genel Ayarlar -->
             <div id="general" class="tab-content active">
+                <div class="save-bar">
+                    <button class="btn" onclick="saveGeneralSettings()"><svg class="ds-icon" aria-hidden="true"><use href="#i-download"/></svg>{{ _('save_general_settings') }}</button>
+                </div>
                 <div class="grid">
                   <div class="grid-col">
                     <div class="card">
@@ -96,13 +99,16 @@
                     </div>
                   </div>
                 </div>
-                <div style="margin-top: 20px;">
-                    <button class="btn" onclick="saveGeneralSettings()"><svg class="ds-icon" aria-hidden="true"><use href="#i-download"/></svg>{{ _('save_general_settings') }}</button>
-                </div>
             </div>
 
             <!-- OUI Database -->
             <div id="oui" class="tab-content">
+                <div class="save-bar">
+                    <button class="btn" onclick="saveOuiDatabase()">{{ _('save_oui_database') }}</button>
+                    <button class="btn btn-secondary" onclick="exportOuiDatabase()" style="margin-left: 10px;">{{ _('export') }}</button>
+                    <input type="file" id="ouiImportFile" accept=".json" style="display: none;" onchange="importOuiDatabase()">
+                    <button class="btn btn-secondary" onclick="document.getElementById('ouiImportFile').click()" style="margin-left: 10px;">{{ _('import') }}</button>
+                </div>
                 <div class="card">
                     <h3 class="card-title"><svg class="ds-icon" aria-hidden="true"><use href="#i-router"/></svg>OUI (Organizationally Unique Identifier)</h3>
                     <p class="card-hint">{{ _('oui_description') }}</p>
@@ -144,18 +150,14 @@
                             <div class="oui-pager" id="ouiPager"></div>
                         </div>
                     </div>
-                    
-                    <div style="margin-top: 20px;">
-                        <button class="btn" onclick="saveOuiDatabase()">{{ _('save_oui_database') }}</button>
-                        <button class="btn btn-secondary" onclick="exportOuiDatabase()" style="margin-left: 10px;">{{ _('export') }}</button>
-                        <input type="file" id="ouiImportFile" accept=".json" style="display: none;" onchange="importOuiDatabase()">
-                        <button class="btn btn-secondary" onclick="document.getElementById('ouiImportFile').click()" style="margin-left: 10px;">{{ _('import') }}</button>
-                    </div>
                 </div>
             </div>
 
             <!-- Cihaz Tipleri -->
             <div id="devices" class="tab-content">
+                <div class="save-bar">
+                    <button class="btn" onclick="saveDeviceTypes()">{{ _('save_device_types') }}</button>
+                </div>
                 <div class="card">
                     <h3 class="card-title"><svg class="ds-icon" aria-hidden="true"><use href="#i-cpu"/></svg>{{ _('device_types') }}</h3>
                     <p style="margin-bottom: 20px; color: var(--text-secondary);">
@@ -207,15 +209,14 @@
                             <div id="deviceTypesList" class="device-types-grid"></div>
                         </div>
                     </div>
-                    
-                    <div style="margin-top: 20px;">
-                        <button class="btn" onclick="saveDeviceTypes()">{{ _('save_device_types') }}</button>
-                    </div>
                 </div>
             </div>
 
             <!-- Tanıma Kuralları -->
             <div id="detection" class="tab-content">
+                <div class="save-bar">
+                    <button class="btn" onclick="saveDetectionRules()"><svg class="ds-icon" aria-hidden="true"><use href="#i-download"/></svg>{{ _('save_detection_rules') }}</button>
+                </div>
                 <div class="card" style="margin-bottom: var(--space-4);">
                     <h3 class="card-title"><svg class="ds-icon" aria-hidden="true"><use href="#i-search"/></svg>{{ _('combined_rules') }}</h3>
                     <p style="margin-bottom: 15px; color: var(--text-secondary);">
@@ -277,10 +278,6 @@
                         
                         <div class="pattern-list" id="vendorPatterns"></div>
                     </div>
-                </div>
-                
-                <div style="margin-top: 20px;">
-                    <button class="btn" onclick="saveDetectionRules()"><svg class="ds-icon" aria-hidden="true"><use href="#i-download"/></svg>{{ _('save_detection_rules') }}</button>
                 </div>
             </div>
 

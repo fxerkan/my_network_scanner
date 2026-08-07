@@ -25,7 +25,7 @@ logging.getLogger("scapy").setLevel(logging.ERROR)
 import nmap
 # import netifaces  # Use network_utils instead for Docker compatibility
 from mynes.core.network import get_network_interfaces, get_default_gateway, get_local_ip_ranges, get_host_network_ranges, is_docker_environment
-from mynes.analysis import fingerprint
+from mynes.analysis import fingerprint, os_detect
 import json
 import socket
 import re
@@ -1128,11 +1128,24 @@ class LANScanner:
             'rtsp': signals.get('rtsp'),
             'http': signals.get('http'),
             'ssh': signals.get('ssh'),
+            'ftp': signals.get('ftp'),
+            'smb': signals.get('smb'),
             'is_gateway': signals.get('is_gateway', False),
             'reasons': fingerprint.classify(signals).get('reasons', []),
         }
         if signals.get('rtsp'):
             device_info['stream_url'] = signals['rtsp']['url']
+
+        # OS family and WiFi-vs-wired are both best-effort guesses, never
+        # claimed as measured fact - see mynes/analysis/os_detect.py. A ping
+        # TTL from an earlier detailed analysis sharpens the OS guess when
+        # nothing else named it; a fresh basic scan has none yet, which is
+        # fine, the banner-based signals above already cover most devices.
+        ttl_hint = ((existing_device.get('enhanced_info') or {})
+                    .get('ping_analysis', {}) or {}).get('ttl')
+        device_info['os_guess'] = os_detect.guess_os(signals, ttl=ttl_hint)
+        device_info['connection_medium'] = os_detect.guess_connection_medium(
+            device_type, vendor, signals)
 
         # Auto-name. A name the *user* typed is never touched; a name we
         # generated earlier is refreshed, because a later scan knows more.
@@ -1244,7 +1257,10 @@ class LANScanner:
                     for device in old_devices:
                         mac = device.get('mac', '').lower()
                         ip = device.get('ip', '')
-                        if mac and ip:
+                        # IP is optional: BLE/Zigbee devices are keyed by MAC
+                        # alone (mac@) and must survive a rescan too, or every
+                        # network scan would silently drop every AirTag/tracker.
+                        if mac:
                             # MAC+IP kombinasyonu anahtarı
                             device_key = f"{mac}@{ip}"
                             # Legacy format'tan unified format'a migrate et
@@ -1285,17 +1301,21 @@ class LANScanner:
         local_interfaces = self.get_local_machine_interfaces()
         local_hostname = self.get_local_machine_hostname()
         
-        # Yerel interface'leri ARP sonuçlarına ekle
+        # Yerel interface'leri ARP sonuçlarına ekle. ARP taraması host'un kendi
+        # IP'sini bulmuş olsa bile onu local_interface olarak işaretle - yoksa
+        # uygulamanın çalıştığı Macbook, jenerik bir cihaz gibi (veya hiç)
+        # görünüyordu. Böylece hep "kafein-mbp-erkan (WiFi)" / Laptop olur.
+        by_ip = {d['ip']: d for d in arp_devices}
         for interface in local_interfaces:
-            # Bu IP zaten ARP taramasında bulunmuş mu kontrol et
-            ip_found = False
-            for arp_device in arp_devices:
-                if arp_device['ip'] == interface['ip']:
-                    ip_found = True
-                    break
-            
-            if not ip_found:
-                # Yerel makine IP'sini ekle
+            existing = by_ip.get(interface['ip'])
+            if existing is not None:
+                existing['local_interface'] = True
+                existing['interface_name'] = interface['interface']
+                existing['interface_type'] = interface['type']
+                if not existing.get('mac') or existing['mac'] in ('Unknown', 'N/A', ''):
+                    existing['mac'] = interface['mac']
+                print(f"🖥️ Yerel makine ARP'de bulundu, işaretlendi: {interface['ip']} ({interface['interface']})")
+            else:
                 arp_devices.append({
                     'ip': interface['ip'],
                     'mac': interface['mac'],
@@ -1400,8 +1420,12 @@ class LANScanner:
                 )
                 
                 if should_preserve:
-                    # Cihazı çevrimdışı olarak işaretle ve ekle
-                    unified_device['status'] = 'offline'
+                    # Cihazı çevrimdışı olarak işaretle ve ekle. Radyo-only
+                    # (BLE) cihazlar ağ taramasında hiç görünmez, bu yüzden
+                    # onları offline'a çevirmek yanıltıcı olur - durumlarını
+                    # son keşifteki haliyle koru.
+                    if not unified_device.get('discovery_only'):
+                        unified_device['status'] = 'offline'
                     unified_device['last_seen'] = unified_device.get('last_seen', datetime.now().isoformat())
                     self.devices.append(unified_device)
                     preserved_count += 1
@@ -1684,8 +1708,38 @@ class LANScanner:
                 return True
         return False
     
+    @staticmethod
+    def _dedupe_by_mac_ip(devices):
+        """Collapse records sharing the same MAC *and* IP - that pair is one
+        device. (MAC alone is not safe: a dual-homed host shows one MAC on two
+        IPs, so keying on MAC would wrongly merge its interfaces.) Keeps the
+        freshest record and backfills empty fields from the ones it replaces, so
+        a later scan that lost a hostname does not erase an earlier one. The
+        per-scan cleanup already does this; running it here too means duplicates
+        can never reach the UI no matter how they entered self.devices - legacy
+        migration and raw JSON loads both appended without deduping."""
+        merged, order = {}, []
+        for i, d in enumerate(devices):
+            mac = (d.get('mac') or '').lower()
+            ip = d.get('ip') or ''
+            key = f"{mac}@{ip}" if (mac or ip) else f"__noid_{i}"
+            if key not in merged:
+                merged[key] = d
+                order.append(key)
+            else:
+                keep, drop = merged[key], d
+                if (drop.get('last_seen') or '') > (keep.get('last_seen') or ''):
+                    keep, drop = drop, keep
+                for k, v in drop.items():
+                    if v and not keep.get(k):
+                        keep[k] = v
+                merged[key] = keep
+        return [merged[k] for k in order]
+
     def get_devices(self):
-        """Tüm cihazları döndürür"""
+        """Tüm cihazları döndürür. Dedup is idempotent, so cleaning on every
+        read is cheap and also persists to disk on the next save."""
+        self.devices = self._dedupe_by_mac_ip(self.devices)
         return self.devices
     
     def get_config_manager(self):

@@ -297,6 +297,15 @@
     color: var(--accent-bg);
 }
 
+/* Radio-only devices (BLE) have no IP: show the name/MAC, muted, not clickable. */
+.device-ip--none {
+    font-size: 1em;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: default;
+}
+.device-ip--none:hover { color: var(--text-secondary); }
+
 .device-type {
     font-size: 0.9em;
     color: var(--text-secondary);
@@ -1569,6 +1578,65 @@
     border-radius: 8px;
     padding: 15px;
     margin-top: 15px;
+}
+
+/* Network Tools / Security tabs - on-demand ping/traceroute/DNS/port-probe
+   and curated CVE pattern matching, see core/diagnostics.py, security/cve.py */
+.net-tools {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.net-tools__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 15px;
+    background: var(--bg-surface-sunken);
+    border-radius: 8px;
+    border: 1px solid var(--border-subtle);
+}
+
+.net-tools__result {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    padding: 15px;
+    min-height: 60px;
+}
+
+.net-tools__summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+}
+
+.net-tools__summary--fail {
+    color: var(--severity-critical-fg);
+}
+
+.net-tools__result .ds-disclosure {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-subtle);
+}
+
+.net-tools__result .ds-disclosure summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.net-tools__result .ds-disclosure p {
+    margin: 8px 0 0;
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
 }
 
 /* System and Hardware Info */

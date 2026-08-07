@@ -1179,7 +1179,7 @@ async function loadDockerStatus() {
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <span style="font-size: 1.5em;">✅</span>
                         <div>
-                            <strong>Docker Aktif</strong>
+                            <strong>${t('docker_active')}</strong>
                             <div style="font-size: 0.9em; opacity: 0.8;">
                                 ${data.networks_count} ${t('docker_networks')}, ${data.containers_count} ${t('docker_containers')}, ${data.scan_ranges_count} ${t('scan_ranges')}
                             </div>
@@ -1189,11 +1189,11 @@ async function loadDockerStatus() {
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
                     <div class="stat-item">
                         <div class="stat-number">${data.networks_count}</div>
-                        <div class="stat-label">Docker Networks</div>
+                        <div class="stat-label">${t('docker_networks')}</div>
                     </div>
                     <div class="stat-item">
                         <div class="stat-number">${data.containers_count}</div>
-                        <div class="stat-label">Aktif Containers</div>
+                        <div class="stat-label">${t('active_containers')}</div>
                     </div>
                     <div class="stat-item">
                         <div class="stat-number">${data.scan_ranges_count}</div>
@@ -1201,7 +1201,7 @@ async function loadDockerStatus() {
                     </div>
                     <div class="stat-item">
                         <div class="stat-number">${data.socket_available ? '✅' : '❌'}</div>
-                        <div class="stat-label">Socket Access</div>
+                        <div class="stat-label">${t('socket_access')}</div>
                     </div>
                 </div>
             `;
@@ -1436,12 +1436,12 @@ async function loadDockerScanRanges() {
                             </div>
                             ${range.gateway ? `<div style="font-size: 0.9em; color: var(--text-tertiary); margin-bottom: 5px;"><strong>Gateway:</strong> ${range.gateway}</div>` : ''}
                             <div style="font-size: 0.9em; color: var(--text-tertiary);">
-                                <strong>Containers:</strong> ${range.container_count} adet
+                                <strong>${t('docker_containers')}:</strong> ${range.container_count} ${t('unit_count')}
                             </div>
                         </div>
                         <div>
                             <button class="btn btn-small" onclick="addToScanRange('${range.scan_range}', '${range.network_name}')" style="background: #28a745; color: white;">
-                                ➕ Taramaya Ekle
+                                ➕ ${t('add_to_scan_range')}
                             </button>
                         </div>
                     </div>

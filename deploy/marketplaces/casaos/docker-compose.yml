@@ -149,7 +149,7 @@ x-casaos:
   category: Network
   store_app_id: mynes
   title:
-    en_US: MyNeS - My Network Scanner
+    en_US: My Network Scanner (MyNeS)
     tr_TR: MyNeS - Ağ Tarayıcım
   tagline:
     en_US: See every device on your home network - including the ones an IP scan cannot find.

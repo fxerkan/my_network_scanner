@@ -8,7 +8,7 @@
 
        gh pr create --repo coollabsio/coolify --base next \
          --head fxerkan:add-mynes-template \
-         --title "feat(templates): add MyNeS - My Network Scanner" \
+         --title "feat(templates): add My Network Scanner (MyNeS)" \
          --body-file docs/coolify-pr-body.md
 
      Delete this comment block first.

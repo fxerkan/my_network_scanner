@@ -361,6 +361,47 @@ def alerts_page():
     return render_template('alerts.html', active_page='alerts')
 
 
+@app.route('/security')
+def security_page():
+    """Fleet-wide CVE/attack-surface overview with bulk acknowledge/watch/
+    export/re-scan. The per-device data comes from /api/security/overview."""
+    return render_template('security.html', active_page='security')
+
+
+@app.route('/api/security/rescan', methods=['POST'])
+def security_rescan():
+    """Re-fingerprint a set of devices so their CVE/exposure assessment is
+    fresh. Reuses the single-device detailed-analysis worker, one device after
+    another in a single background thread (the analysis machinery is guarded to
+    one run at a time)."""
+    global detailed_analysis_thread, background_analysis
+    ips = (request.get_json(silent=True) or {}).get('ips') or []
+    known = {d['ip'] for d in scanner.get_devices()}
+    ips = [ip for ip in ips if ip in known]
+    if not ips:
+        return jsonify({"error": "no known devices to re-scan"}), 400
+    if background_analysis.get("status") == "analyzing" or (
+            detailed_analysis_thread and detailed_analysis_thread.is_alive()):
+        return jsonify({"error": "analysis already running"}), 409
+
+    def _run(targets):
+        global background_analysis
+        background_analysis["status"] = "analyzing"
+        try:
+            for ip in targets:
+                scanner.perform_single_device_detailed_analysis(ip, detailed_analysis_callback)
+            background_analysis["status"] = "completed"
+            background_analysis["message"] = f"Re-scan complete: {len(targets)} device(s)"
+        except Exception as e:  # noqa: BLE001
+            background_analysis["status"] = "error"
+            background_analysis["message"] = f"Re-scan error: {e}"
+
+    thread = threading.Thread(target=_run, args=(ips,), daemon=True)
+    thread.start()
+    detailed_analysis_thread = thread
+    return jsonify({"message": f"Re-scan started for {len(ips)} device(s)", "ips": ips})
+
+
 @app.route('/')
 def index():
     """Ana sayfa"""
@@ -932,7 +973,7 @@ def save_settings():
         for key, value in data.items():
             config_manager.config[key] = value
         
-        config_manager.save_settings()
+        config_manager.save_config()
         scanner.load_config_settings()  # Ayarları yeniden yükle
         
         return jsonify({"success": True, "message": "Ayarlar kaydedildi"})

@@ -427,6 +427,26 @@
 }
 /* ---------- per-device availability strip ----------
    One cell per scheduled scan, newest on the right. */
+.uptime-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+    margin: var(--space-3) 0 var(--space-4);
+}
+.uptime-filters__field {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+}
+.uptime-filters__field select {
+    padding: var(--space-1) var(--space-2);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    background: var(--bg-surface);
+    color: var(--text-primary);
+}
 .uptime-list { display: grid; gap: var(--space-2); }
 
 .uptime-row {

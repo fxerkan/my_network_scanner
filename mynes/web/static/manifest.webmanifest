@@ -1,5 +1,5 @@
 {
-  "name": "MyNeS - My Network Scanner",
+  "name": "My Network Scanner (MyNeS)",
   "short_name": "MyNeS",
   "description": "Discover, monitor and get alerted about every device on your home network.",
   "start_url": "/",

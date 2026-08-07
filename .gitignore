@@ -275,6 +275,7 @@ device_backup_*
 config/.salt
 config/.key_info
 config/.master_password
+config/.secret_key
 config/*.key
 .env
 

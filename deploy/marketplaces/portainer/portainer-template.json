@@ -4,7 +4,7 @@
     {
       "id": 1,
       "type": 3,
-      "title": "MyNeS - My Network Scanner",
+      "title": "My Network Scanner (MyNeS)",
       "name": "mynes",
       "description": "Discovers, identifies and monitors every device on your home network - including the ones an IP scan cannot see. Speaks ARP, mDNS/Bonjour, SSDP/UPnP, Matter, Bluetooth LE and MQTT, so Zigbee2MQTT bulbs, Z-Wave JS sensors, BLE trackers and Tasmota nodes appear next to your servers and phones. Vendor lookup over a 1000+ entry OUI database, topology and graph views, scan history, rule-based alerts by Web Push / webhook / e-mail, and two-way Home Assistant integration. No cloud, no account, no telemetry.",
       "note": "Deployed as a Compose stack because it needs host networking plus NET_ADMIN/NET_RAW - raw ARP frames and mDNS/SSDP multicast do not cross a bridge network. It does not run as root and is not privileged. Without those capabilities it degrades to a ping sweep and finds fewer devices rather than failing. Open http://&lt;host-ip&gt;:5883 after deploy. Only scan networks you own.",

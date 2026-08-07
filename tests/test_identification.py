@@ -4,13 +4,30 @@ Every assert here corresponds to something this scanner actually got wrong on
 a real home LAN, so they are regression tests rather than illustrations.
 """
 
-from mynes.analysis import fingerprint
-from mynes.core import models, topology
+from mynes.analysis import fingerprint, os_detect
+from mynes.core import diagnostics, models, subnets, topology
 from mynes.discovery import onvif
+from mynes.security import cve
 
 
 def test_fingerprint_self_check():
     fingerprint.demo()
+
+
+def test_os_detect_self_check():
+    os_detect.demo()
+
+
+def test_subnets_self_check():
+    subnets.demo()
+
+
+def test_diagnostics_self_check():
+    diagnostics.demo()
+
+
+def test_cve_self_check():
+    cve.demo()
 
 
 def test_onvif_self_check():
