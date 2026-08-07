@@ -15,6 +15,10 @@ startup: application
 boot: auto
 # ARP / mDNS / SSDP discovery only works from the host network namespace.
 host_network: true
+# Mounts the host's D-Bus system bus at /run/dbus, which is how bleak reaches
+# BlueZ for Bluetooth LE discovery. The supervisor option exists precisely for
+# this, so no USB passthrough and no `privileged: SYS_ADMIN` are needed.
+host_dbus: true
 privileged:
   - NET_ADMIN
   - NET_RAW

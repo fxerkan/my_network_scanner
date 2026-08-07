@@ -38,6 +38,8 @@ services:
     volumes:
       - ./data:/app/data
       - ./config:/app/config
+      # Optional, Linux only — turns on Bluetooth LE discovery.
+      - /run/dbus/system_bus_socket:/run/dbus/system_bus_socket
     environment:
       MYNES_PORT: 5883
       MYNES_PASSWORD: ""        # auto-generated on first start if empty
@@ -116,6 +118,7 @@ namespace — from a bridge network it can only see the bridge, not the LAN.
 | **Far fewer devices than expected** | Open `GET /api/capabilities` — it lists exactly which protocol backends and privileges are missing, and why. That is the first thing to read, always. |
 | **Running Docker Desktop (macOS/Windows)** | Host networking is not fully supported there. Drop `network_mode: host`, use `ports: ["5883:5883"]`, and accept reduced discovery. |
 | **No Zigbee / Z-Wave devices** | Set `MYNES_MQTT_HOST` (plus username/password) to your broker. Those devices have no IP; MQTT is the only way to see them. |
+| **No Bluetooth LE devices** | Mount `/run/dbus/system_bus_socket` into the container and make sure `bluetoothd` is running on the host. MyNeS scans BLE *through* the host's BlueZ, so it needs no USB passthrough and no privileged mode — but without that socket it cannot reach the adapter, and `/api/capabilities` will say so. Linux only: Docker Desktop VMs have no Bluetooth stack to borrow. |
 | **Port 5883 already taken** | Set `MYNES_PORT` to something else. |
 | **Is it alive?** | The image ships a health check against `GET /api/version`. |
 

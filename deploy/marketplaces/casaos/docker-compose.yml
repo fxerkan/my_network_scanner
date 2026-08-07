@@ -37,6 +37,14 @@ services:
       - type: bind
         source: /var/run/docker.sock
         target: /var/run/docker.sock
+      # Bluetooth LE discovery. bleak reaches the host's BlueZ over the D-Bus
+      # system bus, so this needs no USB passthrough and no privileged: true,
+      # and the app still runs as the unprivileged `scanner` user. Harmless on a
+      # host with no bluetoothd - MyNeS reports the bus as unreachable on the
+      # Discovery page instead of failing the scan.
+      - type: bind
+        source: /run/dbus/system_bus_socket
+        target: /run/dbus/system_bus_socket
     deploy:
       resources:
         reservations:
@@ -99,6 +107,10 @@ services:
           description:
             en_US: Optional. Lets MyNeS name your containers and the docker networks behind the br-* bridges. Remove it to keep the Docker API out of MyNeS.
             tr_TR: İsteğe bağlı. MyNeS'in container'larınızı ve br-* köprülerinin arkasındaki docker ağlarını isimlendirmesini sağlar. Docker API'sini MyNeS'ten uzak tutmak için kaldırabilirsiniz.
+        - container: /run/dbus/system_bus_socket
+          description:
+            en_US: Optional. Enables Bluetooth LE discovery through the host's BlueZ - trackers, sensors, watches and BLE smart-home gear have no IP and cannot be found any other way. Remove it to disable BLE.
+            tr_TR: İsteğe bağlı. Ana makinenin BlueZ servisi üzerinden Bluetooth LE keşfini etkinleştirir - takip cihazları, sensörler, saatler ve BLE akıllı ev cihazlarının IP adresi yoktur ve başka türlü bulunamaz. BLE'yi devre dışı bırakmak için kaldırabilirsiniz.
 x-casaos:
   id: io.github.fxerkan.mynes
   version: "1.4.0"

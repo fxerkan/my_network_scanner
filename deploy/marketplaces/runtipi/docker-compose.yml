@@ -21,6 +21,11 @@ services:
       # Optional: names your containers and the docker networks behind the
       # br-* bridges. Remove it to keep the Docker API out of MyNeS.
       - /var/run/docker.sock:/var/run/docker.sock
+      # Bluetooth LE discovery: bleak reaches the host's BlueZ over the D-Bus
+      # system bus, so no USB passthrough and no privileged mode - the app still
+      # runs unprivileged. Harmless if the host has no bluetoothd: MyNeS reports
+      # the bus as unreachable instead of failing. Remove to disable BLE.
+      - /run/dbus/system_bus_socket:/run/dbus/system_bus_socket
     labels:
       traefik.enable: ${APP_EXPOSED}
       traefik.http.middlewares.mynes-web-redirect.redirectscheme.scheme: https
