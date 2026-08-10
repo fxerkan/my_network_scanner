@@ -17,9 +17,10 @@ jobs:
           python-version: "3.11"
           cache: pip
 
-      # nmap is optional at runtime; installing it lets the tests that touch it run.
-      - name: Install nmap
-        run: sudo apt-get update && sudo apt-get install -y nmap
+      # nmap: optional at runtime, but installed so the tests that touch it run.
+      # xvfb: the tray tests import pystray, whose Xlib backend needs a display.
+      - name: Install system deps
+        run: sudo apt-get update && sudo apt-get install -y nmap xvfb
 
       - name: Install package
         run: pip install -e ".[all,dev]"
@@ -28,4 +29,4 @@ jobs:
         run: ruff check mynes/ || true
 
       - name: Test
-        run: pytest tests/ -q
+        run: xvfb-run -a pytest tests/ -q
