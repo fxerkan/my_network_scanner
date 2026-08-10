@@ -8,6 +8,42 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [1.4.4] — 2026-08-11
 
+### Fixed
+
+- **Enhanced-analysis results now persist**, so the green **Details** button
+  reliably appears after a Detailed Analysis. The analysis ran for minutes while
+  holding a device reference; a scan that rebuilt the device list in the meantime
+  orphaned it, so the write never reached disk. `apply_enhanced_analysis()` now
+  re-locates the *live* device (mac@ip → mac → ip) and writes + saves atomically
+  under a lock, and every rescan restores enhanced data by MAC so the dual-homed
+  IP/MAC flap can't drop it.
+- **The device card auto-refreshes when analysis completes** — no page reload or
+  app restart. `refreshDevicesAfterAnalysis()` runs immediately on completion,
+  independent of the (possibly minimized/closed) modal: a full list refresh, then
+  a `/device/<ip>` fallback that injects the enhanced payload and re-renders, with
+  one retry.
+- **Completion is now actually signalled.** A `ReferenceError`
+  (`currentAnalysisIP is not defined`) had been aborting the completion handler,
+  so there was no toast, no results, no button. The analysis toaster now turns
+  green on success / red on error, a completion notification fires, and a failed
+  analysis is surfaced instead of silently swallowed.
+- **IP/MAC "changed" alert spam** for a dual-homed host (a Pi with Ethernet and
+  Wi-Fi on the same L2, whose IP↔MAC mapping flaps every scan) is suppressed by
+  a self-learning known-pairs memory: the first sighting of a new pairing alerts,
+  repeats stay quiet, and a genuinely new IP/MAC still fires. No device, IP or
+  MAC is hardcoded.
+
+### Changed
+
+- **Port scan reports the range it is on.** The scan runs range by range as
+  separate nmap calls (`fast` = 1–1024, `common` = 1–10000, `full` = all 65535),
+  so the live log advances (`scanning 5001-10000…`) instead of freezing on one
+  message for minutes. The redundant per-poll "Port tarama devam ediyor" log spam
+  was removed, and finishing an analysis locks the Start button to prevent an
+  accidental re-run.
+
+![Detailed device analysis](assets/screenshots/detailed-scan.png)
+
 ## [1.4.3] — 2026-08-10
 
 ### Added

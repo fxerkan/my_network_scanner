@@ -86,23 +86,66 @@ def current_version() -> str:
     return match.group(1)
 
 
-def stamp_changelog(version: str, today: str) -> str:
-    """Promote the '## [Unreleased]' heading to a dated version section, leaving
-    a fresh empty Unreleased above it. Returns the release notes body (the lines
-    between the new heading and the next '## ') for the GitHub release."""
+def _auto_notes(since: str | None) -> str:
+    """Fallback release notes built from commit subjects since the last tag, so a
+    version section is NEVER shipped empty when nobody wrote '## [Unreleased]'
+    entries during development. Release/chore/merge noise is dropped."""
+    seen, lines = set(), []
+    for message in commit_subjects(since):
+        subject = message.strip().splitlines()[0] if message.strip() else ""
+        low = subject.lower()
+        if not subject or low.startswith(("release:", "chore:", "bump", "merge ")):
+            continue
+        if subject in seen:
+            continue
+        seen.add(subject)
+        lines.append(f"- {subject}")
+    return "\n".join(lines)
+
+
+def promote_unreleased(text: str, heading: str, auto: str) -> tuple[str, bool]:
+    """Pure: move the '## [Unreleased]' body under a new dated `heading`, leaving
+    a fresh empty Unreleased. When that body is blank, fall back to `auto` so the
+    section is never empty. Returns (new_text, auto_filled)."""
+    if "## [Unreleased]" not in text:
+        return text, False
+    head, _, rest = text.partition("## [Unreleased]")
+    carried, sep, tail = rest.partition("\n## ")
+    carried = carried.strip()
+    auto_filled = not carried
+    if auto_filled:
+        carried = auto.strip()
+    if sep:
+        return f"{head}## [Unreleased]\n\n{heading}\n\n{carried}\n\n## {tail}", auto_filled
+    return f"{head}## [Unreleased]\n\n{heading}\n\n{carried}\n", auto_filled
+
+
+def stamp_changelog(version: str, today: str, since: str | None = None) -> str:
+    """Promote the '## [Unreleased]' block to a dated version section. If it has no
+    hand-written entries, auto-fill from the commits since `since` so a blank
+    section is never shipped (the old code did). Returns the notes body for the
+    GitHub release."""
     path = ROOT / "CHANGELOG.md"
     text = path.read_text(encoding="utf-8")
     heading = f"## [{version}] — {today}"
+
     if f"## [{version}]" in text:
         print(f"CHANGELOG.md already has a [{version}] section — left as-is")
     elif "## [Unreleased]" in text:
-        text = text.replace("## [Unreleased]", f"## [Unreleased]\n\n{heading}", 1)
+        text, auto_filled = promote_unreleased(text, heading, _auto_notes(since))
         path.write_text(text, encoding="utf-8")
+        if auto_filled:
+            print("no [Unreleased] entries — auto-filled the section from commits")
         print("updated CHANGELOG.md")
     else:
         print("CHANGELOG.md has no [Unreleased] section — skipped")
+
     body = re.split(rf"^{re.escape(heading)}\s*$", text, maxsplit=1, flags=re.M)
-    return body[1].split("\n## ", 1)[0].strip() if len(body) > 1 else ""
+    notes = body[1].split("\n## ", 1)[0].strip() if len(body) > 1 else ""
+    if "assets/screenshots/" not in notes and "![" not in notes:
+        print("⚠️  reminder: add screenshot(s) of the changes to this section "
+              "(![...](assets/screenshots/<name>.png)) before publishing.")
+    return notes
 
 
 def apply(version: str) -> None:
@@ -114,7 +157,7 @@ def apply(version: str) -> None:
         file.write_text(re.sub(pattern, replacement, file.read_text(encoding="utf-8"), count=1, flags=re.M),
                         encoding="utf-8")
         print(f"updated {path}")
-    stamp_changelog(version, datetime.date.today().isoformat())
+    stamp_changelog(version, datetime.date.today().isoformat(), since=last_tag())
     # Propagate the version into the marketplace manifests and deploy files.
     subprocess.run([sys.executable, str(ROOT / "scripts" / "sync_version.py")], cwd=ROOT, check=True)
 
@@ -167,12 +210,19 @@ def demo():
     # Explicit overrides win; --patch even overrides a breaking marker.
     assert bump_for(["fix: typo"], "minor") == "minor"
     assert bump_for(["feat!: break"], "patch") == "patch"
-    # Changelog stamp: [Unreleased] -> dated heading, and the body is extracted.
+    # Changelog stamp: [Unreleased] body is carried into the dated heading.
     sample = "## [Unreleased]\n\n### Added\n- a thing\n\n## [1.0.0] — 2020-01-01\n"
-    promoted = sample.replace("## [Unreleased]", "## [Unreleased]\n\n## [1.1.0] — 2020-02-02", 1)
-    assert "## [1.1.0] — 2020-02-02" in promoted and promoted.count("## [Unreleased]") == 1
+    promoted, auto = promote_unreleased(sample, "## [1.1.0] — 2020-02-02", "- from commits")
+    assert not auto
+    assert promoted.count("## [Unreleased]") == 1
     notes = re.split(r"^## \[1\.1\.0\] — 2020-02-02\s*$", promoted, maxsplit=1, flags=re.M)[1].split("\n## ", 1)[0].strip()
-    assert notes == "### Added\n- a thing"
+    assert notes == "### Added\n- a thing", notes
+    # Empty [Unreleased] must be auto-filled, never shipped blank (the old bug).
+    blank = "## [Unreleased]\n\n## [1.0.0] — 2020-01-01\n"
+    promoted2, auto2 = promote_unreleased(blank, "## [1.1.0] — 2020-02-02", "- from commits")
+    assert auto2
+    notes2 = re.split(r"^## \[1\.1\.0\] — 2020-02-02\s*$", promoted2, maxsplit=1, flags=re.M)[1].split("\n## ", 1)[0].strip()
+    assert notes2 == "- from commits", notes2
     assert next_version("1.4.0", "minor") == "1.5.0"
     assert next_version("1.4.3", "patch") == "1.4.4"
     assert next_version("1.4.3", "major") == "2.0.0"
