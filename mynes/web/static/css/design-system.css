@@ -941,7 +941,7 @@ body.tv-mode :focus-visible {
 .ds-multi__count { color: var(--text-tertiary); }
 .ds-multi__btn.is-active .ds-multi__count { color: var(--accent-text); }
 .ds-multi__pop {
-  position: absolute; z-index: 40; top: calc(100% + 4px); left: 0;
+  position: absolute; z-index: var(--z-dropdown, 400); top: calc(100% + 4px); left: 0;
   min-width: 220px; max-width: 320px;
   background: var(--bg-surface-raised); border: 1px solid var(--border-default);
   border-radius: var(--radius-md); box-shadow: var(--shadow-lg);
@@ -964,6 +964,65 @@ body.tv-mode :focus-visible {
 .ds-multi__opt:hover { background: var(--bg-surface-sunken); }
 .ds-multi__opt input { accent-color: var(--accent-bg); }
 .ds-multi__empty { padding: var(--space-2); color: var(--text-tertiary); }
+
+/* Single-select variant (enhanceSelect): form fields that were <select>.
+   The native select stays in the DOM as the value holder but is hidden. */
+.ds-select-native { display: none !important; }
+.ds-multi__opt {                    /* let <button> options match <label> ones */
+  width: 100%; text-align: left;
+  background: none; border: 0; font: inherit; color: inherit;
+}
+.ds-multi__opt.is-selected { background: var(--bg-surface-sunken); font-weight: 600; }
+.ds-multi__group {
+  padding: var(--space-1) var(--space-2); margin-top: var(--space-1);
+  font-size: var(--text-xs, 0.75rem); font-weight: 600; letter-spacing: 0.04em;
+  text-transform: uppercase; color: var(--text-tertiary);
+}
+/* A form field spans its column, so its popover should track that width, not
+   the narrow 220-320px the compact filter panel uses. */
+.ds-single .ds-multi__pop { width: 100%; min-width: 0; max-width: none; }
+
+/* Two-column form layout (edit modal): fields no longer stretch the whole
+   modal; a full-width group (notes) opts out with .form-group--full. */
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3) var(--space-4); }
+.form-grid .form-group--full { grid-column: 1 / -1; }
+@media (max-width: 640px) { .form-grid { grid-template-columns: 1fr; } }
+
+/* Device tab footer: traffic-light online state + a recent availability strip.
+   Cell colours mirror the availability page (history.css) but are redefined here
+   because the device modal lives on a page that doesn't load history.css. */
+.device-status { margin-top: var(--space-4); padding-top: var(--space-3); border-top: 1px solid var(--border-subtle); }
+.device-status__row { display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-3); flex-wrap: wrap; }
+.device-status__badge { display: inline-flex; align-items: center; gap: var(--space-2); font-weight: 600; }
+.device-status__light { width: 12px; height: 12px; border-radius: 50%; background: var(--text-tertiary); box-shadow: 0 0 0 3px var(--bg-surface-sunken); }
+.device-status__light.is-online { background: var(--status-online-dot, #16a34a); }
+.device-status__light.is-offline { background: var(--severity-critical-fg, #dc2626); }
+.device-status__strip { display: flex; gap: 2px; flex: 1 1 auto; min-width: 160px; }
+.device-status__cell { flex: 1 1 0; min-width: 4px; max-width: 14px; height: 20px; border-radius: 2px; background: var(--status-offline-bg); }
+.device-status__cell.is-up { background: var(--status-online-dot); }
+.device-status__cell.is-warn { background: var(--severity-warning-border); }
+.device-status__cell.is-down { background: var(--severity-critical-fg); }
+.device-status__cell.is-none { background: var(--border-subtle); }
+
+/* Device Logs tab: an activity timeline from alerts. */
+.device-logs__facts { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2) var(--space-4); margin-bottom: var(--space-4); }
+.device-logs__fact { display: flex; justify-content: space-between; gap: var(--space-3); padding: var(--space-2) 0; border-bottom: 1px solid var(--border-subtle); }
+.device-logs__fact dt { color: var(--text-secondary); margin: 0; }
+.device-logs__fact dd { margin: 0; font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+.device-logs__heading { margin: var(--space-3) 0 var(--space-2); font-size: var(--text-sm); font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; }
+.device-logs__timeline { display: flex; flex-direction: column; }
+.device-logs__event { display: grid; grid-template-columns: auto 150px 120px 1fr; align-items: baseline; gap: var(--space-2); padding: var(--space-2) 0; border-bottom: 1px solid var(--border-subtle); font-size: var(--text-sm); }
+.device-logs__dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-tertiary); align-self: center; }
+.device-logs__dot.is-degraded { background: var(--severity-warning-bg, #d97706); }
+.device-logs__dot.is-down { background: var(--severity-critical-bg, #dc2626); }
+.device-logs__time { color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+.device-logs__rule { font-weight: 600; }
+.device-logs__msg { color: var(--text-secondary); }
+@media (max-width: 640px) {
+  .device-logs__facts { grid-template-columns: 1fr; }
+  .device-logs__event { grid-template-columns: auto 1fr; }
+  .device-logs__time, .device-logs__rule { grid-column: 2; }
+}
 
 /* Boolean visibility toggles (containers / no-IP / bluetooth). */
 .filter-toggles { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; }

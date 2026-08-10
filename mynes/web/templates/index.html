@@ -105,13 +105,13 @@
                     </div>
                     <div class="filter-group">
                         <label class="filter-label" for="aliasFilter">{{ _('alias') }}</label>
-                        <select id="aliasFilter" class="filter-select" onchange="filterDevices()">
+                        <select id="aliasFilter" class="filter-select" data-searchable onchange="filterDevices()">
                             <option value="">{{ _('all') }}</option>
                         </select>
                     </div>
                     <div class="filter-group">
                         <label class="filter-label" for="portFilter">{{ _('open_ports') }}</label>
-                        <select id="portFilter" class="filter-select" onchange="filterDevices()">
+                        <select id="portFilter" class="filter-select" data-searchable onchange="filterDevices()">
                             <option value="">{{ _('all') }}</option>
                             <option value="22">SSH (22)</option>
                             <option value="80">HTTP (80)</option>
@@ -260,13 +260,17 @@
                     <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-alert"/></svg>
                     <span>{{ _('security_tab') }}</span>
                 </button>
+                <button class="tab-button" onclick="switchEditTab('logs')">
+                    <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-history"/></svg>
+                    <span>{{ _('logs_tab') }}</span>
+                </button>
             </div>
             
             <!-- Tab Content -->
             <div class="tab-content">
                 <!-- Device Tab -->
                 <div id="device-tab" class="tab-pane active">
-                    <form id="enhancedEditForm">
+                    <form id="enhancedEditForm" class="form-grid">
                         <div class="form-group">
                             <label class="form-label">{{ _('ip_address_label') }}</label>
                             <input type="text" id="enhancedEditIpAddress" class="form-input" placeholder="192.168.1.100">
@@ -300,13 +304,15 @@
                             </select>
                             <small class="form-hint">{{ _('uplink_field_hint') }}</small>
                         </div>
-                        <div class="form-group">
+                        <div class="form-group form-group--full">
                             <label class="form-label">{{ _('notes_label') }}</label>
                             <textarea id="enhancedEditNotes" class="form-textarea" placeholder="{{ _('notes_placeholder') }}"></textarea>
                         </div>
                     </form>
+                    <!-- Live status + recent availability strip, filled by loadDeviceStatus(). -->
+                    <div id="deviceStatusFooter" class="device-status"></div>
                 </div>
-                
+
                 <!-- Ports Tab -->
                 <div id="ports-tab" class="tab-pane">
                     <div class="ports-management">
@@ -432,6 +438,14 @@
                         <div id="securityScanResult" class="net-tools__result">
                             <p class="details-no-data">{{ _('security_scan_hint') }}</p>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Logs Tab: availability + this device's activity, assembled from
+                     the uptime series and the alert history (no new logging). -->
+                <div id="logs-tab" class="tab-pane">
+                    <div id="deviceLogsResult" class="device-logs">
+                        <p class="details-no-data">{{ _('loading') }}</p>
                     </div>
                 </div>
 

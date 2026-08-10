@@ -771,9 +771,10 @@ async function loadUptime() {
             // Name/MAC links to the Devices page, which opens this device's edit
             // popup (?device=<ip|mac>). The rich edit modal lives on that page.
             const ident = d.ip || d.mac || '';
+            // IP first (leftmost), then the name - list is IP-sorted, so the IP is the primary key.
             const inner = icon(d.device_type) +
-                '<span title="' + esc(d.name) + '">' + esc(d.name) + '</span>' +
-                (d.ip ? '<span class="uptime-row__ip">' + esc(d.ip) + '</span>' : '');
+                (d.ip ? '<span class="uptime-row__ip">' + esc(d.ip) + '</span>' : '') +
+                '<span title="' + esc(d.name) + '">' + esc(d.name) + '</span>';
             const nameHtml = ident
                 ? '<a class="uptime-row__link" href="/?device=' + encodeURIComponent(ident) +
                   '" title="' + esc(t('open_device_details')) + '">' + inner + '</a>'

@@ -115,6 +115,8 @@ def apply(version: str) -> None:
                         encoding="utf-8")
         print(f"updated {path}")
     stamp_changelog(version, datetime.date.today().isoformat())
+    # Propagate the version into the marketplace manifests and deploy files.
+    subprocess.run([sys.executable, str(ROOT / "scripts" / "sync_version.py")], cwd=ROOT, check=True)
 
 
 def main() -> int:

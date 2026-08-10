@@ -473,7 +473,9 @@
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-.uptime-row__ip { color: var(--text-tertiary); font-size: var(--text-xs); }
+/* IP is the primary key now (leftmost, list is IP-sorted): tabular + fixed width
+   so the addresses line up in a column and the names align beside them. */
+.uptime-row__ip { color: var(--text-secondary); font-size: var(--text-xs); font-variant-numeric: tabular-nums; min-width: 92px; flex: none; }
 /* Availability name links to the device's edit popup on the Devices page. */
 .uptime-row__link {
     display: flex; align-items: center; gap: var(--space-2);

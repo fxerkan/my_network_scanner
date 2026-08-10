@@ -7,6 +7,10 @@
     "category": "appliance",
     "icon": "❄️"
   },
+  "Air Purifier": {
+    "category": "smart",
+    "icon": "💨"
+  },
   "Apple Device": {
     "category": "mobile",
     "icon": "🍎"
@@ -64,23 +68,23 @@
     "icon": "☎️"
   },
   "Pet Camera": {
-    "icon": "🐕",
-    "category": "smart_home"
+    "category": "smart",
+    "icon": "🐕"
   },
   "Pet Feeder": {
-    "category": "smart_home",
+    "category": "smart",
     "icon": "🐯"
   },
   "Pet Toilet": {
-    "icon": "💩",
-    "category": "smart_home"
+    "category": "smart",
+    "icon": "💩"
   },
   "Pet Tracker": {
-    "icon": "🐾",
-    "category": "smart_home"
+    "category": "smart",
+    "icon": "🐾"
   },
   "Pet Water Fountain": {
-    "category": "smart_home",
+    "category": "smart",
     "icon": "💧"
   },
   "Printer": {
@@ -109,26 +113,26 @@
   },
   "Server": {
     "category": "computer",
-    "icon": "🖧"
+    "icon": "🖥️"
   },
   "Single Board Computer": {
     "category": "computer",
     "icon": "🍓"
   },
   "Smart Home": {
-    "category": "smart_home",
+    "category": "smart",
     "icon": "🏠"
   },
   "Smart Light": {
-    "category": "smart_home",
+    "category": "smart",
     "icon": "💡"
   },
   "Smart Lock": {
-    "category": "smart_home",
+    "category": "smart",
     "icon": "🔐"
   },
   "Smart Speaker": {
-    "category": "smart_home",
+    "category": "entertainment",
     "icon": "🔊"
   },
   "Smart TV": {
@@ -136,7 +140,7 @@
     "icon": "📺"
   },
   "Smart Thermostat": {
-    "category": "smart_home",
+    "category": "smart",
     "icon": "🌡️"
   },
   "Smart Watch": {
@@ -170,5 +174,49 @@
   "Washing Machine": {
     "category": "appliance",
     "icon": "🧺"
+  },
+  "Bluetooth Device": {
+    "category": "iot",
+    "icon": "🔵"
+  },
+  "Bluetooth Tracker": {
+    "category": "iot",
+    "icon": "🏷️"
+  },
+  "Apple AirTag": {
+    "category": "iot",
+    "icon": "📍"
+  },
+  "Samsung SmartTag": {
+    "category": "iot",
+    "icon": "🔖"
+  },
+  "Tile Tracker": {
+    "category": "iot",
+    "icon": "🔲"
+  },
+  "Headphones": {
+    "category": "peripheral",
+    "icon": "🎧"
+  },
+  "Wearable": {
+    "category": "mobile",
+    "icon": "⌚"
+  },
+  "Sensor": {
+    "category": "iot",
+    "icon": "🌡️"
+  },
+  "Beacon": {
+    "category": "iot",
+    "icon": "🔆"
+  },
+  "Zigbee Device": {
+    "category": "smart",
+    "icon": "🐝"
+  },
+  "Z-Wave Device": {
+    "category": "smart",
+    "icon": "🌊"
   }
 }

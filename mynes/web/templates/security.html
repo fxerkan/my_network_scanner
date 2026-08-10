@@ -117,7 +117,7 @@
                  placeholder="{{ t('security_search_placeholder', 'Search IP, name, vendor or type…') }}"
                  aria-label="{{ t('security_search_placeholder', 'Search IP, name, vendor or type…') }}">
         </div>
-        <select class="ds-select sec-devcontrols__filter" id="secSevFilter" aria-label="{{ t('security_col_risk', 'Risk') }}">
+        <select class="ds-select sec-devcontrols__filter" id="secSevFilter" data-searchable aria-label="{{ t('security_col_risk', 'Risk') }}">
           <option value="all">{{ t('security_filter_all', 'All severities') }}</option>
           <option value="critical">{{ t('security_sev_critical', 'Critical') }}</option>
           <option value="high">{{ t('security_sev_high', 'High') }}</option>

@@ -889,5 +889,12 @@
   "total_alerts": "Toplam uyarı",
   "undervoltage_hint": "Raspberry Pi ve Orange Pi kartları ~4.7 V altında güç kısar.",
   "undervoltage_threshold": "Düşük voltaj eşiği (V)",
-  "unread": "Okunmamış"
+  "unread": "Okunmamış",
+  "logs_tab": "Kayıtlar",
+  "activity_log": "Etkinlik Kaydı",
+  "no_events": "Bu cihaz için henüz kayıtlı bir olay yok.",
+  "last_deep_analysis": "Son detaylı analiz",
+  "availability": "Erişilebilirlik",
+  "incidents": "olay",
+  "checks": "kontrol"
 }

@@ -254,9 +254,11 @@
                         {{ _('device_types_desc') }}
                     </p>
                     
-                    <div class="grid">
-                        <div>
-                            <h4>{{ _('add_device_type') }}</h4>
+                    <!-- Add form: a compact full-width row at the top. Adding a type
+                         persists in the background (config.js addDeviceType). -->
+                    <div class="device-type-add">
+                        <h4>{{ _('add_device_type') }}</h4>
+                        <div class="device-type-add__row">
                             <div class="form-group">
                                 <label class="form-label">{{ _('device_type_name') }}</label>
                                 <input type="text" class="form-input" id="newDeviceType" placeholder="Smart Speaker">
@@ -264,7 +266,7 @@
                             <div class="form-group">
                                 <label class="form-label">{{ _('icon_emoji') }}</label>
                                 <div style="display: flex; gap: 10px; align-items: center;">
-                                    <input type="text" class="form-input" id="newDeviceIcon" placeholder="🔊" maxlength="2" style="width: 80px; text-align: center; font-size: 1.2em;">
+                                    <input type="text" class="form-input" id="newDeviceIcon" placeholder="🔊" maxlength="2" style="width: 64px; text-align: center; font-size: 1.2em;">
                                     <button type="button" class="btn btn-small" onclick="openEmojiPicker('newDeviceIcon')"><svg class="ds-icon" aria-hidden="true"><use href="#i-table"/></svg>{{ _('select') }}</button>
                                 </div>
                             </div>
@@ -291,14 +293,12 @@
                                     <option value="industrial">Industrial</option>
                                 </select>
                             </div>
-                            <button class="btn" onclick="addDeviceType()">{{ _('add_device_type') }}</button>
-                        </div>
-                        
-                        <div>
-                            <h4>{{ _('current_device_types') }}</h4>
-                            <div id="deviceTypesList" class="device-types-grid"></div>
+                            <button class="btn device-type-add__btn" onclick="addDeviceType()">{{ _('add_device_type') }}</button>
                         </div>
                     </div>
+
+                    <h4 class="device-types-heading">{{ _('current_device_types') }}</h4>
+                    <div id="deviceTypesList" class="device-types-grid"></div>
                 </div>
             </div>
 

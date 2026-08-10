@@ -160,6 +160,97 @@
         return { refresh: () => { syncCount(); if (!pop.hasAttribute('hidden')) paint(search.value); } };
     }
 
+    /*
+     * enhanceSelect(selectEl): give a native <select> the same searchable
+     * popover look as the filter multi-selects, but single-select. The native
+     * <select> stays the source of truth (hidden) - it keeps its <option>s,
+     * optgroups and .value, so every populate/save path that already reads
+     * `select.value` keeps working untouched. A MutationObserver repaints when
+     * options are (re)loaded; call `select._ds.refresh()` after setting .value
+     * programmatically (that fires no event to observe).
+     */
+    function enhanceSelect(sel) {
+        if (!sel || sel._ds) return sel && sel._ds;
+        sel.classList.add('ds-select-native');
+        sel.style.display = 'none';        // inline so a stale cached CSS can't leave it visible
+        sel.setAttribute('aria-hidden', 'true');
+        sel.tabIndex = -1;
+
+        const el = document.createElement('div');
+        el.className = 'ds-multi ds-single';
+        el.innerHTML = `
+            <button type="button" class="ds-multi__btn" aria-expanded="false" aria-haspopup="listbox">
+                <span class="ds-multi__label"></span>
+                <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+            </button>
+            <div class="ds-multi__pop" hidden>
+                <input type="search" class="ds-multi__search" placeholder="${esc(tr('search', 'Search…'))}">
+                <div class="ds-multi__opts" role="listbox"></div>
+            </div>`;
+        sel.insertAdjacentElement('afterend', el);
+
+        const btn = el.querySelector('.ds-multi__btn');
+        const pop = el.querySelector('.ds-multi__pop');
+        const search = el.querySelector('.ds-multi__search');
+        const box = el.querySelector('.ds-multi__opts');
+        const labelEl = el.querySelector('.ds-multi__label');
+
+        function syncLabel() {
+            const o = sel.selectedOptions[0];
+            labelEl.textContent = o ? o.textContent : '';
+            btn.classList.toggle('is-active', !!sel.value);
+        }
+        // Read options live so a repopulated <select> needs no rebuild. Options can
+        // be direct children or nested inside <optgroup> (e.g. "Connected via" groups
+        // devices) - descend into groups, and only show a group header when it has a
+        // matching option under it.
+        function paint(q) {
+            const needle = (q || '').toLowerCase();
+            const optHtml = node => {
+                const text = node.textContent;
+                if (needle && !text.toLowerCase().includes(needle)) return '';
+                return `<button type="button" role="option" class="ds-multi__opt${node.value === sel.value ? ' is-selected' : ''}" data-value="${esc(node.value)}">${esc(text)}</button>`;
+            };
+            let html = '';
+            for (const node of sel.children) {
+                if (node.tagName === 'OPTGROUP') {
+                    const inner = [...node.children].filter(o => o.tagName === 'OPTION').map(optHtml).join('');
+                    if (inner) html += `<div class="ds-multi__group">${esc(node.label)}</div>` + inner;
+                } else if (node.tagName === 'OPTION') {
+                    html += optHtml(node);
+                }
+            }
+            box.innerHTML = html || `<div class="ds-multi__empty">${esc(tr('no_results', '—'))}</div>`;
+        }
+        function open() {
+            document.querySelectorAll('.ds-multi__pop').forEach(p => { if (p !== pop) p.setAttribute('hidden', ''); });
+            pop.removeAttribute('hidden'); btn.setAttribute('aria-expanded', 'true');
+            search.value = ''; paint(''); search.focus();
+        }
+        function close() { pop.setAttribute('hidden', ''); btn.setAttribute('aria-expanded', 'false'); }
+
+        btn.addEventListener('click', () => (pop.hasAttribute('hidden') ? open() : close()));
+        search.addEventListener('input', () => paint(search.value));
+        box.addEventListener('click', e => {
+            const opt = e.target.closest('.ds-multi__opt');
+            if (!opt) return;
+            sel.value = opt.dataset.value;
+            syncLabel(); close();
+            // Fire change so onchange="..." handlers and change listeners run,
+            // exactly as if the user had used the native <select>.
+            sel.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+        // Repopulation (innerHTML/appendChild) fires childList mutations.
+        new MutationObserver(() => { syncLabel(); if (!pop.hasAttribute('hidden')) paint(search.value); })
+            .observe(sel, { childList: true });
+        // Programmatic `sel.value = x; sel.dispatchEvent(new Event('change'))` keeps the label in sync.
+        sel.addEventListener('change', () => { syncLabel(); if (!pop.hasAttribute('hidden')) paint(search.value); });
+
+        syncLabel();
+        sel._ds = { refresh: () => { syncLabel(); if (!pop.hasAttribute('hidden')) paint(search.value); } };
+        return sel._ds;
+    }
+
     /** Bind a checkbox <input> to a boolean state key, both ways. */
     function bindToggle(input, key) {
         if (!input) return;
@@ -174,6 +265,13 @@
         document.querySelectorAll('.ds-multi__pop').forEach(p => p.setAttribute('hidden', ''));
         document.querySelectorAll('.ds-multi__btn').forEach(b => b.setAttribute('aria-expanded', 'false'));
     });
+
+    // Any <select data-searchable> becomes a searchable single-select automatically.
+    function autoEnhance() {
+        document.querySelectorAll('select[data-searchable]').forEach(s => { try { enhanceSelect(s); } catch (_) { /* skip */ } });
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', autoEnhance);
+    else autoEnhance();
 
     function _selftest() {
         const c = { device_type: 'Local Machine (Docker)', ip: '10.0.0.5', docker_info: { image: 'x' } };
@@ -193,6 +291,6 @@
     window.MynesFilters = {
         match, apply, get, set, reset, activeCount,
         isContainer, isNoIp, isBluetooth, vendorOf,
-        mountMulti, bindToggle, _selftest,
+        mountMulti, enhanceSelect, bindToggle, _selftest,
     };
 })();

@@ -896,29 +896,31 @@ function updateDeviceTypeCategory(typeName, newCategory) {
     }
 }
 
-function addDeviceType() {
+async function addDeviceType() {
     const typeName = document.getElementById('newDeviceType').value.trim();
     const icon = document.getElementById('newDeviceIcon').value.trim();
     const category = document.getElementById('newDeviceCategory').value;
-    
+
     if (!typeName || !icon) {
         showAlert(t('device_type_name_icon_required'), 'error');
         return;
     }
-    
+
     currentDeviceTypes[typeName] = {
         icon: icon,
         category: category
     };
-    
+
     displayDeviceTypes();
     updateDetectionRuleSelects();
-    
+
     document.getElementById('newDeviceType').value = '';
     document.getElementById('newDeviceIcon').value = '';
     document.getElementById('newDeviceCategory').value = 'unknown';
-    
-    showAlert(t('device_type_added'));
+
+    // Persist right away: a staged-only "added" that needs a separate Save was a
+    // trap - the new type never reached the edit-page dropdown.
+    await saveDeviceTypes();
 }
 
 function removeDeviceType(typeName) {

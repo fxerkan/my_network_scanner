@@ -192,8 +192,8 @@
         {{ _('muted_devices_desc') }}
       </p>
       <div class="mute-add">
-        <select class="ds-select" id="muteDevice" aria-label="{{ _('device') }}"></select>
-        <select class="ds-select" id="muteRule" aria-label="{{ _('alert_type') }}">
+        <select class="ds-select" id="muteDevice" data-searchable aria-label="{{ _('device') }}"></select>
+        <select class="ds-select" id="muteRule" data-searchable aria-label="{{ _('alert_type') }}">
           <option value="">{{ _('all_alert_types') }}</option>
         </select>
         <button type="button" class="ds-btn ds-btn--sm" id="muteAddBtn">{{ _('mute') }}</button>
@@ -210,13 +210,13 @@
       <div class="ds-spacer"></div>
       <input class="ds-input" id="alertSearch" type="search" placeholder="{{ _('search_alerts_placeholder') }}"
              style="width:auto;min-width:200px" aria-label="{{ _('search_alerts') }}">
-      <select class="ds-select" id="severityFilter" style="width:auto">
+      <select class="ds-select" id="severityFilter" data-searchable style="width:auto">
         <option value="">{{ _('all_severities') }}</option>
         <option value="critical">{{ _('critical') }}</option>
         <option value="warning">{{ _('warning') }}</option>
         <option value="info">{{ _('info') }}</option>
       </select>
-      <select class="ds-select" id="ruleFilter" style="width:auto" aria-label="{{ _('filter_by_rule') }}">
+      <select class="ds-select" id="ruleFilter" data-searchable style="width:auto" aria-label="{{ _('filter_by_rule') }}">
         <option value="">{{ _('all_rules') }}</option>
       </select>
       <button class="ds-btn ds-btn--sm" id="markReadBtn">

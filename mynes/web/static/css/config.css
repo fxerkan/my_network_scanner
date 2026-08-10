@@ -476,11 +476,11 @@
     border: 2px solid var(--border-subtle);
     border-radius: 8px;
     padding: 8px;
-    font-size: 1.3em;
+    font-size: 1.625em;          /* ~25% larger */
     text-align: center;
     cursor: pointer;
-    transition: all 0.3s ease;
-    min-height: 40px;
+    transition: all 0.2s ease;
+    min-height: 50px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -491,8 +491,9 @@
     background: var(--accent-bg);
     color: white;
     border-color: var(--accent-bg);
-    transform: scale(1.1);
+    transform: scale(1.25);      /* hover zoom, tooltip-like */
     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    z-index: 1;
 }
 
 .device-type-edit {
@@ -548,6 +549,20 @@
     grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr));
     gap: var(--space-3);
 }
+
+/* Add-type form: one compact full-width row at the top, so the "Current Device
+   Types" grid below can use the whole width (no dead left column). */
+.device-type-add {
+    padding-bottom: var(--space-4);
+    margin-bottom: var(--space-4);
+    border-bottom: 1px solid var(--border-subtle);
+}
+.device-type-add__row {
+    display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: flex-end;
+}
+.device-type-add__row .form-group { flex: 1 1 200px; margin-bottom: 0; }
+.device-type-add__btn { flex: 0 0 auto; }
+.device-types-heading { margin: 0 0 var(--space-3); }
 
 .device-type-card {
     display: grid;

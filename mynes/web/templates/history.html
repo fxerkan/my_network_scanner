@@ -69,7 +69,7 @@
                 <div class="uptime-filters">
                     <label class="uptime-filters__field">
                         <span>{{ _('status') }}</span>
-                        <select id="uptimeStatusFilter">
+                        <select id="uptimeStatusFilter" data-searchable>
                             <option value="all">{{ _('all') }}</option>
                             <option value="active">{{ _('active') }}</option>
                             <option value="passive">{{ _('passive') }}</option>
@@ -77,7 +77,7 @@
                     </label>
                     <label class="uptime-filters__field">
                         <span>IP</span>
-                        <select id="uptimeIpFilter">
+                        <select id="uptimeIpFilter" data-searchable>
                             <option value="all">{{ _('all') }}</option>
                             <option value="with_ip">{{ _('with_ip') }}</option>
                             <option value="no_ip">{{ _('no_ip') }}</option>

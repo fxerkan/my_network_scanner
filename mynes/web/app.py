@@ -73,6 +73,10 @@ app.secret_key = _secret_key()
 
 # Disable caching for all requests (for development and translation updates)
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
+# Reflect template edits without a restart - same freshness intent as the
+# no-store headers below. Negligible cost (an mtime check per render) and it
+# spares the "I edited the HTML but nothing changed" confusion.
+app.config['TEMPLATES_AUTO_RELOAD'] = True
 
 @app.after_request
 def after_request(response):

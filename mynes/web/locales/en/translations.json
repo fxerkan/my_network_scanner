@@ -889,5 +889,12 @@
   "total_alerts": "Total alerts",
   "undervoltage_hint": "Raspberry Pi and Orange Pi boards throttle below ~4.7 V.",
   "undervoltage_threshold": "Under-voltage threshold (V)",
-  "unread": "Unread"
+  "unread": "Unread",
+  "logs_tab": "Logs",
+  "activity_log": "Activity log",
+  "no_events": "No recorded events for this device yet.",
+  "last_deep_analysis": "Last deep analysis",
+  "availability": "Availability",
+  "incidents": "incidents",
+  "checks": "checks"
 }

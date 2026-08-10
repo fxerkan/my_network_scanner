@@ -152,8 +152,9 @@ Back up both and you have backed up everything.
 
 ## Tags and architectures
 
-`latest`, `1.3`, `1.3.0` — built for **linux/amd64** and **linux/arm64**, so a Raspberry Pi or
-Orange Pi works without changes.
+Every release publishes `latest`, a `MAJOR.MINOR` tag and the exact
+`MAJOR.MINOR.PATCH` (e.g. `1.4` and `1.4.2`) — built for **linux/amd64** and
+**linux/arm64**, so a Raspberry Pi or Orange Pi works without changes.
 
 ---
 

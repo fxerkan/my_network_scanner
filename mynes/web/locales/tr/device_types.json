@@ -43,5 +43,10 @@
   "Headphones": "Kulaklık",
   "Wearable": "Giyilebilir Cihaz",
   "Sensor": "Sensör",
-  "Beacon": "Beacon"
+  "Beacon": "Beacon",
+  "Apple AirTag": "Apple AirTag",
+  "Samsung SmartTag": "Samsung SmartTag",
+  "Tile Tracker": "Tile Takip Cihazı",
+  "Zigbee Device": "Zigbee Cihazı",
+  "Z-Wave Device": "Z-Wave Cihazı"
 }

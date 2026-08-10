@@ -43,5 +43,10 @@
   "Headphones": "Headphones",
   "Wearable": "Wearable",
   "Sensor": "Sensor",
-  "Beacon": "Beacon"
+  "Beacon": "Beacon",
+  "Apple AirTag": "Apple AirTag",
+  "Samsung SmartTag": "Samsung SmartTag",
+  "Tile Tracker": "Tile Tracker",
+  "Zigbee Device": "Zigbee Device",
+  "Z-Wave Device": "Z-Wave Device"
 }

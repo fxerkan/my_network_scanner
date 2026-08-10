@@ -65,10 +65,16 @@ def classify_ble(name, vendor, manufacturer_data, service_uuids, fallback):
     low = (name or "").lower()
     apple = (manufacturer_data or {}).get(0x004C)
     if apple and apple[:1] == b"\x12":
-        return "Bluetooth Tracker"
+        return "Apple AirTag"
     uuids = [str(u)[:8].lower() for u in (service_uuids or [])]
     if any(u in TRACKER_SERVICE_UUIDS for u in uuids):
-        return "Bluetooth Tracker"
+        return "Samsung SmartTag"
+    if "airtag" in low:
+        return "Apple AirTag"
+    if "smarttag" in low or "smart tag" in low:
+        return "Samsung SmartTag"
+    if "tile" in low:
+        return "Tile Tracker"
     if any(k in low for k in TRACKER_NAME_HINTS):
         return "Bluetooth Tracker"
     if any(k in low for k in ("airpods", "buds", "headphone", "headset", "wh-", "wf-")):
@@ -218,9 +224,11 @@ def discover(timeout: float = 8.0) -> list[DiscoveredDevice]:
 
 def demo():
     # AirTag separated from owner: Apple Find My offline-finding payload.
-    assert classify_ble("Müezza", "Apple", {0x004C: b"\x12\x19\x00"}, [], None) == "Bluetooth Tracker"
+    assert classify_ble("Müezza", "Apple", {0x004C: b"\x12\x19\x00"}, [], None) == "Apple AirTag"
     # Galaxy SmartTag via SmartThings Find service UUID.
-    assert classify_ble("Tag", "Samsung", {}, ["0000fd5a-0000-1000-8000-00805f9b34fb"], None) == "Bluetooth Tracker"
+    assert classify_ble("Tag", "Samsung", {}, ["0000fd5a-0000-1000-8000-00805f9b34fb"], None) == "Samsung SmartTag"
+    # Tile by name.
+    assert classify_ble("Tile Slim", None, {}, [], None) == "Tile Tracker"
     # A plain Apple beacon is not a tracker.
     assert classify_ble("iPhone", "Apple", {0x004C: b"\x10\x05"}, [], None) == "Bluetooth Device"
     assert classify_ble("FX AirPods Pro", "Apple", {}, [], None) == "Headphones"

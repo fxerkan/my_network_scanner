@@ -45,6 +45,10 @@ window.addEventListener('load', async function() {
     await translationManager.loadTranslations();
     
     await loadDeviceTypes();
+    // Make the device-type / connected-via dropdowns sorted + searchable, like
+    // the Filters panel. Native <select>s stay as the value holders.
+    ['enhancedEditDeviceType', 'enhancedEditUplink', 'addDeviceType', 'editDeviceType']
+        .forEach(id => MynesFilters.enhanceSelect(document.getElementById(id)));
     await loadDevices(true); // İlk yüklemede filtreleri güncelle
     openDeviceFromQuery();   // deep link from the availability page (?device=)
     initializeTableSorting();
@@ -738,7 +742,9 @@ function editDevice(ip) {
     document.getElementById('editAlias').value = device.alias || '';
     document.getElementById('editHostname').value = device.hostname || '';
     document.getElementById('editVendor').value = device.vendor || '';
-    document.getElementById('editDeviceType').value = device.device_type || '';
+    const editTypeSel = document.getElementById('editDeviceType');
+    editTypeSel.value = device.device_type || '';
+    editTypeSel._ds?.refresh();
     document.getElementById('editNotes').value = device.notes || '';
     
     // Manuel portları yükle
@@ -2404,11 +2410,100 @@ async function loadUplinkField(device) {
     } catch (_) {
         select.value = '';
     }
+    select._ds?.refresh();
 }
 
 function closeEnhancedEditModal() {
     document.getElementById('enhancedEditModal').style.display = 'none';
     currentEnhancedEditingIp = null;
+}
+
+/*
+ * Logs tab: everything we already know about this one device, assembled - no new
+ * logging. Availability + last-scan facts come from the uptime series and the
+ * device record; the activity timeline is this device's slice of the alert
+ * history (online/offline, IP/MAC change, ports opening/closing, battery, ...).
+ * Alerts can carry attacker-chosen text (a hostname), so everything is escaped.
+ */
+const LOG_RULE_LABELS = {
+    new_device: 'New device', device_online: 'Came online', device_offline: 'Went offline',
+    ip_changed: 'IP changed', mac_changed: 'MAC changed', new_port: 'Port opened',
+    port_closed: 'Port closed', high_latency: 'High latency', low_battery: 'Low battery',
+    low_voltage: 'Low voltage', weak_signal: 'Weak signal', risky_port: 'Risky port open',
+};
+
+// Match a device to its entry in a uptime/alerts list by identity (MAC first,
+// then IP) - the same key the backend uses.
+function _sameDevice(x, device) {
+    const ident = (device.mac || device.ip || '').toLowerCase();
+    return (x.device_id || x.id || '').toLowerCase() === ident ||
+        (device.ip && x.ip === device.ip) ||
+        (device.mac && (x.mac || '').toLowerCase() === device.mac.toLowerCase());
+}
+
+/*
+ * Device tab footer: a traffic-light online/offline light, the last ~20 checks
+ * as green/red cells (same idea as the availability strip), and the scan facts.
+ * Open ports are deliberately omitted - the Ports tab already owns those.
+ */
+async function loadDeviceStatus() {
+    const box = document.getElementById('deviceStatusFooter');
+    if (!box) return;
+    const device = devices.find(d => d.ip === currentEnhancedEditingIp);
+    if (!device) { box.innerHTML = ''; return; }
+
+    const uptime = await fetch('/api/monitoring/uptime?limit=48').then(r => r.json()).catch(() => ({ devices: [] }));
+    const u = (uptime.devices || []).find(x => _sameDevice(x, device));
+
+    const online = device.status === 'online';
+    const light = `<span class="device-status__light ${online ? 'is-online' : 'is-offline'}"></span>
+        <span class="device-status__state">${online ? (t('online') || 'Online') : (t('offline') || 'Offline')}</span>`;
+
+    const cells = u ? u.cells.slice(-20).map(s =>
+        `<i class="device-status__cell is-${s || 'none'}"></i>`).join('') : '';
+
+    const a = device.analysis_data || {};
+    const fmt = ts => ts ? new Date(ts).toLocaleString() : '—';
+    const facts = [
+        [t('availability') || 'Availability', u ? `${u.uptime}% · ${u.incidents} ${t('incidents') || 'incidents'} · ${u.checks} ${t('checks') || 'checks'}` : '—'],
+        [t('last_seen') || 'Last seen', fmt(device.last_seen)],
+        [t('last_scan') || 'Last scan', fmt(a.last_normal_scan)],
+        [t('last_deep_analysis') || 'Last deep analysis', fmt(a.last_enhanced_analysis)],
+    ];
+
+    box.innerHTML = `
+        <div class="device-status__row">
+            <span class="device-status__badge">${light}</span>
+            <span class="device-status__strip">${cells}</span>
+        </div>
+        <div class="device-logs__facts">
+            ${facts.map(([k, v]) => `<div class="device-logs__fact"><dt>${escHtml(k)}</dt><dd>${escHtml(v)}</dd></div>`).join('')}
+        </div>`;
+}
+
+// Logs tab: just this device's activity timeline (alert history), newest first.
+async function loadLogsTab() {
+    const box = document.getElementById('deviceLogsResult');
+    const device = devices.find(d => d.ip === currentEnhancedEditingIp);
+    if (!device) { box.innerHTML = `<p class="details-no-data">${t('no_data')}</p>`; return; }
+    box.innerHTML = `<p class="details-no-data">${t('loading')}</p>`;
+
+    const alertsRes = await fetch('/api/alerts?limit=500').then(r => r.json()).catch(() => ({ alerts: [] }));
+    const fmt = ts => ts ? new Date(ts).toLocaleString() : '—';
+    const mine = (alertsRes.alerts || []).filter(al => _sameDevice(al, device));
+
+    const sev = s => ({ critical: 'is-down', warning: 'is-degraded', info: '' }[s] || '');
+    const timeline = mine.length ? mine.map(al => `
+        <div class="device-logs__event">
+            <span class="device-logs__dot ${sev(al.severity)}"></span>
+            <span class="device-logs__time">${escHtml(fmt(al.timestamp))}</span>
+            <span class="device-logs__rule">${escHtml(LOG_RULE_LABELS[al.rule] || al.rule || '')}</span>
+            <span class="device-logs__msg">${escHtml(al.message || al.title || '')}</span>
+        </div>`).join('') : `<p class="details-no-data">${t('no_events') || 'No recorded events for this device yet.'}</p>`;
+
+    box.innerHTML = `
+        <h4 class="device-logs__heading">${t('activity_log') || 'Activity log'}</h4>
+        <div class="device-logs__timeline">${timeline}</div>`;
 }
 
 /*
@@ -2593,10 +2688,14 @@ function switchEditTab(tabName) {
     }
     
     // Load tab-specific data
-    if (tabName === 'ports') {
+    if (tabName === 'device') {
+        loadDeviceStatus();
+    } else if (tabName === 'ports') {
         loadPortsTab();
     } else if (tabName === 'access') {
         loadAccessTab();
+    } else if (tabName === 'logs') {
+        loadLogsTab();
     }
 }
 
@@ -2611,7 +2710,9 @@ function loadDeviceToEnhancedModal(device) {
     
     // Load device types to dropdown first, then set selected value
     loadDeviceTypesToEnhancedModal().then(() => {
-        document.getElementById('enhancedEditDeviceType').value = device.device_type || '';
+        const sel = document.getElementById('enhancedEditDeviceType');
+        sel.value = device.device_type || '';
+        sel._ds?.refresh();
     });
 }
 
@@ -2623,14 +2724,16 @@ async function loadDeviceTypesToEnhancedModal() {
         const select = document.getElementById('enhancedEditDeviceType');
         select.innerHTML = `<option value="">${t('select_device_type')}</option>`;
         
-        Object.keys(types).forEach(type => {
-            const option = document.createElement('option');
-            option.value = type;
-            const icon = types[type].icon || '📱';
-            const translatedName = types[type].name || type;
-            option.textContent = `${icon} ${translatedName}`;
-            select.appendChild(option);
-        });
+        Object.keys(types)
+            .sort((a, b) => (types[a].name || a).localeCompare(types[b].name || b))
+            .forEach(type => {
+                const option = document.createElement('option');
+                option.value = type;
+                const icon = types[type].icon || '📱';
+                const translatedName = types[type].name || type;
+                option.textContent = `${icon} ${translatedName}`;
+                select.appendChild(option);
+            });
     } catch (error) {
         console.error('Device types yüklenemedi:', error);
     }

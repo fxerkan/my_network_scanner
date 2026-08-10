@@ -263,7 +263,10 @@ class HomeAssistantClient:
         try:
             return {"ok": True, **self._get("/api/config")}
         except urllib.error.HTTPError as e:
-            return {"ok": False, "error": f"HTTP {e.code} - {'bad token' if e.code == 401 else e.reason}"}
+            # 401/403 from HA both mean the long-lived token is the problem
+            # (missing, expired, revoked, or not admin) - say so instead of a bare code.
+            hint = "check the Home Assistant token (HA_TOKEN / MYNES_HA_TOKEN - invalid, expired, or revoked)" if e.code in (401, 403) else e.reason
+            return {"ok": False, "error": f"HTTP {e.code} - {hint}"}
         except (urllib.error.URLError, OSError, ValueError) as e:
             return {"ok": False, "error": f"{type(e).__name__}: {e}"}
 

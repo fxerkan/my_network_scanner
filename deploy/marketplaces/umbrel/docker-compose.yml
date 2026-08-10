@@ -5,7 +5,7 @@ version: "3.7"
 
 services:
   server:
-    image: fxerkan/my_network_scanner:1.4.0
+    image: fxerkan/my_network_scanner:1.4.2
     network_mode: host
     restart: on-failure
     stop_grace_period: 1m
