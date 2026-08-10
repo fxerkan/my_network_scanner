@@ -64,7 +64,7 @@
   <Config Name="MQTT Broker Host" Target="MYNES_MQTT_HOST" Default="" Description="Optional. Reads retained Zigbee2MQTT / Z-Wave JS / Tasmota / Home Assistant discovery topics - the only way to see radio devices." Type="Variable" Display="always" Required="false" Mask="false"/>
   <Config Name="MQTT Username" Target="MYNES_MQTT_USERNAME" Default="" Description="Optional MQTT username." Type="Variable" Display="advanced" Required="false" Mask="false"/>
   <Config Name="MQTT Password" Target="MYNES_MQTT_PASSWORD" Default="" Description="Optional MQTT password." Type="Variable" Display="advanced" Required="false" Mask="true"/>
-  <Config Name="Home Assistant URL" Target="MYNES_HA_URL" Default="" Description="Optional. e.g. http://homeassistant.local:8123" Type="Variable" Display="always" Required="false" Mask="false"/>
-  <Config Name="Home Assistant Token" Target="MYNES_HA_TOKEN" Default="" Description="Optional long-lived access token." Type="Variable" Display="always" Required="false" Mask="true"/>
+  <Config Name="Home Assistant URL" Target="HA_URL" Default="" Description="Optional. e.g. http://homeassistant.local:8123" Type="Variable" Display="always" Required="false" Mask="false"/>
+  <Config Name="Home Assistant Token" Target="HA_TOKEN" Default="" Description="Optional long-lived access token." Type="Variable" Display="always" Required="false" Mask="true"/>
   <Config Name="Timezone" Target="TZ" Default="Europe/Istanbul" Description="Container timezone." Type="Variable" Display="advanced" Required="false" Mask="false"/>
 </Container>

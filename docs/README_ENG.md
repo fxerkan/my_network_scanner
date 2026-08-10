@@ -163,8 +163,8 @@ services:
       # Optional: reveals Zigbee2MQTT / Z-Wave JS / Tasmota devices
       MYNES_MQTT_HOST: ""
       # Optional: Home Assistant integration
-      MYNES_HA_URL: ""
-      MYNES_HA_TOKEN: ""
+      HA_URL: ""
+      HA_TOKEN: ""
     restart: unless-stopped
 ```
 
@@ -215,7 +215,7 @@ Docker Desktop (macOS/Windows) does not fully support host networking. There, dr
 | `MYNES_PASSWORD` | Master password encrypting stored device credentials | auto-generated |
 | `MYNES_MQTT_HOST` | MQTT broker host (Zigbee/Z-Wave/Tasmota discovery) | empty |
 | `MYNES_MQTT_USERNAME` / `MYNES_MQTT_PASSWORD` | MQTT credentials | empty |
-| `MYNES_HA_URL` / `MYNES_HA_TOKEN` | Home Assistant URL and long-lived token | empty |
+| `HA_URL` / `HA_TOKEN` | Home Assistant URL and long-lived token | empty |
 | `TZ` | Container timezone | `UTC` |
 
 `HA_URL` / `HA_TOKEN` are accepted too. A `.env` file in the repo root is read by every

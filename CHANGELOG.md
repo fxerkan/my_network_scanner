@@ -6,6 +6,50 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.4.3] — 2026-08-10
+
+### Added
+
+- **Searchable, sorted dropdowns app-wide.** A single-select searchable control
+  (`MynesFilters.enhanceSelect`, styled like the filter panel's multi-selects)
+  now backs the device-edit Device Type / Connected via fields and, via a
+  `data-searchable` attribute, the Alias/Open Ports, history, alerts (muted
+  device / rule), and security severity dropdowns. Native `<select>`s stay as
+  the value holder, so every save/read path is unchanged.
+- **Device edit "Logs" tab** plus a live status footer on the Device tab: an
+  online/offline traffic light, the last ~20 availability checks as green/red
+  cells, and scan facts — assembled from the uptime series and alert history,
+  no new logging. The Logs tab holds the per-device activity timeline.
+- **More device types** registered and translated: Bluetooth Device/Tracker,
+  Headphones, Wearable, Sensor, Beacon, Zigbee Device, Z-Wave Device, Apple
+  AirTag, Samsung SmartTag, Tile Tracker (plus Air Purifier). The BLE
+  classifier now emits the specific tracker types instead of a generic bucket.
+
+### Changed
+
+- **Home Assistant credentials use a single canonical name**, `HA_URL` /
+  `HA_TOKEN`, across code, docs, deploy manifests and tests (the `MYNES_HA_*`
+  alias is dropped). A 401/403 now says to check `HA_TOKEN`, and the
+  device-compare table adapts its columns to whichever HA source answered.
+- **Device Types settings** redesigned: the add form is a compact top row that
+  persists immediately, and the current-types grid uses the full width (4-up).
+  The emoji picker gains a populated Computer category and larger, hover-zoom
+  icons.
+- **Device availability** lists the IP first (leftmost), aligned and IP-sorted.
+- **Security per-device** puts search and the risk filter on one row, colour-
+  codes the severity options, and expands a row when its name/IP is clicked.
+- Templates reload without a restart (`TEMPLATES_AUTO_RELOAD`).
+
+### Fixed
+
+- Edit-page dropdowns no longer render a doubled frame/chevron, and device
+  cards no longer show a stray line above the status dot — both were CSS class
+  collisions (`ds-select`, `device-status`) with pre-existing styles.
+- "Connected via" now lists every candidate device (options nested in
+  `<optgroup>` were being skipped).
+- Dropdown popovers render above sticky table headers (z-index), and the Device
+  Management modal's Add/Manage tabs sit on one row.
+
 ## [1.4.2] — 2026-08-10
 
 First tagged release since 1.4.0. 1.4.1 shipped in git but was never tagged or

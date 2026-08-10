@@ -4,8 +4,8 @@
 Your token never leaves this machine: it is read from the environment, used for
 local HTTP calls to your own HA instance, and never written to disk.
 
-    export MYNES_HA_URL="http://192.168.1.116:8123"
-    export MYNES_HA_TOKEN="..."          # HA -> profile -> Security -> Long-lived access tokens
+    export HA_URL="http://192.168.1.116:8123"
+    export HA_TOKEN="..."          # HA -> profile -> Security -> Long-lived access tokens
     .venv/bin/python scripts/ha_compare.py
 
     # Scan first (slower, but compares against a fresh sweep):
@@ -87,7 +87,7 @@ def main():
 
     client = HomeAssistantClient()
     if not client.configured():
-        sys.exit("Set MYNES_HA_URL and MYNES_HA_TOKEN first. See the docstring at the top of this file.")
+        sys.exit("Set HA_URL and HA_TOKEN first. See the docstring at the top of this file.")
 
     ping = client.ping()
     if not ping.get("ok"):

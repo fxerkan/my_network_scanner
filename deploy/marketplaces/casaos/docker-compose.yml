@@ -3,7 +3,7 @@
 name: mynes
 services:
   mynes:
-    image: fxerkan/my_network_scanner:1.4.2
+    image: fxerkan/my_network_scanner:1.4.3
     container_name: mynes
     # ARP / mDNS / SSDP discovery only sees the LAN from the host network namespace.
     network_mode: host
@@ -22,8 +22,8 @@ services:
       MYNES_AUTH_USERNAME: ""
       MYNES_AUTH_PASSWORD: ""
       MYNES_MQTT_HOST: ""
-      MYNES_HA_URL: ""
-      MYNES_HA_TOKEN: ""
+      HA_URL: ""
+      HA_TOKEN: ""
     volumes:
       - type: bind
         source: /DATA/AppData/$AppID/data
@@ -81,11 +81,11 @@ services:
           description:
             en_US: Optional. MQTT broker host, so Zigbee2MQTT / Z-Wave JS / Tasmota devices show up too.
             tr_TR: İsteğe bağlı. Zigbee2MQTT / Z-Wave JS / Tasmota cihazlarının da görünmesi için MQTT broker adresi.
-        - container: MYNES_HA_URL
+        - container: HA_URL
           description:
             en_US: Optional. Home Assistant base URL, e.g. http://homeassistant.local:8123
             tr_TR: İsteğe bağlı. Home Assistant adresi, örn. http://homeassistant.local:8123
-        - container: MYNES_HA_TOKEN
+        - container: HA_TOKEN
           description:
             en_US: Optional. Home Assistant long-lived access token.
             tr_TR: İsteğe bağlı. Home Assistant uzun ömürlü erişim jetonu.
@@ -113,7 +113,7 @@ services:
             tr_TR: İsteğe bağlı. Ana makinenin BlueZ servisi üzerinden Bluetooth LE keşfini etkinleştirir - takip cihazları, sensörler, saatler ve BLE akıllı ev cihazlarının IP adresi yoktur ve başka türlü bulunamaz. BLE'yi devre dışı bırakmak için kaldırabilirsiniz.
 x-casaos:
   id: io.github.fxerkan.mynes
-  version: "1.4.2"
+  version: "1.4.3"
   update_at: "2026-08-04"
   release_notes:
     en_US: |-

@@ -341,7 +341,8 @@
           '<input type="checkbox" class="sec-device" data-ip="' + esc(dev.ip) + '" ' + rowChecked +
           ' aria-label="' + esc(tr('security_select_row', 'Select device')) + '"></td>' +
         '<td>' +
-          '<div class="sec-devcell">' +
+          '<div class="sec-devcell sec-devcell--clickable" data-ip="' + esc(dev.ip) + '"' +
+            ' role="button" tabindex="0" title="' + esc(tr('security_expand', 'Show details')) + '">' +
             '<svg class="ds-icon ds-icon--sm sec-devcell__icon" aria-hidden="true"><use href="#' +
               deviceIconId(dev) + '"/></svg>' +
             '<div class="sec-devcell__text">' +
@@ -669,11 +670,12 @@
     }
   }
 
-  // Clicks in the table: expand/collapse a device's detail row.
+  // Clicks in the table: expand/collapse a device's detail row - via the
+  // "Show details" button or by clicking the device name/IP cell itself.
   function onTableClick(e) {
-    var btn = e.target.closest ? e.target.closest('.sec-expand') : null;
-    if (!btn) return;
-    var ip = btn.dataset.ip;
+    var trg = e.target.closest ? e.target.closest('.sec-expand, .sec-devcell[data-ip]') : null;
+    if (!trg) return;
+    var ip = trg.dataset.ip;
     if (expanded.has(ip)) expanded.delete(ip); else expanded.add(ip);
     renderTable();
     syncSelectionUI();

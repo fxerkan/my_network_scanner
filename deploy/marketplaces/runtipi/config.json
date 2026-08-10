@@ -7,7 +7,7 @@
   "port": 5883,
   "id": "mynes",
   "tipi_version": 1,
-  "version": "1.4.2",
+  "version": "1.4.3",
   "categories": [
     "network",
     "utilities"
@@ -34,13 +34,13 @@
       "type": "text",
       "label": "Home Assistant URL (optional)",
       "required": false,
-      "env_variable": "MYNES_HA_URL"
+      "env_variable": "HA_URL"
     },
     {
       "type": "password",
       "label": "Home Assistant long-lived access token (optional)",
       "required": false,
-      "env_variable": "MYNES_HA_TOKEN"
+      "env_variable": "HA_TOKEN"
     }
   ],
   "supported_architectures": [

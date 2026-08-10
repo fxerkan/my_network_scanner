@@ -44,8 +44,8 @@ services:
       MYNES_PORT: 5883
       MYNES_PASSWORD: ""        # auto-generated on first start if empty
       MYNES_MQTT_HOST: ""       # optional — reveals Zigbee / Z-Wave / Tasmota devices
-      MYNES_HA_URL: ""          # optional — Home Assistant integration
-      MYNES_HA_TOKEN: ""
+      HA_URL: ""          # optional — Home Assistant integration
+      HA_TOKEN: ""
     restart: unless-stopped
 ```
 
@@ -133,8 +133,8 @@ namespace — from a bridge network it can only see the bridge, not the LAN.
 | `MYNES_MQTT_HOST` | MQTT broker host — reveals Zigbee / Z-Wave / Tasmota devices | empty |
 | `MYNES_MQTT_USERNAME` | MQTT username | empty |
 | `MYNES_MQTT_PASSWORD` | MQTT password | empty |
-| `MYNES_HA_URL` | Home Assistant base URL, e.g. `http://homeassistant.local:8123` | empty |
-| `MYNES_HA_TOKEN` | Home Assistant long-lived access token | empty |
+| `HA_URL` | Home Assistant base URL, e.g. `http://homeassistant.local:8123` | empty |
+| `HA_TOKEN` | Home Assistant long-lived access token | empty |
 | `MYNES_CONFIG_DIR` / `MYNES_DATA_DIR` | Override the config/data paths | `/app/config`, `/app/data` |
 | `TZ` | Container timezone | `UTC` |
 

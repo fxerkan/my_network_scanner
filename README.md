@@ -165,8 +165,8 @@ services:
       # İsteğe bağlı: Zigbee2MQTT / Z-Wave JS / Tasmota cihazlarını da görmek için
       MYNES_MQTT_HOST: ""
       # İsteğe bağlı: Home Assistant entegrasyonu
-      MYNES_HA_URL: ""
-      MYNES_HA_TOKEN: ""
+      HA_URL: ""
+      HA_TOKEN: ""
     restart: unless-stopped
 ```
 
@@ -228,7 +228,7 @@ yerine `ports: ["5883:5883"]` kullanın; keşif yeteneği kısıtlı olur.
 | `MYNES_PASSWORD` | Kayıtlı cihaz kimlik bilgilerini şifreleyen ana parola | otomatik üretilir |
 | `MYNES_MQTT_HOST` | MQTT broker adresi (Zigbee/Z-Wave/Tasmota keşfi) | boş |
 | `MYNES_MQTT_USERNAME` / `MYNES_MQTT_PASSWORD` | MQTT kimlik bilgileri | boş |
-| `MYNES_HA_URL` / `MYNES_HA_TOKEN` | Home Assistant adresi ve uzun ömürlü jeton | boş |
+| `HA_URL` / `HA_TOKEN` | Home Assistant adresi ve uzun ömürlü jeton | boş |
 | `TZ` | Konteyner saat dilimi | `UTC` |
 
 `HA_URL` / `HA_TOKEN` de kabul edilir. Depo kökündeki `.env` dosyası her giriş

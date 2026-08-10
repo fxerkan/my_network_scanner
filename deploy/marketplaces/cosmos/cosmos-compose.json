@@ -9,14 +9,14 @@
         "required": false
       },
       {
-        "name": "MYNES_HA_URL",
+        "name": "HA_URL",
         "label": "Home Assistant URL (optional)",
         "initialValue": "",
         "type": "text",
         "required": false
       },
       {
-        "name": "MYNES_HA_TOKEN",
+        "name": "HA_TOKEN",
         "label": "Home Assistant long-lived token (optional)",
         "initialValue": "",
         "type": "password",
@@ -34,7 +34,7 @@
   "services": {
     "{ServiceName}": {
       "container_name": "{ServiceName}",
-      "image": "fxerkan/my_network_scanner:1.4.2",
+      "image": "fxerkan/my_network_scanner:1.4.3",
       "restart": "unless-stopped",
       "network_mode": "host",
       "capabilities": [
@@ -44,8 +44,8 @@
       "environment": [
         "MYNES_PORT=5883",
         "MYNES_MQTT_HOST={MYNES_MQTT_HOST}",
-        "MYNES_HA_URL={MYNES_HA_URL}",
-        "MYNES_HA_TOKEN={MYNES_HA_TOKEN}"
+        "HA_URL={HA_URL}",
+        "HA_TOKEN={HA_TOKEN}"
       ],
       "volumes": [
         {

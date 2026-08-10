@@ -83,22 +83,21 @@ def test_non_devices_are_excluded_from_the_diff():
     assert result["home_assistant_excluded"] == 1
 
 
-def test_credentials_accept_both_env_spellings(monkeypatch):
-    """Users write HA_URL/HA_TOKEN by hand; MYNES_HA_* keeps MyNeS settings
-    grouped in a shared .env. Both must work."""
+def test_credentials_from_env(monkeypatch):
+    """Home Assistant credentials come from the canonical HA_URL / HA_TOKEN."""
     from mynes.integrations.home_assistant import HomeAssistantClient
 
-    for var in ("MYNES_HA_URL", "MYNES_HA_TOKEN", "HA_URL", "HA_TOKEN"):
+    for var in ("HA_URL", "HA_TOKEN"):
         monkeypatch.delenv(var, raising=False)
 
-    monkeypatch.setenv("HA_URL", "http://bare:8123")
-    monkeypatch.setenv("HA_TOKEN", "bare-token")
-    assert HomeAssistantClient().configured()
-    assert HomeAssistantClient().url == "http://bare:8123"
+    assert not HomeAssistantClient().configured()
 
-    # The prefixed pair wins when both are present.
-    monkeypatch.setenv("MYNES_HA_URL", "http://prefixed:8123")
-    assert HomeAssistantClient().url == "http://prefixed:8123"
+    monkeypatch.setenv("HA_URL", "http://ha:8123/")
+    monkeypatch.setenv("HA_TOKEN", "the-token")
+    client = HomeAssistantClient()
+    assert client.configured()
+    assert client.url == "http://ha:8123"        # trailing slash trimmed
+    assert client.token == "the-token"
 
 
 def test_dotenv_never_overrides_a_real_environment_variable(tmp_path, monkeypatch):

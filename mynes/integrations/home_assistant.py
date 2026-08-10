@@ -236,10 +236,9 @@ class HomeAssistantClient:
     Create one in HA: profile page -> Security -> Long-lived access tokens.
     """
 
-    # Both spellings are accepted: the MYNES_-prefixed pair keeps MyNeS settings
-    # together in a shared .env, the bare pair is what people type by hand.
-    URL_VARS = ("MYNES_HA_URL", "HA_URL")
-    TOKEN_VARS = ("MYNES_HA_TOKEN", "HA_TOKEN")
+    # Canonical names (a tuple is kept so a call site can still pass overrides).
+    URL_VARS = ("HA_URL",)
+    TOKEN_VARS = ("HA_TOKEN",)
 
     def __init__(self, url: str | None = None, token: str | None = None, timeout: int = 15):
         self.url = (url or _first_env(self.URL_VARS) or "").rstrip("/")
@@ -259,13 +258,13 @@ class HomeAssistantClient:
 
     def ping(self) -> dict:
         if not self.configured():
-            return {"ok": False, "error": "MYNES_HA_URL and MYNES_HA_TOKEN are required"}
+            return {"ok": False, "error": "HA_URL and HA_TOKEN are required"}
         try:
             return {"ok": True, **self._get("/api/config")}
         except urllib.error.HTTPError as e:
             # 401/403 from HA both mean the long-lived token is the problem
             # (missing, expired, revoked, or not admin) - say so instead of a bare code.
-            hint = "check the Home Assistant token (HA_TOKEN / MYNES_HA_TOKEN - invalid, expired, or revoked)" if e.code in (401, 403) else e.reason
+            hint = "check HA_TOKEN (invalid, expired, or revoked)" if e.code in (401, 403) else e.reason
             return {"ok": False, "error": f"HTTP {e.code} - {hint}"}
         except (urllib.error.URLError, OSError, ValueError) as e:
             return {"ok": False, "error": f"{type(e).__name__}: {e}"}

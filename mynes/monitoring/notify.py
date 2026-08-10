@@ -120,10 +120,10 @@ def send_home_assistant(cfg, alert):
     """
     from mynes.integrations.home_assistant import _first_env
 
-    url = (cfg.get("url") or _first_env(("MYNES_HA_URL", "HA_URL")) or "").rstrip("/")
-    token = cfg.get("token") or _first_env(("MYNES_HA_TOKEN", "HA_TOKEN"))
+    url = (cfg.get("url") or _first_env(("HA_URL",)) or "").rstrip("/")
+    token = cfg.get("token") or _first_env(("HA_TOKEN",))
     if not url or not token:
-        raise KeyError("Home Assistant URL and token are required (MYNES_HA_URL / MYNES_HA_TOKEN)")
+        raise KeyError("Home Assistant URL and token are required (HA_URL / HA_TOKEN)")
 
     service = (cfg.get("service") or "persistent_notification").replace("notify.", "")
     payload = {

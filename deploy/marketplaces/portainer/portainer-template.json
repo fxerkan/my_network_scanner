@@ -51,12 +51,12 @@
           "default": ""
         },
         {
-          "name": "MYNES_HA_URL",
+          "name": "HA_URL",
           "label": "Home Assistant URL (optional)",
           "default": ""
         },
         {
-          "name": "MYNES_HA_TOKEN",
+          "name": "HA_TOKEN",
           "label": "Home Assistant long-lived token (optional)",
           "default": ""
         }

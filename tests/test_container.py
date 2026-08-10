@@ -186,12 +186,12 @@ def test_unsubstituted_manifest_placeholder_is_dropped(monkeypatch):
 
     monkeypatch.setenv("TZ", "$TZ")
     monkeypatch.setenv("MYNES_PORT", "${MYNES_PORT}")
-    monkeypatch.setenv("MYNES_HA_URL", "http://homeassistant.local:8123")
+    monkeypatch.setenv("HA_URL", "http://homeassistant.local:8123")
     monkeypatch.setenv("MYNES_MQTT_PASSWORD", "$ecret-but-real")
 
     dropped = mynes.drop_unsubstituted_env()
 
     assert "TZ" in dropped and "MYNES_PORT" in dropped
-    assert mynes.os.environ.get("MYNES_HA_URL") == "http://homeassistant.local:8123"
+    assert mynes.os.environ.get("HA_URL") == "http://homeassistant.local:8123"
     # A password that merely starts with $ is a value, not a placeholder.
     assert mynes.os.environ.get("MYNES_MQTT_PASSWORD") == "$ecret-but-real"

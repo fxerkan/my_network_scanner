@@ -581,15 +581,20 @@
     height: 56px;
     display: grid;
     place-items: center;
-    font-size: 30px;
+    font-size: 38px;             /* ~25% larger */
     line-height: 1;
     text-align: center;
     background: var(--bg-surface-sunken);
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-md);
     cursor: pointer;
+    transition: transform 0.15s ease, border-color 0.15s ease;
 }
-.device-type-card__icon:hover { border-color: var(--accent-border); }
+.device-type-card__icon:hover {
+    border-color: var(--accent-border);
+    transform: scale(1.25);      /* hover zoom, tooltip-like */
+    position: relative; z-index: 2;
+}
 
 .device-type-card__name {
     width: 100%;

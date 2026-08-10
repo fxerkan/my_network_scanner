@@ -170,7 +170,7 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
     def ha_devices():
         client = HomeAssistantClient()
         if not client.configured():
-            return jsonify({"error": "set MYNES_HA_URL and MYNES_HA_TOKEN"}), 400
+            return jsonify({"error": "set HA_URL and HA_TOKEN"}), 400
         try:
             return jsonify({"devices": client.devices()})
         except Exception as e:  # noqa: BLE001
@@ -181,7 +181,7 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
         """The notify.* services this HA install exposes, for the channel picker."""
         client = HomeAssistantClient()
         if not client.configured():
-            return jsonify({"error": "set MYNES_HA_URL and MYNES_HA_TOKEN"}), 400
+            return jsonify({"error": "set HA_URL and HA_TOKEN"}), 400
         try:
             return jsonify({"services": client.notify_services()})
         except Exception as e:  # noqa: BLE001
@@ -191,7 +191,7 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
     def ha_compare():
         client = HomeAssistantClient()
         if not client.configured():
-            return jsonify({"error": "set MYNES_HA_URL and MYNES_HA_TOKEN"}), 400
+            return jsonify({"error": "set HA_URL and HA_TOKEN"}), 400
         try:
             return jsonify(client.compare(_devices()))
         except Exception as e:  # noqa: BLE001

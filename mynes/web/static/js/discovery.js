@@ -159,7 +159,7 @@
       if (!s.configured) {
         $('haBody').innerHTML = '<div class="ds-alert">' +
           '<svg class="ds-alert__icon ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-info"/></svg>' +
-          '<div><strong>Not connected.</strong> Set <code>MYNES_HA_URL</code> and <code>MYNES_HA_TOKEN</code> ' +
+          '<div><strong>Not connected.</strong> Set <code>HA_URL</code> and <code>HA_TOKEN</code> ' +
           '(Home Assistant → profile → Security → Long-lived access tokens) to compare what HA sees ' +
           'with what MyNeS finds, including Zigbee, Z-Wave and Matter devices.</div></div>';
         return;
@@ -182,9 +182,17 @@
             '<div class="ds-stat ds-stat--warning"><div class="ds-stat__value">' + c.only_in_home_assistant.length + '</div><div class="ds-stat__label">Only in HA</div></div>' +
           '</div>' +
           '<h3>Only Home Assistant sees these</h3>' +
-          '<div class="ds-table-wrap"><table class="ds-table"><thead><tr><th>Entity</th><th>Name</th><th>State</th></tr></thead><tbody>' +
+          // The list can come from the device registry (WebSocket: protocol +
+          // manufacturer, includes radio devices) or from /api/states (REST:
+          // entity_id + state). Render whichever fields each row actually has.
+          '<div class="ds-table-wrap"><table class="ds-table"><thead><tr><th>Name</th><th>Type</th><th>Details</th></tr></thead><tbody>' +
           c.only_in_home_assistant.slice(0, 100).map(function (d) {
-            return '<tr><td class="mono">' + esc(d.entity_id) + '</td><td>' + esc(d.name) + '</td><td>' + esc(d.state) + '</td></tr>';
+            var type = d.protocol || d.domain ||
+              (d.integrations && d.integrations.length ? d.integrations.join(', ') : '') || '';
+            var detail = [d.manufacturer, d.model].filter(Boolean).join(' ') ||
+              (d.state != null ? d.state : '') || (d.entity_id || '');
+            return '<tr><td>' + esc(d.name || d.entity_id || '') + '</td><td>' +
+              esc(type) + '</td><td class="ds-muted">' + esc(detail) + '</td></tr>';
           }).join('') + '</tbody></table></div>';
       })
       .catch(function (e) { toast('Compare failed: ' + e.message, 'critical'); })

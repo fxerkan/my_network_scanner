@@ -177,8 +177,7 @@ picks it up - the web app, `python -m mynes`, the tray icon and standalone
 scripts alike. Real environment variables always win over the file. `.env` is
 gitignored; never commit it.
 
-Home Assistant credentials are accepted under either `MYNES_HA_URL`/
-`MYNES_HA_TOKEN` or the bare `HA_URL`/`HA_TOKEN`.
+Home Assistant credentials come from `HA_URL` / `HA_TOKEN`.
 
 ## Security
 

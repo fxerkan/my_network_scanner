@@ -11,7 +11,7 @@ from datetime import datetime
 # The released version. Single source of truth: the footer, the API and the
 # Docker label all read this. Git metadata below is still exposed through
 # get_version_info() for debugging, it just no longer decorates the version.
-VERSION = "1.4.2"
+VERSION = "1.4.3"
 FALLBACK_VERSION = VERSION
 
 def is_docker_environment():

@@ -232,6 +232,21 @@
 }
 .sec-devcontrols__search { flex: 1 1 240px; min-width: 180px; }
 .sec-devcontrols__filter { flex: 0 0 auto; }
+/* The severity filter is enhanced into a .ds-single wrapper (full-width by
+   default) - pin it to a fixed basis so it sits on the same row as the search. */
+.sec-devcontrols .ds-single { flex: 0 0 220px; }
+@media (max-width: 560px) { .sec-devcontrols .ds-single { flex: 1 1 100%; } }
+
+/* Colour-coded severity options in the enhanced dropdown. */
+.sec-devcontrols .ds-multi__opt::before {
+  content: ""; width: 9px; height: 9px; border-radius: 50%; flex: none;
+  margin-right: var(--space-1); background: var(--text-tertiary);
+}
+.sec-devcontrols .ds-multi__opt[data-value="all"]::before { display: none; }
+.sec-devcontrols .ds-multi__opt[data-value="critical"]::before { background: var(--severity-critical-fg); }
+.sec-devcontrols .ds-multi__opt[data-value="high"]::before { background: var(--severity-critical-border, #ef4444); }
+.sec-devcontrols .ds-multi__opt[data-value="medium"]::before { background: var(--severity-warning-border); }
+.sec-devcontrols .ds-multi__opt[data-value="low"]::before { background: var(--severity-info-fg); }
 .sec-filternote { margin-bottom: var(--space-3); align-items: center; }
 
 /* ---------------------------------------------------------- the table --- */
@@ -248,6 +263,8 @@
 .sec-row--open  > td { border-bottom: 0; }
 
 .sec-devcell { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
+.sec-devcell--clickable { cursor: pointer; }
+.sec-devcell--clickable:hover .sec-devcell__name { color: var(--accent-text); text-decoration: underline; }
 .sec-devcell__icon { color: var(--text-secondary); flex: none; }
 .sec-devcell__text { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
 .sec-devcell__name { font-weight: var(--weight-semibold); }

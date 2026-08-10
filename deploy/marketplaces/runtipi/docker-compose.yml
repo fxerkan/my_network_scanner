@@ -3,7 +3,7 @@
 services:
   mynes:
     container_name: mynes
-    image: fxerkan/my_network_scanner:1.4.2
+    image: fxerkan/my_network_scanner:1.4.3
     restart: unless-stopped
     network_mode: host
     cap_add:
@@ -13,8 +13,8 @@ services:
       - MYNES_PORT=${APP_PORT:-5883}
       - MYNES_PASSWORD=${MYNES_PASSWORD:-}
       - MYNES_MQTT_HOST=${MYNES_MQTT_HOST:-}
-      - MYNES_HA_URL=${MYNES_HA_URL:-}
-      - MYNES_HA_TOKEN=${MYNES_HA_TOKEN:-}
+      - HA_URL=${HA_URL:-}
+      - HA_TOKEN=${HA_TOKEN:-}
     volumes:
       - ${APP_DATA_DIR}/data/app:/app/data
       - ${APP_DATA_DIR}/data/config:/app/config

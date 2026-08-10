@@ -1090,6 +1090,15 @@
     gap: 5px;
 }
 
+/* Row the Add/Manage tabs. Without this the buttons (display:flex elsewhere)
+   stack vertically instead of sitting side by side. */
+.device-management-tabs {
+    display: flex;
+    gap: var(--space-2);
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: var(--space-4);
+}
+
 .tab-button {
     background: none;
     border: none;
