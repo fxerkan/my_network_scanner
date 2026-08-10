@@ -1,0 +1,42 @@
+name: Release
+
+# Cutting a release is one action: push a v* tag. This turns that tag into a
+# GitHub Release, using the matching CHANGELOG.md section as the notes. The
+# Docker image is built separately by docker-publish.yml (same tag trigger).
+on:
+  push:
+    tags: [ 'v*' ]
+
+permissions:
+  contents: write
+
+jobs:
+  github-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Extract changelog section
+        id: notes
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          # Pull lines between "## [VERSION]" and the next "## " heading.
+          awk -v v="$VERSION" '
+            $0 ~ "^## \\[" v "\\]" { grab=1; next }
+            grab && /^## / { exit }
+            grab { print }
+          ' CHANGELOG.md > notes.md
+          if [ ! -s notes.md ]; then
+            echo "No CHANGELOG section for $VERSION; using a generic note." >&2
+            echo "Release $GITHUB_REF_NAME. See CHANGELOG.md for details." > notes.md
+          fi
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --title "$GITHUB_REF_NAME" \
+            --notes-file notes.md \
+            --verify-tag || \
+          gh release edit "$GITHUB_REF_NAME" --notes-file notes.md

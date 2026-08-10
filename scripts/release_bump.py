@@ -26,6 +26,7 @@ outside the package: a typo fix in the README is not a new version.
 from __future__ import annotations
 
 import argparse
+import datetime
 import pathlib
 import re
 import subprocess
@@ -85,6 +86,25 @@ def current_version() -> str:
     return match.group(1)
 
 
+def stamp_changelog(version: str, today: str) -> str:
+    """Promote the '## [Unreleased]' heading to a dated version section, leaving
+    a fresh empty Unreleased above it. Returns the release notes body (the lines
+    between the new heading and the next '## ') for the GitHub release."""
+    path = ROOT / "CHANGELOG.md"
+    text = path.read_text(encoding="utf-8")
+    heading = f"## [{version}] — {today}"
+    if f"## [{version}]" in text:
+        print(f"CHANGELOG.md already has a [{version}] section — left as-is")
+    elif "## [Unreleased]" in text:
+        text = text.replace("## [Unreleased]", f"## [Unreleased]\n\n{heading}", 1)
+        path.write_text(text, encoding="utf-8")
+        print("updated CHANGELOG.md")
+    else:
+        print("CHANGELOG.md has no [Unreleased] section — skipped")
+    body = re.split(rf"^{re.escape(heading)}\s*$", text, maxsplit=1, flags=re.M)
+    return body[1].split("\n## ", 1)[0].strip() if len(body) > 1 else ""
+
+
 def apply(version: str) -> None:
     for path, pattern, replacement in (
         ("pyproject.toml", r'^version\s*=\s*"[^"]+"', f'version = "{version}"'),
@@ -94,6 +114,7 @@ def apply(version: str) -> None:
         file.write_text(re.sub(pattern, replacement, file.read_text(encoding="utf-8"), count=1, flags=re.M),
                         encoding="utf-8")
         print(f"updated {path}")
+    stamp_changelog(version, datetime.date.today().isoformat())
 
 
 def main() -> int:
@@ -127,7 +148,9 @@ def main() -> int:
     print(f"{current_version()} -> {version}  ({level})")
     if args.apply:
         apply(version)
-        print(f"\nnext: git commit -am 'release: v{version}' && git tag v{version}")
+        print(f"\nnext: git commit -am 'release: v{version}' && git tag v{version} && "
+              f"git push origin HEAD --tags")
+        print("(pushing the tag builds+publishes the image and cuts the GitHub release)")
     return 0
 
 
@@ -142,6 +165,12 @@ def demo():
     # Explicit overrides win; --patch even overrides a breaking marker.
     assert bump_for(["fix: typo"], "minor") == "minor"
     assert bump_for(["feat!: break"], "patch") == "patch"
+    # Changelog stamp: [Unreleased] -> dated heading, and the body is extracted.
+    sample = "## [Unreleased]\n\n### Added\n- a thing\n\n## [1.0.0] — 2020-01-01\n"
+    promoted = sample.replace("## [Unreleased]", "## [Unreleased]\n\n## [1.1.0] — 2020-02-02", 1)
+    assert "## [1.1.0] — 2020-02-02" in promoted and promoted.count("## [Unreleased]") == 1
+    notes = re.split(r"^## \[1\.1\.0\] — 2020-02-02\s*$", promoted, maxsplit=1, flags=re.M)[1].split("\n## ", 1)[0].strip()
+    assert notes == "### Added\n- a thing"
     assert next_version("1.4.0", "minor") == "1.5.0"
     assert next_version("1.4.3", "patch") == "1.4.4"
     assert next_version("1.4.3", "major") == "2.0.0"

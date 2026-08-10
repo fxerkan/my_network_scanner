@@ -6,8 +6,33 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.4.2] — 2026-08-10
+
+First tagged release since 1.4.0. 1.4.1 shipped in git but was never tagged or
+published, so its changes are folded in here.
+
 ### Added
 
+- **CVE risk & security dashboard** (`mynes/security/cve.py`,
+  `/api/security/vulnerabilities[/<ip>]`). A curated CVE-pattern table — real
+  CVE IDs with banner-anchored regexes — plus port-based attack-surface
+  exposures, matched against each device's already-collected fingerprint. A
+  dashboard summarises exposure across the fleet. Deliberately not a live
+  NVD/vulners feed: the table is offline and reviewable. Configurable CVE
+  settings and an import of the official CVE List V5 back the matching.
+- **Subnets & topology overlay** (`mynes/core/subnets.py`). Devices are grouped
+  by the subnet they are actually in — a real interface/Docker CIDR when known,
+  else the device's own /24 — and the graph gains a subnet overlay on top of the
+  parent/child uplink tree.
+- **Deeper device identification.** Active service fingerprinting
+  (`mynes/analysis/fingerprint.py`) reads RTSP/HTTP/SSH/FTP banners and probes
+  NBNS (UDP 137) for SMB/NetBIOS; OS-family and WiFi-vs-wired guessing is
+  consolidated in `mynes/analysis/os_detect.py`. On-demand
+  ping/traceroute/port-probe/DNS diagnostics per device
+  (`mynes/core/diagnostics.py`, `/api/diagnostics/<ip>/*`).
+- **UI.** Shared filters across pages, graph zoom + hover cards, container-to-host
+  nesting, two-signal detection, per-device availability history, plus metrics
+  and exports.
 - **Bluetooth LE discovery actually works in a container.** The README, the
   add-on description and the marketplace listings have all promised "including
   the Zigbee, Z-Wave, Matter and Bluetooth LE ones an IP scan cannot find" since
