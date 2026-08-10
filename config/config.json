@@ -361,5 +361,11 @@
     "mqtt": true,
     "ble": true,
     "timeout": 8
+  },
+  "security": {
+    "cve_source": "circl",
+    "cve_sync_enabled": true,
+    "cve_sync_interval_days": 30,
+    "cve_last_sync": "2026-08-10T05:52:58.800027+00:00"
   }
 }
