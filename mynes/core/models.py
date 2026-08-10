@@ -223,11 +223,29 @@ class UnifiedDeviceModel:
             legacy_device.get("mac", "")
         )
         
-        # Temel bilgileri kopyala
-        basic_fields = ["hostname", "vendor", "device_type", "status", "last_seen", "alias", "notes"]
+        # Temel bilgileri kopyala. device_type_source / alias_source MUST be
+        # carried over: without them a user-picked device type or alias loses its
+        # "user" marker on every load, so the next scan silently re-guesses and
+        # overwrites the choice. That was the "my Vacuum Cleaner keeps reverting"
+        # bug. name_source/icon carry the same intent for the custom name/icon.
+        basic_fields = ["hostname", "vendor", "device_type", "status", "last_seen",
+                        "alias", "notes", "device_type_source", "alias_source",
+                        "name", "name_source", "icon"]
         for field in basic_fields:
             if field in legacy_device:
                 unified_device[field] = legacy_device[field]
+
+        # Heal device types renamed to registered ones. Older scans stored guesses
+        # like "Robot Vacuum" that were never in the type registry, so they showed
+        # a "?" icon and an empty dropdown. Map them to the registered name on load.
+        RETIRED_TYPE_ALIASES = {
+            "Robot Vacuum": "Vacuum Cleaner",
+            "Smart Appliance": "Smart Home",
+            "DIY / ESP Device": "IoT Device",
+        }
+        healed = RETIRED_TYPE_ALIASES.get(unified_device.get("device_type"))
+        if healed:
+            unified_device["device_type"] = healed
 
         # Discovery sweep verisi (BLE/Zigbee radyo cihazları buna dayanır) ve
         # radyo-only işareti rescan'de kaybolmasın diye taşınır.

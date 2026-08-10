@@ -240,27 +240,27 @@
             
             <!-- Tab Navigation -->
             <div class="tab-navigation">
-                <button class="tab-button active" onclick="switchEditTab('device')">
+                <button class="tab-button active" data-tab="device" onclick="switchEditTab('device')">
                     <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-cpu"/></svg>
                     <span>{{ _('device_tab') }}</span>
                 </button>
-                <button class="tab-button" onclick="switchEditTab('ports')">
+                <button class="tab-button" data-tab="ports" onclick="switchEditTab('ports')">
                     <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-plug"/></svg>
                     <span>{{ _('ports_tab') }}</span>
                 </button>
-                <button class="tab-button" onclick="switchEditTab('access')">
+                <button class="tab-button" data-tab="access" onclick="switchEditTab('access')">
                     <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-shield"/></svg>
                     <span>{{ _('access_tab') }}</span>
                 </button>
-                <button class="tab-button" onclick="switchEditTab('tools')">
+                <button class="tab-button" data-tab="tools" onclick="switchEditTab('tools')">
                     <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-radar"/></svg>
                     <span>{{ _('tools_tab') }}</span>
                 </button>
-                <button class="tab-button" onclick="switchEditTab('security')">
+                <button class="tab-button" data-tab="security" onclick="switchEditTab('security')">
                     <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-alert"/></svg>
                     <span>{{ _('security_tab') }}</span>
                 </button>
-                <button class="tab-button" onclick="switchEditTab('logs')">
+                <button class="tab-button" data-tab="logs" onclick="switchEditTab('logs')">
                     <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-history"/></svg>
                     <span>{{ _('logs_tab') }}</span>
                 </button>
@@ -297,7 +297,7 @@
                                 <option value="">{{ _('select_device_type') }}</option>
                             </select>
                         </div>
-                        <div class="form-group">
+                        <div class="form-group" id="enhancedEditUplinkGroup">
                             <label class="form-label" for="enhancedEditUplink">{{ _('connected_via') }}</label>
                             <select id="enhancedEditUplink" class="form-input">
                                 <option value="">{{ _('uplink_auto') }}</option>

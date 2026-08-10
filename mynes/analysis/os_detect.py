@@ -44,6 +44,45 @@ _NETWORK_OS_HINTS = ('cisco ios', 'routeros', 'junos', 'fortios', 'ios-xe')
 # nothing else implements NetBIOS name service in 2026.
 _WINDOWS_WORKGROUP_DEFAULTS = ('workgroup', 'mshome')
 
+# Last-resort OS priors when no banner named the OS. A vendor OUI or a settled
+# device type is a weak but real signal: a Samsung TV runs Tizen, a robot
+# vacuum runs embedded Linux, an ESP chip runs an RTOS. Always low confidence -
+# these are priors, never measurements. Vendor match is tried before type.
+_VENDOR_OS = (
+    ('espressif', 'Linux/Unix', 'RTOS (ESP-IDF)'),
+    ('roborock', 'Linux/Unix', 'Embedded Linux'),
+    ('ecovacs', 'Linux/Unix', 'Embedded Linux'),
+    ('dreame', 'Linux/Unix', 'Embedded Linux'),
+    ('roku', 'Linux/Unix', 'Roku OS'),
+    ('mxchip', 'Linux/Unix', 'Embedded RTOS'),
+)
+# (device_type substring, vendor substring or '' for any) -> (family, detail).
+_TYPE_OS = (
+    ('smart tv', 'samsung', 'Linux/Unix', 'Tizen'),
+    ('smart tv', 'lg', 'Linux/Unix', 'webOS'),
+    ('smart tv', '', 'Linux/Unix', 'Android TV / embedded'),
+    ('ip camera', '', 'Linux/Unix', 'Embedded Linux'),
+    ('robot vacuum', '', 'Linux/Unix', 'Embedded Linux'),
+    ('router', '', 'Linux/Unix', 'Embedded Linux'),
+    ('printer', '', 'Linux/Unix', 'Embedded'),
+    ('esp device', '', 'Linux/Unix', 'RTOS (ESP-IDF)'),
+    ('smart appliance', '', 'Linux/Unix', 'Embedded'),
+)
+
+
+def _vendor_type_os(signals, device_type):
+    """Weak OS prior from vendor OUI / settled device type, or None."""
+    vendor = (signals.get('vendor') or '').lower()
+    dtype = (device_type or '').lower()
+    for needle, family, detail in _VENDOR_OS:
+        if needle in vendor:
+            return _verdict(family, detail, 0.4, [f'{needle} vendor default OS'])
+    for dneedle, vneedle, family, detail in _TYPE_OS:
+        if dneedle in dtype and (not vneedle or vneedle in vendor):
+            reason = f'{device_type} default OS' + (f' ({vneedle})' if vneedle else '')
+            return _verdict(family, detail, 0.35, [reason])
+    return None
+
 
 def _ttl_bucket(ttl):
     if ttl is None:
@@ -54,13 +93,16 @@ def _ttl_bucket(ttl):
     return None
 
 
-def guess_os(signals: dict, ttl: int | None = None) -> dict:
+def guess_os(signals: dict, ttl: int | None = None, device_type: str = '') -> dict:
     """-> ``{"os_family", "detail", "confidence", "reasons"}``.
 
     ``os_family`` is one of "Linux/Unix", "Windows", "macOS", "BSD",
     "Network Gear", or "Unknown". Ordered strongest evidence first: a
     service that names its own OS in a banner beats a TTL guess, which is
-    just an initial value every stack of a kind shares.
+    just an initial value every stack of a kind shares. ``device_type`` (when
+    already classified) sharpens the last-resort prior - a Samsung Smart TV
+    runs Tizen, a camera runs embedded Linux - so a banner-silent device is
+    still labelled instead of left "Unknown".
     """
     reasons = []
 
@@ -118,6 +160,10 @@ def guess_os(signals: dict, ttl: int | None = None) -> dict:
     bucket = _ttl_bucket(ttl)
     if bucket:
         return _verdict(bucket, f'TTL {ttl}', 0.35, [f'observed TTL {ttl}'])
+
+    prior = _vendor_type_os(signals, device_type)
+    if prior:
+        return prior
 
     return {'os_family': 'Unknown', 'detail': '', 'confidence': 0.0, 'reasons': []}
 
@@ -234,6 +280,22 @@ def demo():
                      'http': []})['os_family'] == 'Linux/Unix'
     assert guess_os({'ftp': '220 Microsoft FTP Service', 'ssh': None, 'smb': None,
                      'http': []})['os_family'] == 'Windows'
+
+    # Banner-silent devices still get a low-confidence prior from vendor/type
+    # instead of a bare "Unknown": a Samsung Smart TV runs Tizen, a camera runs
+    # embedded Linux, an Espressif chip runs an RTOS.
+    tv = guess_os({'vendor': 'Samsung Electronics'}, device_type='Smart TV')
+    assert tv['os_family'] == 'Linux/Unix' and tv['detail'] == 'Tizen', tv
+    assert tv['confidence'] < 0.5
+    cam = guess_os({'vendor': 'Sichuan AI-Link'}, device_type='IP Camera')
+    assert cam['detail'] == 'Embedded Linux', cam
+    esp = guess_os({'vendor': 'Espressif Inc.'}, device_type='IoT Device')
+    assert esp['detail'] == 'RTOS (ESP-IDF)', esp
+    # A real banner still beats the prior.
+    assert guess_os({'ssh': 'SSH-2.0-OpenSSH_8.4p1 Raspbian'},
+                    device_type='IP Camera')['detail'] != 'Embedded Linux'
+    # Nothing to go on, no type: honestly Unknown.
+    assert guess_os({})['os_family'] == 'Unknown'
 
     # Connection medium: the gateway is always wired.
     gw = guess_connection_medium('Router', 'Zyxel', {'is_gateway': True})

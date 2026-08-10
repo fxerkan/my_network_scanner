@@ -88,6 +88,32 @@ def match_combined_rule(rules, vendor_lower, hostname_lower):
     return None
 
 
+def match_vendor_pattern(rules, vendor_lower, hostname_lower):
+    """First vendor rule that matches -> its type. Pure, so it is testable.
+
+    `pattern` is a regex over the vendor string. An optional `conditions` list
+    holds *literal substrings* (not regex): the rule only fires when one of them
+    appears in the hostname or vendor. That is how "Samsung" becomes a phone for
+    a Galaxy but is left alone for the Wi-Fi chip Samsung ships inside a laptop.
+    Order matters - a conditioned rule must precede any bare fallback for the
+    same vendor, since the first match wins. Bad regex is skipped, not raised.
+    """
+    for rule in rules or []:
+        try:
+            if not re.search(rule['pattern'], vendor_lower, re.IGNORECASE):
+                continue
+        except (re.error, KeyError):
+            continue
+        conditions = rule.get('conditions')
+        if conditions:
+            if any(c in hostname_lower or c in vendor_lower for c in conditions):
+                return rule.get('type')
+            continue
+        if rule.get('type'):
+            return rule['type']
+    return None
+
+
 class LANScanner:
     def __init__(self):
         self.last_arp_method = None
@@ -576,21 +602,10 @@ class LANScanner:
             except Exception:
                 continue
 
-        vendor_patterns = self.detection_rules.get('vendor_patterns', [])
-        for rule in vendor_patterns:
-            try:
-                if re.search(rule['pattern'], vendor_lower, re.IGNORECASE):
-                    if 'conditions' in rule:
-                        conditions_met = any(
-                            condition in hostname_lower or condition in vendor_lower
-                            for condition in rule['conditions']
-                        )
-                        if conditions_met:
-                            return rule['type']
-                    else:
-                        return rule['type']
-            except Exception:
-                continue
+        vendor_type = match_vendor_pattern(
+            self.detection_rules.get('vendor_patterns', []), vendor_lower, hostname_lower)
+        if vendor_type:
+            return vendor_type
 
         # 3. Whatever the weaker fingerprint rules concluded, or Unknown.
         return verdict['device_type']
@@ -1143,7 +1158,8 @@ class LANScanner:
         # fine, the banner-based signals above already cover most devices.
         ttl_hint = ((existing_device.get('enhanced_info') or {})
                     .get('ping_analysis', {}) or {}).get('ttl')
-        device_info['os_guess'] = os_detect.guess_os(signals, ttl=ttl_hint)
+        device_info['os_guess'] = os_detect.guess_os(signals, ttl=ttl_hint,
+                                                      device_type=device_type)
         device_info['connection_medium'] = os_detect.guess_connection_medium(
             device_type, vendor, signals)
 
@@ -1637,9 +1653,17 @@ class LANScanner:
             return None
     
     def update_device(self, ip, updates):
-        """Belirli bir cihazın bilgilerini günceller"""
+        """Belirli bir cihazın bilgilerini günceller.
+
+        ``ip`` is really a device *key*: a normal device's IP, or - for a
+        radio-only discovery device (Bluetooth/Zigbee, no IP) - its MAC. Match
+        on IP, falling back to MAC when the device has no IP, so those devices
+        can be given an alias/custom name too.
+        """
+        key = (ip or '').lower()
         for i, device in enumerate(self.devices):
-            if device['ip'] == ip:
+            if device['ip'] == ip or (
+                    not device.get('ip') and (device.get('mac') or '').lower() == key):
                 # IP ve MAC değişikliği kontrolü
                 new_ip = updates.get('ip', device['ip'])
                 new_mac = updates.get('mac', device['mac'])

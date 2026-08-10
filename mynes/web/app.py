@@ -902,6 +902,11 @@ def get_available_networks():
     """Return available network interfaces"""
     try:
         networks = scanner.get_available_networks()
+        # Mark the range that auto-detection would scan (the gateway's subnet),
+        # so Settings can preselect it in the dropdown.
+        detected = scanner.get_local_network()
+        for n in networks:
+            n['is_default'] = (n.get('network_range') == detected)
         return jsonify(networks)
     except Exception as e:
         return jsonify({"error": str(e)}), 400

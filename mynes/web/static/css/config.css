@@ -491,7 +491,7 @@
     background: var(--accent-bg);
     color: white;
     border-color: var(--accent-bg);
-    transform: scale(1.25);      /* hover zoom, tooltip-like */
+    transform: scale(1.5);       /* hover zoom, tooltip-like */
     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
     z-index: 1;
 }
@@ -592,7 +592,7 @@
 }
 .device-type-card__icon:hover {
     border-color: var(--accent-border);
-    transform: scale(1.25);      /* hover zoom, tooltip-like */
+    transform: scale(1.5);       /* hover zoom, tooltip-like */
     position: relative; z-index: 2;
 }
 
@@ -771,3 +771,15 @@
 .cve-sev--none, .cve-sev--unknown {
     background: var(--bg-surface-sunken); color: var(--text-tertiary);
 }
+
+/* Regex help affordance next to pattern labels: a muted info icon whose
+   native title= carries the cheatsheet. No JS, no custom tooltip layer. */
+.regex-help {
+    display: inline-flex;
+    vertical-align: middle;
+    margin-left: var(--space-1);
+    color: var(--text-tertiary);
+    cursor: help;
+}
+.regex-help:hover, .regex-help:focus-visible { color: var(--text-secondary); }
+.regex-help .ds-icon { width: 1em; height: 1em; }

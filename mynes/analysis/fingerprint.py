@@ -89,6 +89,35 @@ IOT_VENDORS = ('espressif', 'tuya', 'shelly', 'sonoff', 'itead', 'xiaomi',
                'nanoleaf', 'sonos', 'ikea of sweden', 'amazon technologies',
                'google', 'roborock', 'ecovacs', 'dyson')
 
+# Vendors whose OUI names a *camera* even when the device is asleep, behind
+# auth, or answers no RTSP/HTTP probe at all - the bare-metal camera SoC makers
+# and the OEM brands built on them. Weaker than an RTSP handshake, stronger than
+# calling a security camera a generic "IoT Device".
+CAMERA_VENDORS = ('hikvision', 'dahua', 'reolink', 'foscam', 'amcrest', 'vivotek',
+                  'uniview', 'goke', 'xiongmai', 'hangzhou xiongmai', 'sichuan ai-link',
+                  'ai-link', 'fullhan', 'grain media', 'ingenic', 'eufy', 'wyze')
+
+# A specific OUI pins a specific type better than the "IoT Device" bucket. Each
+# entry is (vendor substring, device_type, confidence). First match wins, so
+# order most-specific first. Kept deliberately unambiguous: no phone/multi-
+# product brands (Samsung, Xiaomi, Google) that a single OUI cannot resolve.
+# Types here MUST be names that exist in the device-type registry (config.py
+# default_device_types), or the UI shows a "?" icon and an empty type dropdown.
+# "Robot Vacuum"/"Smart Appliance"/"DIY / ESP Device" were not registered, which
+# is exactly why Roborock/Dyson/ESP devices rendered with the fallback icon.
+VENDOR_TYPE_HINTS = (
+    ('roborock', 'Vacuum Cleaner', 0.75),
+    ('ecovacs', 'Vacuum Cleaner', 0.75),
+    ('dreame', 'Vacuum Cleaner', 0.72),
+    ('irobot', 'Vacuum Cleaner', 0.75),
+    ('dyson', 'Smart Home', 0.7),
+    ('mxchip', 'Smart Home', 0.6),           # Wi-Fi module in AC / white goods
+    ('espressif', 'IoT Device', 0.65),
+    ('sonos', 'Smart Speaker', 0.72),
+    ('nanoleaf', 'Smart Light', 0.72),
+    ('lifx', 'Smart Light', 0.72),
+)
+
 MOBILE_VENDORS = ('samsung electronics', 'oneplus', 'xiaomi communications',
                   'xiaomi mobile', 'beijing xiaomi', 'oppo', 'vivo mobile',
                   'realme', 'motorola mobility', 'huawei device', 'honor device')
@@ -469,6 +498,10 @@ def classify(signals):
         return verdict('IP Camera', 0.93, 'camera firmware in banner')
     if ports & {8899, 34567, 37777} or (2020 in ports and 554 in ports):
         return verdict('IP Camera', 0.85, 'camera/NVR control port open')
+    # A camera SoC/brand OUI, when nothing louder answered. Catches the sleeping
+    # or auth-only cameras an RTSP probe can't reach.
+    if _has(vendor, CAMERA_VENDORS):
+        return verdict('IP Camera', 0.7, 'camera-maker OUI')
 
     if _has(text, PRINTER_HINTS) or ports & {9100, 631, 515}:
         return verdict('Printer', 0.92, 'printing service')
@@ -514,6 +547,11 @@ def classify(signals):
         return verdict('Apple Device', 0.70, 'Apple OUI')
     if _has(vendor, MOBILE_VENDORS):
         return verdict('Smartphone', 0.60, 'mobile vendor OUI')
+    # A specific vendor (Roborock, Dyson, Espressif...) pins a specific type;
+    # only fall back to the generic "IoT Device" bucket when none matches.
+    for needle, dtype, conf in VENDOR_TYPE_HINTS:
+        if needle in vendor:
+            return verdict(dtype, conf, f'{needle} OUI')
     if _has(vendor, IOT_VENDORS):
         return verdict('IoT Device', 0.65, 'IoT vendor OUI')
 
@@ -761,6 +799,21 @@ def demo():
     nameless = {'ip': '192.168.1.57', 'hostname': '', 'vendor': 'Unknown',
                 'http': [], 'open_ports': []}
     assert suggest_name(nameless, 'Unknown') == '', suggest_name(nameless, 'Unknown')
+
+    # A specific vendor OUI now yields a specific type, not a generic bucket.
+    vac = dict(pi, vendor='Beijing Roborock Technology Co., Ltd.', open_ports=[])
+    assert classify(vac)['device_type'] == 'Vacuum Cleaner', classify(vac)
+    assert suggest_name(vac, 'Vacuum Cleaner') == 'Beijing Roborock Vacuum Cleaner'
+    esp = dict(pi, vendor='Espressif Inc.', open_ports=[])
+    assert classify(esp)['device_type'] == 'IoT Device', classify(esp)
+    dyson = dict(pi, vendor='Dyson Limited', open_ports=[])
+    assert classify(dyson)['device_type'] == 'Smart Home', classify(dyson)
+
+    # A camera brand with no reachable RTSP is still a camera, not "IoT Device".
+    goke_cam = dict(pi, vendor='Sichuan AI-Link Technology', open_ports=[23])
+    assert classify(goke_cam)['device_type'] == 'IP Camera', classify(goke_cam)
+    eufy = dict(pi, vendor='Anker Innovations / eufy', open_ports=[])
+    assert classify(eufy)['device_type'] == 'IP Camera', classify(eufy)
 
     # A Xiaomi phone is a phone, not a smart bulb.
     phone = {'ip': '192.168.1.30', 'open_ports': [], 'hostname': '',

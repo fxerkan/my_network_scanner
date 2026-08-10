@@ -153,7 +153,17 @@ class MonitorScheduler:
         self._wake.set()
 
     def _loop(self):
+        # Wait BEFORE the first scan. Scanning the instant the process boots
+        # surprised users ("why is it scanning, I didn't ask?") and re-derived
+        # every device's type on startup. The interval wait comes first; the
+        # user's "Run scan now" button sets _wake and still fires immediately.
         while not self._stop.is_set():
+            settings = self.settings()
+            self._wake.wait(timeout=max(60, settings["interval_minutes"] * 60))
+            self._wake.clear()
+            if self._stop.is_set():
+                break
+
             settings = self.settings()
             if settings["enabled"]:
                 try:
@@ -162,9 +172,6 @@ class MonitorScheduler:
                 except Exception as e:  # noqa: BLE001 - the loop must survive anything
                     self.last_error = f"{type(e).__name__}: {e}"
                     log.exception("scheduled scan failed")
-
-            self._wake.wait(timeout=max(60, settings["interval_minutes"] * 60))
-            self._wake.clear()
 
     # -- the actual work --------------------------------------------------
     def run_once(self, settings: dict | None = None) -> dict:

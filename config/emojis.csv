@@ -345,3 +345,19 @@ emoji,category,description,keywords
 🕹️,computer,joystick,joystick gaming control
 🔌,computer,fiş güç plug,plug power fis adapter
 🧮,computer,abaküs hesap,abacus calculate hesap compute
+🪭,appliance,Fan / Air Purifier,"fan,air,purifier,dyson,cooling"
+🌀,appliance,Air Purifier,"fan,purifier,air,cyclone,dyson"
+🌬️,appliance,Air / Ventilation,"air,wind,fan,ventilation,hvac"
+☕,appliance,Coffee Machine,"coffee,espresso,kettle,machine"
+🫖,appliance,Smart Kettle,"kettle,tea,boiler,water"
+🪥,appliance,Smart Toothbrush,"toothbrush,oral,smart,bathroom"
+🛗,smart,Elevator / Lift,"elevator,lift,home,building"
+🪟,smart,Smart Blinds,"window,blinds,shade,curtain,roller"
+🛏️,smart,Smart Bed,"bed,sleep,smart,bedroom"
+🛎️,smart,Doorbell,"bell,doorbell,service,ring"
+🧯,security,Safety / Alarm,"extinguisher,safety,fire,alarm"
+🪫,iot,Low-Battery Sensor,"battery,low,sensor,power"
+🧠,iot,AI / Compute Node,"ai,brain,compute,ml,inference"
+💧,iot,Water / Leak Sensor,"water,leak,sensor,fountain,humidity"
+🍓,computer,Raspberry Pi / SBC,"raspberry,pi,sbc,board,single"
+🐾,smart,Pet Device,"pet,paw,tracker,feeder"

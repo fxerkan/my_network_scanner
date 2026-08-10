@@ -11,9 +11,25 @@
     "category": "smart",
     "icon": "💨"
   },
+  "Apple AirTag": {
+    "category": "iot",
+    "icon": "📍"
+  },
   "Apple Device": {
     "category": "mobile",
     "icon": "🍎"
+  },
+  "Beacon": {
+    "category": "iot",
+    "icon": "🔆"
+  },
+  "Bluetooth Device": {
+    "category": "iot",
+    "icon": "🔵"
+  },
+  "Bluetooth Tracker": {
+    "category": "iot",
+    "icon": "🏷️"
   },
   "Desktop": {
     "category": "computer",
@@ -38,6 +54,10 @@
   "Gaming Console": {
     "category": "entertainment",
     "icon": "🎮"
+  },
+  "Headphones": {
+    "category": "peripheral",
+    "icon": "🎧"
   },
   "IP Camera": {
     "category": "security",
@@ -92,7 +112,7 @@
     "icon": "🖨️"
   },
   "Raspberry Pi Server": {
-    "category": "iot",
+    "category": "computer",
     "icon": "🍇"
   },
   "Refrigerator": {
@@ -111,13 +131,13 @@
     "category": "security",
     "icon": "🔒"
   },
+  "Sensor": {
+    "category": "iot",
+    "icon": "🌡️"
+  },
   "Server": {
     "category": "computer",
     "icon": "🖥️"
-  },
-  "Single Board Computer": {
-    "category": "computer",
-    "icon": "🍓"
   },
   "Smart Home": {
     "category": "smart",
@@ -147,6 +167,10 @@
     "category": "mobile",
     "icon": "⌚"
   },
+  "SmartTag": {
+    "category": "iot",
+    "icon": "🔖"
+  },
   "Smartphone": {
     "category": "mobile",
     "icon": "📱"
@@ -163,6 +187,10 @@
     "category": "mobile",
     "icon": "📟"
   },
+  "Tile Tracker": {
+    "category": "iot",
+    "icon": "🔲"
+  },
   "Unknown": {
     "category": "unknown",
     "icon": "❓"
@@ -175,48 +203,16 @@
     "category": "appliance",
     "icon": "🧺"
   },
-  "Bluetooth Device": {
-    "category": "iot",
-    "icon": "🔵"
-  },
-  "Bluetooth Tracker": {
-    "category": "iot",
-    "icon": "🏷️"
-  },
-  "Apple AirTag": {
-    "category": "iot",
-    "icon": "📍"
-  },
-  "Samsung SmartTag": {
-    "category": "iot",
-    "icon": "🔖"
-  },
-  "Tile Tracker": {
-    "category": "iot",
-    "icon": "🔲"
-  },
-  "Headphones": {
-    "category": "peripheral",
-    "icon": "🎧"
-  },
   "Wearable": {
     "category": "mobile",
     "icon": "⌚"
   },
-  "Sensor": {
-    "category": "iot",
-    "icon": "🌡️"
-  },
-  "Beacon": {
-    "category": "iot",
-    "icon": "🔆"
+  "Z-Wave Device": {
+    "category": "smart",
+    "icon": "🌊"
   },
   "Zigbee Device": {
     "category": "smart",
     "icon": "🐝"
-  },
-  "Z-Wave Device": {
-    "category": "smart",
-    "icon": "🌊"
   }
 }

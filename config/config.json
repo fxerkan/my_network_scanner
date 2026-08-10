@@ -152,6 +152,10 @@
         ]
       },
       {
+        "pattern": "Apple.*",
+        "type": "Apple Device"
+      },
+      {
         "pattern": "Samsung.*",
         "type": "Smartphone",
         "conditions": [
@@ -160,37 +164,76 @@
         ]
       },
       {
-        "pattern": "Samsung.*",
+        "pattern": "Samsung.*|LG.*",
         "type": "Smart TV",
         "conditions": [
           "tv",
-          "display"
+          "display",
+          "oled",
+          "qled",
+          "bravia"
         ]
       },
       {
-        "pattern": "LG.*",
-        "type": "Smart TV",
+        "pattern": "Xiaomi.*|Redmi.*|POCO.*",
+        "type": "Smartphone",
         "conditions": [
-          "tv",
-          "display"
+          "redmi",
+          "poco",
+          "mi phone",
+          "android",
+          "phone"
         ]
       },
       {
-        "pattern": "Sony.*",
-        "type": "Gaming Console",
+        "pattern": "OnePlus.*|Oppo.*|Vivo.*|Realme.*|Nothing.*|Motorola.*|Nokia.*|HMD.*|Honor.*",
+        "type": "Smartphone",
         "conditions": [
-          "playstation"
+          "android",
+          "phone",
+          "oneplus",
+          "oppo",
+          "vivo",
+          "realme",
+          "moto",
+          "nokia",
+          "honor",
+          "nothing"
         ]
       },
       {
-        "pattern": "Microsoft.*",
-        "type": "Gaming Console",
+        "pattern": "Huawei.*",
+        "type": "Smartphone",
         "conditions": [
-          "xbox"
+          "phone",
+          "android",
+          "mate",
+          "nova",
+          "honor"
         ]
       },
       {
-        "pattern": "TP-Link.*|TpLink.*",
+        "pattern": "Dell.*|Lenovo.*|Acer.*|MSI.*|Razer.*|Framework.*|Gigabyte.*|Asus.*|AsusTek.*|Hewlett.*|HP.*",
+        "type": "Laptop",
+        "conditions": [
+          "laptop",
+          "notebook",
+          "thinkpad",
+          "ideapad",
+          "latitude",
+          "inspiron",
+          "xps",
+          "zenbook",
+          "vivobook",
+          "elitebook",
+          "probook",
+          "pavilion",
+          "nitro",
+          "legion"
+        ]
+      },
+      {
+        "pattern": "TP-?Link.*",
         "type": "Router",
         "conditions": [
           "router",
@@ -198,21 +241,20 @@
           "archer",
           "deco",
           "modem",
-          "ap",
-          "wifi"
+          "tl-"
         ]
       },
       {
-        "pattern": "Asus.*",
+        "pattern": "Asus.*|AsusTek.*",
         "type": "Router",
         "conditions": [
           "router",
           "gateway",
-          "archer",
-          "deco",
+          "rt-",
+          "zenwifi",
+          "lyra",
           "modem",
-          "ap",
-          "wifi"
+          "aimesh"
         ]
       },
       {
@@ -221,11 +263,146 @@
         "conditions": [
           "router",
           "gateway",
-          "archer",
-          "deco",
-          "modem",
-          "ap",
-          "wifi"
+          "orbi",
+          "nighthawk",
+          "modem"
+        ]
+      },
+      {
+        "pattern": "Zyxel.*|Keenetic.*",
+        "type": "Router"
+      },
+      {
+        "pattern": "MikroTik.*",
+        "type": "Router"
+      },
+      {
+        "pattern": "D-?Link.*",
+        "type": "Router",
+        "conditions": [
+          "router",
+          "gateway",
+          "dir-",
+          "dwr",
+          "modem"
+        ]
+      },
+      {
+        "pattern": "Ubiquiti.*|UniFi.*",
+        "type": "Access Point"
+      },
+      {
+        "pattern": "Aruba.*|Ruckus.*|Cambium.*",
+        "type": "Access Point"
+      },
+      {
+        "pattern": "Cisco.*|Juniper.*|Fortinet.*",
+        "type": "Router",
+        "conditions": [
+          "router",
+          "gateway",
+          "switch",
+          "firewall",
+          "meraki"
+        ]
+      },
+      {
+        "pattern": "Synology.*|QNAP.*|Asustor.*|TerraMaster.*|Drobo.*|Buffalo.*|Western Digital.*|\\bWD\\b",
+        "type": "NAS"
+      },
+      {
+        "pattern": "Roku.*",
+        "type": "Streaming Device"
+      },
+      {
+        "pattern": "Vizio.*|TCL.*|Hisense.*|Panasonic.*|Sony.*",
+        "type": "Smart TV",
+        "conditions": [
+          "tv",
+          "bravia",
+          "display"
+        ]
+      },
+      {
+        "pattern": "Sonos.*|Bose.*|Denon.*|Marantz.*|Yamaha.*|Harman.*|JBL.*",
+        "type": "Smart Speaker"
+      },
+      {
+        "pattern": "Philips.*|TP Vision.*",
+        "type": "Smart TV",
+        "conditions": [
+          "tv",
+          "ambilight"
+        ]
+      },
+      {
+        "pattern": "Signify.*|Philips.*",
+        "type": "Smart Light",
+        "conditions": [
+          "hue",
+          "bulb",
+          "lamp",
+          "bridge",
+          "lighting",
+          "light"
+        ]
+      },
+      {
+        "pattern": "Yeelight.*|Nanoleaf.*|Lifx.*|Wiz.*",
+        "type": "Smart Light"
+      },
+      {
+        "pattern": "Sonoff.*|ITEAD.*|Shelly.*|Espressif.*|Tuya.*|Tasmota.*",
+        "type": "IoT Device"
+      },
+      {
+        "pattern": "Ring.*|Blink.*|Wyze.*|Reolink.*|Hikvision.*|Dahua.*|Amcrest.*|Ezviz.*|Foscam.*|Annke.*|Arlo.*|Eufy.*|Tapo.*",
+        "type": "IP Camera"
+      },
+      {
+        "pattern": "Ecobee.*|Tado.*|Netatmo.*",
+        "type": "Smart Thermostat"
+      },
+      {
+        "pattern": "Daikin.*",
+        "type": "Air Conditioner"
+      },
+      {
+        "pattern": "Mitsubishi.*Electric.*|Gree.*|Midea.*|Haier.*|Fujitsu.*",
+        "type": "Air Conditioner",
+        "conditions": [
+          "ac",
+          "aircon",
+          "hvac",
+          "climate",
+          "airco",
+          "heatpump"
+        ]
+      },
+      {
+        "pattern": "August.*|Yale.*|Nuki.*|Schlage.*|Ultraloq.*",
+        "type": "Smart Lock"
+      },
+      {
+        "pattern": "Roborock.*|iRobot.*|Ecovacs.*|Dreame.*|Roidmi.*|Neato.*",
+        "type": "Vacuum Cleaner"
+      },
+      {
+        "pattern": "Dyson.*",
+        "type": "Vacuum Cleaner",
+        "conditions": [
+          "vacuum",
+          "robot"
+        ]
+      },
+      {
+        "pattern": "Dyson.*",
+        "type": "Air Conditioner",
+        "conditions": [
+          "fan",
+          "purifier",
+          "cool",
+          "pure"
         ]
       },
       {
@@ -233,18 +410,60 @@
         "type": "Smart Home"
       },
       {
-        "pattern": "Xiaomi.*",
-        "type": "Smartphone",
+        "pattern": "Fitbit.*|Garmin.*|Withings.*|Amazfit.*|Huami.*|Whoop.*|Polar.*",
+        "type": "Wearable"
+      },
+      {
+        "pattern": "Hewlett.*|HP.*|Canon.*|Epson.*|Brother.*|Lexmark.*|Kyocera.*|Xerox.*|Ricoh.*",
+        "type": "Printer",
         "conditions": [
-          "redmi",
-          "mi phone",
-          "poco",
-          "android"
+          "printer",
+          "print",
+          "mfp",
+          "laserjet",
+          "officejet",
+          "deskjet",
+          "pixma",
+          "ecotank",
+          "workforce",
+          "imageclass"
         ]
       },
       {
-        "pattern": "Petkit.*",
+        "pattern": "Sony.*",
+        "type": "Game Console",
+        "conditions": [
+          "playstation",
+          "ps4",
+          "ps5"
+        ]
+      },
+      {
+        "pattern": "Microsoft.*",
+        "type": "Game Console",
+        "conditions": [
+          "xbox"
+        ]
+      },
+      {
+        "pattern": "Nintendo.*",
+        "type": "Game Console"
+      },
+      {
+        "pattern": "Valve.*",
+        "type": "Game Console"
+      },
+      {
+        "pattern": "Petkit.*|Petlibro.*|Petsafe.*|Sure ?Petcare.*",
         "type": "Pet Feeder"
+      },
+      {
+        "pattern": "Furbo.*",
+        "type": "Pet Camera"
+      },
+      {
+        "pattern": "Tractive.*",
+        "type": "Pet Tracker"
       }
     ],
     "combined_rules": [
@@ -274,14 +493,104 @@
         "type": "Smart Watch"
       },
       {
+        "vendor": "Apple",
+        "hostname": "homepod",
+        "type": "Smart Speaker"
+      },
+      {
         "vendor": "Samsung",
         "hostname": "galaxy|sm-[a-z]",
         "type": "Smartphone"
       },
       {
         "vendor": "Samsung|LG",
-        "hostname": "\\btv\\b|smart-?tv",
+        "hostname": "\\btv\\b|smart-?tv|oled|qled|the-?frame|bravia",
         "type": "Smart TV"
+      },
+      {
+        "vendor": "Samsung|LG",
+        "hostname": "family-?hub|fridge|refrigerator",
+        "type": "Refrigerator"
+      },
+      {
+        "vendor": "Samsung|LG",
+        "hostname": "washer|washing|dryer",
+        "type": "Washing Machine"
+      },
+      {
+        "vendor": "Xiaomi|Redmi|POCO",
+        "hostname": "redmi|poco|xiaomi|mi-?phone",
+        "type": "Smartphone"
+      },
+      {
+        "vendor": "Xiaomi|Roborock|Dreame|Roidmi|Viomi|Ecovacs",
+        "hostname": "vacuum|robot|roborock|dreame|sweep",
+        "type": "Vacuum Cleaner"
+      },
+      {
+        "vendor": "Xiaomi|Yeelight",
+        "hostname": "yeelight|bulb|lamp|light|strip",
+        "type": "Smart Light"
+      },
+      {
+        "vendor": "Google",
+        "hostname": "pixel",
+        "type": "Smartphone"
+      },
+      {
+        "vendor": "Google",
+        "hostname": "chromecast|google-?tv",
+        "type": "Streaming Device"
+      },
+      {
+        "vendor": "Google|Nest",
+        "hostname": "nest-?mini|google-?home|nest-?hub|nest-?audio",
+        "type": "Smart Speaker"
+      },
+      {
+        "vendor": "Google|Nest",
+        "hostname": "nest-?cam|nest-?doorbell",
+        "type": "IP Camera"
+      },
+      {
+        "vendor": "Google|Nest",
+        "hostname": "thermostat",
+        "type": "Smart Thermostat"
+      },
+      {
+        "vendor": "Amazon",
+        "hostname": "echo|alexa|\\bdot\\b",
+        "type": "Smart Speaker"
+      },
+      {
+        "vendor": "Amazon",
+        "hostname": "fire-?tv|firetv|aft[a-z]",
+        "type": "Streaming Device"
+      },
+      {
+        "vendor": "Amazon",
+        "hostname": "kindle",
+        "type": "Tablet"
+      },
+      {
+        "vendor": "Amazon|Ring|Blink",
+        "hostname": "ring|blink|doorbell",
+        "type": "IP Camera"
+      },
+      {
+        "vendor": "Sony",
+        "hostname": "bravia",
+        "type": "Smart TV"
+      },
+      {
+        "vendor": "Sony",
+        "hostname": "playstation|ps[45]",
+        "type": "Game Console"
+      },
+      {
+        "vendor": "Microsoft",
+        "hostname": "xbox",
+        "type": "Game Console"
       },
       {
         "vendor": "Raspberry",

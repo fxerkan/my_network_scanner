@@ -48,14 +48,45 @@ class ConfigManager:
                 # first, before the fingerprint heuristics, because a rule the
                 # user wrote by hand outranks anything we infer.
                 'combined_rules': [
+                    # Apple - vendor alone cannot tell iPhone from MacBook from Apple TV.
                     {'vendor': r'Apple', 'hostname': r'macbook|imac|mac-?mini|mac-?pro|mac-?studio',
                      'type': 'Laptop'},
                     {'vendor': r'Apple', 'hostname': r'iphone', 'type': 'Smartphone'},
                     {'vendor': r'Apple', 'hostname': r'ipad', 'type': 'Tablet'},
                     {'vendor': r'Apple', 'hostname': r'apple-?tv|appletv', 'type': 'Smart TV'},
                     {'vendor': r'Apple', 'hostname': r'watch', 'type': 'Smart Watch'},
+                    {'vendor': r'Apple', 'hostname': r'homepod', 'type': 'Smart Speaker'},
+                    # Samsung / LG - phone, TV and white goods all report the same vendor.
                     {'vendor': r'Samsung', 'hostname': r'galaxy|sm-[a-z]', 'type': 'Smartphone'},
-                    {'vendor': r'Samsung|LG', 'hostname': r'\btv\b|smart-?tv', 'type': 'Smart TV'},
+                    {'vendor': r'Samsung|LG', 'hostname': r'\btv\b|smart-?tv|oled|qled|the-?frame|bravia',
+                     'type': 'Smart TV'},
+                    {'vendor': r'Samsung|LG', 'hostname': r'family-?hub|fridge|refrigerator',
+                     'type': 'Refrigerator'},
+                    {'vendor': r'Samsung|LG', 'hostname': r'washer|washing|dryer', 'type': 'Washing Machine'},
+                    # Xiaomi ecosystem - phones vs the huge Mi/Yeelight/Roborock smart-home range.
+                    {'vendor': r'Xiaomi|Redmi|POCO', 'hostname': r'redmi|poco|xiaomi|mi-?phone',
+                     'type': 'Smartphone'},
+                    {'vendor': r'Xiaomi|Roborock|Dreame|Roidmi|Viomi|Ecovacs',
+                     'hostname': r'vacuum|robot|roborock|dreame|sweep', 'type': 'Vacuum Cleaner'},
+                    {'vendor': r'Xiaomi|Yeelight', 'hostname': r'yeelight|bulb|lamp|light|strip',
+                     'type': 'Smart Light'},
+                    # Google / Nest
+                    {'vendor': r'Google', 'hostname': r'pixel', 'type': 'Smartphone'},
+                    {'vendor': r'Google', 'hostname': r'chromecast|google-?tv', 'type': 'Streaming Device'},
+                    {'vendor': r'Google|Nest', 'hostname': r'nest-?mini|google-?home|nest-?hub|nest-?audio',
+                     'type': 'Smart Speaker'},
+                    {'vendor': r'Google|Nest', 'hostname': r'nest-?cam|nest-?doorbell', 'type': 'IP Camera'},
+                    {'vendor': r'Google|Nest', 'hostname': r'thermostat', 'type': 'Smart Thermostat'},
+                    # Amazon
+                    {'vendor': r'Amazon', 'hostname': r'echo|alexa|\bdot\b', 'type': 'Smart Speaker'},
+                    {'vendor': r'Amazon', 'hostname': r'fire-?tv|firetv|aft[a-z]', 'type': 'Streaming Device'},
+                    {'vendor': r'Amazon', 'hostname': r'kindle', 'type': 'Tablet'},
+                    {'vendor': r'Amazon|Ring|Blink', 'hostname': r'ring|blink|doorbell', 'type': 'IP Camera'},
+                    # Sony / Microsoft - TV vs console.
+                    {'vendor': r'Sony', 'hostname': r'bravia', 'type': 'Smart TV'},
+                    {'vendor': r'Sony', 'hostname': r'playstation|ps[45]', 'type': 'Game Console'},
+                    {'vendor': r'Microsoft', 'hostname': r'xbox', 'type': 'Game Console'},
+                    # Raspberry Pi - anything on this OUI is a board.
                     {'vendor': r'Raspberry', 'hostname': r'.*', 'type': 'Single Board Computer'},
                 ],
                 'hostname_patterns': [
@@ -74,27 +105,96 @@ class ConfigManager:
                     {'pattern': r'.*desktop.*|.*pc.*', 'type': 'Desktop'},
                     {'pattern': r'.*xbox.*|.*playstation.*|.*nintendo.*', 'type': 'Gaming Console'}
                 ],
+                # A `conditions` list is *literal substrings* (matched against the
+                # hostname or vendor), never regex. For any multi-product vendor a
+                # conditioned rule must come before a bare fallback: first match wins.
                 'vendor_patterns': [
+                    # Apple
                     {'pattern': r'Apple.*', 'type': 'Smartphone', 'conditions': ['iphone', 'ios']},
                     {'pattern': r'Apple.*', 'type': 'Tablet', 'conditions': ['ipad']},
                     {'pattern': r'Apple.*', 'type': 'Laptop', 'conditions': ['macbook', 'mac']},
-                    {'pattern': r'Samsung.*', 'type': 'Smartphone', 'conditions': ['galaxy', 'android']},
-                    {'pattern': r'Samsung.*', 'type': 'Smart TV', 'conditions': ['tv', 'display']},
-                    {'pattern': r'LG.*', 'type': 'Smart TV', 'conditions': ['tv', 'display']},
-                    {'pattern': r'Sony.*', 'type': 'Gaming Console', 'conditions': ['playstation']},
-                    {'pattern': r'Microsoft.*', 'type': 'Gaming Console', 'conditions': ['xbox']},
-                    {'pattern': r'TP-Link.*|TpLink.*', 'type': 'Router'},
-                    {'pattern': r'Asus.*', 'type': 'Router'},
-                    {'pattern': r'Netgear.*', 'type': 'Router'},
-                    {'pattern': r'Dyson.*', 'type': 'Smart Home'},
-                    {'pattern': r'Xiaomi.*', 'type': 'Smartphone'},
-                    {'pattern': r'Petkit.*', 'type': 'Pet Feeder'},
                     {'pattern': r'Apple.*', 'type': 'Apple Device'},
+                    # Phones (Android OEMs) - conditioned so a Wi-Fi/BT chip that ships
+                    # the same vendor string inside a laptop is not called a phone.
+                    {'pattern': r'Samsung.*', 'type': 'Smartphone', 'conditions': ['galaxy', 'android']},
+                    {'pattern': r'Samsung.*|LG.*', 'type': 'Smart TV',
+                     'conditions': ['tv', 'display', 'oled', 'qled', 'bravia']},
+                    {'pattern': r'Xiaomi.*|Redmi.*|POCO.*', 'type': 'Smartphone',
+                     'conditions': ['redmi', 'poco', 'mi phone', 'android', 'phone']},
+                    {'pattern': r'OnePlus.*|Oppo.*|Vivo.*|Realme.*|Nothing.*|Motorola.*|Nokia.*|HMD.*|Honor.*',
+                     'type': 'Smartphone',
+                     'conditions': ['android', 'phone', 'oneplus', 'oppo', 'vivo', 'realme', 'moto',
+                                    'nokia', 'honor', 'nothing']},
+                    {'pattern': r'Huawei.*', 'type': 'Smartphone',
+                     'conditions': ['phone', 'android', 'mate', 'nova', 'honor']},
+                    # Laptops / PCs
+                    {'pattern': r'Dell.*|Lenovo.*|Acer.*|MSI.*|Razer.*|Framework.*|Gigabyte.*|Asus.*|AsusTek.*|Hewlett.*|HP.*',
+                     'type': 'Laptop',
+                     'conditions': ['laptop', 'notebook', 'thinkpad', 'ideapad', 'latitude', 'inspiron',
+                                    'xps', 'zenbook', 'vivobook', 'elitebook', 'probook', 'pavilion',
+                                    'nitro', 'legion']},
+                    # Networking - routers / access points / modems. Conditions favour
+                    # model-name tokens (archer, deco, orbi) over 2-letter noise.
+                    {'pattern': r'TP-?Link.*', 'type': 'Router',
+                     'conditions': ['router', 'gateway', 'archer', 'deco', 'modem', 'tl-']},
+                    {'pattern': r'Asus.*|AsusTek.*', 'type': 'Router',
+                     'conditions': ['router', 'gateway', 'rt-', 'zenwifi', 'lyra', 'modem', 'aimesh']},
+                    {'pattern': r'Netgear.*', 'type': 'Router',
+                     'conditions': ['router', 'gateway', 'orbi', 'nighthawk', 'modem']},
+                    {'pattern': r'Zyxel.*|Keenetic.*', 'type': 'Router'},
+                    {'pattern': r'MikroTik.*', 'type': 'Router'},
+                    {'pattern': r'D-?Link.*', 'type': 'Router',
+                     'conditions': ['router', 'gateway', 'dir-', 'dwr', 'modem']},
+                    {'pattern': r'Ubiquiti.*|UniFi.*', 'type': 'Access Point'},
+                    {'pattern': r'Aruba.*|Ruckus.*|Cambium.*', 'type': 'Access Point'},
+                    {'pattern': r'Cisco.*|Juniper.*|Fortinet.*', 'type': 'Router',
+                     'conditions': ['router', 'gateway', 'switch', 'firewall', 'meraki']},
+                    # NAS / storage - single-purpose vendors, safe as a bare match.
+                    {'pattern': r'Synology.*|QNAP.*|Asustor.*|TerraMaster.*|Drobo.*|Buffalo.*|Western Digital.*|\bWD\b',
+                     'type': 'NAS'},
+                    # TV / streaming / audio
+                    {'pattern': r'Roku.*', 'type': 'Streaming Device'},
+                    {'pattern': r'Vizio.*|TCL.*|Hisense.*|Panasonic.*|Sony.*', 'type': 'Smart TV',
+                     'conditions': ['tv', 'bravia', 'display']},
+                    {'pattern': r'Sonos.*|Bose.*|Denon.*|Marantz.*|Yamaha.*|Harman.*|JBL.*', 'type': 'Smart Speaker'},
+                    # Lighting / smart-home. TV rule first: "ambilight" (a TV feature)
+                    # contains "light", so the lamp rule would otherwise steal it.
+                    {'pattern': r'Philips.*|TP Vision.*', 'type': 'Smart TV', 'conditions': ['tv', 'ambilight']},
+                    {'pattern': r'Signify.*|Philips.*', 'type': 'Smart Light',
+                     'conditions': ['hue', 'bulb', 'lamp', 'bridge', 'lighting', 'light']},
+                    {'pattern': r'Yeelight.*|Nanoleaf.*|Lifx.*|Wiz.*', 'type': 'Smart Light'},
+                    {'pattern': r'Sonoff.*|ITEAD.*|Shelly.*|Espressif.*|Tuya.*|Tasmota.*', 'type': 'IoT Device'},
+                    # Cameras / doorbells
+                    {'pattern': r'Ring.*|Blink.*|Wyze.*|Reolink.*|Hikvision.*|Dahua.*|Amcrest.*|Ezviz.*|Foscam.*|Annke.*|Arlo.*|Eufy.*|Tapo.*',
+                     'type': 'IP Camera'},
+                    # Climate
+                    {'pattern': r'Ecobee.*|Tado.*|Netatmo.*', 'type': 'Smart Thermostat'},
                     {'pattern': r'Daikin.*', 'type': 'Air Conditioner'},
-                    {'pattern': r'Mitsubishi.*Electric.*', 'type': 'Air Conditioner'},
-                    {'pattern': r'Sony.*', 'type': 'Gaming Console', 'condition': 'has_gaming_ports'},
-                    {'pattern': r'Microsoft.*', 'type': 'Game Console', 'condition': 'has_gaming_ports'},
-                    {'pattern': r'Nintendo.*', 'type': 'Game Console'}
+                    {'pattern': r'Mitsubishi.*Electric.*|Gree.*|Midea.*|Haier.*|Fujitsu.*', 'type': 'Air Conditioner',
+                     'conditions': ['ac', 'aircon', 'hvac', 'climate', 'airco', 'heatpump']},
+                    # Locks
+                    {'pattern': r'August.*|Yale.*|Nuki.*|Schlage.*|Ultraloq.*', 'type': 'Smart Lock'},
+                    # Vacuums - Dyson also makes fans/purifiers, so branch on the name.
+                    {'pattern': r'Roborock.*|iRobot.*|Ecovacs.*|Dreame.*|Roidmi.*|Neato.*', 'type': 'Vacuum Cleaner'},
+                    {'pattern': r'Dyson.*', 'type': 'Vacuum Cleaner', 'conditions': ['vacuum', 'robot']},
+                    {'pattern': r'Dyson.*', 'type': 'Air Conditioner', 'conditions': ['fan', 'purifier', 'cool', 'pure']},
+                    {'pattern': r'Dyson.*', 'type': 'Smart Home'},
+                    # Wearables
+                    {'pattern': r'Fitbit.*|Garmin.*|Withings.*|Amazfit.*|Huami.*|Whoop.*|Polar.*', 'type': 'Wearable'},
+                    # Printers
+                    {'pattern': r'Hewlett.*|HP.*|Canon.*|Epson.*|Brother.*|Lexmark.*|Kyocera.*|Xerox.*|Ricoh.*',
+                     'type': 'Printer',
+                     'conditions': ['printer', 'print', 'mfp', 'laserjet', 'officejet', 'deskjet', 'pixma',
+                                    'ecotank', 'workforce', 'imageclass']},
+                    # Consoles
+                    {'pattern': r'Sony.*', 'type': 'Game Console', 'conditions': ['playstation', 'ps4', 'ps5']},
+                    {'pattern': r'Microsoft.*', 'type': 'Game Console', 'conditions': ['xbox']},
+                    {'pattern': r'Nintendo.*', 'type': 'Game Console'},
+                    {'pattern': r'Valve.*', 'type': 'Game Console'},
+                    # Pet gear
+                    {'pattern': r'Petkit.*|Petlibro.*|Petsafe.*|Sure ?Petcare.*', 'type': 'Pet Feeder'},
+                    {'pattern': r'Furbo.*', 'type': 'Pet Camera'},
+                    {'pattern': r'Tractive.*', 'type': 'Pet Tracker'},
                 ]
             }
         }
@@ -135,6 +235,10 @@ class ConfigManager:
             'NAS': {'icon': '💾', 'category': 'storage'},
             'IoT Device': {'icon': '🔗', 'category': 'iot'},
             'Smart Home': {'icon': '🏠', 'category': 'smart_home'},
+            # Referenced by detection rules (Apple Watch, Raspberry Pi) - without
+            # these the two rendered with the ❓ fallback despite being classified.
+            'Smart Watch': {'icon': '⌚', 'category': 'mobile'},
+            'Single Board Computer': {'icon': '🍓', 'category': 'computer'},
             # Radio-only devices surfaced by BLE discovery (no IP). Without these
             # every AirTag/AirPods/sensor rendered with the ❓ fallback icon.
             'Bluetooth Device': {'icon': '📶', 'category': 'smart_home'},

@@ -488,8 +488,8 @@ function displayDevicesCard() {
             ` : ''}
 
             <div class="device-actions">
-                ${device.ip ? `<button class="btn btn-primary btn-small" onclick="openEnhancedEditModal('${device.ip}')"><svg class="ds-icon" aria-hidden="true"><use href="#i-wrench"/></svg> ${t('edit')}</button>
-                <button class="btn btn-warning btn-small" onclick="openSingleDeviceAnalysisPage('${device.ip}')" title="${t('detailed_analysis')}" aria-label="${t('detailed_analysis')}"><svg class="ds-icon" aria-hidden="true"><use href="#i-microscope"/></svg> ${t('detailed_analysis')}</button>` : ''}
+                ${device.ip || device.mac ? `<button class="btn btn-primary btn-small" onclick="openEnhancedEditModal('${device.ip || device.mac}')"><svg class="ds-icon" aria-hidden="true"><use href="#i-wrench"/></svg> ${t('edit')}</button>` : ''}
+                ${device.ip ? `<button class="btn btn-warning btn-small" onclick="openSingleDeviceAnalysisPage('${device.ip}')" title="${t('detailed_analysis')}" aria-label="${t('detailed_analysis')}"><svg class="ds-icon" aria-hidden="true"><use href="#i-microscope"/></svg> ${t('detailed_analysis')}</button>` : ''}
                 ${hasEnhancedInfo(device) ?
                     `<button class="btn btn-success btn-small" onclick="openEnhancedDetailsModal(${JSON.stringify(device).replace(/"/g, '&quot;')})" title="${t('details')}"><svg class="ds-icon" aria-hidden="true"><use href="#i-graph"/></svg> ${t('details')}</button>` : 
                     ''
@@ -1757,8 +1757,8 @@ function displayDevicesTable() {
                 </td>
                 <td class="table-cell">
                     <div class="device-actions">
-                        ${device.ip ? `<button class="btn btn-primary btn-small" onclick="openEnhancedEditModal('${device.ip}'); event.stopPropagation();" title="${t('edit')}" aria-label="${t('edit')}"><svg class="ds-icon" aria-hidden="true"><use href="#i-wrench"/></svg></button>
-                        <button class="btn btn-warning btn-small" onclick="openSingleDeviceAnalysisPage('${device.ip}'); event.stopPropagation();" title="${t('detailed_analysis')}" aria-label="${t('detailed_analysis')}"><svg class="ds-icon" aria-hidden="true"><use href="#i-microscope"/></svg></button>` : ''}
+                        ${device.ip || device.mac ? `<button class="btn btn-primary btn-small" onclick="openEnhancedEditModal('${device.ip || device.mac}'); event.stopPropagation();" title="${t('edit')}" aria-label="${t('edit')}"><svg class="ds-icon" aria-hidden="true"><use href="#i-wrench"/></svg></button>` : ''}
+                        ${device.ip ? `<button class="btn btn-warning btn-small" onclick="openSingleDeviceAnalysisPage('${device.ip}'); event.stopPropagation();" title="${t('detailed_analysis')}" aria-label="${t('detailed_analysis')}"><svg class="ds-icon" aria-hidden="true"><use href="#i-microscope"/></svg></button>` : ''}
                         ${hasEnhancedInfo(device) ?
                             `<button class="btn btn-success btn-small" onclick="openEnhancedDetailsModal(${JSON.stringify(device).replace(/"/g, '&quot;')}); event.stopPropagation();" title="${t('details')}" aria-label="${t('details')}"><svg class="ds-icon" aria-hidden="true"><use href="#i-graph"/></svg></button>` : 
                             ''
@@ -2357,14 +2357,25 @@ function openDeviceFromQuery() {
     else if (typeof openEnhancedDetailsModal === 'function') openEnhancedDetailsModal(dev);
 }
 
+// A device's edit key is its IP, or its MAC when it has no IP - Bluetooth and
+// other radio-only discovery devices are keyed by MAC alone. Look one up by
+// either, so the edit modal works for both.
+function deviceByKey(key) {
+    if (!key) return null;
+    const k = String(key).toLowerCase();
+    return devices.find(d => (d.ip && d.ip === key) ||
+                             (d.mac && d.mac.toLowerCase() === k)) || null;
+}
+
 function openEnhancedEditModal(ip) {
-    const device = devices.find(d => d.ip === ip);
+    const device = deviceByKey(ip);
     if (!device) {
         showToast(t('device_not_found'), 'error');
         return;
     }
 
-    currentEnhancedEditingIp = ip;
+    // Key by MAC for IP-less (Bluetooth/radio) devices, else by IP.
+    currentEnhancedEditingIp = device.ip || device.mac;
 
     // Title always names the device (alias/hostname/mac + IP), not a generic
     // "Advanced Device Edit" - you always know which device you're editing.
@@ -2378,12 +2389,31 @@ function openEnhancedEditModal(ip) {
     // Load device data to all tabs
     loadDeviceToEnhancedModal(device);
     loadUplinkField(device);
-    
+
+    // Radio-only discovery devices (Bluetooth/Zigbee - no IP) can be given an
+    // alias/name and have logs, but ports/access/tools/security all need an IP
+    // to probe. Hide those tabs (and the uplink field) so the modal only offers
+    // what actually works for them.
+    applyEditTabVisibility(device);
+
     // Show modal
     document.getElementById('enhancedEditModal').style.display = 'block';
-    
+
     // Switch to first tab
     switchEditTab('device');
+}
+
+// Tabs that need a reachable IP; hidden for IP-less discovery devices.
+const IP_ONLY_EDIT_TABS = ['ports', 'access', 'tools', 'security'];
+
+function applyEditTabVisibility(device) {
+    const ipLess = !device.ip;
+    document.querySelectorAll('#enhancedEditModal .tab-button[data-tab]').forEach(btn => {
+        const hide = ipLess && IP_ONLY_EDIT_TABS.includes(btn.dataset.tab);
+        btn.style.display = hide ? 'none' : '';
+    });
+    const uplink = document.getElementById('enhancedEditUplinkGroup');
+    if (uplink) uplink.style.display = ipLess ? 'none' : '';
 }
 
 /*
@@ -2449,7 +2479,7 @@ function _sameDevice(x, device) {
 async function loadDeviceStatus() {
     const box = document.getElementById('deviceStatusFooter');
     if (!box) return;
-    const device = devices.find(d => d.ip === currentEnhancedEditingIp);
+    const device = deviceByKey(currentEnhancedEditingIp);
     if (!device) { box.innerHTML = ''; return; }
 
     const uptime = await fetch('/api/monitoring/uptime?limit=48').then(r => r.json()).catch(() => ({ devices: [] }));
@@ -2484,7 +2514,7 @@ async function loadDeviceStatus() {
 // Logs tab: just this device's activity timeline (alert history), newest first.
 async function loadLogsTab() {
     const box = document.getElementById('deviceLogsResult');
-    const device = devices.find(d => d.ip === currentEnhancedEditingIp);
+    const device = deviceByKey(currentEnhancedEditingIp);
     if (!device) { box.innerHTML = `<p class="details-no-data">${t('no_data')}</p>`; return; }
     box.innerHTML = `<p class="details-no-data">${t('loading')}</p>`;
 
@@ -2742,7 +2772,7 @@ async function loadDeviceTypesToEnhancedModal() {
 function loadPortsTab() {
     if (!currentEnhancedEditingIp) return;
     
-    const device = devices.find(d => d.ip === currentEnhancedEditingIp);
+    const device = deviceByKey(currentEnhancedEditingIp);
     if (!device) return;
     
     const tableBody = document.getElementById('portsTableBody');
@@ -2806,7 +2836,7 @@ function createPortTableRow(port) {
 }
 
 function addNewPortInline() {
-    const device = devices.find(d => d.ip === currentEnhancedEditingIp);
+    const device = deviceByKey(currentEnhancedEditingIp);
     if (!device) return;
     
     const tableBody = document.getElementById('portsTableBody');
@@ -2855,7 +2885,7 @@ function saveNewPort() {
         return;
     }
     
-    const device = devices.find(d => d.ip === currentEnhancedEditingIp);
+    const device = deviceByKey(currentEnhancedEditingIp);
     if (!device) return;
     
     if (!device.open_ports) device.open_ports = [];
@@ -2884,7 +2914,7 @@ function cancelNewPort() {
 }
 
 function updatePortField(portNumber, field, value) {
-    const device = devices.find(d => d.ip === currentEnhancedEditingIp);
+    const device = deviceByKey(currentEnhancedEditingIp);
     if (!device) return;
     
     const port = device.open_ports.find(p => p.port == portNumber);
@@ -2897,7 +2927,7 @@ function updatePortField(portNumber, field, value) {
 function deletePortFromTable(portNumber) {
     if (!confirm(t('confirm_delete_port'))) return;
     
-    const device = devices.find(d => d.ip === currentEnhancedEditingIp);
+    const device = deviceByKey(currentEnhancedEditingIp);
     if (!device) return;
     
     device.open_ports = device.open_ports.filter(p => p.port != portNumber);
@@ -2907,7 +2937,7 @@ function deletePortFromTable(portNumber) {
 }
 
 function convertToManualInTable(portNumber) {
-    const device = devices.find(d => d.ip === currentEnhancedEditingIp);
+    const device = deviceByKey(currentEnhancedEditingIp);
     if (!device) return;
     
     const port = device.open_ports.find(p => p.port == portNumber);
@@ -2919,7 +2949,7 @@ function convertToManualInTable(portNumber) {
 }
 
 function editPort(portNumber) {
-    const device = devices.find(d => d.ip === currentEnhancedEditingIp);
+    const device = deviceByKey(currentEnhancedEditingIp);
     if (!device) return;
     
     const port = device.open_ports.find(p => p.port == portNumber);
@@ -2938,7 +2968,7 @@ function editPort(portNumber) {
 function deletePort(portNumber) {
     if (!confirm(t('confirm_delete_port'))) return;
     
-    const device = devices.find(d => d.ip === currentEnhancedEditingIp);
+    const device = deviceByKey(currentEnhancedEditingIp);
     if (!device) return;
     
     device.open_ports = device.open_ports.filter(p => p.port != portNumber);
@@ -2948,7 +2978,7 @@ function deletePort(portNumber) {
 }
 
 function convertToManual(portNumber) {
-    const device = devices.find(d => d.ip === currentEnhancedEditingIp);
+    const device = deviceByKey(currentEnhancedEditingIp);
     if (!device) return;
     
     const port = device.open_ports.find(p => p.port == portNumber);
@@ -3176,7 +3206,7 @@ async function saveEnhancedAccess() {
 async function saveEnhancedDevice() {
     if (!currentEnhancedEditingIp) return;
 
-    const device = devices.find(d => d.ip === currentEnhancedEditingIp);
+    const device = deviceByKey(currentEnhancedEditingIp);
     if (!device) return;
 
     // Collect data from all tabs

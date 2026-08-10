@@ -32,7 +32,8 @@
                         <h3 class="card-title"><svg class="ds-icon" aria-hidden="true"><use href="#i-radar"/></svg>{{ _('scan_settings') }}</h3>
                         <div class="form-group">
                             <label class="form-label">{{ _('default_ip_range') }}</label>
-                            <input type="text" class="form-input" id="defaultIpRange" placeholder="192.168.1.0/24">
+                            <select class="form-select" id="defaultIpRange"></select>
+                            <p class="card-hint">{{ _('default_ip_range_hint') }}</p>
                         </div>
                         <div class="form-group">
                             <label class="form-label">{{ _('timeout_seconds') }}</label>
@@ -314,7 +315,7 @@
                     </p>
 
                     <div class="form-group">
-                        <label class="form-label">{{ _('add_new_pattern') }}</label>
+                        <label class="form-label">{{ _('add_new_pattern') }} <span class="regex-help" tabindex="0" title="{{ _('regex_help_tooltip') }}" aria-label="{{ _('regex_help_tooltip') }}"><svg class="ds-icon" aria-hidden="true"><use href="#i-info"/></svg></span></label>
                         <div class="combined-rule-add">
                             <input type="text" class="form-input" id="newCombinedVendor" placeholder="Apple" aria-label="{{ _('vendor') }}">
                             <input type="text" class="form-input" id="newCombinedHostname" placeholder="macbook|imac" aria-label="{{ _('hostname') }}">
@@ -336,7 +337,7 @@
                         </p>
                         
                         <div class="form-group">
-                            <label class="form-label">{{ _('add_new_pattern') }}</label>
+                            <label class="form-label">{{ _('add_new_pattern') }} <span class="regex-help" tabindex="0" title="{{ _('regex_help_tooltip') }}" aria-label="{{ _('regex_help_tooltip') }}"><svg class="ds-icon" aria-hidden="true"><use href="#i-info"/></svg></span></label>
                             <div style="display: flex; gap: 10px; margin-bottom: 10px;">
                                 <input type="text" class="form-input" id="newHostnamePattern" placeholder="android|samsung" style="flex: 1;">
                                 <select class="form-select" id="newHostnameDeviceType" style="width: 150px;">
@@ -356,7 +357,7 @@
                         </p>
                         
                         <div class="form-group">
-                            <label class="form-label">{{ _('add_new_pattern') }}</label>
+                            <label class="form-label">{{ _('add_new_pattern') }} <span class="regex-help" tabindex="0" title="{{ _('regex_help_tooltip') }}" aria-label="{{ _('regex_help_tooltip') }}"><svg class="ds-icon" aria-hidden="true"><use href="#i-info"/></svg></span></label>
                             <div style="display: flex; gap: 10px; margin-bottom: 10px;">
                                 <input type="text" class="form-input" id="newVendorPattern" placeholder="Apple|Samsung|Google" style="flex: 1;">
                                 <select class="form-select" id="newVendorDeviceType" style="width: 150px;">

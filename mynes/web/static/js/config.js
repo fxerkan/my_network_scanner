@@ -555,6 +555,7 @@ async function loadAllSettings() {
         const settingsResponse = await fetch('/api/config/settings');
         currentSettings = await settingsResponse.json();
         displayGeneralSettings();
+        await populateIpRangeOptions();
         displayDetectionRules();
         displayDevicePortRules();
         
@@ -573,13 +574,13 @@ function displayGeneralSettings() {
     const scanSettings = currentSettings.scan_settings || {};
     const portSettings = currentSettings.port_settings || {};
 
-    const defaultIpRange = document.getElementById('defaultIpRange');
     const timeout = document.getElementById('timeout');
     const maxThreads = document.getElementById('maxThreads');
     const includeOffline = document.getElementById('includeOffline');
     const defaultPorts = document.getElementById('defaultPorts');
 
-    if (defaultIpRange) defaultIpRange.value = scanSettings.default_ip_range || '';
+    // defaultIpRange is a dropdown populated from live interfaces/gateways -
+    // see populateIpRangeOptions(), called by loadAllSettings after this.
     if (timeout) timeout.value = scanSettings.timeout || '';
     if (maxThreads) maxThreads.value = scanSettings.max_threads || '';
     if (includeOffline) includeOffline.checked = scanSettings.include_offline === true;
@@ -1325,6 +1326,46 @@ function renderNetworkGroups(host, networks) {
         </section>`).join('');
 }
 
+/**
+ * Fill the "default scan range" dropdown from live interfaces/gateways.
+ * Selects the saved range, else the auto-detected gateway subnet (is_default).
+ * Users with no CIDR knowledge just pick their network from the list.
+ */
+async function populateIpRangeOptions() {
+    const sel = document.getElementById('defaultIpRange');
+    if (!sel) return;
+
+    let networks = [];
+    try {
+        networks = await (await fetch('/api/networks')).json();
+    } catch (e) { /* keep going with whatever we have */ }
+
+    const saved = (currentSettings.scan_settings || {}).default_ip_range || '';
+    let detected = '';
+    const byRange = new Map();  // range -> label, deduped
+    (Array.isArray(networks) ? networks : []).forEach(n => {
+        const range = n.network_range;
+        if (!range || byRange.has(range)) return;
+        if (n.is_default) detected = range;
+        const auto = n.is_default ? ` — ${t('auto_detected')}` : '';
+        byRange.set(range, `${range} (${n.interface || n.type || ''})${auto}`);
+    });
+
+    const savedIsLive = saved && byRange.has(saved);
+    // The saved value might be a range no live interface reports right now -
+    // keep it selectable so saving does not silently change it.
+    if (saved && !byRange.has(saved)) byRange.set(saved, saved);
+
+    // Prefer a saved range only when it matches a live interface; otherwise
+    // default to the gateway subnet this app runs on (the requested behaviour).
+    const chosen = (savedIsLive ? saved : (detected || saved))
+        || byRange.keys().next().value || '';
+    sel.innerHTML = [...byRange.entries()]
+        .map(([range, label]) =>
+            `<option value="${range}"${range === chosen ? ' selected' : ''}>${label}</option>`)
+        .join('');
+}
+
 async function loadNetworks() {
     try {
         const response = await fetch('/api/networks');
@@ -1942,11 +1983,13 @@ function addToScanRange(subnet, networkName) {
     switchTab('general');
     
     setTimeout(() => {
-        const defaultIpRangeInput = document.getElementById('defaultIpRange');
-        if (defaultIpRangeInput) {
-            const currentValue = defaultIpRangeInput.value;
-            const newValue = currentValue ? `${currentValue},${subnet}` : subnet;
-            defaultIpRangeInput.value = newValue;
+        const sel = document.getElementById('defaultIpRange');
+        if (sel) {
+            // Scanning takes one CIDR, so pick this subnet rather than appending.
+            if (![...sel.options].some(o => o.value === subnet)) {
+                sel.add(new Option(subnet, subnet));
+            }
+            sel.value = subnet;
             showAlert(t('docker_range_added', { network: networkName, subnet: subnet }));
         }
     }, 100);
