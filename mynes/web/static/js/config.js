@@ -49,9 +49,457 @@ function switchTab(tabName) {
         loadNetworks();
     } else if (tabName === 'docker') {
         loadDockerInfo();
-    } else if (tabName === 'oui') {
-        ensureOuiLoaded();
+    } else if (tabName === 'databases') {
+        setupDatabasesTab();
+    } else if (tabName === 'filters') {
+        setupConfigFilters();
+    } else if (tabName === 'integrations') {
+        setupIntegrationsTab();
     }
+}
+
+/* Databases tab: two sub-tabs (OUI, CVE), each lazy-loaded on first open so a
+ * 1.5 MB OUI fetch and the CVE endpoints only fire when actually viewed. */
+function setupDatabasesTab() {
+    // Default to whichever sub-tab is already marked active in the markup (OUI),
+    // and load it. switchDbTab is idempotent so re-entering costs nothing.
+    const active = document.querySelector('.subtab.active');
+    const name = (active && active.getAttribute('onclick') || '').includes("'cve'") ? 'cve' : 'oui';
+    switchDbTab(name);
+}
+
+function switchDbTab(name) {
+    document.querySelectorAll('.subtab').forEach(el => el.classList.remove('active'));
+    const btn = document.querySelector(`[onclick="switchDbTab('${name}')"]`);
+    if (btn) btn.classList.add('active');
+
+    document.querySelectorAll('.subtab-content').forEach(el => el.classList.remove('active'));
+    const panelId = name === 'cve' ? 'dbCve' : 'dbOui';
+    const panel = document.getElementById(panelId);
+    if (panel) panel.classList.add('active');
+
+    if (name === 'oui') {
+        ensureOuiLoaded();
+    } else if (name === 'cve') {
+        setupCveDb();
+    }
+}
+
+/* Integrations tab: InfluxDB2 push settings (secret token stays server-side),
+ * the Prometheus scrape URL, and a live REST API catalog. */
+let _integrationsMounted = false;
+function setupIntegrationsTab() {
+    // The scrape URL is derived from the current origin so a copy-paste works
+    // from wherever the user opened MyNeS.
+    const scrapeInput = document.getElementById('promScrapeUrl');
+    if (scrapeInput) scrapeInput.value = window.location.origin + '/api/metrics';
+
+    if (_integrationsMounted) return;
+    _integrationsMounted = true;
+
+    document.getElementById('influxSaveBtn').addEventListener('click', saveIntegrationsMetrics);
+    document.getElementById('influxTestBtn').addEventListener('click', testIntegrationsMetrics);
+    document.getElementById('catalogLoadBtn').addEventListener('click', loadApiCatalog);
+    document.getElementById('openapiDownloadBtn').addEventListener('click', downloadOpenApi);
+    loadIntegrationsMetrics();
+}
+
+/* CVE database card: mirrors the OUI database UX. The built-in CVE_PATTERNS is
+ * the seed/fallback; a downloadable JSON overlay augments it. Status shows the
+ * counts and provenance; Sync/Import refresh the overlay.
+ *
+ * Now lives under the Databases > CVE sub-tab, opened lazily; guard against
+ * double-binding listeners each time that sub-tab is re-entered. */
+let _cveDbMounted = false;
+function setupCveDb() {
+    if (_cveDbMounted) { loadCveDb(); return; }
+    _cveDbMounted = true;
+    document.getElementById('cveSyncBtn').addEventListener('click', syncCveDb);
+    document.getElementById('cveSettingsBtn').addEventListener('click', saveCveSettings);
+    document.getElementById('cveImportBtn').addEventListener('click',
+        () => document.getElementById('cveImportFile').click());
+    document.getElementById('cveImportFile').addEventListener('change', importCveDb);
+    document.getElementById('cveSource').addEventListener('change', toggleCveSourceUrl);
+    // CVE List V5 (official CVE Project corpus) - updatable like the OUI DB.
+    document.getElementById('cveListDeltaBtn').addEventListener('click', () => updateCveList('delta'));
+    document.getElementById('cveListFullBtn').addEventListener('click', () => updateCveList('full'));
+    document.getElementById('cveListSearchBtn').addEventListener('click', searchCveList);
+    document.getElementById('cveListSearchInput').addEventListener('keyup', e => {
+        if (e.key === 'Enter') searchCveList();
+    });
+    loadCveDb();
+    loadCveSettings();
+}
+
+// The custom native-overlay URL only matters when "Custom" is picked.
+function toggleCveSourceUrl() {
+    const custom = document.getElementById('cveSource').value === 'custom';
+    document.getElementById('cveSourceUrlRow').style.display = custom ? '' : 'none';
+}
+
+// The value sent to the API: a provider key, or the custom URL when chosen.
+function cveSourceValue() {
+    const sel = document.getElementById('cveSource').value;
+    return sel === 'custom' ? document.getElementById('cveSourceUrl').value.trim() : sel;
+}
+
+async function loadCveDb() {
+    try {
+        const s = await (await fetch('/api/security/cve-db')).json();
+        document.getElementById('cveDbTotal').textContent = s.total ?? '—';
+        document.getElementById('cveDbBuiltin').textContent = s.builtin_count ?? '—';
+        document.getElementById('cveDbCustom').textContent = s.custom_count ?? '—';
+        document.getElementById('cveDbLastUpdated').textContent =
+            s.last_updated ? new Date(s.last_updated).toLocaleString() : t('never');
+        // The official CVE List V5 corpus counts (0 until first update).
+        document.getElementById('cveListCount').textContent =
+            s.records_count != null ? s.records_count.toLocaleString() : '—';
+        document.getElementById('cveListLastUpdated').textContent =
+            s.records_last_updated ? new Date(s.records_last_updated).toLocaleString() : t('never');
+    } catch (_) { /* leave placeholders */ }
+}
+
+/* Parse a fetch Response as JSON, but if the server answered with an error
+ * page (an older build without the route, a 500, a proxy error) surface a
+ * clean message instead of a "Unexpected token '<'" JSON parse crash. */
+async function parseJsonOrThrow(res) {
+    const body = await res.text();
+    try {
+        return JSON.parse(body);
+    } catch (_) {
+        if (!res.ok) throw new Error(`${t('endpoint_unavailable')} (HTTP ${res.status})`);
+        throw new Error(t('unexpected_response'));
+    }
+}
+
+/* CVE List V5: adopt the official CVE Project corpus into the reference store.
+ * mode=delta is tiny (~0.1 MB, recent CVEs); mode=full is ~570 MB and must be
+ * confirmed. Mirrors the OUI "download latest" flow. */
+async function updateCveList(mode) {
+    const status = document.getElementById('cveListStatus');
+    if (mode === 'full' && !confirm(t('cve_list_full_confirm'))) return;
+    status.textContent = t('cve_list_updating');
+    status.style.color = 'var(--text-secondary)';
+    try {
+        const res = await fetch('/api/security/cve-db/update-list', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mode }),
+        });
+        // An older build won't have this route and returns an HTML 404/500;
+        // don't blow up JSON.parse - say the endpoint is unavailable.
+        const data = await parseJsonOrThrow(res);
+        if (data.ok) {
+            status.textContent = t('cve_list_update_ok', {
+                written: (data.written ?? 0).toLocaleString(),
+                total: (data.records_count ?? 0).toLocaleString(),
+            });
+            status.style.color = 'var(--severity-success-fg, var(--text-secondary))';
+            loadCveDb();
+        } else {
+            status.textContent = t('cve_list_update_failed') + ' ' + (data.error || '');
+            status.style.color = 'var(--severity-critical-fg, var(--text-secondary))';
+        }
+    } catch (e) {
+        status.textContent = t('cve_list_update_failed') + ' ' + e.message;
+        status.style.color = 'var(--severity-critical-fg, var(--text-secondary))';
+    }
+}
+
+async function searchCveList() {
+    const q = document.getElementById('cveListSearchInput').value.trim();
+    const out = document.getElementById('cveListResults');
+    if (!q) { out.innerHTML = ''; return; }
+    out.innerHTML = `<div class="oui-count">${t('loading')}</div>`;
+    try {
+        const data = await parseJsonOrThrow(await fetch('/api/security/cve-db/search?q=' + encodeURIComponent(q)));
+        const rows = data.results || [];
+        if (!rows.length) { out.innerHTML = `<div class="oui-count">${t('no_results')}</div>`; return; }
+        out.innerHTML = rows.map(r => {
+            const sev = (r.severity || 'none').toLowerCase();
+            const title = r.title || r.description || '';
+            return `
+            <div class="cve-item">
+                <a class="cve-item__id" href="https://www.cve.org/CVERecord?id=${_apiEsc(r.cve_id)}" target="_blank" rel="noopener">${_apiEsc(r.cve_id)}</a>
+                <span class="cve-sev cve-sev--${_apiEsc(sev)}">${_apiEsc(sev)}</span>
+                <span class="cve-item__title" title="${_apiEsc(title)}">${_apiEsc(title)}</span>
+            </div>`;
+        }).join('');
+    } catch (e) {
+        out.innerHTML = `<div class="oui-count">${_apiEsc(e.message)}</div>`;
+    }
+}
+
+async function loadCveSettings() {
+    try {
+        const c = await (await fetch('/api/security/cve-db/settings')).json();
+        const src = c.cve_source || 'cveorg';
+        const known = ['cveorg', 'circl'].includes(src);
+        document.getElementById('cveSource').value = known ? src : 'custom';
+        document.getElementById('cveSourceUrl').value = known ? '' : src;
+        toggleCveSourceUrl();
+        document.getElementById('cveSyncEnabled').checked = !!c.cve_sync_enabled;
+        document.getElementById('cveSyncInterval').value = c.cve_sync_interval_days || 30;
+    } catch (_) { /* leave defaults */ }
+}
+
+async function syncCveDb() {
+    const status = document.getElementById('cveDbStatus');
+    status.textContent = t('cve_db_syncing');
+    const source = cveSourceValue();
+    try {
+        const res = await fetch('/api/security/cve-db/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(source ? { source } : {}),
+        });
+        const data = await parseJsonOrThrow(res);
+        if (data.ok) {
+            // Provider sync reports enriched/failed; a custom overlay reports kept/dropped.
+            const n = data.enriched ?? data.kept ?? 0;
+            const bad = data.failed ?? data.dropped ?? 0;
+            status.textContent = t('cve_db_sync_ok', { kept: n, dropped: bad });
+            status.style.color = 'var(--severity-success-fg, var(--text-secondary))';
+            loadCveDb();
+        } else {
+            status.textContent = t('cve_db_sync_failed') + ' ' + (data.error || '');
+            status.style.color = 'var(--severity-critical-fg, var(--text-secondary))';
+        }
+    } catch (e) {
+        status.textContent = t('cve_db_sync_failed') + ' ' + e.message;
+        status.style.color = 'var(--severity-critical-fg, var(--text-secondary))';
+    }
+}
+
+async function saveCveSettings() {
+    const payload = {
+        cve_source: cveSourceValue(),
+        cve_sync_enabled: document.getElementById('cveSyncEnabled').checked,
+        cve_sync_interval_days: parseInt(document.getElementById('cveSyncInterval').value, 10) || 30,
+    };
+    try {
+        const res = await fetch('/api/security/cve-db/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        showAlert(data.ok ? t('settings_saved') : (data.error || t('settings_save_error')),
+            data.ok ? 'success' : 'error');
+    } catch (e) {
+        showAlert(t('settings_save_error') + e.message, 'error');
+    }
+}
+
+async function importCveDb() {
+    const input = document.getElementById('cveImportFile');
+    const file = input.files && input.files[0];
+    if (!file) return;
+    const status = document.getElementById('cveDbStatus');
+    try {
+        const body = JSON.parse(await file.text());
+        const res = await fetch('/api/security/cve-db', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+        const data = await res.json();
+        if (data.ok) {
+            status.textContent = t('cve_db_import_ok', { imported: data.imported ?? 0, dropped: data.dropped ?? 0 });
+            status.style.color = 'var(--severity-success-fg, var(--text-secondary))';
+            loadCveDb();
+        } else {
+            status.textContent = t('cve_db_import_failed') + ' ' + (data.error || '');
+            status.style.color = 'var(--severity-critical-fg, var(--text-secondary))';
+        }
+    } catch (e) {
+        status.textContent = t('cve_db_import_failed') + ' ' + e.message;
+        status.style.color = 'var(--severity-critical-fg, var(--text-secondary))';
+    } finally {
+        input.value = '';
+    }
+}
+
+async function downloadOpenApi() {
+    try {
+        const spec = await (await fetch('/api/openapi.json')).json();
+        const blob = new Blob([JSON.stringify(spec, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'mynes-openapi.json';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+    } catch (e) {
+        showAlert(e.message, 'error');
+    }
+}
+
+async function loadIntegrationsMetrics() {
+    try {
+        const cfg = await (await fetch('/api/integrations/metrics')).json();
+        document.getElementById('influxUrl').value = cfg.url || '';
+        document.getElementById('influxOrg').value = cfg.org || '';
+        document.getElementById('influxBucket').value = cfg.bucket || '';
+        document.getElementById('influxEnabled').checked = !!cfg.enabled;
+        // The token is never returned; show a hint when one is already stored.
+        const tok = document.getElementById('influxToken');
+        tok.placeholder = cfg.token_set ? t('metrics_token_saved') : t('metrics_influx_token_placeholder');
+    } catch (_) { /* leave the form blank */ }
+}
+
+async function saveIntegrationsMetrics() {
+    const payload = {
+        url: document.getElementById('influxUrl').value.trim(),
+        org: document.getElementById('influxOrg').value.trim(),
+        bucket: document.getElementById('influxBucket').value.trim(),
+        token: document.getElementById('influxToken').value,
+        enabled: document.getElementById('influxEnabled').checked,
+    };
+    try {
+        const res = await fetch('/api/integrations/metrics', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (data.ok) {
+            showAlert(t('metrics_saved'));
+            document.getElementById('influxToken').value = '';
+            loadIntegrationsMetrics();
+        } else {
+            showAlert(data.error || t('settings_save_error'), 'error');
+        }
+    } catch (e) {
+        showAlert(t('settings_save_error') + e.message, 'error');
+    }
+}
+
+async function testIntegrationsMetrics() {
+    const status = document.getElementById('influxStatus');
+    status.textContent = t('testing');
+    try {
+        const res = await fetch('/api/integrations/metrics/test', { method: 'POST' });
+        const data = await res.json();
+        status.textContent = (data.ok ? '✓ ' : '✗ ') + (data.msg || '');
+        status.style.color = data.ok ? 'var(--severity-info, var(--text-secondary))' : 'var(--severity-critical, var(--text-secondary))';
+    } catch (e) {
+        status.textContent = '✗ ' + e.message;
+        status.style.color = 'var(--severity-critical, var(--text-secondary))';
+    }
+}
+
+const _apiEsc = v => String(v ?? '').replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+function _methodClass(method) {
+    const m = String(method).toLowerCase();
+    if (['get', 'post', 'delete', 'put', 'patch'].includes(m)) return 'api-method--' + m;
+    return 'api-method--other';
+}
+
+/* Grouped, interactive API doc. Endpoints are grouped by tag (first path
+ * segment), each a collapsible row. A GET with no path params gets a live
+ * "Send" button; everything else shows a copyable curl example so mutations
+ * are never fired automatically. */
+async function loadApiCatalog() {
+    const wrap = document.getElementById('catalogTableWrap');
+    wrap.innerHTML = `<div class="oui-count">${t('loading')}</div>`;
+    try {
+        const data = await (await fetch('/api/catalog')).json();
+        const groups = {};
+        (data.routes || []).forEach(r => {
+            const segs = r.path.split('/').filter(s => s && !s.startsWith('<'));
+            const tag = segs.length > 1 ? segs[1] : (segs[0] || 'api');
+            (groups[tag] = groups[tag] || []).push(r);
+        });
+
+        const html = Object.keys(groups).sort().map(tag => {
+            const rows = groups[tag].map(r => (r.methods || []).map(method => {
+                const hasParam = /<[^>]+>/.test(r.path);
+                const canSend = method === 'GET' && !hasParam;
+                const origin = window.location.origin;
+                const action = canSend
+                    ? `<button type="button" class="btn btn-small" data-api-send="${_apiEsc(r.path)}">${t('api_send')}</button>`
+                    : `<div><code style="user-select:all;">curl -X ${_apiEsc(method)} ${_apiEsc(origin + r.path)}</code></div>`;
+                return `
+                <div class="api-endpoint">
+                    <div class="api-endpoint__head" data-api-toggle>
+                        <span class="api-method ${_methodClass(method)}">${_apiEsc(method)}</span>
+                        <span class="api-endpoint__path">${_apiEsc(r.path)}</span>
+                        <span class="api-endpoint__doc">${_apiEsc(r.doc || '')}</span>
+                    </div>
+                    <div class="api-endpoint__body">
+                        <p style="color: var(--text-secondary); margin: 0 0 var(--space-2);">${_apiEsc(r.doc || '')}</p>
+                        ${action}
+                    </div>
+                </div>`;
+            }).join('')).join('');
+            return `<div class="api-group"><div class="api-group__title">${_apiEsc(tag)}</div>${rows}</div>`;
+        }).join('');
+
+        wrap.innerHTML = html +
+            `<div class="oui-count" style="margin-top: var(--space-2);">${t('api_catalog_count', { count: data.count || 0 })}</div>`;
+
+        wrap.querySelectorAll('[data-api-toggle]').forEach(head =>
+            head.addEventListener('click', () => head.closest('.api-endpoint').classList.toggle('is-open')));
+        wrap.querySelectorAll('[data-api-send]').forEach(btn =>
+            btn.addEventListener('click', () => sendApiRequest(btn)));
+    } catch (e) {
+        wrap.innerHTML = `<div class="oui-count">${_apiEsc(e.message)}</div>`;
+    }
+}
+
+async function sendApiRequest(btn) {
+    const path = btn.dataset.apiSend;
+    const body = btn.closest('.api-endpoint__body');
+    let pre = body.querySelector('pre');
+    if (!pre) { pre = document.createElement('pre'); body.appendChild(pre); }
+    pre.textContent = t('loading');
+    try {
+        const res = await fetch(path);
+        const text = await res.text();
+        try { pre.textContent = JSON.stringify(JSON.parse(text), null, 2); }
+        catch (_) { pre.textContent = text; }
+    } catch (e) {
+        pre.textContent = e.message;
+    }
+}
+
+/* Default-filters tab: edits the same shared MynesFilters store the Devices/
+ * Alerts/History panels use. Fetches the live device list once so the type/
+ * vendor multi-selects offer real options. */
+let _cfgFiltersMounted = false;
+async function setupConfigFilters() {
+    if (!window.MynesFilters) return;
+    const F = window.MynesFilters;
+    if (_cfgFiltersMounted) return;
+    _cfgFiltersMounted = true;
+
+    F.bindToggle(document.getElementById('cfgToggleContainers'), 'showContainers');
+    F.bindToggle(document.getElementById('cfgToggleNoIp'), 'showNoIp');
+    F.bindToggle(document.getElementById('cfgToggleBluetooth'), 'showBluetooth');
+
+    let devices = [];
+    try { devices = await (await fetch('/devices')).json(); } catch (_) { devices = []; }
+    const iconFor = t => (currentDeviceTypes && currentDeviceTypes[t] && currentDeviceTypes[t].icon) || '';
+
+    F.mountMulti(document.getElementById('cfgTypeFilterMulti'), {
+        key: 'types', label: t('device_type'),
+        options: () => [...new Set(devices.map(d => d.device_type).filter(Boolean))].sort()
+            .map(v => ({ value: v, label: v, icon: iconFor(v) })),
+    });
+    F.mountMulti(document.getElementById('cfgVendorFilterMulti'), {
+        key: 'vendors', label: t('vendor'),
+        options: () => [...new Set(devices.map(d => F.vendorOf(d)).filter(Boolean))].sort()
+            .map(v => ({ value: v, label: v })),
+    });
+    F.mountMulti(document.getElementById('cfgStatusFilterMulti'), {
+        key: 'statuses', label: t('status'),
+        options: () => [{ value: 'online', label: t('online') }, { value: 'offline', label: t('offline') }],
+    });
 }
 
 /*
@@ -936,11 +1384,11 @@ async function saveGeneralSettings() {
         const result = await response.json();
         
         if (response.ok && result.success) {
-            showAlert('Genel ayarlar kaydedildi!');
+            showAlert(t('general_settings_saved'));
             currentSettings = {...currentSettings, ...settingsData};
             await loadAllSettings();
         } else {
-            showAlert('Hata: ' + (result.error || result.message || 'Bilinmeyen hata'), 'error');
+            showAlert(t('error') + ': ' + (result.error || result.message || t('unknown_error')), 'error');
         }
         
     } catch (error) {
@@ -961,9 +1409,9 @@ async function saveOuiDatabase() {
         const result = await response.json();
         
         if (response.ok) {
-            showAlert('OUI database kaydedildi!');
+            showAlert(t('oui_saved'));
         } else {
-            showAlert('Hata: ' + result.error, 'error');
+            showAlert(t('error') + ': ' + result.error, 'error');
         }
         
     } catch (error) {
@@ -984,9 +1432,9 @@ async function saveDeviceTypes() {
         const result = await response.json();
         
         if (response.ok) {
-            showAlert('Cihaz tipleri kaydedildi!');
+            showAlert(t('device_types_saved'));
         } else {
-            showAlert('Hata: ' + result.error, 'error');
+            showAlert(t('error') + ': ' + result.error, 'error');
         }
         
     } catch (error) {
@@ -1213,7 +1661,7 @@ async function loadDockerStatus() {
                         <div>
                             <strong>${t('docker_unavailable')}</strong>
                             <div style="font-size: 0.9em; opacity: 0.8;">
-                                ${data.error || t('docker_unavailable')}
+                                ${t('docker_unavailable_detail')}
                             </div>
                         </div>
                     </div>

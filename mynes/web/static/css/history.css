@@ -474,6 +474,12 @@
     white-space: nowrap;
 }
 .uptime-row__ip { color: var(--text-tertiary); font-size: var(--text-xs); }
+/* Availability name links to the device's edit popup on the Devices page. */
+.uptime-row__link {
+    display: flex; align-items: center; gap: var(--space-2);
+    min-width: 0; text-decoration: none; color: inherit; border-radius: var(--radius-sm);
+}
+.uptime-row__link:hover span[title] { color: var(--accent-text); text-decoration: underline; }
 
 .uptime-row__bars {
     display: flex;

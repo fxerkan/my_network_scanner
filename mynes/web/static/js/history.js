@@ -234,6 +234,7 @@ function getDeviceTypeIcon(deviceTypeName) {
         'IoT Device': '🔗'
     };
     
+    if (deviceTypeName && /docker/i.test(deviceTypeName)) return '🐳';
     return fallbackIcons[deviceTypeName] || '📦';
 }
 
@@ -551,7 +552,7 @@ function updateHistoryTable() {
     historyTableBody.innerHTML = '';
 
     if (scanHistory.length === 0) {
-        historyTableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #6c757d;">Henüz tarama verisi yok</td></tr>';
+        historyTableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-tertiary);">' + t('no_scan_data') + '</td></tr>';
         return;
     }
 
@@ -670,12 +671,12 @@ async function clearHistory() {
                 updateTrendChart();
                 updateHistoryTable();
                 updateTimeline();
-                alert('Tarihçe temizlendi!');
+                alert(t('history_cleared'));
             } else {
-                alert('Tarihçe temizlenirken hata oluştu: ' + result.error);
+                alert(t('history_clear_error') + ': ' + result.error);
             }
         } catch (error) {
-            alert('Tarihçe temizlenirken hata oluştu: ' + error.message);
+            alert(t('history_clear_error') + ': ' + error.message);
         }
     }
 }
@@ -738,11 +739,25 @@ async function loadUptime() {
     const render = function () {
         const statusF = (document.getElementById('uptimeStatusFilter') || {}).value || 'all';
         const ipF = (document.getElementById('uptimeIpFilter') || {}).value || 'all';
+        const F = window.MynesFilters;
+        const s = F ? F.get() : null;
         const rows = sorted.filter(function (d) {
             if (ipF === 'with_ip' && !d.ip) return false;
             if (ipF === 'no_ip' && d.ip) return false;
             if (statusF === 'active' && lastState(d) !== 'up') return false;
             if (statusF === 'passive' && lastState(d) === 'up') return false;
+            // Shared filters. Uptime rows carry device_type/ip/name but no
+            // vendor, so the vendor dimension is intentionally skipped here.
+            if (s) {
+                if (!s.showContainers && F.isContainer(d)) return false;
+                if (!s.showNoIp && F.isNoIp(d)) return false;
+                if (!s.showBluetooth && F.isBluetooth(d)) return false;
+                if (s.types.length && !s.types.includes(d.device_type)) return false;
+                if (s.q) {
+                    const hay = [d.name, d.ip, d.device_type].filter(Boolean).join(' ').toLowerCase();
+                    if (!hay.includes(s.q.toLowerCase())) return false;
+                }
+            }
             return true;
         });
         document.getElementById('uptimeList').innerHTML = rows.map(function (d) {
@@ -753,11 +768,18 @@ async function loadUptime() {
                        ' title="' + esc(stamp + ' — ' + label) + '"></i>';
             }).join('');
             const pctClass = d.uptime >= 99 ? '' : (d.uptime >= 90 ? ' is-degraded' : ' is-down');
+            // Name/MAC links to the Devices page, which opens this device's edit
+            // popup (?device=<ip|mac>). The rich edit modal lives on that page.
+            const ident = d.ip || d.mac || '';
+            const inner = icon(d.device_type) +
+                '<span title="' + esc(d.name) + '">' + esc(d.name) + '</span>' +
+                (d.ip ? '<span class="uptime-row__ip">' + esc(d.ip) + '</span>' : '');
+            const nameHtml = ident
+                ? '<a class="uptime-row__link" href="/?device=' + encodeURIComponent(ident) +
+                  '" title="' + esc(t('open_device_details')) + '">' + inner + '</a>'
+                : inner;
             return '<div class="uptime-row">' +
-                '<div class="uptime-row__name">' + icon(d.device_type) +
-                    '<span title="' + esc(d.name) + '">' + esc(d.name) + '</span>' +
-                    (d.ip ? '<span class="uptime-row__ip">' + esc(d.ip) + '</span>' : '') +
-                '</div>' +
+                '<div class="uptime-row__name">' + nameHtml + '</div>' +
                 '<div class="uptime-row__bars">' + cells + '</div>' +
                 '<div class="uptime-row__pct' + pctClass + '">' + d.uptime + '%</div>' +
             '</div>';
@@ -768,5 +790,13 @@ async function loadUptime() {
         const el = document.getElementById(id);
         if (el && !el.dataset.wired) { el.dataset.wired = '1'; el.addEventListener('change', render); }
     });
+    // Shared visibility toggles + re-render when any shared filter changes.
+    if (window.MynesFilters && !card.dataset.filtersWired) {
+        card.dataset.filtersWired = '1';
+        MynesFilters.bindToggle(document.getElementById('toggleContainers'), 'showContainers');
+        MynesFilters.bindToggle(document.getElementById('toggleNoIp'), 'showNoIp');
+        MynesFilters.bindToggle(document.getElementById('toggleBluetooth'), 'showBluetooth');
+        document.addEventListener('mynes:filters', render);
+    }
     render();
 }

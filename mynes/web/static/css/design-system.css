@@ -31,6 +31,7 @@
   --green-100: #d7f5e3; --green-400: #34d17f; --green-500: #16a862; --green-600: #0f8a50; --green-900: #0b3d26;
   --amber-100: #fdf0d2; --amber-400: #f4bf3f; --amber-500: #d99b09; --amber-600: #b57c05; --amber-900: #4a3204;
   --red-100:   #fde0e0; --red-400:   #f47272; --red-500:   #dc3545; --red-600:   #b92434; --red-900:   #4d1119;
+  --orange-100:#ffe6d3; --orange-400:#f7a35c; --orange-500:#e8730c; --orange-600:#c2560a; --orange-900:#4a2408;
   --violet-100:#eee2fd; --violet-400:#a884f5; --violet-500:#8b5cf6; --violet-600:#7040e0;
 
   /* Device-category hues for the graph / topology / home views. Mid-tone on
@@ -132,6 +133,9 @@
   --severity-warning-bg: var(--amber-100);
   --severity-warning-fg: var(--amber-600);
   --severity-warning-border: var(--amber-400);
+  --severity-high-bg: var(--orange-100);
+  --severity-high-fg: var(--orange-600);
+  --severity-high-border: var(--orange-400);
   --severity-critical-bg: var(--red-100);
   --severity-critical-fg: var(--red-600);
   --severity-critical-border: var(--red-400);
@@ -197,6 +201,9 @@
     --severity-warning-bg: rgba(217, 155, 9, 0.18);
     --severity-warning-fg: var(--amber-400);
     --severity-warning-border: var(--amber-600);
+    --severity-high-bg: rgba(232, 115, 12, 0.18);
+    --severity-high-fg: var(--orange-400);
+    --severity-high-border: var(--orange-600);
     --severity-critical-bg: rgba(220, 53, 69, 0.20);
     --severity-critical-fg: var(--red-400);
     --severity-critical-border: var(--red-600);
@@ -256,6 +263,9 @@
   --severity-warning-bg: rgba(217, 155, 9, 0.18);
   --severity-warning-fg: var(--amber-400);
   --severity-warning-border: var(--amber-600);
+  --severity-high-bg: rgba(232, 115, 12, 0.18);
+  --severity-high-fg: var(--orange-400);
+  --severity-high-border: var(--orange-600);
   --severity-critical-bg: rgba(220, 53, 69, 0.20);
   --severity-critical-fg: var(--red-400);
   --severity-critical-border: var(--red-600);
@@ -369,7 +379,7 @@ hr { border: 0; border-top: 1px solid var(--border-subtle); margin: var(--space-
 @media (min-width: 768px)  { .ds-container { padding-inline: var(--space-6); } }
 @media (min-width: 1280px) { .ds-container { padding-inline: var(--space-8); } }
 
-.ds-main { flex: 1; padding-block: var(--space-6) var(--space-16); }
+.ds-main { flex: 1; padding-block: var(--space-6) var(--space-8); } /* trimmed bottom gap before footer */
 
 .ds-grid { display: grid; gap: var(--space-4); }
 .ds-grid--auto { grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); }
@@ -897,3 +907,115 @@ body.tv-mode :focus-visible {
   body { background: #fff; color: #000; }
   .ds-card { box-shadow: none; border: 1px solid #ccc; break-inside: avoid; }
 }
+
+/* ---------- 21. Shared filters (filters.js) ----------------------------- */
+
+/* Searchable multi-select: a trigger button + a checkbox popover. Used on the
+   Devices, Alerts, History and Settings pages, so it lives in the shared
+   sheet rather than a page stylesheet. */
+/* Filter layout, shared by Devices/Settings/History (was Devices-only in
+   main.css, which the other pages don't load). */
+.filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
+  gap: var(--space-3);
+  align-items: end;
+}
+.filter-group { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
+.filter-label { font-weight: 500; color: var(--text-secondary); font-size: var(--text-xs, 0.75rem); }
+
+.ds-multi { position: relative; display: block; width: 100%; }
+.ds-multi__btn {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-2);
+  width: 100%; min-height: 44px;                 /* match .filter-select height */
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-surface); color: var(--text-primary);
+  border: 1px solid var(--border-default); border-radius: var(--radius-sm);
+  font: inherit; font-size: var(--text-sm, 0.875rem); cursor: pointer;
+  white-space: nowrap;
+}
+.ds-multi__count { margin-left: auto; }
+.ds-multi__btn:hover { border-color: var(--border-strong); }
+.ds-multi__btn.is-active { border-color: var(--accent-border); color: var(--accent-text); }
+.ds-multi__label { font-weight: 600; }
+.ds-multi__count { color: var(--text-tertiary); }
+.ds-multi__btn.is-active .ds-multi__count { color: var(--accent-text); }
+.ds-multi__pop {
+  position: absolute; z-index: 40; top: calc(100% + 4px); left: 0;
+  min-width: 220px; max-width: 320px;
+  background: var(--bg-surface-raised); border: 1px solid var(--border-default);
+  border-radius: var(--radius-md); box-shadow: var(--shadow-lg);
+  padding: var(--space-2);
+}
+.ds-multi__pop[hidden] { display: none; }
+.ds-multi__search {
+  width: 100%; box-sizing: border-box; margin-bottom: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-surface-sunken); color: var(--text-primary);
+  border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);
+  font: inherit; font-size: var(--text-sm, 0.875rem);
+}
+.ds-multi__opts { max-height: 260px; overflow-y: auto; }
+.ds-multi__opt {
+  display: flex; align-items: center; gap: var(--space-2);
+  padding: var(--space-1) var(--space-2); border-radius: var(--radius-xs);
+  cursor: pointer; font-size: var(--text-sm, 0.875rem);
+}
+.ds-multi__opt:hover { background: var(--bg-surface-sunken); }
+.ds-multi__opt input { accent-color: var(--accent-bg); }
+.ds-multi__empty { padding: var(--space-2); color: var(--text-tertiary); }
+
+/* Boolean visibility toggles (containers / no-IP / bluetooth). */
+.filter-toggles { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; }
+.filter-toggle {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  font-size: var(--text-sm, 0.875rem); color: var(--text-secondary); cursor: pointer;
+  user-select: none;
+}
+.filter-toggle input { accent-color: var(--accent-bg); }
+
+/* Interactive API doc (Integrations tab). Colours come from semantic tokens
+   only - the HTTP-method badge maps each verb onto an existing severity/accent
+   token, never a hardcoded hex. */
+.api-group { margin-bottom: var(--space-4); }
+.api-group__title {
+  font-size: var(--text-sm); font-weight: var(--weight-medium);
+  color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;
+  margin: var(--space-3) 0 var(--space-2);
+}
+.api-endpoint {
+  border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);
+  margin-bottom: var(--space-2); overflow: hidden;
+}
+.api-endpoint__head {
+  display: flex; align-items: center; gap: var(--space-2);
+  padding: var(--space-2) var(--space-3); cursor: pointer;
+  background: var(--bg-surface-sunken);
+}
+.api-endpoint__head:hover { background: var(--accent-bg-subtle); }
+.api-endpoint__path { font-family: var(--font-mono, monospace); font-size: var(--text-sm); color: var(--text-primary); }
+.api-endpoint__doc { color: var(--text-secondary); font-size: var(--text-xs); margin-left: auto; }
+.api-endpoint__body {
+  padding: var(--space-3); border-top: 1px solid var(--border-subtle);
+  display: none;
+}
+.api-endpoint.is-open .api-endpoint__body { display: block; }
+.api-endpoint__body pre {
+  margin: var(--space-2) 0 0; padding: var(--space-2) var(--space-3);
+  background: var(--bg-surface-sunken); border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm); max-height: 320px; overflow: auto;
+  font-family: var(--font-mono, monospace); font-size: var(--text-xs);
+  color: var(--text-primary); white-space: pre;
+}
+.api-method {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 52px; padding: 2px var(--space-2); border-radius: var(--radius-sm);
+  font-size: var(--text-xs); font-weight: var(--weight-medium); font-family: var(--font-mono, monospace);
+  border: 1px solid transparent;
+}
+.api-method--get    { background: var(--severity-info-bg);     color: var(--severity-info-fg); }
+.api-method--post   { background: var(--severity-success-bg);  color: var(--severity-success-fg); }
+.api-method--delete { background: var(--severity-critical-bg); color: var(--severity-critical-fg); }
+.api-method--put,
+.api-method--patch  { background: var(--severity-warning-bg);  color: var(--severity-warning-fg); }
+.api-method--other  { background: var(--accent-bg-subtle);     color: var(--accent-text); }

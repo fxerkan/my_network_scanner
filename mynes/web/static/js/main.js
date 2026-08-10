@@ -46,6 +46,7 @@ window.addEventListener('load', async function() {
     
     await loadDeviceTypes();
     await loadDevices(true); // İlk yüklemede filtreleri güncelle
+    openDeviceFromQuery();   // deep link from the availability page (?device=)
     initializeTableSorting();
     
     // Scan durumunu kontrol et ve buton durumlarını ayarla
@@ -219,9 +220,10 @@ async function loadDevices(updateFiltersFlag = false) {
         }
         
         devices = newDevices;
-        displayDevices();
-        updateStats();
-        
+        // filterDevices() (not displayDevices()) so any persisted shared filter
+        // - e.g. "hide containers" set in Settings - applies on first paint too.
+        filterDevices();
+
         if (shouldUpdateFilters) {
             updateFilters();
         }
@@ -289,7 +291,11 @@ function getDeviceIcon(deviceType) {
     // the base name before giving up, so those rows are not the only iconless
     // entries in every dropdown.
     const base = deviceType.replace(/\s*\(.*\)\s*$/, '').trim();
-    return deviceTypes[base]?.icon || '❓';
+    if (deviceTypes[base]?.icon) return deviceTypes[base].icon;
+    // Containers were the last iconless class - show the Docker whale instead
+    // of a bare "?" for any docker-qualified type.
+    if (/docker/i.test(deviceType)) return '🐳';
+    return '❓';
 }
 
 async function checkScanStatus() {
@@ -497,43 +503,29 @@ function hasEnhancedInfo(device) {
 }
 
 function filterDevices() {
-    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-    const deviceTypeFilter = document.getElementById('deviceTypeFilter').value;
-    const statusFilter = document.getElementById('statusFilter').value;
-    const vendorFilter = document.getElementById('vendorFilter').value;
-    const aliasFilter = document.getElementById('aliasFilter').value;
-    const portFilter = document.getElementById('portFilter').value;
+    // Keep the toolbar search box in sync with the shared store so the same
+    // text query applies on every page. Guard the elements: this runs on pages
+    // that don't have the alias/port selects.
+    const searchEl = document.getElementById('searchInput');
+    if (searchEl && window.MynesFilters) {
+        const cur = MynesFilters.get().q || '';
+        if (searchEl.value !== cur) MynesFilters.set({ q: searchEl.value });
+    }
+    const aliasFilter = (document.getElementById('aliasFilter') || {}).value || '';
+    const portFilter = (document.getElementById('portFilter') || {}).value || '';
 
     const filteredDevices = devices.filter(device => {
-        // Search filter
-        const matchesSearch = !searchTerm || 
-            device.ip.toLowerCase().includes(searchTerm) ||
-            (device.mac && device.mac.toLowerCase().includes(searchTerm)) ||
-            (device.hostname && device.hostname.toLowerCase().includes(searchTerm)) ||
-            (device.vendor && device.vendor.toLowerCase().includes(searchTerm)) ||
-            (device.device_type && device.device_type.toLowerCase().includes(searchTerm)) ||
-            (device.alias && device.alias.toLowerCase().includes(searchTerm));
+        // Type/vendor/status/text/visibility all live in the shared store.
+        if (window.MynesFilters && !MynesFilters.match(device)) return false;
 
-        // Device type filter
-        const matchesDeviceType = !deviceTypeFilter || device.device_type === deviceTypeFilter;
-
-        // Status filter
-        const matchesStatus = !statusFilter || device.status === statusFilter;
-
-        // Vendor filter
-        const matchesVendor = !vendorFilter || normalizeVendor(device.vendor) === vendorFilter;
-
-        // Alias filter
+        // Alias + port stay page-local (single-select, rarely reused elsewhere).
         const matchesAlias = !aliasFilter || device.alias === aliasFilter;
-
-        // Port filter - hem otomatik hem manuel portları kontrol et
-        const matchesPort = !portFilter || (device.open_ports && 
+        const matchesPort = !portFilter || (device.open_ports &&
             device.open_ports.some(port => {
                 const portNumber = typeof port === 'object' ? port.port : port;
                 return portNumber.toString() === portFilter;
             }));
-
-        return matchesSearch && matchesDeviceType && matchesStatus && matchesVendor && matchesAlias && matchesPort;
+        return matchesAlias && matchesPort;
     });
 
     // Geçici olarak filtrelenmiş cihazları göster
@@ -542,6 +534,56 @@ function filterDevices() {
     displayDevices();
     updateStats();
     devices = originalDevices;
+
+    // Reflect the active-filter count on the panel badge.
+    const badge = document.getElementById('activeFilterCount');
+    if (badge && window.MynesFilters) {
+        const n = MynesFilters.activeCount() + (aliasFilter ? 1 : 0) + (portFilter ? 1 : 0);
+        badge.textContent = n;
+        badge.hidden = n === 0;
+    }
+}
+
+/* Mount the shared searchable multi-selects + visibility toggles once, then let
+ * filters.js drive re-renders through the mynes:filters event. Called from init
+ * and re-run when the device list changes (to refresh the option lists). */
+let _filterUiMounted = false;
+function setupSharedFilters() {
+    if (!window.MynesFilters) return;
+    const F = window.MynesFilters;
+
+    if (!_filterUiMounted) {
+        const typeEl = document.getElementById('typeFilterMulti');
+        const vendorEl = document.getElementById('vendorFilterMulti');
+        const statusEl = document.getElementById('statusFilterMulti');
+        if (typeEl) window._typeMulti = F.mountMulti(typeEl, {
+            key: 'types', label: t('device_type'),
+            options: () => [...new Set(devices.map(d => d.device_type).filter(Boolean))].sort()
+                .map(v => ({ value: v, label: getTranslatedDeviceType(v), icon: getDeviceIcon(v) })),
+        });
+        if (vendorEl) window._vendorMulti = F.mountMulti(vendorEl, {
+            key: 'vendors', label: t('vendor'),
+            options: () => [...new Set(devices.map(d => F.vendorOf(d)).filter(Boolean))].sort()
+                .map(v => ({ value: v, label: v })),
+        });
+        if (statusEl) window._statusMulti = F.mountMulti(statusEl, {
+            key: 'statuses', label: t('status'),
+            options: () => [{ value: 'online', label: t('online') }, { value: 'offline', label: t('offline') }],
+        });
+        F.bindToggle(document.getElementById('toggleContainers'), 'showContainers');
+        F.bindToggle(document.getElementById('toggleNoIp'), 'showNoIp');
+        F.bindToggle(document.getElementById('toggleBluetooth'), 'showBluetooth');
+
+        // Any change to the shared store re-applies the filter to the view.
+        document.addEventListener('mynes:filters', () => {
+            const searchEl = document.getElementById('searchInput');
+            if (searchEl) { const q = F.get().q || ''; if (searchEl.value !== q) searchEl.value = q; }
+            filterDevices();
+        });
+        _filterUiMounted = true;
+    }
+    // Refresh option lists against the current device set.
+    [window._typeMulti, window._vendorMulti, window._statusMulti].forEach(m => m && m.refresh());
 }
 
 // Filtre güncelleme durumlarını takip etmek için değişken
@@ -563,42 +605,17 @@ function updateFilters() {
 }
 
 function performFiltersUpdate() {
+    // Type/vendor/status now live in the shared searchable multi-selects; just
+    // refresh their option lists against the current device set.
+    setupSharedFilters();
+
     // Mevcut seçili değerleri sakla
-    const currentDeviceType = document.getElementById('deviceTypeFilter').value;
-    const currentVendor = document.getElementById('vendorFilter').value;
-    const currentAlias = document.getElementById('aliasFilter').value;
-    const currentPort = document.getElementById('portFilter').value;
-
-    // Device type filter - Sadece bulunan/taranmış cihazların tiplerini göster
-    const deviceTypeFilter = document.getElementById('deviceTypeFilter');
-    const detectedTypes = [...new Set(devices.map(d => d.device_type).filter(Boolean))].sort();
-    
-    deviceTypeFilter.innerHTML = `<option value="">${t('all')}</option>` + 
-        detectedTypes.map(type => {
-            const icon = getDeviceIcon(type);
-            const translatedType = getTranslatedDeviceType(type);
-            const displayText = `${icon} ${translatedType}`;
-            return `<option value="${type}">${displayText}</option>`;
-        }).join('');
-    
-    // Seçili değeri geri yükle (sadece hala mevcut ise)
-    if (detectedTypes.includes(currentDeviceType) || currentDeviceType === '') {
-        deviceTypeFilter.value = currentDeviceType;
-    }
-
-    // Vendor filter - A-Z sıralı, normalized
-    const vendorFilter = document.getElementById('vendorFilter');
-    const vendorOptions = [...new Set(devices.map(d => normalizeVendor(d.vendor)).filter(Boolean))].sort();
-    vendorFilter.innerHTML = `<option value="">${t('all')}</option>` + 
-        vendorOptions.map(vendor => `<option value="${vendor}">${vendor}</option>`).join('');
-    
-    // Seçili değeri geri yükle (sadece hala mevcut ise)
-    if (vendorOptions.includes(currentVendor) || currentVendor === '') {
-        vendorFilter.value = currentVendor;
-    }
+    const currentAlias = (document.getElementById('aliasFilter') || {}).value || '';
+    const currentPort = (document.getElementById('portFilter') || {}).value || '';
 
     // Alias filter - A-Z sıralı, boş olmayanlar
     const aliasFilter = document.getElementById('aliasFilter');
+    if (!aliasFilter) return;
     const aliasOptions = [...new Set(devices.map(d => d.alias).filter(alias => alias && alias.trim() !== ''))].sort();
     aliasFilter.innerHTML = `<option value="">${t('all')}</option>` + 
         aliasOptions.map(alias => `<option value="${alias}">${alias}</option>`).join('');
@@ -794,21 +811,21 @@ async function analyzeDevice(ip) {
     document.getElementById('analysisContent').innerHTML = `
         <div class="analysis-controls" style="margin-bottom: 20px; display: flex; gap: 10px; justify-content: center;">
             <button id="closeAnalysisBtn" class="btn btn-secondary" onclick="closeAnalysisModal()">❌ Kapat</button>
-            <button id="backgroundBtn" class="btn btn-info" onclick="continueInBackground()" disabled>🔄 Arkaplanda Devam Et</button>
+            <button id="backgroundBtn" class="btn btn-info" onclick="continueInBackground()" disabled>${t('continue_in_background')}</button>
         </div>
         <div class="analysis-progress">
             <div class="progress-container">
                 <div class="progress-bar">
                     <div id="analysisProgressFill" class="progress-fill" style="width: 0%;"></div>
                 </div>
-                <div id="analysisProgressText" class="progress-text">Analiz başlatılıyor...</div>
+                <div id="analysisProgressText" class="progress-text">${t('analysis_starting')}</div>
             </div>
         </div>
         <div id="analysisDetails" class="analysis-details" style="margin-top: 20px;">
             <div class="analysis-log">
                 <h4>📋 İşlem Geçmişi</h4>
                 <div id="commandLog" style="background: #f8f9fa; padding: 15px; border-radius: 8px; max-height: 300px; overflow-y: auto; font-family: monospace; font-size: 0.9em;">
-                    <div>⏱️ ${new Date().toLocaleTimeString()} - Analiz başlatılıyor...</div>
+                    <div>⏱️ ${new Date().toLocaleTimeString()} - ${t('analysis_starting')}</div>
                 </div>
             </div>
         </div>
@@ -882,7 +899,7 @@ async function updateAnalysisProgress() {
                     displayAnalysisResults(status.result, status);
                 }
                 
-                document.getElementById('backgroundBtn').textContent = '✅ Tamamlandı';
+                document.getElementById('backgroundBtn').textContent = t('completed');
                 document.getElementById('backgroundBtn').disabled = true;
             } else if (status.status === 'error') {
                 clearInterval(analysisInterval);
@@ -912,10 +929,10 @@ function continueInBackground() {
 function displayAnalysisError(error) {
     document.getElementById('analysisContent').innerHTML = `
         <div style="color: #e74c3c; text-align: center; padding: 20px;">
-            ❌ Analiz hatası: ${error}
+            ❌ ${t('analysis_error')}: ${error}
         </div>
         <div style="text-align: center; margin-top: 15px;">
-            <button class="btn btn-secondary" onclick="closeAnalysisModal()">Kapat</button>
+            <button class="btn btn-secondary" onclick="closeAnalysisModal()">${t('close')}</button>
         </div>
     `;
 }
@@ -927,8 +944,8 @@ function displayAnalysisResults(analysis, statusInfo) {
     
     const content = `
         <div class="analysis-controls" style="margin-bottom: 20px; display: flex; gap: 10px; justify-content: center;">
-            <button class="btn btn-secondary" onclick="closeAnalysisModal()">❌ Kapat</button>
-            <button class="btn btn-success">✅ Analiz Tamamlandı (${duration}s)</button>
+            <button class="btn btn-secondary" onclick="closeAnalysisModal()">❌ ${t('close')}</button>
+            <button class="btn btn-success">✅ ${t('analysis_completed_duration', { duration })}</button>
         </div>
         
         <div class="analysis-container">
@@ -1133,6 +1150,28 @@ async function exportData() {
     }
 }
 
+/* CSV of the device list. Exports what the user is currently looking at (the
+   shared filter applied), which is what "export the list" almost always means. */
+function exportDevicesCsv() {
+    const rows = (window.MynesFilters ? MynesFilters.apply(devices) : devices);
+    const cols = ['ip', 'mac', 'hostname', 'alias', 'vendor', 'device_type', 'status', 'last_seen'];
+    const cell = v => {
+        const s = String(v == null ? '' : v);
+        return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    };
+    const ports = d => (d.open_ports || [])
+        .map(p => (typeof p === 'object' ? p.port : p)).filter(Boolean).join(' ');
+    const header = [...cols, 'open_ports'].join(',');
+    const body = rows.map(d => [...cols.map(c => cell(d[c])), cell(ports(d))].join(',')).join('\n');
+    const blob = new Blob([header + '\n' + body], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `lan_devices_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+}
+
 function importData() {
     const file = document.getElementById('importFile').files[0];
     if (file) {
@@ -1302,7 +1341,7 @@ async function startBulkAnalysisFallback() {
             document.getElementById('analysisModal').style.display = 'block';
             document.getElementById('analysisContent').innerHTML = `
                 <div class="analysis-controls" style="margin-bottom: 20px; display: flex; gap: 10px; justify-content: center;">
-                    <button class="btn btn-info" onclick="hideBulkAnalysisModal()">📱 Arkaplanda Devam Et</button>
+                    <button class="btn btn-info" onclick="hideBulkAnalysisModal()">📱 ${t('continue_in_background')}</button>
                     <button class="btn btn-success" onclick="loadDevices(true)">🔄 Verileri Yenile</button>
                 </div>
                 <div class="analysis-progress">
@@ -2297,6 +2336,21 @@ async function restoreBulkAnalysis(analysisInfo) {
 // Enhanced Edit Modal Functions
 let currentEnhancedEditingIp = null;
 
+/* Deep link from the availability page: /?device=<ip|mac> opens that device's
+   edit popup (or the details modal for a radio device with no IP). */
+function openDeviceFromQuery() {
+    const raw = new URLSearchParams(window.location.search).get('device');
+    if (!raw) return;
+    const want = decodeURIComponent(raw).toLowerCase();
+    const dev = devices.find(d =>
+        (d.ip && d.ip.toLowerCase() === want) || (d.mac && d.mac.toLowerCase() === want));
+    // Clean the URL so a refresh doesn't keep reopening the modal.
+    try { history.replaceState({}, '', window.location.pathname); } catch (_) { /* ignore */ }
+    if (!dev) return;
+    if (dev.ip) openEnhancedEditModal(dev.ip);
+    else if (typeof openEnhancedDetailsModal === 'function') openEnhancedDetailsModal(dev);
+}
+
 function openEnhancedEditModal(ip) {
     const device = devices.find(d => d.ip === ip);
     if (!device) {
@@ -2305,7 +2359,16 @@ function openEnhancedEditModal(ip) {
     }
 
     currentEnhancedEditingIp = ip;
-    
+
+    // Title always names the device (alias/hostname/mac + IP), not a generic
+    // "Advanced Device Edit" - you always know which device you're editing.
+    const titleEl = document.getElementById('enhancedEditTitle');
+    if (titleEl) {
+        const label = device.alias || device.hostname || device.mac || device.ip || t('advanced_device_edit');
+        const ipPart = device.ip ? ` · ${device.ip}` : '';
+        titleEl.textContent = `${label}${ipPart}`;
+    }
+
     // Load device data to all tabs
     loadDeviceToEnhancedModal(device);
     loadUplinkField(device);
@@ -2442,11 +2505,25 @@ function renderDiagnosticResult(tool, data) {
  * against open-source vulnerability databases, not a live feed.
  */
 async function runDeviceVulnScan() {
-    if (!currentEnhancedEditingIp) return;
     const box = document.getElementById('securityScanResult');
+    // A radio device (no IP) can't be assessed - the assessment keys off the
+    // fingerprint an IP scan collected. Say so instead of fetching an empty IP,
+    // which would hit Flask's HTML 404 and blow up JSON.parse().
+    if (!currentEnhancedEditingIp) {
+        box.innerHTML = `<p class="details-no-data">${t('security_no_ip')}</p>`;
+        return;
+    }
     box.innerHTML = `<p class="details-no-data">${t('tool_running')}</p>`;
     try {
         const res = await fetch(`/api/security/vulnerabilities/${encodeURIComponent(currentEnhancedEditingIp)}`);
+        // Never JSON.parse an error page: surface the server's message cleanly.
+        if (!res.ok) {
+            let msg = t('tool_error');
+            try { const j = await res.json(); if (j && j.error) msg += ': ' + j.error; }
+            catch (_) { msg += ` (HTTP ${res.status})`; }
+            box.innerHTML = `<p class="details-no-data">${escHtml(msg)}</p>`;
+            return;
+        }
         box.innerHTML = renderVulnScanResult(await res.json());
     } catch (error) {
         box.innerHTML = `<p class="details-no-data">${t('tool_error')}: ${escHtml(error)}</p>`;

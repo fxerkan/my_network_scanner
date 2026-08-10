@@ -130,7 +130,7 @@ async function loadExistingAccessInfo(ip) {
                     passwordField.value = '';
                     passwordField.setAttribute('data-has-existing', 'true');
                 } else {
-                    passwordField.placeholder = 'Şifre girin';
+                    passwordField.placeholder = t('access_password_enter');
                     passwordField.value = '';
                     passwordField.removeAttribute('data-has-existing');
                 }
@@ -150,7 +150,7 @@ async function loadExistingAccessInfo(ip) {
 // Cihaz erişim bilgilerini kaydet
 async function saveDeviceAccess() {
     if (!currentAccessDevice) {
-        showToast('Geçersiz cihaz!', 'error');
+        showToast(t('access_invalid_device'), 'error');
         return;
     }
     
@@ -198,22 +198,22 @@ async function saveDeviceAccess() {
         console.log('Save response result:', result);
         
         if (response.ok) {
-            showToast('Erişim bilgileri kaydedildi!', 'success');
+            showToast(t('access_saved'), 'success');
             console.log('Credentials saved successfully');
         } else {
             console.error('Save error:', result.error);
-            showToast(`Kayıt hatası: ${result.error}`, 'error');
+            showToast(t('access_save_error', {error: result.error}), 'error');
         }
     } catch (error) {
         console.error('Save connection error:', error);
-        showToast(`Bağlantı hatası: ${error.message}`, 'error');
+        showToast(t('access_connection_error', {error: error.message}), 'error');
     }
 }
 
 // Erişim testi
 async function testDeviceAccess() {
     if (!currentAccessDevice) {
-        showToast('Geçersiz cihaz!', 'error');
+        showToast(t('access_invalid_device'), 'error');
         return;
     }
     
@@ -237,7 +237,7 @@ async function testDeviceAccess() {
     const testBtn = event.target;
     const originalText = testBtn.innerHTML;
     testBtn.disabled = true;
-    testBtn.innerHTML = '🔄 Test ediliyor...';
+    testBtn.innerHTML = '🔄 ' + t('access_testing');
     
     try {
         console.log('Sending test request...');
@@ -256,18 +256,18 @@ async function testDeviceAccess() {
         if (response.ok) {
             if (result.success) {
                 console.log('Test successful:', result);
-                showToast(`✅ Erişim başarılı! ${result.details || ''}`, 'success');
+                showToast(`✅ ${t('access_test_success')} ${result.details || ''}`, 'success');
             } else {
                 console.error('Test failed:', result.error);
-                showToast(`❌ Erişim başarısız: ${result.error}`, 'error');
+                showToast(`❌ ${t('access_test_failed', {error: result.error})}`, 'error');
             }
         } else {
             console.error('Test error response:', result.error);
-            showToast(`Test hatası: ${result.error}`, 'error');
+            showToast(t('access_test_error', {error: result.error}), 'error');
         }
     } catch (error) {
         console.error('Test connection error:', error);
-        showToast(`Bağlantı hatası: ${error.message}`, 'error');
+        showToast(t('access_connection_error', {error: error.message}), 'error');
     } finally {
         // Test butonunu tekrar aktif et
         testBtn.disabled = false;
@@ -278,7 +278,7 @@ async function testDeviceAccess() {
 // Gelişmiş analiz çalıştır - artık Detaylı Cihaz Analizi sayfasını açar
 async function runEnhancedAnalysis() {
     if (!currentAccessDevice) {
-        showToast('Geçersiz cihaz!', 'error');
+        showToast(t('access_invalid_device'), 'error');
         return;
     }
     
@@ -288,7 +288,7 @@ async function runEnhancedAnalysis() {
     // Önce erişim bilgilerini kaydet
     await saveDeviceAccess();
     
-    showToast('Erişim bilgileri kaydedildi! Detaylı Cihaz Analizi sayfası açılıyor...', 'success');
+    showToast(t('access_saved_opening_analysis'), 'success');
     
     // Modal'ı kapat
     closeDeviceAccessModal();
@@ -660,7 +660,7 @@ async function restoreSessionFromServer(sessionKey) {
         }
     } catch (error) {
         console.error('Session restore hatası:', error);
-        showToast('❌ Analiz session restore edilemedi', 'error');
+        showToast('❌ ' + t('analysis_session_restore_failed'), 'error');
     }
 }
 
@@ -912,7 +912,7 @@ function handleToasterClose(sessionKey) {
             if (isActive) {
                 // Aktif analiz varsa, sadece temp dosyasını temizle, toaster'ı kapatma
                 console.log('Aktif analiz devam ediyor, toaster açık kalacak');
-                showToast('ℹ️ Analiz devam ediyor, toaster açık kalacak', 'info');
+                showToast('ℹ️ ' + t('analysis_in_progress_toast'), 'info');
                 return;
             } else {
                 // Analiz bitmişse toaster'ı kapat
@@ -1054,7 +1054,7 @@ async function startBulkAnalysis() {
             verboseLogs: !!verboseLogs,
             minimizeBtn: !!minimizeBtn
         });
-        alert('Modal elementleri bulunamadı. Lütfen sayfayı yenileyin.');
+        alert(t('modal_elements_missing'));
         return;
     }
     
@@ -1584,14 +1584,14 @@ function monitorEnhancedAnalysis(ip) {
             
             if (status.status === 'completed') {
                 clearInterval(checkInterval);
-                showToast(`🎉 ${ip} gelişmiş analizi tamamlandı!`, 'success');
+                showToast(`🎉 ${t('enhanced_analysis_completed', {ip: ip})}`, 'success');
                 
                 // Cihaz listesini yenile
                 await loadDevices(true);
                 
             } else if (status.status === 'error') {
                 clearInterval(checkInterval);
-                showToast(`❌ ${ip} analiz hatası: ${status.message}`, 'error');
+                showToast(`❌ ${t('enhanced_analysis_error', {ip: ip, error: status.message})}`, 'error');
             } else if (status.status === 'analyzing') {
                 // Progress göster (isteğe bağlı)
                 console.log(`${ip} analiz ediliyor: ${status.message}`);
@@ -1609,7 +1609,7 @@ function addAccessButtonToDevice(deviceRow, ip) {
         const accessBtn = document.createElement('button');
         accessBtn.className = 'btn btn-sm btn-info';
         accessBtn.innerHTML = '🔐';
-        accessBtn.title = 'Erişim Bilgileri';
+        accessBtn.title = t('access_credentials');
         accessBtn.onclick = () => openDeviceAccessModal(ip);
         
         actionsCell.appendChild(accessBtn);

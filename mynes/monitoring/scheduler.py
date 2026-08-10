@@ -215,6 +215,15 @@ class MonitorScheduler:
         if settings["publish_to_mqtt"]:
             self._publish(devices, alert_dicts)
 
+        # Optional InfluxDB push for Grafana. Guarded and degrading - a broken
+        # or unreachable Influx endpoint must never fail a scan.
+        self._push_metrics(list(current.values()), alert_dicts)
+
+        # Optional periodic CVE-pattern overlay refresh. Cheap, fully guarded:
+        # only fires when enabled AND the overlay is older than the interval,
+        # and an unreachable feed must never break a scan (offline model).
+        self._maybe_sync_cve()
+
         self.last_result = {
             "at": self.last_run,
             "duration_seconds": round(time.monotonic() - started, 1),
@@ -281,3 +290,56 @@ class MonitorScheduler:
             publish_devices(devices, alerts)
         except Exception as e:  # noqa: BLE001
             log.warning("MQTT publish failed: %s", e)
+
+    def _push_metrics(self, devices, alerts):
+        """Push this scan to InfluxDB when configured. Never raises."""
+        try:
+            from mynes.integrations import metrics
+
+            cfg = metrics.resolve_config()
+            if not (cfg["enabled"] and metrics.influx_configured(cfg)):
+                return
+            line = metrics.influx_line_protocol(devices, alerts, ts=int(time.time()))
+            ok, msg = metrics.push_influx(line, cfg)
+            if not ok:
+                log.warning("InfluxDB metrics push failed: %s", msg)
+        except Exception as e:  # noqa: BLE001 - a metrics push must not break a scan
+            log.warning("InfluxDB metrics push errored: %s", e)
+
+    def _maybe_sync_cve(self):
+        """Refresh the CVE overlay when periodic sync is on and it is stale.
+        Never raises; a broken feed leaves the built-in table in place."""
+        try:
+            cfg = {}
+            if self.config_manager is not None:
+                cfg = self.config_manager.config.get("security", {}) or {}
+            if not cfg.get("cve_sync_enabled"):
+                return
+
+            from mynes.security import cve
+
+            interval_days = max(1, int(cfg.get("cve_sync_interval_days", 30)))
+            status = cve.cve_db_status()
+            last = status.get("last_updated")
+            if last:
+                try:
+                    when = datetime.fromisoformat(last)
+                    if when.tzinfo is None:
+                        when = when.replace(tzinfo=timezone.utc)
+                    age = datetime.now(timezone.utc) - when
+                    if age.total_seconds() < interval_days * 86400:
+                        return  # still fresh
+                except ValueError:
+                    pass  # unparseable timestamp -> treat as stale, resync
+
+            result = cve.sync_cve_data(cfg.get("cve_source") or None)
+            if result.get("ok"):
+                cfg["cve_last_sync"] = result.get("last_updated")
+                if self.config_manager is not None:
+                    self.config_manager.config["security"] = cfg
+                    self.config_manager.save_config()
+                log.info("CVE overlay refreshed: %s patterns", result.get("kept"))
+            else:
+                log.warning("CVE overlay sync failed: %s", result.get("error"))
+        except Exception as e:  # noqa: BLE001 - a CVE sync must not break a scan
+            log.warning("CVE overlay sync errored: %s", e)

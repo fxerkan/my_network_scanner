@@ -82,26 +82,26 @@
                 <svg class="ds-icon ds-icon--sm ds-disclosure__chevron" aria-hidden="true"><use href="#i-chevron-down"/></svg>
             </summary>
             <div class="ds-disclosure__body">
+                <!-- Visibility toggles - the common "hide these classes" switches,
+                     shared with every other page via filters.js. -->
+                <div class="filter-toggles" style="margin-bottom:var(--space-3)">
+                    <label class="filter-toggle"><input type="checkbox" id="toggleContainers"> {{ _('show_containers') }}</label>
+                    <label class="filter-toggle"><input type="checkbox" id="toggleNoIp"> {{ _('show_no_ip') }}</label>
+                    <label class="filter-toggle"><input type="checkbox" id="toggleBluetooth"> {{ _('show_bluetooth') }}</label>
+                    <button type="button" class="btn btn-small" onclick="MynesFilters.reset()">{{ _('reset_filters') }}</button>
+                </div>
                 <div class="filter-grid">
                     <div class="filter-group">
-                        <label class="filter-label" for="deviceTypeFilter">{{ _('device_type') }}</label>
-                        <select id="deviceTypeFilter" class="filter-select" onchange="filterDevices()">
-                            <option value="">{{ _('all') }}</option>
-                        </select>
+                        <label class="filter-label">{{ _('device_type') }}</label>
+                        <div id="typeFilterMulti"></div>
                     </div>
                     <div class="filter-group">
-                        <label class="filter-label" for="statusFilter">{{ _('status') }}</label>
-                        <select id="statusFilter" class="filter-select" onchange="filterDevices()">
-                            <option value="">{{ _('all') }}</option>
-                            <option value="online">{{ _('online') }}</option>
-                            <option value="offline">{{ _('offline') }}</option>
-                        </select>
+                        <label class="filter-label">{{ _('status') }}</label>
+                        <div id="statusFilterMulti"></div>
                     </div>
                     <div class="filter-group">
-                        <label class="filter-label" for="vendorFilter">{{ _('vendor') }}</label>
-                        <select id="vendorFilter" class="filter-select" onchange="filterDevices()">
-                            <option value="">{{ _('all') }}</option>
-                        </select>
+                        <label class="filter-label">{{ _('vendor') }}</label>
+                        <div id="vendorFilterMulti"></div>
                     </div>
                     <div class="filter-group">
                         <label class="filter-label" for="aliasFilter">{{ _('alias') }}</label>
@@ -234,7 +234,7 @@
     <div id="enhancedEditModal" class="modal">
         <div class="modal-content enhanced-edit-modal">
             <div class="modal-header">
-                <h2 class="modal-title">{{ _('advanced_device_edit') }}</h2>
+                <h2 class="modal-title" id="enhancedEditTitle">{{ _('advanced_device_edit') }}</h2>
                 <span class="close" onclick="closeEnhancedEditModal()">&times;</span>
             </div>
             

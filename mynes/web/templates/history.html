@@ -83,6 +83,13 @@
                             <option value="no_ip">{{ _('no_ip') }}</option>
                         </select>
                     </label>
+                    <!-- Shared visibility toggles (filters.js), consistent with
+                         the Devices page and set-once in Settings. -->
+                    <div class="filter-toggles">
+                        <label class="filter-toggle"><input type="checkbox" id="toggleContainers"> {{ _('show_containers') }}</label>
+                        <label class="filter-toggle"><input type="checkbox" id="toggleNoIp"> {{ _('show_no_ip') }}</label>
+                        <label class="filter-toggle"><input type="checkbox" id="toggleBluetooth"> {{ _('show_bluetooth') }}</label>
+                    </div>
                 </div>
                 <div id="uptimeList" class="uptime-list"></div>
                 <div class="view-legend uptime-legend">

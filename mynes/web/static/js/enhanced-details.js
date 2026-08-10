@@ -17,7 +17,7 @@ function openEnhancedDetailsModal(device) {
                            (device.discovery && (device.discovery.sources || []).length);
     
     if (!hasEnhancedInfo) {
-        showToast('Bu cihaz için gelişmiş analiz bilgisi bulunamadı!', 'error');
+        showToast(t('no_enhanced_info'), 'error');
         return;
     }
     

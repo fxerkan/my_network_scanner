@@ -6,12 +6,12 @@
 
   <div class="ds-row">
     <div>
-      <h1 style="margin-bottom:var(--space-1)">Monitoring &amp; Alerts</h1>
-      <p class="ds-muted" style="margin:0">Scan on a schedule, spot what changed, get told about it.</p>
+      <h1 style="margin-bottom:var(--space-1)">{{ _('monitoring_and_alerts') }}</h1>
+      <p class="ds-muted" style="margin:0">{{ _('monitoring_and_alerts_desc') }}</p>
     </div>
     <div class="ds-spacer"></div>
     <button class="ds-btn" id="runNowBtn">
-      <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-play"/></svg> Run scan now
+      <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-play"/></svg> {{ _('run_scan_now') }}
     </button>
   </div>
 
@@ -19,19 +19,19 @@
   <div class="ds-grid ds-grid--stats">
     <div class="ds-stat">
       <div class="ds-stat__value" id="statTotal">—</div>
-      <div class="ds-stat__label">Total alerts</div>
+      <div class="ds-stat__label">{{ _('total_alerts') }}</div>
     </div>
     <div class="ds-stat ds-stat--warning">
       <div class="ds-stat__value" id="statUnread">—</div>
-      <div class="ds-stat__label">Unread</div>
+      <div class="ds-stat__label">{{ _('unread') }}</div>
     </div>
     <div class="ds-stat ds-stat--critical">
       <div class="ds-stat__value" id="statCritical">—</div>
-      <div class="ds-stat__label">Critical</div>
+      <div class="ds-stat__label">{{ _('critical') }}</div>
     </div>
     <div class="ds-stat">
       <div class="ds-stat__value" style="font-size:var(--text-md)" id="statSchedule">—</div>
-      <div class="ds-stat__label">Schedule</div>
+      <div class="ds-stat__label">{{ _('schedule') }}</div>
     </div>
   </div>
 
@@ -40,22 +40,22 @@
     <div class="ds-card__body">
       <div class="ds-grid" style="grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr))">
         <div>
-          <div class="ds-stat__label">Last scan</div>
+          <div class="ds-stat__label">{{ _('last_scan') }}</div>
           <div id="tlLast" style="font-weight:var(--weight-semibold)">—</div>
           <div class="ds-dim" id="tlLastAbs" style="font-size:var(--text-xs)"></div>
         </div>
         <div>
-          <div class="ds-stat__label">Result</div>
+          <div class="ds-stat__label">{{ _('result') }}</div>
           <div id="tlResult" style="font-weight:var(--weight-semibold)">—</div>
           <div class="ds-dim" id="tlDuration" style="font-size:var(--text-xs)"></div>
         </div>
         <div>
-          <div class="ds-stat__label">Next scan</div>
+          <div class="ds-stat__label">{{ _('next_scan') }}</div>
           <div id="tlNext" style="font-weight:var(--weight-semibold)">—</div>
           <div class="ds-dim" id="tlNextAbs" style="font-size:var(--text-xs)"></div>
         </div>
         <div>
-          <div class="ds-stat__label">State</div>
+          <div class="ds-stat__label">{{ _('state') }}</div>
           <div id="tlState" style="font-weight:var(--weight-semibold)">—</div>
           <div class="ds-dim" id="tlBaseline" style="font-size:var(--text-xs)"></div>
         </div>
@@ -70,70 +70,70 @@
   <section class="ds-card">
     <div class="ds-card__header">
       <svg class="ds-icon" aria-hidden="true"><use href="#i-refresh"/></svg>
-      <h2 class="ds-card__title">Scheduled scanning</h2>
+      <h2 class="ds-card__title">{{ _('scheduled_scanning') }}</h2>
       <div class="ds-spacer"></div>
       <label class="ds-switch">
         <input type="checkbox" id="monEnabled">
         <span class="ds-switch__track"></span>
-        <span class="ds-label" id="monEnabledLabel">Disabled</span>
+        <span class="ds-label" id="monEnabledLabel">{{ _('disabled') }}</span>
       </label>
     </div>
     <div class="ds-card__body">
       <div class="ds-grid ds-grid--auto">
         <div class="ds-field">
-          <label class="ds-label" for="monInterval">Scan every</label>
+          <label class="ds-label" for="monInterval">{{ _('scan_every') }}</label>
           <select class="ds-select" id="monInterval">
-            <option value="5">5 minutes</option>
-            <option value="15">15 minutes</option>
-            <option value="30">30 minutes</option>
-            <option value="60">1 hour</option>
-            <option value="180">3 hours</option>
-            <option value="720">12 hours</option>
-            <option value="1440">24 hours</option>
+            <option value="5">{{ _('mins_5') }}</option>
+            <option value="15">{{ _('mins_15') }}</option>
+            <option value="30">{{ _('mins_30') }}</option>
+            <option value="60">{{ _('hour_1') }}</option>
+            <option value="180">{{ _('hours_3') }}</option>
+            <option value="720">{{ _('hours_12') }}</option>
+            <option value="1440">{{ _('hours_24') }}</option>
           </select>
-          <span class="ds-hint">More frequent scanning finds changes sooner but adds LAN traffic.</span>
+          <span class="ds-hint">{{ _('scan_interval_hint') }}</span>
         </div>
         <div class="ds-field">
-          <label class="ds-label" for="monOfflineScans">Declare offline after</label>
+          <label class="ds-label" for="monOfflineScans">{{ _('declare_offline_after') }}</label>
           <select class="ds-select" id="monOfflineScans">
-            <option value="1">1 missed scan</option>
-            <option value="2">2 missed scans</option>
-            <option value="3">3 missed scans</option>
-            <option value="5">5 missed scans</option>
+            <option value="1">{{ _('missed_scan_1') }}</option>
+            <option value="2">{{ _('missed_scans_2') }}</option>
+            <option value="3">{{ _('missed_scans_3') }}</option>
+            <option value="5">{{ _('missed_scans_5') }}</option>
           </select>
-          <span class="ds-hint">Higher values stop a single dropped reply from paging you.</span>
+          <span class="ds-hint">{{ _('offline_scans_hint') }}</span>
         </div>
         <div class="ds-field">
-          <label class="ds-label" for="monVoltage">Under-voltage threshold (V)</label>
+          <label class="ds-label" for="monVoltage">{{ _('undervoltage_threshold') }}</label>
           <input class="ds-input" type="number" step="0.1" id="monVoltage" value="4.7">
-          <span class="ds-hint">Raspberry Pi and Orange Pi boards throttle below ~4.7&nbsp;V.</span>
+          <span class="ds-hint">{{ _('undervoltage_hint') }}</span>
         </div>
         <div class="ds-field">
-          <label class="ds-label" for="monBattery">Low battery threshold (%)</label>
+          <label class="ds-label" for="monBattery">{{ _('low_battery_threshold') }}</label>
           <input class="ds-input" type="number" min="1" max="99" id="monBattery" value="20">
         </div>
         <div class="ds-field">
-          <label class="ds-label" for="monLatency">High latency threshold (ms)</label>
+          <label class="ds-label" for="monLatency">{{ _('high_latency_threshold') }}</label>
           <input class="ds-input" type="number" min="10" id="monLatency" value="500">
         </div>
         <div class="ds-field">
-          <label class="ds-label">Extras</label>
+          <label class="ds-label">{{ _('extras') }}</label>
           <label class="ds-switch">
             <input type="checkbox" id="monDiscovery">
             <span class="ds-switch__track"></span>
-            <span>Include mDNS / SSDP / BLE sweep</span>
+            <span>{{ _('include_discovery_sweep') }}</span>
           </label>
           <label class="ds-switch">
             <input type="checkbox" id="monMqtt">
             <span class="ds-switch__track"></span>
-            <span>Publish to Home Assistant (MQTT)</span>
+            <span>{{ _('publish_to_ha_mqtt') }}</span>
           </label>
         </div>
       </div>
     </div>
     <div class="ds-card__footer ds-row">
-      <span class="ds-dim ds-spacer" id="monStatusLine">Loading…</span>
-      <button class="ds-btn ds-btn--primary" id="saveMonBtn">Save schedule</button>
+      <span class="ds-dim ds-spacer" id="monStatusLine">{{ _('loading') }}</span>
+      <button class="ds-btn ds-btn--primary" id="saveMonBtn">{{ _('save_schedule') }}</button>
     </div>
   </section>
 
@@ -141,27 +141,25 @@
   <section class="ds-card">
     <div class="ds-card__header">
       <svg class="ds-icon" aria-hidden="true"><use href="#i-bell"/></svg>
-      <h2 class="ds-card__title">Notifications on this device</h2>
+      <h2 class="ds-card__title">{{ _('notifications_on_device') }}</h2>
       <div class="ds-spacer"></div>
       <span class="ds-badge" id="pushBadge">—</span>
     </div>
     <div class="ds-card__body ds-stack">
       <p class="ds-muted" style="margin:0">
-        MyNeS can push alerts to this browser or installed app itself — no Home
-        Assistant and no third-party service in the path. Allow notifications
-        once and they arrive even when the tab is closed.
+        {{ _('push_desc') }}
       </p>
       <div class="ds-row" style="gap:var(--space-2);flex-wrap:wrap">
         <button class="ds-btn ds-btn--primary ds-btn--sm" id="pushEnableBtn">
           <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-bell"/></svg>
-          <span>Enable on this device</span>
+          <span>{{ _('push_enable') }}</span>
         </button>
         <button class="ds-btn ds-btn--sm" id="pushTestBtn" hidden>
           <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-play"/></svg>
-          <span>Send test</span>
+          <span>{{ _('send_test') }}</span>
         </button>
         <button class="ds-btn ds-btn--ghost ds-btn--sm" id="pushDisableBtn" hidden>
-          <span>Turn off here</span>
+          <span>{{ _('push_turn_off') }}</span>
         </button>
       </div>
       <div id="pushHint"></div>
@@ -172,10 +170,10 @@
   <section class="ds-card">
     <div class="ds-card__header">
       <svg class="ds-icon" aria-hidden="true"><use href="#i-bell"/></svg>
-      <h2 class="ds-card__title">Notification channels</h2>
+      <h2 class="ds-card__title">{{ _('notification_channels') }}</h2>
       <div class="ds-spacer"></div>
       <button class="ds-btn ds-btn--sm" id="addChannelBtn">
-        <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-plug"/></svg> Add channel
+        <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-plug"/></svg> {{ _('add_channel') }}
       </button>
     </div>
     <div class="ds-card__body">
@@ -187,20 +185,18 @@
   <section class="ds-card">
     <div class="ds-card__header">
       <svg class="ds-icon" aria-hidden="true"><use href="#i-bell-off"/></svg>
-      <h2 class="ds-card__title">Muted devices</h2>
+      <h2 class="ds-card__title">{{ _('muted_devices') }}</h2>
     </div>
     <div class="ds-card__body ds-stack">
       <p class="ds-muted" style="margin:0">
-        A muted device still appears in the alert history and the availability strip —
-        it just stops sending notifications. Use it for the plug that drops off
-        the network six times a night on purpose.
+        {{ _('muted_devices_desc') }}
       </p>
       <div class="mute-add">
-        <select class="ds-select" id="muteDevice" aria-label="Device"></select>
-        <select class="ds-select" id="muteRule" aria-label="Alert type">
-          <option value="">All alert types</option>
+        <select class="ds-select" id="muteDevice" aria-label="{{ _('device') }}"></select>
+        <select class="ds-select" id="muteRule" aria-label="{{ _('alert_type') }}">
+          <option value="">{{ _('all_alert_types') }}</option>
         </select>
-        <button type="button" class="ds-btn ds-btn--sm" id="muteAddBtn">Mute</button>
+        <button type="button" class="ds-btn ds-btn--sm" id="muteAddBtn">{{ _('mute') }}</button>
       </div>
       <div id="muteList" class="ds-stack"></div>
     </div>
@@ -210,31 +206,31 @@
   <section class="ds-card">
     <div class="ds-card__header">
       <svg class="ds-icon" aria-hidden="true"><use href="#i-alert"/></svg>
-      <h2 class="ds-card__title">Alert history</h2>
+      <h2 class="ds-card__title">{{ _('alert_history') }}</h2>
       <div class="ds-spacer"></div>
-      <input class="ds-input" id="alertSearch" type="search" placeholder="Search device, IP, message…"
-             style="width:auto;min-width:200px" aria-label="Search alerts">
+      <input class="ds-input" id="alertSearch" type="search" placeholder="{{ _('search_alerts_placeholder') }}"
+             style="width:auto;min-width:200px" aria-label="{{ _('search_alerts') }}">
       <select class="ds-select" id="severityFilter" style="width:auto">
-        <option value="">All severities</option>
-        <option value="critical">Critical</option>
-        <option value="warning">Warning</option>
-        <option value="info">Info</option>
+        <option value="">{{ _('all_severities') }}</option>
+        <option value="critical">{{ _('critical') }}</option>
+        <option value="warning">{{ _('warning') }}</option>
+        <option value="info">{{ _('info') }}</option>
       </select>
-      <select class="ds-select" id="ruleFilter" style="width:auto" aria-label="Filter by rule">
-        <option value="">All rules</option>
+      <select class="ds-select" id="ruleFilter" style="width:auto" aria-label="{{ _('filter_by_rule') }}">
+        <option value="">{{ _('all_rules') }}</option>
       </select>
       <button class="ds-btn ds-btn--sm" id="markReadBtn">
-        <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-check"/></svg> Mark all read
+        <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-check"/></svg> {{ _('mark_all_read') }}
       </button>
       <button class="ds-btn ds-btn--sm ds-btn--danger" id="clearAlertsBtn">
-        <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-trash"/></svg> Clear
+        <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-trash"/></svg> {{ _('clear') }}
       </button>
     </div>
     <div id="alertFeed"></div>
     <div class="alert-pager" id="alertPager" hidden>
-      <button type="button" class="ds-btn ds-btn--sm" id="alertPrev">← Previous</button>
+      <button type="button" class="ds-btn ds-btn--sm" id="alertPrev">← {{ _('previous') }}</button>
       <span class="ds-muted" id="alertPageInfo"></span>
-      <button type="button" class="ds-btn ds-btn--sm" id="alertNext">Next →</button>
+      <button type="button" class="ds-btn ds-btn--sm" id="alertNext">{{ _('next') }} →</button>
     </div>
   </section>
 </div>
@@ -243,41 +239,41 @@
 <div class="ds-modal-backdrop" id="channelModal" hidden>
   <div class="ds-modal" role="dialog" aria-modal="true" aria-labelledby="channelModalTitle">
     <div class="ds-modal__header">
-      <h2 class="ds-card__title" id="channelModalTitle">Add notification channel</h2>
+      <h2 class="ds-card__title" id="channelModalTitle">{{ _('add_notification_channel') }}</h2>
       <div class="ds-spacer"></div>
-      <button class="ds-btn ds-btn--ghost ds-btn--icon" id="closeChannelModal" aria-label="Close">
+      <button class="ds-btn ds-btn--ghost ds-btn--icon" id="closeChannelModal" aria-label="{{ _('close') }}">
         <svg class="ds-icon" aria-hidden="true"><use href="#i-x"/></svg>
       </button>
     </div>
     <div class="ds-modal__body ds-stack">
       <div id="chGuide"></div>
       <div class="ds-field">
-        <label class="ds-label" for="chType">Type</label>
+        <label class="ds-label" for="chType">{{ _('type') }}</label>
         <select class="ds-select" id="chType">
-          <option value="mynes_push">MyNeS push (this server, no relay)</option>
-          <option value="home_assistant">Home Assistant notify service</option>
-          <option value="ntfy">ntfy (phone push, no account)</option>
-          <option value="telegram">Telegram bot</option>
-          <option value="webhook">Webhook (n8n, custom, HA automation)</option>
-          <option value="slack">Slack incoming webhook</option>
-          <option value="discord">Discord webhook</option>
-          <option value="smtp">Email (SMTP)</option>
+          <option value="mynes_push">{{ _('ch_mynes_push') }}</option>
+          <option value="home_assistant">{{ _('ch_home_assistant') }}</option>
+          <option value="ntfy">{{ _('ch_ntfy') }}</option>
+          <option value="telegram">{{ _('ch_telegram') }}</option>
+          <option value="webhook">{{ _('ch_webhook') }}</option>
+          <option value="slack">{{ _('ch_slack') }}</option>
+          <option value="discord">{{ _('ch_discord') }}</option>
+          <option value="smtp">{{ _('ch_smtp') }}</option>
         </select>
       </div>
       <div class="ds-field">
-        <label class="ds-label" for="chMinSeverity">Only notify at or above</label>
+        <label class="ds-label" for="chMinSeverity">{{ _('only_notify_at_or_above') }}</label>
         <select class="ds-select" id="chMinSeverity">
-          <option value="info">Info</option>
-          <option value="warning" selected>Warning</option>
-          <option value="critical">Critical</option>
+          <option value="info">{{ _('info') }}</option>
+          <option value="warning" selected>{{ _('warning') }}</option>
+          <option value="critical">{{ _('critical') }}</option>
         </select>
       </div>
       <div id="chFields" class="ds-stack"></div>
       <div id="chTestResult"></div>
     </div>
     <div class="ds-modal__footer">
-      <button class="ds-btn" id="testChannelBtn">Send test</button>
-      <button class="ds-btn ds-btn--primary" id="saveChannelBtn">Add channel</button>
+      <button class="ds-btn" id="testChannelBtn">{{ _('send_test') }}</button>
+      <button class="ds-btn ds-btn--primary" id="saveChannelBtn">{{ _('add_channel') }}</button>
     </div>
   </div>
 </div>

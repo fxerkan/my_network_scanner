@@ -288,6 +288,9 @@ config/oui36.csv
 config/iab.csv
 config/cid.csv
 config/enhanced_oui_database.json
+# Downloaded CVE pattern overlay - refreshable data, never committed. The
+# built-in CVE_PATTERNS in mynes/security/cve.py is the seed/fallback.
+config/cve_patterns.json
 
 # Python
 .venv/
@@ -309,6 +312,10 @@ data/security.json
 # Web Push: server identity key and the devices that opted in
 config/.vapid_key
 data/push_subscriptions.json
+
+# Official CVE List V5 reference corpus (250k+ rows) - downloaded on demand,
+# exactly like the OUI database. The curated seed lives in mynes/security/cve.py.
+data/cve_records.db
 
 
 .claude-hr-port

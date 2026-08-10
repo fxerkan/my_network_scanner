@@ -7,7 +7,7 @@
     <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#0d1017" media="(prefers-color-scheme: dark)">
     <meta name="robots" content="noindex, nofollow">
-    <title>Sign in · MyNeS</title>
+    <title>{{ _('login_sign_in') }} · MyNeS</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <script>
       try {
@@ -28,7 +28,7 @@
                     <use href="#i-network"/>
                 </svg>
                 <h1 style="margin:var(--space-3) 0 var(--space-1);font-size:var(--text-xl)">MyNeS</h1>
-                <p class="ds-muted" style="margin:0;font-size:var(--text-sm)">Sign in to view your network</p>
+                <p class="ds-muted" style="margin:0;font-size:var(--text-sm)">{{ _('login_subtitle') }}</p>
             </div>
 
             {% if error %}
@@ -42,14 +42,14 @@
                 <input type="hidden" name="next" value="{{ next }}">
 
                 <div class="ds-field">
-                    <label class="ds-label" for="username">Username</label>
+                    <label class="ds-label" for="username">{{ _('login_username') }}</label>
                     <input class="ds-input" id="username" name="username" type="text"
                            autocomplete="username" required autofocus
                            {% if error %}aria-invalid="true"{% endif %}>
                 </div>
 
                 <div class="ds-field">
-                    <label class="ds-label" for="password">Password</label>
+                    <label class="ds-label" for="password">{{ _('login_password') }}</label>
                     <input class="ds-input" id="password" name="password" type="password"
                            autocomplete="current-password" required
                            {% if error %}aria-invalid="true"{% endif %}>
@@ -58,16 +58,16 @@
                 <label class="ds-switch">
                     <input type="checkbox" name="remember" value="1" checked>
                     <span class="ds-switch__track"></span>
-                    <span class="ds-label" style="margin:0">Stay signed in for {{ remember_days }} days</span>
+                    <span class="ds-label" style="margin:0">{{ _('login_remember', days=remember_days) }}</span>
                 </label>
 
                 <button class="ds-btn ds-btn--primary ds-btn--lg ds-btn--block" type="submit">
-                    Sign in
+                    {{ _('login_sign_in') }}
                 </button>
             </form>
 
             <p class="ds-dim" style="margin:0;font-size:var(--text-xs);text-align:center">
-                Credentials live in <code>.env</code> on the server
+                {{ _('login_credentials_hint') }}
                 (<code>MYNES_AUTH_USERNAME</code> / <code>MYNES_AUTH_PASSWORD</code>).
             </p>
         </div>

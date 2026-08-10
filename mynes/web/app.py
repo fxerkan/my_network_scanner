@@ -180,7 +180,7 @@ def get_translated_device_types():
     return jsonify(translated_types)
 
 def progress_callback(message):
-    """Tarama ilerlemesi için callback fonksiyonu"""
+    """Callback for scan progress"""
     global scan_progress
     scan_progress["message"] = message
     if "cihaz bulundu" in message:
@@ -192,12 +192,12 @@ def progress_callback(message):
             pass
 
 def detailed_analysis_callback(message):
-    """Detaylı analiz ilerlemesi için callback fonksiyonu"""
+    """Callback for detailed-analysis progress"""
     global background_analysis
     background_analysis["message"] = message
 
 def scan_network_thread():
-    """Ağ taramasını ayrı thread'de çalıştırır"""
+    """Run the network scan in a separate thread"""
     global scan_progress
     try:
         start_time = datetime.now()
@@ -240,7 +240,7 @@ def scan_network_thread():
         scan_progress["message"] = f"Tarama hatası: {str(e)}"
 
 def scan_network_custom_thread(ip_range=None, include_offline=False):
-    """Özel ayarlarla ağ taramasını ayrı thread'de çalıştırır"""
+    """Run the network scan with custom settings in a separate thread"""
     global scan_progress
     try:
         start_time = datetime.now()
@@ -284,7 +284,7 @@ def scan_network_custom_thread(ip_range=None, include_offline=False):
         scan_progress["message"] = f"Tarama hatası: {str(e)}"
 
 def run_detailed_analysis():
-    """Detaylı analizi ayrı thread'de çalıştırır"""
+    """Run detailed analysis in a separate thread"""
     global background_analysis
     try:
         background_analysis["status"] = "analyzing"
@@ -296,7 +296,7 @@ def run_detailed_analysis():
         background_analysis["message"] = f"Detaylı analiz hatası: {str(e)}"
 
 def run_single_device_analysis(ip_address):
-    """Detaylı Cihaz Analizii ayrı thread'de çalıştırır"""
+    """Run detailed device analysis in a separate thread"""
     global background_analysis
     try:
         background_analysis["status"] = "analyzing"
@@ -309,7 +309,7 @@ def run_single_device_analysis(ip_address):
 
 @app.route('/test_detailed_analysis')
 def test_detailed_analysis():
-    """Test sayfası"""
+    """Detailed-analysis test page"""
     return send_from_directory('.', 'test_detailed_analysis.html')
 
 @app.route('/static/<path:filename>')
@@ -404,7 +404,7 @@ def security_rescan():
 
 @app.route('/')
 def index():
-    """Ana sayfa"""
+    """Home page"""
     # Önceki tarama sonuçlarını yükle
     scanner.load_from_json()
     devices = scanner.get_devices()
@@ -417,7 +417,7 @@ def index():
 
 @app.route('/config')
 def config_page():
-    """Config/Settings sayfası"""
+    """Config/Settings page"""
     config_manager = scanner.get_config_manager()
     
     # Mevcut ayarları yükle
@@ -440,7 +440,7 @@ def config_page():
 
 @app.route('/history')
 def history_page():
-    """Tarihçe ve istatistik sayfası"""
+    """History and statistics page"""
     config_manager = scanner.get_config_manager()
     scan_history = config_manager.load_scan_history()
     
@@ -448,7 +448,7 @@ def history_page():
 
 @app.route('/scan')
 def start_scan():
-    """Yeni tarama başlat"""
+    """Start a new scan"""
     global scan_thread, scan_progress
     
     if scan_progress["status"] == "scanning":
@@ -463,7 +463,7 @@ def start_scan():
 
 @app.route('/scan_custom', methods=['POST'])
 def start_custom_scan():
-    """Özel ayarlarla tarama başlat"""
+    """Start a scan with custom settings"""
     global scan_thread, scan_progress
     
     if scan_progress["status"] == "scanning":
@@ -487,7 +487,7 @@ def start_custom_scan():
 
 @app.route('/stop_scan')
 def stop_scan():
-    """Taramayı durdur"""
+    """Stop the running scan"""
     global scan_progress
     scanner.stop_scan()
     scan_progress["status"] = "stopped"
@@ -496,12 +496,12 @@ def stop_scan():
 
 @app.route('/progress')
 def get_progress():
-    """Tarama ilerlemesini döndür"""
+    """Return scan progress"""
     return jsonify(scan_progress)
 
 @app.route('/detailed_analysis')
 def start_detailed_analysis():
-    """Toplu detaylı analizi başlat"""
+    """Start bulk detailed analysis"""
     global detailed_analysis_thread, background_analysis
     
     if background_analysis["status"] == "analyzing":
@@ -521,12 +521,12 @@ def start_detailed_analysis():
 
 @app.route('/detailed_analysis_status')
 def get_detailed_analysis_status():
-    """Detaylı analiz durumunu döndür"""
+    """Return detailed-analysis status"""
     return jsonify(background_analysis)
 
 @app.route('/analyze_device/<ip>')
 def analyze_single_device(ip):
-    """Tek bir cihaz için detaylı analiz başlat"""
+    """Start detailed analysis for a single device"""
     global detailed_analysis_thread, background_analysis
     
     if background_analysis["status"] == "analyzing":
@@ -553,13 +553,13 @@ def analyze_single_device(ip):
 @app.route('/devices')
 @app.route('/get_devices')
 def get_devices():
-    """Tüm cihazları JSON olarak döndür"""
+    """Return all devices as JSON"""
     devices = scanner.get_devices()
     return jsonify(devices)
 
 @app.route('/device/<ip>')
 def get_device(ip):
-    """Belirli bir cihazın detaylarını döndür"""
+    """Return details for a specific device"""
     devices = scanner.get_devices()
     device = next((d for d in devices if d['ip'] == ip), None)
     if device:
@@ -569,7 +569,7 @@ def get_device(ip):
     return jsonify({"error": "Cihaz bulunamadı"}), 404
 
 def make_json_safe(obj):
-    """Objeyi JSON serialization için güvenli hale getirir"""
+    """Make an object safe for JSON serialization"""
     import copy
     if isinstance(obj, dict):
         # Dict key'lerini string'e çevir ve değerleri de recursive olarak işle
@@ -588,7 +588,7 @@ def make_json_safe(obj):
 
 @app.route('/update_device/<ip>', methods=['POST'])
 def update_device(ip):
-    """Cihaz bilgilerini güncelle"""
+    """Update device information"""
     try:
         data = request.json
         success = scanner.update_device(ip, data)
@@ -601,7 +601,7 @@ def update_device(ip):
 
 @app.route('/analyze_device/<ip>')
 def analyze_device(ip):
-    """Belirli bir cihaz için detaylı analiz yap"""
+    """Run detailed analysis for a specific device"""
     try:
         if scan_progress["status"] == "scanning":
             return jsonify({"error": "Tarama devam ederken analiz yapılamaz"}), 400
@@ -613,7 +613,7 @@ def analyze_device(ip):
 
 @app.route('/analyze_device_background/<ip>')
 def analyze_device_background(ip):
-    """Belirli bir cihaz için arka plan detaylı analiz başlat"""
+    """Start background detailed analysis for a specific device"""
     try:
         import uuid
         analysis_id = str(uuid.uuid4())
@@ -741,7 +741,7 @@ def analyze_device_background(ip):
 
 @app.route('/analysis_status/<analysis_id>')
 def get_analysis_status(analysis_id):
-    """Arka plan analiz durumunu getir"""
+    """Get background analysis status"""
     if analysis_id in background_analysis:
         analysis = background_analysis[analysis_id].copy()
         
@@ -757,7 +757,7 @@ def get_analysis_status(analysis_id):
 
 @app.route('/export')
 def export_data():
-    """Verileri JSON olarak export et"""
+    """Export data as JSON"""
     devices = scanner.get_devices()
     return jsonify({
         "export_date": datetime.now().isoformat(),
@@ -767,7 +767,7 @@ def export_data():
 
 @app.route('/import', methods=['POST'])
 def import_data():
-    """JSON verisini import et"""
+    """Import data from JSON"""
     try:
         data = request.json
         if 'devices' in data:
@@ -781,7 +781,7 @@ def import_data():
 # Configuration API endpoints
 @app.route('/api/config/oui', methods=['GET', 'POST'])
 def manage_oui_database():
-    """OUI database yönetimi"""
+    """Manage the OUI database"""
     if request.method == 'GET':
         return jsonify(oui_manager.export_database())
     
@@ -795,7 +795,7 @@ def manage_oui_database():
 
 @app.route('/api/oui/update', methods=['POST'])
 def update_oui_database():
-    """OUI database'ini IEEE kaynaklarından güncelle"""
+    """Update the OUI database from IEEE sources"""
     try:
         success = oui_manager.update_database()
         stats = oui_manager.get_stats()
@@ -809,7 +809,7 @@ def update_oui_database():
 
 @app.route('/api/oui/lookup/<mac>')
 def lookup_oui(mac):
-    """MAC adresinden vendor bilgisini al"""
+    """Look up vendor information from a MAC address"""
     try:
         vendor = oui_manager.get_vendor(mac)
         return jsonify({
@@ -821,7 +821,7 @@ def lookup_oui(mac):
 
 @app.route('/api/oui/search')
 def search_oui():
-    """Vendor adına göre OUI ara"""
+    """Search the OUI database by vendor name"""
     try:
         query = request.args.get('q', '')
         if not query:
@@ -838,7 +838,7 @@ def search_oui():
 
 @app.route('/api/oui/stats')
 def oui_stats():
-    """OUI database istatistikleri"""
+    """OUI database statistics"""
     try:
         return jsonify(oui_manager.get_stats())
     except Exception as e:
@@ -846,7 +846,7 @@ def oui_stats():
 
 @app.route('/api/config/device_types', methods=['GET', 'POST'])
 def manage_device_types():
-    """Cihaz tipleri yönetimi"""
+    """Manage device types"""
     config_manager = scanner.get_config_manager()
     
     if request.method == 'GET':
@@ -863,7 +863,7 @@ def manage_device_types():
 
 @app.route('/api/config/settings', methods=['GET', 'POST'])
 def manage_settings():
-    """Genel ayarlar yönetimi"""
+    """Manage general settings"""
     config_manager = scanner.get_config_manager()
     
     if request.method == 'GET':
@@ -895,7 +895,7 @@ def manage_settings():
 
 @app.route('/api/networks')
 def get_available_networks():
-    """Mevcut ağ arayüzlerini döndür"""
+    """Return available network interfaces"""
     try:
         networks = scanner.get_available_networks()
         return jsonify(networks)
@@ -904,7 +904,7 @@ def get_available_networks():
 
 @app.route('/api/scan_history')
 def get_scan_history():
-    """Tarama geçmişini döndür"""
+    """Return scan history"""
     try:
         config_manager = scanner.get_config_manager()
         history = config_manager.load_scan_history()
@@ -914,7 +914,7 @@ def get_scan_history():
 
 @app.route('/api/version')
 def get_app_version():
-    """Uygulama versiyon bilgisini döndür"""
+    """Return application version information"""
     try:
         return jsonify(get_version_info())
     except Exception as e:
@@ -922,7 +922,7 @@ def get_app_version():
 
 @app.route('/api/sanitize_data', methods=['POST'])
 def sanitize_device_data():
-    """Cihaz verilerini temizle - hassas bilgileri kaldır"""
+    """Sanitize device data by removing sensitive information"""
     try:
         sanitizer = DataSanitizer()
         devices_file = data_file('lan_devices.json')
@@ -964,7 +964,7 @@ def sanitize_device_data():
 
 @app.route('/api/save_settings', methods=['POST'])
 def save_settings():
-    """Ayarları kaydet - config sayfası için"""
+    """Save settings for the config page"""
     try:
         data = request.json
         config_manager = scanner.get_config_manager()
@@ -982,7 +982,7 @@ def save_settings():
 
 @app.route('/api/lookup_vendor/<mac>')
 def lookup_vendor_api(mac):
-    """MAC adresinden vendor bilgisini API ile getir"""
+    """Look up vendor information from a MAC address via API"""
     try:
         # MAC adresini normalize et
         clean_mac = re.sub(r'[^a-fA-F0-9]', '', mac.upper())
@@ -1047,7 +1047,7 @@ def lookup_vendor_api(mac):
 
 @app.route('/api/download_ieee_oui')
 def download_ieee_oui():
-    """IEEE OUI CSV dosyasını indir ve işle"""
+    """Download and process the IEEE OUI CSV file"""
     try:
         # IEEE OUI CSV dosyasını indir
         ieee_url = "https://standards-oui.ieee.org/oui/oui.csv"
@@ -1088,7 +1088,7 @@ def download_ieee_oui():
         })
 
 def process_ieee_csv(csv_file):
-    """IEEE CSV dosyasını işle ve OUI database'e ekle"""
+    """Process the IEEE CSV file and add it to the OUI database"""
     try:
         config_manager = scanner.get_config_manager()
         oui_db = config_manager.load_oui_database()
@@ -1120,7 +1120,7 @@ def process_ieee_csv(csv_file):
 
 @app.route('/api/clear_history', methods=['POST'])
 def clear_scan_history():
-    """Tarama geçmişini temizle"""
+    """Clear scan history"""
     try:
         config_manager = scanner.get_config_manager()
         # History dosyasını temizle
@@ -1132,7 +1132,7 @@ def clear_scan_history():
 
 @app.route('/api/emojis', methods=['GET'])
 def get_emojis():
-    """CSV dosyasından emoji verilerini getir"""
+    """Get emoji data from the CSV file"""
     try:
         emojis_file = os.path.join('config', 'emojis.csv')
         emojis_data = []
@@ -1160,7 +1160,7 @@ def get_emojis():
 
 @app.route('/api/emojis/categories')
 def get_emoji_categories():
-    """Emoji kategorilerini getir"""
+    """Get emoji categories"""
     try:
         emojis_file = os.path.join('config', 'emojis.csv')
         categories = set()
@@ -1177,7 +1177,7 @@ def get_emoji_categories():
 
 @app.route('/api/emojis/search')
 def search_emojis():
-    """Emoji arama"""
+    """Search emojis"""
     try:
         query = request.args.get('q', '').lower()
         category = request.args.get('category', '')
@@ -1217,7 +1217,7 @@ def search_emojis():
 
 @app.route('/api/emojis', methods=['POST'])
 def add_emoji():
-    """Yeni emoji ekle"""
+    """Add a new emoji"""
     try:
         data = request.json
         emoji = data.get('emoji', '').strip()
@@ -1253,7 +1253,7 @@ def add_emoji():
 # Docker API Endpoints
 @app.route('/api/docker/networks')
 def get_docker_networks():
-    """Docker network'lerini döndür"""
+    """Return Docker networks"""
     try:
         networks = docker_manager.get_docker_networks()
         return jsonify({
@@ -1269,7 +1269,7 @@ def get_docker_networks():
 
 @app.route('/api/docker/containers')
 def get_docker_containers():
-    """Docker container'ları döndür"""
+    """Return Docker containers"""
     try:
         containers = docker_manager.get_docker_containers()
         return jsonify({
@@ -1285,7 +1285,7 @@ def get_docker_containers():
 
 @app.route('/api/docker/scan_ranges')
 def get_docker_scan_ranges():
-    """Docker network'lerinden tarama aralıkları döndür"""
+    """Return scan ranges derived from Docker networks"""
     try:
         scan_ranges = docker_manager.get_docker_scan_ranges()
         return jsonify({
@@ -1301,7 +1301,7 @@ def get_docker_scan_ranges():
 
 @app.route('/api/docker/interfaces')
 def get_docker_interfaces():
-    """Docker virtual interface'leri döndür"""
+    """Return Docker virtual interfaces"""
     try:
         interfaces = docker_manager.get_docker_interface_info()
         return jsonify({
@@ -1317,7 +1317,7 @@ def get_docker_interfaces():
 
 @app.route('/api/docker/stats')
 def get_docker_stats():
-    """Docker genel istatistikleri döndür"""
+    """Return overall Docker statistics"""
     try:
         stats = docker_manager.get_docker_stats()
         return jsonify(stats)
@@ -1329,7 +1329,7 @@ def get_docker_stats():
 
 @app.route('/device_access/<ip>', methods=['GET', 'POST'])
 def device_access(ip):
-    """Cihaz erişim bilgilerini yönet"""
+    """Manage device access credentials"""
     global credential_manager
     
     # Credential manager'ın hazır olduğundan emin ol
@@ -1391,7 +1391,7 @@ def device_access(ip):
 
 @app.route('/test_device_access/<ip>', methods=['POST'])
 def test_device_access(ip):
-    """Cihaz erişim testi"""
+    """Test device access"""
     global credential_manager
     
     # Credential manager'ın hazır olduğundan emin ol
@@ -1441,7 +1441,7 @@ def test_device_access(ip):
 
 @app.route('/enhanced_analysis/<ip>', methods=['POST'])
 def enhanced_analysis(ip):
-    """Gelişmiş cihaz analizi başlat"""
+    """Start enhanced device analysis"""
     global enhanced_analysis_status
     
     try:
@@ -1499,7 +1499,7 @@ def merge_enhanced_info(existing, new_info):
         return new_info
 
 def merge_dict_recursive(dict1, dict2):
-    """İki dict'i recursive olarak merge eder"""
+    """Recursively merge two dicts"""
     import copy
     result = copy.deepcopy(dict1)
     
@@ -1517,7 +1517,7 @@ def merge_dict_recursive(dict1, dict2):
     return result
 
 def merge_lists_unique(list1, list2):
-    """İki listeyi merge eder ve unique tutar"""
+    """Merge two lists, keeping unique items"""
     try:
         # JSON serialize ederek unique kontrolü yap
         import json
@@ -1541,7 +1541,7 @@ def merge_lists_unique(list1, list2):
         return list1 + list2
 
 def run_enhanced_analysis(ip):
-    """Gelişmiş analizi arkaplan thread'inde çalıştır"""
+    """Run enhanced analysis in a background thread"""
     global enhanced_analysis_status
     
     try:
@@ -1727,7 +1727,7 @@ def run_enhanced_analysis(ip):
 
 @app.route('/enhanced_analysis_status/<ip>')
 def enhanced_analysis_status_endpoint(ip):
-    """Gelişmiş analiz durumunu döndür"""
+    """Return enhanced-analysis status"""
     global enhanced_analysis_status
     
     if ip in enhanced_analysis_status:
@@ -1755,7 +1755,7 @@ def enhanced_analysis_status_endpoint(ip):
 
 @app.route('/stop_enhanced_analysis/<ip>', methods=['POST'])
 def stop_enhanced_analysis(ip):
-    """Gelişmiş analizi durdur"""
+    """Stop enhanced analysis"""
     global enhanced_analysis_status
     
     if ip in enhanced_analysis_status:
@@ -1770,7 +1770,7 @@ def stop_enhanced_analysis(ip):
 
 @app.route('/stop_bulk_analysis', methods=['POST'])
 def stop_bulk_analysis():
-    """Toplu analizi durdur"""
+    """Stop bulk analysis"""
     global bulk_analysis_status
     
     # Tüm aktif analizleri durdur
@@ -1784,7 +1784,7 @@ def stop_bulk_analysis():
 
 @app.route('/add_manual_device', methods=['POST'])
 def add_manual_device():
-    """Manuel cihaz ekleme"""
+    """Add a device manually"""
     try:
         data = request.json
         
@@ -1848,7 +1848,7 @@ def add_manual_device():
 
 @app.route('/save_device', methods=['POST'])
 def save_device():
-    """Cihaz kaydetme/güncelleme"""
+    """Save or update a device"""
     try:
         data = request.json
         ip = data.get('ip')
@@ -1922,7 +1922,7 @@ def save_device():
 
 @app.route('/delete_device/<ip>', methods=['DELETE'])
 def delete_device(ip):
-    """Cihaz silme"""
+    """Delete a device"""
     try:
         devices = scanner.get_devices()
         device_found = False
@@ -1956,7 +1956,7 @@ def delete_device(ip):
 
 @app.route('/save_device_credentials', methods=['POST'])
 def save_device_credentials():
-    """Cihaz erişim bilgilerini kaydet"""
+    """Save device access credentials"""
     try:
         data = request.json
         ip = data.get('ip')
@@ -1985,7 +1985,7 @@ def save_device_credentials():
 
 @app.route('/get_device_types')
 def get_device_types():
-    """Cihaz tiplerini döndür"""
+    """Return device types"""
     try:
         return jsonify(scanner.device_types)
     except Exception as e:
@@ -1993,7 +1993,7 @@ def get_device_types():
 
 @app.route('/get_device_credentials/<ip>')
 def get_device_credentials(ip):
-    """Cihaz erişim bilgilerini getir"""
+    """Get device access credentials"""
     try:
         if not credential_manager:
             return jsonify({"error": "Credential manager not initialized"}), 500
@@ -2009,7 +2009,7 @@ def get_device_credentials(ip):
 
 @app.route('/get_active_analyses')
 def get_active_analyses():
-    """Aktif analiz işlemlerini döndür"""
+    """Return active analysis jobs"""
     global enhanced_analysis_status, bulk_analysis_status
     
     active_analyses = {}
@@ -2043,14 +2043,14 @@ def get_active_analyses():
 
 @app.route('/save_analysis_temp', methods=['POST'])
 def save_analysis_temp():
-    """Analiz temp dosyasını kaydet"""
+    """Save the analysis temp file"""
     try:
         data = request.json
         session_key = data.get('session_key')
         analysis_data = data.get('analysis_data', {})
         
         if not session_key:
-            return jsonify({'error': 'Session key gerekli'}), 400
+            return jsonify({'error': 'Session key required'}), 400
         
         # Temp dosya dizini
         temp_dir = os.path.join('data', 'temp')
@@ -2070,7 +2070,7 @@ def save_analysis_temp():
 
 @app.route('/load_analysis_temp/<session_key>')
 def load_analysis_temp(session_key):
-    """Analiz temp dosyasını yükle"""
+    """Load the analysis temp file"""
     try:
         temp_dir = os.path.join('data', 'temp')
         temp_file = os.path.join(temp_dir, f'analysis_{session_key.replace(".", "_")}.json')
@@ -2080,14 +2080,14 @@ def load_analysis_temp(session_key):
                 analysis_data = json.load(f)
             return jsonify(analysis_data)
         else:
-            return jsonify({'error': 'Temp dosyası bulunamadı'}), 404
+            return jsonify({'error': 'Temp file not found'}), 404
     
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 @app.route('/clear_analysis_temp/<session_key>', methods=['POST'])
 def clear_analysis_temp(session_key):
-    """Analiz temp dosyasını temizle"""
+    """Clear the analysis temp file"""
     try:
         temp_dir = os.path.join('data', 'temp')
         temp_file = os.path.join(temp_dir, f'analysis_{session_key.replace(".", "_")}.json')
@@ -2102,7 +2102,7 @@ def clear_analysis_temp(session_key):
 
 @app.route('/api/credentials/stats')
 def get_credential_stats():
-    """Credential istatistiklerini döndür"""
+    """Return credential statistics"""
     global credential_manager
     try:
         stats = credential_manager.get_statistics()

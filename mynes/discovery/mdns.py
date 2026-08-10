@@ -105,9 +105,16 @@ class MDNSBackend(DiscoveryBackend):
                     addrs = []
                     for raw in info.addresses or []:
                         try:
-                            addrs.append(socket.inet_ntoa(raw))
+                            a = socket.inet_ntoa(raw)
                         except OSError:
+                            continue          # not IPv4 (e.g. an AAAA record)
+                        # Loopback/link-local is never a routable device address.
+                        # Our own host advertises its .local name on 127.0.0.1;
+                        # keeping it minted a bogus "<host>.local @ 127.0.0.1"
+                        # device. The host still appears via its real interface.
+                        if a.startswith("127.") or a.startswith("169.254."):
                             continue
+                        addrs.append(a)
                     ip = addrs[0] if addrs else None
                     if not ip:
                         return

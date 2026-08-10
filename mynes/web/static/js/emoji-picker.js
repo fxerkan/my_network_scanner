@@ -189,7 +189,7 @@ function searchEmojisHandler(event) {
     });
     
     if (filteredEmojis.length === 0) {
-        grid.innerHTML = '<div style="text-align: center; padding: 20px; color: #6c757d;">Arama sonucu bulunamadı</div>';
+        grid.innerHTML = '<div style="text-align: center; padding: 20px; color: #6c757d;">' + t('no_search_results') + '</div>';
     } else {
         grid.innerHTML = filteredEmojis.map(emojiData => 
             `<div class="emoji-item" onclick="selectEmoji('${emojiData.emoji}')" title="${emojiData.description}">${emojiData.emoji}</div>`

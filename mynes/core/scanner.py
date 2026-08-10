@@ -1739,6 +1739,13 @@ class LANScanner:
     def get_devices(self):
         """Tüm cihazları döndürür. Dedup is idempotent, so cleaning on every
         read is cheap and also persists to disk on the next save."""
+        # A loopback/link-local IP is never a real LAN device - it is this host
+        # advertising its own .local name (see discovery/mdns.py). Drop it so the
+        # scanning machine only appears at its real interface IP, never 127.0.0.1.
+        self.devices = [
+            d for d in self.devices
+            if not str(d.get('ip', '')).startswith(('127.', '169.254.')) and d.get('ip') != '::1'
+        ]
         self.devices = self._dedupe_by_mac_ip(self.devices)
         return self.devices
     

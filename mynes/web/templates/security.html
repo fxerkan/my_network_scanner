@@ -1,55 +1,190 @@
 {% extends "base.html" %}
 {% block title %}{{ _('security') if _('security') != 'security' else 'Security' }} · MyNeS{% endblock %}
 
+{% block styles %}
+<link rel="stylesheet" href="/static/css/security.css">
+{% endblock %}
+
+{% macro t(key, fallback) -%}
+{{ _(key) if _(key) != key else fallback }}
+{%- endmacro %}
+
 {% block content %}
-<div class="ds-stack">
+<div class="ds-stack sec-page">
 
   <div class="ds-row">
     <div>
-      <h1 style="margin-bottom:var(--space-1)">{{ _('security') if _('security') != 'security' else 'Security' }}</h1>
+      <h1 style="margin-bottom:var(--space-1)">{{ t('security', 'Security') }}</h1>
       <p class="ds-muted" style="margin:0">
-        {{ _('security_page_sub') if _('security_page_sub') != 'security_page_sub'
-           else 'Attack surface and known-CVE exposure across every device — worst first. Curated offline match, not a live feed.' }}
+        {{ t('security_page_sub', 'Attack surface and known-CVE exposure across every device — worst first. Curated offline match, not a live feed.') }}
       </p>
     </div>
     <div class="ds-spacer"></div>
+    <button class="ds-btn ds-btn--primary" id="secScan">
+      <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-search"/></svg>
+      {{ t('security_scan', 'Scan for vulnerabilities') }}
+    </button>
     <button class="ds-btn" id="secRefresh">
       <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-refresh"/></svg>
-      {{ _('refresh') if _('refresh') != 'refresh' else 'Refresh' }}
+      {{ t('refresh', 'Refresh') }}
     </button>
   </div>
 
-  <!-- Summary stats -->
-  <div class="ds-grid ds-grid--stats">
-    <div class="ds-stat"><div class="ds-stat__value" id="secStatDevices">—</div>
-      <div class="ds-stat__label">{{ _('total_devices') if _('total_devices') != 'total_devices' else 'Devices' }}</div></div>
-    <div class="ds-stat ds-stat--warning"><div class="ds-stat__value" id="secStatAtRisk">—</div>
-      <div class="ds-stat__label">{{ _('security_at_risk') if _('security_at_risk') != 'security_at_risk' else 'At risk' }}</div></div>
-    <div class="ds-stat ds-stat--critical"><div class="ds-stat__value" id="secStatFindings">—</div>
-      <div class="ds-stat__label">{{ _('security_findings') if _('security_findings') != 'security_findings' else 'CVE findings' }}</div></div>
-    <div class="ds-stat"><div class="ds-stat__value" id="secStatExposures">—</div>
-      <div class="ds-stat__label">{{ _('security_exposures') if _('security_exposures') != 'security_exposures' else 'Exposures' }}</div></div>
+  <!-- Live scan progress: a network scan refreshes every device's fingerprint,
+       then the assessment below re-runs against the current CVE database. -->
+  <div class="sec-scan" id="secScanBar" hidden aria-live="polite">
+    <div class="sec-scan__row">
+      <span class="sec-scan__label" id="secScanMsg">{{ t('security_scan_running', 'Scanning the network…') }}</span>
+      <span class="sec-scan__count" id="secScanCount"></span>
+    </div>
+    <div class="sec-scan__track"><div class="sec-scan__fill" id="secScanFill"></div></div>
   </div>
 
-  <!-- Bulk toolbar -->
-  <div class="ds-toolbar" id="secToolbar" style="gap:var(--space-2);flex-wrap:wrap;align-items:center">
-    <label class="ds-check" style="display:inline-flex;gap:6px;align-items:center">
-      <input type="checkbox" id="secSelectAll"> <span id="secSelCount">0 selected</span>
-    </label>
-    <div class="ds-spacer"></div>
-    <button class="ds-btn ds-btn--sm" id="secAck" disabled>
-      <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-check"/></svg> Acknowledge</button>
-    <button class="ds-btn ds-btn--sm" id="secUnack" disabled>Un-acknowledge</button>
-    <button class="ds-btn ds-btn--sm" id="secWatch" disabled>
-      <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-bell"/></svg> Watch &amp; alert</button>
-    <button class="ds-btn ds-btn--sm" id="secExport" disabled>
-      <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-download"/></svg> Export</button>
-    <button class="ds-btn ds-btn--sm ds-btn--primary" id="secRescan" disabled>
-      <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-refresh"/></svg> Re-scan</button>
-  </div>
+  <!-- ===================================================== risk posture == -->
+  <section class="sec-posture" id="secPosture" aria-live="polite">
+    <!-- Headline gauge -->
+    <div class="sec-gauge ds-card" id="secGaugeCard">
+      <div class="sec-gauge__ring" id="secGaugeRing" role="img" aria-label="{{ t('security_posture_title', 'Fleet risk posture') }}">
+        <div class="sec-gauge__inner">
+          <div class="sec-gauge__score" id="secGaugeScore">—</div>
+          <div class="sec-gauge__level" id="secGaugeLevel">—</div>
+        </div>
+      </div>
+      <div class="sec-gauge__caption">
+        <div class="sec-gauge__title">
+          <svg class="ds-icon" aria-hidden="true"><use href="#i-shield"/></svg>
+          <span>{{ t('security_posture_title', 'Fleet risk posture') }}</span>
+        </div>
+        <p class="ds-muted sec-gauge__hint">
+          {{ t('security_posture_hint', 'Weighted from the worst device plus the spread of at-risk hosts.') }}
+        </p>
+      </div>
+    </div>
 
-  <div id="secList" class="ds-stack"></div>
-  <p class="ds-muted" id="secEmpty" hidden>No devices assessed yet. Run a scan first.</p>
+    <!-- KPI cards -->
+    <div class="sec-kpis">
+      <div class="ds-stat"><div class="ds-stat__value" id="secStatDevices">—</div>
+        <div class="ds-stat__label">{{ t('total_devices', 'Devices') }}</div></div>
+      <div class="ds-stat ds-stat--warning"><div class="ds-stat__value" id="secStatAtRisk">—</div>
+        <div class="ds-stat__label">{{ t('security_at_risk', 'At risk') }}</div></div>
+      <div class="ds-stat ds-stat--critical"><div class="ds-stat__value" id="secStatFindings">—</div>
+        <div class="ds-stat__label">{{ t('security_findings', 'CVE findings') }}</div></div>
+      <div class="ds-stat"><div class="ds-stat__value" id="secStatExposures">—</div>
+        <div class="ds-stat__label">{{ t('security_exposures', 'Exposures') }}</div></div>
+    </div>
+  </section>
+
+  <!-- ============================================ severity distribution == -->
+  <section class="ds-card sec-panel" id="secDistPanel">
+    <div class="sec-panel__head">
+      <h2 class="sec-panel__title">{{ t('security_dist_title', 'Severity distribution') }}</h2>
+      <span class="ds-muted sec-panel__meta" id="secDistTotal"></span>
+    </div>
+    <div class="sec-segbar" id="secSegbar" role="img" aria-label="{{ t('security_dist_title', 'Severity distribution') }}"></div>
+    <div class="sec-legend" id="secLegend"></div>
+  </section>
+
+  <!-- ================================================== top action items == -->
+  <section class="ds-card sec-panel" id="secActionsPanel">
+    <div class="sec-panel__head">
+      <h2 class="sec-panel__title">
+        <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-wrench"/></svg>
+        <span>{{ t('security_actions_title', 'What to fix first') }}</span>
+      </h2>
+    </div>
+    <ol class="sec-actions" id="secActions"></ol>
+    <p class="ds-muted" id="secActionsEmpty" hidden>
+      {{ t('security_actions_empty', 'No action items — nothing is currently flagged across the fleet.') }}
+    </p>
+  </section>
+
+  <!-- ===================================================== per-device === -->
+  <section class="sec-panel">
+    <div class="sec-panel__head sec-devices__head">
+      <button class="sec-collapse" id="secDevicesToggle" aria-expanded="true" aria-controls="secDevicesBody">
+        <svg class="ds-icon ds-icon--sm sec-collapse__chevron" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+        <h2 class="sec-panel__title">{{ t('security_devices_title', 'Per-device detail') }}</h2>
+        <span class="ds-badge ds-badge--info" id="secDevicesCount">0</span>
+      </button>
+    </div>
+
+    <div id="secDevicesBody">
+      <!-- Search + severity filter -->
+      <div class="sec-devcontrols">
+        <div class="ds-search sec-devcontrols__search">
+          <svg class="ds-icon ds-icon--sm ds-search__icon" aria-hidden="true"><use href="#i-search"/></svg>
+          <input type="search" class="ds-input" id="secSearch"
+                 placeholder="{{ t('security_search_placeholder', 'Search IP, name, vendor or type…') }}"
+                 aria-label="{{ t('security_search_placeholder', 'Search IP, name, vendor or type…') }}">
+        </div>
+        <select class="ds-select sec-devcontrols__filter" id="secSevFilter" aria-label="{{ t('security_col_risk', 'Risk') }}">
+          <option value="all">{{ t('security_filter_all', 'All severities') }}</option>
+          <option value="critical">{{ t('security_sev_critical', 'Critical') }}</option>
+          <option value="high">{{ t('security_sev_high', 'High') }}</option>
+          <option value="medium">{{ t('security_sev_medium', 'Medium') }}</option>
+          <option value="low">{{ t('security_sev_low', 'Low') }}</option>
+        </select>
+      </div>
+
+      <!-- Active filter note (set by an action-item click) -->
+      <div class="ds-alert sec-filternote" id="secFilterNote" hidden>
+        <svg class="ds-icon ds-alert__icon" aria-hidden="true"><use href="#i-filter"/></svg>
+        <span id="secFilterNoteText" style="flex:1"></span>
+        <button class="ds-btn ds-btn--sm" id="secClearFilter">
+          <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-x"/></svg>
+          <span>{{ t('security_clear_filter', 'Clear filter') }}</span></button>
+      </div>
+
+      <!-- Bulk toolbar -->
+      <div class="ds-toolbar" id="secToolbar" style="gap:var(--space-2);flex-wrap:wrap;align-items:center">
+        <label class="ds-check" style="display:inline-flex;gap:6px;align-items:center">
+          <input type="checkbox" id="secSelectAll"> <span id="secSelCount">{{ t('security_selected_zero', '0 selected') }}</span>
+        </label>
+        <div class="ds-spacer"></div>
+        <button class="ds-btn ds-btn--sm" id="secAck" disabled>
+          <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-check"/></svg>
+          <span>{{ t('security_acknowledge', 'Acknowledge') }}</span></button>
+        <button class="ds-btn ds-btn--sm" id="secUnack" disabled>
+          <span>{{ t('security_unacknowledge', 'Un-acknowledge') }}</span></button>
+        <button class="ds-btn ds-btn--sm" id="secWatch" disabled>
+          <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-bell"/></svg>
+          <span>{{ t('security_watch', 'Watch & alert') }}</span></button>
+        <button class="ds-btn ds-btn--sm" id="secExport" disabled>
+          <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-download"/></svg>
+          <span>{{ t('security_export', 'Export') }}</span></button>
+        <button class="ds-btn ds-btn--sm ds-btn--primary" id="secRescan" disabled>
+          <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-refresh"/></svg>
+          <span>{{ t('security_rescan', 'Re-scan') }}</span></button>
+      </div>
+
+      <div class="ds-table-wrap">
+        <table class="ds-table sec-table" id="secTable">
+          <thead>
+            <tr>
+              <th class="sec-table__check">
+                <input type="checkbox" id="secSelectAllHead" aria-label="{{ t('security_select_row', 'Select device') }}">
+              </th>
+              <th class="sec-th sec-th--sortable" data-sort="device">
+                {{ t('security_col_device', 'Device') }} <span class="sec-th__arrow" aria-hidden="true"></span>
+              </th>
+              <th>{{ t('security_col_risk', 'Risk') }}</th>
+              <th class="sec-th sec-th--sortable sec-table__num" data-sort="score">
+                {{ t('security_col_score', 'Score') }} <span class="sec-th__arrow" aria-hidden="true"></span>
+              </th>
+              <th class="sec-th sec-th--sortable sec-table__num" data-sort="findings">
+                {{ t('security_col_findings', 'Findings') }} <span class="sec-th__arrow" aria-hidden="true"></span>
+              </th>
+              <th class="sec-table__num">{{ t('security_col_exposures', 'Exposures') }}</th>
+              <th class="sec-table__details">{{ t('security_col_details', 'Details') }}</th>
+            </tr>
+          </thead>
+          <tbody id="secTbody"></tbody>
+        </table>
+      </div>
+      <p class="ds-muted" id="secNoMatch" hidden>{{ t('security_no_match', 'No devices match the current search or filter.') }}</p>
+      <p class="ds-muted" id="secEmpty" hidden>{{ t('security_empty', 'No devices assessed yet. Run a scan first.') }}</p>
+    </div>
+  </section>
 
 </div>
 {% endblock %}

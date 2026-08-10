@@ -6,31 +6,31 @@
 
   <div class="ds-row">
     <div>
-      <h1 style="margin-bottom:var(--space-1)">Protocol discovery</h1>
+      <h1 style="margin-bottom:var(--space-1)">{{ _('protocol_discovery') }}</h1>
       <p class="ds-muted" style="margin:0">
-        Beyond ARP and nmap: mDNS/Bonjour and Matter, SSDP/UPnP, Bluetooth LE, and Zigbee via MQTT.
+        {{ _('protocol_discovery_desc') }}
       </p>
     </div>
     <div class="ds-spacer"></div>
     <button class="ds-btn ds-btn--lg" id="applyBtn" disabled>
-      <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-check"/></svg> Save to devices
+      <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-check"/></svg> {{ _('save_to_devices') }}
     </button>
     <button class="ds-btn ds-btn--primary ds-btn--lg" id="sweepBtn">
-      <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-radar"/></svg> Run sweep
+      <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-radar"/></svg> {{ _('run_sweep') }}
     </button>
   </div>
 
   <section class="ds-card">
     <div class="ds-card__header">
       <svg class="ds-icon" aria-hidden="true"><use href="#i-plug"/></svg>
-      <h2 class="ds-card__title">Protocols</h2>
-      <span class="ds-dim" style="font-size:var(--text-xs)">Tick the ones to sweep</span>
+      <h2 class="ds-card__title">{{ _('protocols') }}</h2>
+      <span class="ds-dim" style="font-size:var(--text-xs)">{{ _('tick_to_sweep') }}</span>
       <div class="ds-spacer"></div>
-      <label class="ds-label" for="sweepTimeout">Sweep time</label>
+      <label class="ds-label" for="sweepTimeout">{{ _('sweep_time') }}</label>
       <select class="ds-select" id="sweepTimeout" style="width:auto">
-        <option value="5">5s (fast)</option>
+        <option value="5">{{ _('sweep_5s') }}</option>
         <option value="8" selected>8s</option>
-        <option value="15">15s (thorough)</option>
+        <option value="15">{{ _('sweep_15s') }}</option>
         <option value="30">30s</option>
       </select>
     </div>
@@ -47,22 +47,21 @@
   <section class="ds-card">
     <div class="ds-card__header">
       <svg class="ds-icon" aria-hidden="true"><use href="#i-network"/></svg>
-      <h2 class="ds-card__title">Discovered devices</h2>
+      <h2 class="ds-card__title">{{ _('discovered_devices') }}</h2>
       <span class="ds-badge" id="resultCount" hidden>0</span>
       <div class="ds-spacer"></div>
       <div class="ds-search" style="width:min(280px,100%)">
         <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-search"/></svg>
-        <label class="ds-visually-hidden" for="resultSearch">Filter results</label>
-        <input class="ds-input" id="resultSearch" type="search" placeholder="Filter by name, IP, service…">
+        <label class="ds-visually-hidden" for="resultSearch">{{ _('filter_results') }}</label>
+        <input class="ds-input" id="resultSearch" type="search" placeholder="{{ _('filter_by_name_ip_service') }}">
       </div>
     </div>
     <div id="resultHost">
       <div class="ds-empty">
         <svg class="ds-icon ds-icon--xl ds-empty__icon" aria-hidden="true"><use href="#i-radar"/></svg>
-        <div class="ds-empty__title">No sweep run yet</div>
+        <div class="ds-empty__title">{{ _('no_sweep_yet') }}</div>
         <p class="ds-muted" style="margin:0 auto">
-          A sweep listens for devices that announce themselves. It does not send probes to every address,
-          so it is quiet and quick.
+          {{ _('no_sweep_yet_desc') }}
         </p>
       </div>
     </div>
@@ -71,9 +70,9 @@
   <section class="ds-card">
     <div class="ds-card__header">
       <svg class="ds-icon" aria-hidden="true"><use href="#i-shield"/></svg>
-      <h2 class="ds-card__title">System setup</h2>
+      <h2 class="ds-card__title">{{ _('system_setup') }}</h2>
       <div class="ds-spacer"></div>
-      <span class="ds-dim" style="font-size:var(--text-xs)">Scanning depth, background service, tray icon</span>
+      <span class="ds-dim" style="font-size:var(--text-xs)">{{ _('system_setup_desc') }}</span>
     </div>
     <div class="ds-card__body ds-stack" id="systemBody">
       <div class="ds-skeleton" style="height:64px"></div>
@@ -86,7 +85,7 @@
       <svg class="ds-icon" aria-hidden="true"><use href="#i-home"/></svg>
       <h2 class="ds-card__title">Home Assistant</h2>
       <div class="ds-spacer"></div>
-      <button class="ds-btn ds-btn--sm" id="haCompareBtn">Compare device lists</button>
+      <button class="ds-btn ds-btn--sm" id="haCompareBtn">{{ _('compare_device_lists') }}</button>
     </div>
     <div class="ds-card__body" id="haBody">
       <div class="ds-skeleton" style="height:48px"></div>

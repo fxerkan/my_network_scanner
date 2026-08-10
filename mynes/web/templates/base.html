@@ -78,7 +78,11 @@
             <div class="dropdown-divider"></div>
             <button type="button" class="dropdown-item" onclick="exportData(); closeToolsDropdown();">
             <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-download"/></svg>
-            {{ _('export_devices') }}
+            {{ _('export_devices') }} (JSON)
+            </button>
+            <button type="button" class="dropdown-item" onclick="exportDevicesCsv(); closeToolsDropdown();">
+            <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-download"/></svg>
+            {{ _('export_devices') }} (CSV)
             </button>
             <button type="button" class="dropdown-item" onclick="document.getElementById('importFile').click(); closeToolsDropdown();">
             <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-upload"/></svg>
@@ -171,6 +175,7 @@
 
     <script src="/static/js/mynes-ui.js"></script>
     <script src="/static/js/shared-footer.js"></script>
+    <script src="/static/js/filters.js"></script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

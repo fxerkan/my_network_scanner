@@ -11,7 +11,7 @@ import ipaddress
 import logging
 import re
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, Response, current_app, jsonify, request
 
 from mynes.paths import load_local, save_local
 
@@ -20,6 +20,7 @@ from mynes.core import subnets as subnets_mod
 from mynes.core import topology
 from mynes.core.network import get_default_gateway
 from mynes.discovery import discover_all
+from mynes.integrations import metrics as metrics_mod
 from mynes.integrations.home_assistant import HomeAssistantClient, publish_devices
 from mynes.monitoring import notify, push, store, uptime
 from mynes.monitoring.scheduler import MonitorScheduler
@@ -323,13 +324,101 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
         device = next((d for d in _devices() if d.get("ip") == ip), None)
         if not device:
             return jsonify({"error": "device not found"}), 404
-        return jsonify(cve_mod.assess_device(device))
+        try:
+            return jsonify(cve_mod.assess_device(device))
+        except Exception as e:  # noqa: BLE001 - never return an HTML 500 to a fetch()
+            return jsonify({"error": f"assessment failed: {e}"}), 500
 
     @bp.get("/security/vulnerabilities")
     def security_fleet_assessment():
         """Attack-surface overview across every known device, worst first -
         the "what should I fix" view instead of clicking through each one."""
         return jsonify(cve_mod.fleet_summary(_devices()))
+
+    # -- CVE database overlay (offline, refreshable) -----------------------
+    # Same UX as the OUI database: the built-in CVE_PATTERNS is the seed, a
+    # downloadable JSON overlay augments it. Never becomes a live NVD feed.
+    @bp.get("/security/cve-db")
+    def cve_db_get():
+        """CVE pattern database status: built-in vs downloaded counts."""
+        return jsonify(cve_mod.cve_db_status())
+
+    @bp.post("/security/cve-db/sync")
+    def cve_db_sync():
+        """Download an updated CVE pattern overlay from the configured source."""
+        body = request.get_json(silent=True) or {}
+        # A provider key ('cveorg'/'circl') or a custom native-overlay URL.
+        source = (body.get("source") or body.get("url") or "").strip() or None
+        result = cve_mod.sync_cve_data(source)
+        if result.get("ok"):
+            cfg = config_manager.config.setdefault("security", {})
+            cfg["cve_source"] = source or cve_mod.DEFAULT_CVE_SOURCE
+            cfg["cve_last_sync"] = result.get("last_updated")
+            config_manager.save_config()
+        return jsonify(result)
+
+    @bp.post("/security/cve-db/update-list")
+    def cve_db_update_list():
+        """Adopt the official CVE Project corpus (CVE List V5) into the SQLite
+        reference store - the "update like OUI" path. mode=delta (default, tiny)
+        or mode=full (~570 MB). Offline-safe: never raises."""
+        body = request.get_json(silent=True) or {}
+        mode = (body.get("mode") or "delta").strip().lower()
+        if mode not in ("delta", "full"):
+            return jsonify({"ok": False, "error": "mode must be 'delta' or 'full'"}), 400
+        result = cve_mod.sync_cve_list_v5(mode)
+        return jsonify(result)
+
+    @bp.get("/security/cve-db/search")
+    def cve_db_search():
+        """Search the official CVE List V5 reference store by id or free text."""
+        q = (request.args.get("q") or "").strip()
+        try:
+            limit = int(request.args.get("limit", 50))
+        except (TypeError, ValueError):
+            limit = 50
+        try:
+            from mynes.security.cve_store import search as _search
+            return jsonify({"ok": True, "query": q, "results": _search(q, limit)})
+        except Exception as e:  # noqa: BLE001 - search must never 500 a fetch()
+            return jsonify({"ok": False, "error": str(e), "results": []})
+
+    @bp.post("/security/cve-db")
+    def cve_db_import():
+        """Import an uploaded CVE patterns JSON body (array or {patterns:[...]})."""
+        body = request.get_json(silent=True)
+        if body is None:
+            return jsonify({"ok": False, "error": "expected JSON body"}), 400
+        result = cve_mod.import_patterns(body)
+        return jsonify(result) if result.get("ok") else (jsonify(result), 400)
+
+    @bp.get("/security/cve-db/settings")
+    def cve_db_settings_get():
+        """Periodic-sync settings: source URL, enabled, interval (days)."""
+        cfg = config_manager.config.get("security", {})
+        return jsonify({
+            "cve_source": cfg.get("cve_source") or cve_mod.DEFAULT_CVE_SOURCE,
+            "cve_sync_enabled": bool(cfg.get("cve_sync_enabled", False)),
+            "cve_sync_interval_days": int(cfg.get("cve_sync_interval_days", 30)),
+            "cve_last_sync": cfg.get("cve_last_sync"),
+        })
+
+    @bp.post("/security/cve-db/settings")
+    def cve_db_settings_set():
+        """Persist periodic-sync settings in config.json (non-secret)."""
+        body = request.get_json(silent=True) or {}
+        cfg = config_manager.config.setdefault("security", {})
+        if "cve_source" in body:
+            cfg["cve_source"] = (body.get("cve_source") or "").strip() or cve_mod.DEFAULT_CVE_SOURCE
+        if "cve_sync_enabled" in body:
+            cfg["cve_sync_enabled"] = bool(body.get("cve_sync_enabled"))
+        if "cve_sync_interval_days" in body:
+            try:
+                cfg["cve_sync_interval_days"] = max(1, int(body.get("cve_sync_interval_days")))
+            except (TypeError, ValueError):
+                pass
+        config_manager.save_config()
+        return jsonify({"ok": True, "security": cfg})
 
     # -- security page: acknowledge / watch / overview --------------------
     # User state (which findings are accepted, which are watched) lives in the
@@ -676,6 +765,149 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
                 },
             }
         )
+
+    # -- metrics export (Grafana) -----------------------------------------
+    # Scrape path is /api/metrics (the blueprint is mounted under /api). It is
+    # exempted from the login gate in web/auth.py alongside /api/health, because
+    # Prometheus cannot authenticate. See mynes/integrations/metrics.py.
+    @bp.get("/metrics")
+    def prometheus_metrics():
+        """Prometheus text exposition of the current device/alert state."""
+        text = metrics_mod.prometheus_text(_devices(), store.load_alerts(limit=500))
+        return Response(text, mimetype="text/plain; version=0.0.4")
+
+    @bp.get("/integrations/metrics")
+    def metrics_settings_get():
+        """Current (non-secret) metrics settings. The Influx token is never
+        returned - only whether one is set."""
+        cfg = metrics_mod.resolve_config()
+        return jsonify(
+            {
+                "enabled": cfg["enabled"],
+                "url": cfg["url"],
+                "org": cfg["org"],
+                "bucket": cfg["bucket"],
+                "token_set": bool(cfg["token"]),
+                "prometheus_enabled": cfg["prometheus_enabled"],
+                "prometheus_scrape_path": "/api/metrics",
+                "configured": metrics_mod.influx_configured(cfg),
+            }
+        )
+
+    @bp.post("/integrations/metrics")
+    def metrics_settings_set():
+        """Persist InfluxDB settings into data/monitoring.json (never config.json).
+
+        The token is a secret, so it goes to the local, gitignored file with the
+        rest of the monitoring settings. An empty/absent token in the payload
+        leaves the stored one untouched, so saving the form does not wipe a token
+        the user never re-typed (the field comes back blank by design)."""
+        body = request.get_json(silent=True) or {}
+        settings = monitor.settings()
+        existing = settings.get("metrics") if isinstance(settings.get("metrics"), dict) else {}
+
+        metrics = {
+            "enabled": bool(body.get("enabled", existing.get("enabled", False))),
+            "url": (body.get("url") or existing.get("url") or "").rstrip("/"),
+            "org": body.get("org", existing.get("org", "")) or "",
+            "bucket": body.get("bucket", existing.get("bucket", "")) or "",
+            "prometheus_enabled": bool(
+                body.get("prometheus_enabled", existing.get("prometheus_enabled", True))
+            ),
+            # Keep the old token unless a new non-empty one was supplied.
+            "token": (body.get("token") or "").strip() or existing.get("token", ""),
+        }
+        monitor.update_settings({"metrics": metrics})
+        return jsonify({"ok": True, "token_set": bool(metrics["token"])})
+
+    @bp.post("/integrations/metrics/test")
+    def metrics_test():
+        """Push a tiny sample line to InfluxDB and report the result."""
+        cfg = metrics_mod.resolve_config()
+        if not metrics_mod.influx_configured(cfg):
+            return jsonify({"ok": False, "msg": "InfluxDB not configured (need url, token, org, bucket)"}), 400
+        import time as _t
+
+        sample = metrics_mod.influx_line_protocol(_devices()[:1], [], ts=int(_t.time()))
+        ok, msg = metrics_mod.push_influx(sample, cfg)
+        return jsonify({"ok": ok, "msg": msg})
+
+    # -- API catalog ------------------------------------------------------
+    def _api_routes():
+        """The live API surface: (path, methods, first docstring line) per rule.
+        Shared by /catalog and /openapi.json so the two never drift apart."""
+        routes = []
+        for rule in current_app.url_map.iter_rules():
+            path = str(rule.rule)
+            if not (path.startswith("/api") or path == "/api/metrics"):
+                continue
+            methods = sorted(m for m in (rule.methods or set()) if m not in ("HEAD", "OPTIONS"))
+            view = current_app.view_functions.get(rule.endpoint)
+            doc = ""
+            if view and view.__doc__:
+                doc = view.__doc__.strip().splitlines()[0].strip()
+            routes.append({"path": path, "methods": methods, "doc": doc})
+        routes.sort(key=lambda r: r["path"])
+        return routes
+
+    @bp.get("/catalog")
+    def api_catalog():
+        """Enumerate the API surface: path, methods and the view's docstring.
+
+        Reads the live URL map so it never drifts from the routes that actually
+        exist - the self-documenting index behind the Integrations tab."""
+        routes = _api_routes()
+        return jsonify({"routes": routes, "count": len(routes)})
+
+    @bp.get("/openapi.json")
+    def openapi_spec():
+        """A valid OpenAPI 3.0 document built live from the URL map.
+
+        Downloadable as swagger.json; the same routes /catalog lists, in the
+        shape Swagger UI / Postman / codegen tools expect."""
+        from mynes.core.version import get_version
+
+        # Flask path params look like /api/security/vulnerabilities/<ip> or
+        # /<converter:name>; OpenAPI wants {ip}. Translate and record params.
+        def to_openapi(path):
+            params = []
+
+            def repl(m):
+                token = m.group(1)
+                name = token.split(":")[-1]
+                params.append(name)
+                return "{" + name + "}"
+
+            oai_path = re.sub(r"<([^>]+)>", repl, path)
+            return oai_path, params
+
+        paths: dict = {}
+        for route in _api_routes():
+            oai_path, param_names = to_openapi(route["path"])
+            tag = [seg for seg in route["path"].split("/") if seg and not seg.startswith("<")]
+            tag = tag[1] if len(tag) > 1 else (tag[0] if tag else "api")
+            entry = paths.setdefault(oai_path, {})
+            parameters = [
+                {"name": p, "in": "path", "required": True, "schema": {"type": "string"}}
+                for p in param_names
+            ]
+            for method in route["methods"]:
+                op = {
+                    "summary": route["doc"] or f"{method} {oai_path}",
+                    "tags": [tag],
+                    "responses": {"200": {"description": "OK"}},
+                }
+                if parameters:
+                    op["parameters"] = parameters
+                entry[method.lower()] = op
+
+        spec = {
+            "openapi": "3.0.3",
+            "info": {"title": "MyNeS API", "version": get_version()},
+            "servers": [{"url": request.host_url.rstrip("/")}],
+            "paths": paths,
+        }
+        return jsonify(spec)
 
     # -- platform integration ---------------------------------------------
     @bp.post("/platform/privileges/apply")

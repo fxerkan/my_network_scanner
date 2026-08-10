@@ -12,11 +12,13 @@
 
             <div class="tabs">
                 <button class="tab active" onclick="switchTab('general')"><svg class="ds-icon" aria-hidden="true"><use href="#i-wrench"/></svg>{{ _('general_settings') }}</button>
-                <button class="tab" onclick="switchTab('oui')"><svg class="ds-icon" aria-hidden="true"><use href="#i-router"/></svg>{{ _('oui_database') }}</button>
                 <button class="tab" onclick="switchTab('devices')"><svg class="ds-icon" aria-hidden="true"><use href="#i-cpu"/></svg>{{ _('device_types') }}</button>
+                <button class="tab" onclick="switchTab('databases')"><svg class="ds-icon" aria-hidden="true"><use href="#i-router"/></svg>{{ _('databases') }}</button>
                 <button class="tab" onclick="switchTab('detection')"><svg class="ds-icon" aria-hidden="true"><use href="#i-search"/></svg>{{ _('detection_rules') }}</button>
                 <button class="tab" onclick="switchTab('networks')"><svg class="ds-icon" aria-hidden="true"><use href="#i-globe"/></svg>{{ _('network_interfaces') }}</button>
                 <button class="tab" onclick="switchTab('docker')"><svg class="ds-icon" aria-hidden="true"><use href="#i-plug"/></svg>{{ _('docker_network') }}</button>
+                <button class="tab" onclick="switchTab('filters')"><svg class="ds-icon" aria-hidden="true"><use href="#i-filter"/></svg>{{ _('default_filters') }}</button>
+                <button class="tab" onclick="switchTab('integrations')"><svg class="ds-icon" aria-hidden="true"><use href="#i-plug"/></svg>{{ _('integrations') }}</button>
             </div>
 
             <!-- Genel Ayarlar -->
@@ -101,54 +103,142 @@
                 </div>
             </div>
 
-            <!-- OUI Database -->
-            <div id="oui" class="tab-content">
-                <div class="save-bar">
-                    <button class="btn" onclick="saveOuiDatabase()">{{ _('save_oui_database') }}</button>
-                    <button class="btn btn-secondary" onclick="exportOuiDatabase()" style="margin-left: 10px;">{{ _('export') }}</button>
-                    <input type="file" id="ouiImportFile" accept=".json" style="display: none;" onchange="importOuiDatabase()">
-                    <button class="btn btn-secondary" onclick="document.getElementById('ouiImportFile').click()" style="margin-left: 10px;">{{ _('import') }}</button>
+            <!-- Databases: OUI + CVE, one top-level tab with two sub-tabs. -->
+            <div id="databases" class="tab-content">
+                <div class="subtabs">
+                    <button class="subtab active" onclick="switchDbTab('oui')"><svg class="ds-icon" aria-hidden="true"><use href="#i-router"/></svg>{{ _('oui_database') }}</button>
+                    <button class="subtab" onclick="switchDbTab('cve')"><svg class="ds-icon" aria-hidden="true"><use href="#i-shield"/></svg>{{ _('cve_db_title') }}</button>
                 </div>
-                <div class="card">
-                    <h3 class="card-title"><svg class="ds-icon" aria-hidden="true"><use href="#i-router"/></svg>OUI (Organizationally Unique Identifier)</h3>
-                    <p class="card-hint">{{ _('oui_description') }}</p>
-                    
-                    <div class="grid">
-                        <div>
-                            <h4>{{ _('auto_update') }}</h4>
-                            <div style="margin-bottom: 15px;">
-                                <button class="btn btn-info" onclick="downloadIEEEDatabase()" id="downloadIEEEBtn">
-                                    {{ _('download_ieee_db') }}
-                                </button>
-                                <p class="card-hint">{{ _('ieee_download_desc') }}</p>
+
+                <!-- OUI Database -->
+                <div id="dbOui" class="subtab-content active">
+                    <div class="save-bar">
+                        <button class="btn" onclick="saveOuiDatabase()">{{ _('save_oui_database') }}</button>
+                        <button class="btn btn-secondary" onclick="exportOuiDatabase()" style="margin-left: 10px;">{{ _('export') }}</button>
+                        <input type="file" id="ouiImportFile" accept=".json" style="display: none;" onchange="importOuiDatabase()">
+                        <button class="btn btn-secondary" onclick="document.getElementById('ouiImportFile').click()" style="margin-left: 10px;">{{ _('import') }}</button>
+                    </div>
+                    <div class="card">
+                        <h3 class="card-title"><svg class="ds-icon" aria-hidden="true"><use href="#i-router"/></svg>OUI (Organizationally Unique Identifier)</h3>
+                        <p class="card-hint">{{ _('oui_description') }}</p>
+
+                        <div class="grid">
+                            <div>
+                                <h4>{{ _('auto_update') }}</h4>
+                                <div style="margin-bottom: 15px;">
+                                    <button class="btn btn-info" onclick="downloadIEEEDatabase()" id="downloadIEEEBtn">
+                                        {{ _('download_ieee_db') }}
+                                    </button>
+                                    <p class="card-hint">{{ _('ieee_download_desc') }}</p>
+                                </div>
+
+                                <h4>{{ _('add_new_oui') }}</h4>
+                                <div class="form-group">
+                                    <label class="form-label">{{ _('oui_first_3_bytes') }}</label>
+                                    <input type="text" class="form-input" id="newOui" placeholder="001122" maxlength="6">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">{{ _('vendor_name') }}</label>
+                                    <input type="text" class="form-input" id="newVendor" placeholder="Apple">
+                                </div>
+                                <div style="display: flex; gap: 10px;">
+                                    <button class="btn" onclick="addOuiEntry()">{{ _('manual_add') }}</button>
+                                    <button class="btn btn-warning" onclick="lookupVendorAPI()" id="apiLookupBtn" disabled>
+                                        {{ _('find_with_api') }}
+                                    </button>
+                                </div>
+                                <p class="card-hint">{{ _('api_lookup_desc') }}</p>
                             </div>
-                            
-                            <h4>{{ _('add_new_oui') }}</h4>
-                            <div class="form-group">
-                                <label class="form-label">{{ _('oui_first_3_bytes') }}</label>
-                                <input type="text" class="form-input" id="newOui" placeholder="001122" maxlength="6">
+
+                            <div>
+                                <h4>{{ _('current_oui_records') }}</h4>
+                                <div style="margin-bottom: 10px;">
+                                    <input type="text" class="form-input" id="ouiSearchInput" placeholder="{{ _('search_oui_vendor') }}" onkeyup="filterOuiList()">
+                                </div>
+                                <div class="oui-list" id="ouiList"></div>
+                                <div class="oui-pager" id="ouiPager"></div>
                             </div>
-                            <div class="form-group">
-                                <label class="form-label">{{ _('vendor_name') }}</label>
-                                <input type="text" class="form-input" id="newVendor" placeholder="Apple">
-                            </div>
-                            <div style="display: flex; gap: 10px;">
-                                <button class="btn" onclick="addOuiEntry()">{{ _('manual_add') }}</button>
-                                <button class="btn btn-warning" onclick="lookupVendorAPI()" id="apiLookupBtn" disabled>
-                                    {{ _('find_with_api') }}
-                                </button>
-                            </div>
-                            <p class="card-hint">{{ _('api_lookup_desc') }}</p>
                         </div>
-                        
-                        <div>
-                            <h4>{{ _('current_oui_records') }}</h4>
-                            <div style="margin-bottom: 10px;">
-                                <input type="text" class="form-input" id="ouiSearchInput" placeholder="{{ _('search_oui_vendor') }}" onkeyup="filterOuiList()">
+                    </div>
+                </div>
+
+                <!-- CVE databases -->
+                <div id="dbCve" class="subtab-content">
+                    <div class="card">
+                        <h3 class="card-title"><svg class="ds-icon" aria-hidden="true"><use href="#i-shield"/></svg>{{ _('cve_db_title') }}</h3>
+                        <p style="margin-bottom: var(--space-3); color: var(--text-secondary);">{{ _('cve_db_hint') }}</p>
+                        <div class="filter-grid" style="margin-bottom: var(--space-3);">
+                            <div class="filter-group">
+                                <span class="filter-label">{{ _('cve_db_total') }}</span>
+                                <span class="ds-badge" id="cveDbTotal">—</span>
                             </div>
-                            <div class="oui-list" id="ouiList"></div>
-                            <div class="oui-pager" id="ouiPager"></div>
+                            <div class="filter-group">
+                                <span class="filter-label">{{ _('cve_db_builtin') }}</span>
+                                <span class="ds-badge" id="cveDbBuiltin">—</span>
+                            </div>
+                            <div class="filter-group">
+                                <span class="filter-label">{{ _('cve_db_custom') }}</span>
+                                <span class="ds-badge" id="cveDbCustom">—</span>
+                            </div>
+                            <div class="filter-group">
+                                <span class="filter-label">{{ _('cve_db_last_updated') }}</span>
+                                <span id="cveDbLastUpdated" style="color: var(--text-secondary);">—</span>
+                            </div>
                         </div>
+                        <div class="filter-group" style="margin-bottom: var(--space-3);">
+                            <label class="filter-label" for="cveSource">{{ _('cve_db_source') }}</label>
+                            <select class="form-select" id="cveSource">
+                                <option value="cveorg">{{ _('cve_db_source_cveorg') }}</option>
+                                <option value="circl">{{ _('cve_db_source_circl') }}</option>
+                                <option value="custom">{{ _('cve_db_source_custom') }}</option>
+                            </select>
+                        </div>
+                        <div class="filter-group" id="cveSourceUrlRow" style="margin-bottom: var(--space-3); display: none;">
+                            <label class="filter-label" for="cveSourceUrl">{{ _('cve_db_source_url') }}</label>
+                            <input type="text" class="form-input" id="cveSourceUrl" placeholder="https://…/cve_patterns.json">
+                        </div>
+                        <div class="filter-toggles" style="margin-bottom: var(--space-3); align-items: center; gap: var(--space-3);">
+                            <label class="filter-toggle"><input type="checkbox" id="cveSyncEnabled"> {{ _('cve_db_periodic') }}</label>
+                            <label class="filter-label" for="cveSyncInterval" style="margin: 0;">{{ _('cve_db_interval_days') }}</label>
+                            <input type="number" class="form-input" id="cveSyncInterval" min="1" value="30" style="width: 80px;">
+                        </div>
+                        <div style="display: flex; gap: var(--space-2); flex-wrap: wrap;">
+                            <button class="btn btn-small" id="cveSyncBtn">{{ _('cve_db_sync_now') }}</button>
+                            <button class="btn btn-small btn-secondary" id="cveSettingsBtn">{{ _('save') }}</button>
+                            <input type="file" id="cveImportFile" accept=".json" style="display: none;">
+                            <button class="btn btn-small btn-secondary" id="cveImportBtn">{{ _('import') }}</button>
+                        </div>
+                        <div id="cveDbStatus" style="margin-top: var(--space-3); color: var(--text-secondary);"></div>
+
+                        <hr style="margin: var(--space-4) 0; border: none; border-top: 1px solid var(--border-subtle, var(--border));">
+
+                        <!-- CVE List V5: the official CVE Project reference corpus,
+                             updatable like the OUI database (download latest + search). -->
+                        <h4 style="margin-bottom: var(--space-2);"><svg class="ds-icon" aria-hidden="true"><use href="#i-shield"/></svg> {{ _('cve_list_title') }}</h4>
+                        <p style="margin-bottom: var(--space-3); color: var(--text-secondary);">{{ _('cve_list_hint') }}</p>
+                        <div class="filter-grid" style="margin-bottom: var(--space-3);">
+                            <div class="filter-group">
+                                <span class="filter-label">{{ _('cve_list_records') }}</span>
+                                <span class="ds-badge" id="cveListCount">—</span>
+                            </div>
+                            <div class="filter-group">
+                                <span class="filter-label">{{ _('cve_list_last_updated') }}</span>
+                                <span id="cveListLastUpdated" style="color: var(--text-secondary);">—</span>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: var(--space-2); flex-wrap: wrap; margin-bottom: var(--space-3);">
+                            <button class="btn btn-small" id="cveListDeltaBtn">{{ _('cve_list_update_recent') }}</button>
+                            <button class="btn btn-small btn-secondary" id="cveListFullBtn">{{ _('cve_list_full_import') }}</button>
+                        </div>
+                        <div class="filter-group" style="margin-bottom: var(--space-3);">
+                            <label class="filter-label" for="cveListSearchInput">{{ _('cve_list_search') }}</label>
+                            <div style="display: flex; gap: var(--space-2);">
+                                <input type="text" class="form-input" id="cveListSearchInput" placeholder="{{ _('cve_list_search_placeholder') }}">
+                                <button class="btn btn-small btn-secondary" id="cveListSearchBtn">{{ _('search') }}</button>
+                            </div>
+                        </div>
+                        <div class="oui-list" id="cveListResults"></div>
+                        <div id="cveListStatus" style="margin-top: var(--space-3); color: var(--text-secondary);"></div>
                     </div>
                 </div>
             </div>
@@ -349,6 +439,90 @@
                         </div>
                         <button class="btn" onclick="refreshDockerScanRanges()" style="margin-top: 15px;"><svg class="ds-icon" aria-hidden="true"><use href="#i-refresh"/></svg>{{ _('refresh_scan_ranges') }}</button>
                     </div>
+                </div>
+            </div>
+
+            <!-- Default filters: edits the same shared store (localStorage
+                 'mynes.filters') the Devices/Alerts/History panels use, so a
+                 choice made here applies everywhere until changed. -->
+            <div id="filters" class="tab-content">
+                <div class="card">
+                    <h3 class="card-title"><svg class="ds-icon" aria-hidden="true"><use href="#i-filter"/></svg>{{ _('default_filters') }}</h3>
+                    <p style="margin-bottom: var(--space-4); color: var(--text-secondary);">{{ _('default_filters_hint') }}</p>
+                    <div class="filter-toggles" style="margin-bottom: var(--space-4);">
+                        <label class="filter-toggle"><input type="checkbox" id="cfgToggleContainers"> {{ _('show_containers') }}</label>
+                        <label class="filter-toggle"><input type="checkbox" id="cfgToggleNoIp"> {{ _('show_no_ip') }}</label>
+                        <label class="filter-toggle"><input type="checkbox" id="cfgToggleBluetooth"> {{ _('show_bluetooth') }}</label>
+                    </div>
+                    <div class="filter-grid">
+                        <div class="filter-group">
+                            <label class="filter-label">{{ _('device_type') }}</label>
+                            <div id="cfgTypeFilterMulti"></div>
+                        </div>
+                        <div class="filter-group">
+                            <label class="filter-label">{{ _('status') }}</label>
+                            <div id="cfgStatusFilterMulti"></div>
+                        </div>
+                        <div class="filter-group">
+                            <label class="filter-label">{{ _('vendor') }}</label>
+                            <div id="cfgVendorFilterMulti"></div>
+                        </div>
+                    </div>
+                    <div style="margin-top: var(--space-4);">
+                        <button class="btn btn-small" onclick="MynesFilters.reset()">{{ _('reset_filters') }}</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="integrations" class="tab-content">
+                <div class="card">
+                    <h3 class="card-title"><svg class="ds-icon" aria-hidden="true"><use href="#i-plug"/></svg>{{ _('metrics_influxdb') }}</h3>
+                    <p style="margin-bottom: var(--space-4); color: var(--text-secondary);">{{ _('metrics_influxdb_hint') }}</p>
+                    <div class="filter-grid">
+                        <div class="filter-group">
+                            <label class="filter-label" for="influxUrl">{{ _('metrics_influx_url') }}</label>
+                            <input type="text" class="form-input" id="influxUrl" placeholder="http://localhost:8086">
+                        </div>
+                        <div class="filter-group">
+                            <label class="filter-label" for="influxOrg">{{ _('metrics_influx_org') }}</label>
+                            <input type="text" class="form-input" id="influxOrg">
+                        </div>
+                        <div class="filter-group">
+                            <label class="filter-label" for="influxBucket">{{ _('metrics_influx_bucket') }}</label>
+                            <input type="text" class="form-input" id="influxBucket">
+                        </div>
+                        <div class="filter-group">
+                            <label class="filter-label" for="influxToken">{{ _('metrics_influx_token') }}</label>
+                            <input type="password" class="form-input" id="influxToken" autocomplete="off" placeholder="{{ _('metrics_influx_token_placeholder') }}">
+                        </div>
+                    </div>
+                    <div class="filter-toggles" style="margin: var(--space-4) 0;">
+                        <label class="filter-toggle"><input type="checkbox" id="influxEnabled"> {{ _('enabled') }}</label>
+                    </div>
+                    <div style="display: flex; gap: var(--space-2);">
+                        <button class="btn btn-small" id="influxSaveBtn">{{ _('save') }}</button>
+                        <button class="btn btn-small btn-secondary" id="influxTestBtn">{{ _('test') }}</button>
+                    </div>
+                    <div id="influxStatus" style="margin-top: var(--space-3); color: var(--text-secondary);"></div>
+                </div>
+
+                <div class="card">
+                    <h3 class="card-title"><svg class="ds-icon" aria-hidden="true"><use href="#i-globe"/></svg>{{ _('metrics_prometheus') }}</h3>
+                    <p style="margin-bottom: var(--space-3); color: var(--text-secondary);">{{ _('metrics_prometheus_hint') }}</p>
+                    <div class="filter-group">
+                        <label class="filter-label" for="promScrapeUrl">{{ _('metrics_scrape_url') }}</label>
+                        <input type="text" class="form-input" id="promScrapeUrl" readonly onclick="this.select()">
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 class="card-title"><svg class="ds-icon" aria-hidden="true"><use href="#i-search"/></svg>{{ _('api_catalog') }}</h3>
+                    <p style="margin-bottom: var(--space-3); color: var(--text-secondary);">{{ _('api_catalog_hint') }}</p>
+                    <div style="display: flex; gap: var(--space-2); flex-wrap: wrap;">
+                        <button class="btn btn-small" id="catalogLoadBtn">{{ _('load_catalog') }}</button>
+                        <button class="btn btn-small btn-secondary" id="openapiDownloadBtn">{{ _('download_openapi') }}</button>
+                    </div>
+                    <div id="catalogTableWrap" style="margin-top: var(--space-3);"></div>
                 </div>
             </div>
         </div>

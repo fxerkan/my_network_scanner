@@ -244,6 +244,29 @@
         return `<div class="view-subnets">${items}</div>`;
     }
 
+    /* Category visibility toggled from the legend. A category is a colour
+       class (net/infra/personal/media/iot/other), which is coarser than a
+       device_type - that is deliberate: the legend is the quick "mute a whole
+       band" control, the filter panel is the fine one. Persisted so it sticks. */
+    const HIDDEN_CATS = 'mynes.hiddenCats';
+    let hiddenCats = new Set();
+    try { hiddenCats = new Set(JSON.parse(localStorage.getItem(HIDDEN_CATS)) || []); } catch (_) { /* private mode */ }
+
+    function catVisible(cls) { return !hiddenCats.has(cls); }
+    function deviceCat(d) { return groupOf(d).color; }
+    /** Drop devices whose category is muted in the legend. */
+    function applyCatFilter(list) { return list.filter(d => catVisible(deviceCat(d))); }
+
+    function toggleCat(cls) {
+        hiddenCats.has(cls) ? hiddenCats.delete(cls) : hiddenCats.add(cls);
+        try { localStorage.setItem(HIDDEN_CATS, JSON.stringify([...hiddenCats])); } catch (_) { /* private mode */ }
+        // Re-run the shared filter so the active view repaints with the change.
+        if (typeof window.filterDevices === 'function') window.filterDevices();
+    }
+
+    /* Interactive legend, rendered ABOVE the graph. Each colour band is a
+       button that mutes/unmutes that category. `extra` is static markup
+       (e.g. topology's uplink line keys) appended after the toggles. */
     function legend(extra) {
         const classes = [
             ['net', tr('network_gear', 'Network')],
@@ -254,10 +277,12 @@
             ['other', tr('other', 'Other')],
         ];
         const box = document.createElement('div');
-        box.className = 'view-legend';
+        box.className = 'view-legend view-legend--top';
         box.innerHTML = classes
-            .map(([cls, name]) => `<span class="view-legend__item"><i class="view-legend__dot view-legend__dot--${cls}"></i>${esc(name)}</span>`)
+            .map(([cls, name]) => `<button type="button" class="view-legend__item view-legend__item--btn${hiddenCats.has(cls) ? ' is-off' : ''}" data-cat="${cls}" aria-pressed="${!hiddenCats.has(cls)}"><i class="view-legend__dot view-legend__dot--${cls}"></i>${esc(name)}</button>`)
             .join('') + (extra || '');
+        box.querySelectorAll('.view-legend__item--btn').forEach(btn =>
+            btn.addEventListener('click', () => toggleCat(btn.dataset.cat)));
         return box;
     }
 
@@ -460,7 +485,22 @@
     function renderGraph(container, list) {
         if (!list.length) return emptyState(container);
 
-        const { nodes, links } = buildGraphModel(list);
+        // Legend goes at the TOP now, and it can mute whole categories.
+        container.innerHTML = '';
+        const legendEl = legend();
+        container.appendChild(legendEl);
+
+        const shown = applyCatFilter(list);
+        if (!shown.length) {
+            const note = document.createElement('div');
+            note.className = 'view-empty__hint';
+            note.style.padding = 'var(--space-6)';
+            note.textContent = tr('all_categories_hidden', 'All categories hidden — tap a legend chip to show them.');
+            container.appendChild(note);
+            return;
+        }
+
+        const { nodes, links } = buildGraphModel(shown);
         layoutForce(nodes, links, 900, 700);
 
         const pad = 60;
@@ -472,7 +512,6 @@
             h: Math.max(...ys) - Math.min(...ys) + pad * 2,
         };
 
-        container.innerHTML = '';
         const stage = document.createElement('div');
         stage.className = 'topo-stage graph-stage';
         container.appendChild(stage);
@@ -525,8 +564,7 @@
 
         stage.style.setProperty('--topo-ratio', `${box.w} / ${box.h}`);
         attachZoomPan(stage, svg, box);
-        const legendEl = legend();
-        container.appendChild(legendEl);
+        addExportControl(stage, svg, 'mynes-graph');
 
         // Subnet boundaries need the server's real interface/Docker CIDRs
         // (core/subnets.py) - not knowable from the device list alone - so
@@ -539,7 +577,7 @@
                 .map(n => ({ x: n.x, y: n.y, r: n.r, ...byIp.get(n.device.ip) }));
             drawSubnetOverlay(svg, subnetBoundingBoxes(entries));
             const panel = subnetPanel(topo.subnets);
-            if (panel) legendEl.insertAdjacentHTML('beforebegin', panel);
+            if (panel) container.insertAdjacentHTML('beforeend', panel);
         });
     }
 
@@ -678,6 +716,9 @@
     }
 
     function drawTopology(container, list, topo) {
+        // Legend can mute leaf categories, but never the backbone (routers/
+        // switches/APs) - dropping those would orphan the tree.
+        list = list.filter(d => isInfra(d) || catVisible(deviceCat(d)));
         const root = buildTopoTree(list, topo);
         const cursor = { n: 0 };
         layoutTree(root, 0, cursor);
@@ -695,6 +736,11 @@
 
         container.innerHTML = '';
         container.appendChild(topoToolbar(container, list));
+        // Interactive legend at the top, consistent with the graph view.
+        container.appendChild(legend(
+            `<span class="view-legend__item"><i class="view-legend__line"></i>${tr('uplink_known', 'Known uplink')}</span>
+             <span class="view-legend__item"><i class="view-legend__line view-legend__line--dashed"></i>${tr('uplink_assumed', 'Assumed direct')}</span>`
+        ));
 
         /*
          * The diagram is scaled to fit its box rather than drawn 1:1 and
@@ -757,12 +803,9 @@
         stage.style.setProperty('--topo-ratio', `${box.w} / ${box.h}`);
 
         attachZoomPan(stage, svg, box);
+        addExportControl(stage, svg, 'mynes-topology');
         const panel = subnetPanel(topo.subnets);
         if (panel) container.insertAdjacentHTML('beforeend', panel);
-        container.appendChild(legend(
-            `<span class="view-legend__item"><i class="view-legend__line"></i>${tr('uplink_known', 'Known uplink')}</span>
-             <span class="view-legend__item"><i class="view-legend__line view-legend__line--dashed"></i>${tr('uplink_assumed', 'Assumed direct')}</span>`
-        ));
     }
 
     /** Zoom and pan by moving the viewBox. No library, no transform matrices. */
@@ -1269,6 +1312,80 @@
                     </div>`).join('')}
             </div>
         </div>`;
+    }
+
+    // ------------------------------------------------------------ export
+
+    /* Export the current graph/topology SVG as a self-contained .svg or a
+       rasterised .png. The live SVG is styled by external sheets, so we inline
+       every same-origin rule into the clone - otherwise a standalone file (and
+       the canvas raster) would lose all colour and stroke. */
+    function collectCss() {
+        let css = '';
+        for (const sheet of document.styleSheets) {
+            try { for (const rule of sheet.cssRules) css += rule.cssText + '\n'; }
+            catch (_) { /* cross-origin sheet - skip */ }
+        }
+        return css;
+    }
+
+    function downloadBlob(blob, name) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = name;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function exportSvg(svgEl, container, baseName, asPng) {
+        const vb = svgEl.viewBox.baseVal;
+        const w = Math.round(vb.width || svgEl.clientWidth || 900);
+        const h = Math.round(vb.height || svgEl.clientHeight || 700);
+
+        const clone = svgEl.cloneNode(true);
+        clone.setAttribute('width', w);
+        clone.setAttribute('height', h);
+        clone.setAttribute('xmlns', SVG_NS);
+
+        // Opaque background so a PNG isn't transparent; use the surface colour
+        // the container actually resolves to (respects light/dark).
+        const bgColor = getComputedStyle(container).backgroundColor || '#ffffff';
+        const bg = el('rect', { x: vb.x, y: vb.y, width: w, height: h, fill: bgColor });
+        clone.insertBefore(bg, clone.firstChild);
+
+        const style = document.createElementNS(SVG_NS, 'style');
+        style.textContent = collectCss();
+        clone.insertBefore(style, clone.firstChild);
+
+        const xml = new XMLSerializer().serializeToString(clone);
+        if (!asPng) {
+            downloadBlob(new Blob([xml], { type: 'image/svg+xml;charset=utf-8' }), baseName + '.svg');
+            return;
+        }
+        const img = new Image();
+        img.onload = () => {
+            const scale = 2;                     // crisp on hi-dpi / when zoomed
+            const canvas = document.createElement('canvas');
+            canvas.width = w * scale; canvas.height = h * scale;
+            const ctx = canvas.getContext('2d');
+            ctx.scale(scale, scale);
+            ctx.drawImage(img, 0, 0);
+            canvas.toBlob(b => downloadBlob(b, baseName + '.png'), 'image/png');
+        };
+        img.onerror = () => (typeof showToast === 'function') && showToast(tr('export_failed', 'Export failed'), 'error');
+        img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(xml);
+    }
+
+    /** Floating SVG/PNG export control, top-right of a graph/topology stage. */
+    function addExportControl(container, svgEl, baseName) {
+        const box = document.createElement('div');
+        box.className = 'view-export';
+        box.innerHTML =
+            `<button type="button" class="view-export__btn" data-fmt="png">PNG</button>` +
+            `<button type="button" class="view-export__btn" data-fmt="svg">SVG</button>`;
+        box.querySelectorAll('.view-export__btn').forEach(btn =>
+            btn.addEventListener('click', () => exportSvg(svgEl, container, baseName, btn.dataset.fmt === 'png')));
+        container.appendChild(box);
     }
 
     // ------------------------------------------------------------ public API

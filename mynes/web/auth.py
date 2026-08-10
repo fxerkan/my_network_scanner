@@ -304,6 +304,11 @@ def install(app, config_manager) -> Blueprint:
         # but it must not leak counts to an unauthenticated caller.
         if request.path == "/api/health":
             return jsonify({"status": "ok", "login_required": True})
+        # Prometheus/Grafana scrape the metrics endpoint and cannot log in, so
+        # it stays reachable like /api/health. It exposes device counts and
+        # names only - the same shape HA already publishes over MQTT.
+        if request.path == "/api/metrics":
+            return None
         if request.path.startswith("/api/"):
             return jsonify({"error": "authentication required", "login_url": "/login"}), 401
         return redirect(url_for("auth.login", next=request.full_path.rstrip("?")))

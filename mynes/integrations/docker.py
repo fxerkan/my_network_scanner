@@ -546,7 +546,9 @@ class DockerManager:
         if not self.docker_available:
             return {
                 'available': False,
-                'error': 'Docker kurulu değil veya çalışmıyor'
+                # Stable English for API consumers; the UI shows its own
+                # localised message instead of echoing this back.
+                'error': 'Docker is not installed or not running'
             }
         
         try:
