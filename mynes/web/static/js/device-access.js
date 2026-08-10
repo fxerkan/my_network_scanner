@@ -384,18 +384,15 @@ function showUnifiedAnalysisModal(targetIP = null, analysisType = 'single') {
     }
     
     const isSingleDevice = analysisType === 'single';
-    const title = isSingleDevice ? `🔬 Gelişmiş Analiz - ${targetIP}` : '🔬 Toplu Gelişmiş Analiz';
-    const buttonText = isSingleDevice ? '🚀 Gelişmiş Analizi Başlat' : '🚀 Toplu Gelişmiş Analizi Başlat';
+    const title = isSingleDevice ? `${t('an_title')} — ${targetIP}` : t('an_title_bulk');
+    const buttonText = isSingleDevice ? t('an_start') : t('an_start_bulk');
     const startFunction = isSingleDevice ? `startSingleDeviceAnalysis('${targetIP}')` : `startUnifiedBulkAnalysis('${sessionKey}')`;
-    
-    // Açıklama metni
-    const descriptionText = isSingleDevice ? 
-        `Bu analiz ${targetIP} cihazında kapsamlı bir inceleme yapar. Erişim bilgileri varsa SSH, FTP, HTTP ve SNMP protokolleri üzerinden detaylı sistem bilgileri toplar.` :
-        'Bu analiz tüm ağdaki cihazlarda gelişmiş tarama ve analiz işlemleri gerçekleştirir. Her cihaz için mevcut erişim bilgileri kullanılarak kapsamlı bilgi toplama yapar.';
-    
+    const descriptionText = isSingleDevice ? t('an_desc_single', { ip: targetIP }) : t('an_desc_bulk');
+
     // Benzersiz modal ID'si oluştur
     const modalId = `unifiedAnalysisModal_${sessionKey.replace(/\./g, '_')}`;
-    
+    const sk = sessionKey.replace(/\./g, '_');
+
     // Session'ı kaydet
     activeAnalysisSessions.set(sessionKey, {
         isMinimized: false,
@@ -403,69 +400,53 @@ function showUnifiedAnalysisModal(targetIP = null, analysisType = 'single') {
         modalId: modalId,
         targetIP: targetIP
     });
-    
-    // Modal oluştur
+
+    // Minimalist modal: design tokens, one concise description, and a port-scan
+    // scope picker so the user is not forced to wait out a full sweep.
     const modalHtml = `
         <div id="${modalId}" class="modal" style="display: block;">
-            <div class="modal-content" style="width: 95%; max-width: 1400px; max-height: 90vh; overflow-y: auto;">
+            <div class="modal-content" style="width: 92%; max-width: 640px; max-height: 88vh; overflow-y: auto;">
                 <div class="modal-header">
-                    <h2>${title}</h2>
+                    <h2 style="font-size: var(--text-lg, 1.15rem);">🔬 ${title}</h2>
                     <div class="modal-controls">
                         <span class="close" onclick="handleModalClose('${sessionKey}')">&times;</span>
                     </div>
                 </div>
                 <div class="modal-body">
-                    <!-- Açıklama Bölümü -->
-                    <div class="analysis-description" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #007bff;">
-                        <h4 style="margin: 0 0 10px 0; color: #007bff;">📋 Gelişmiş Analiz Hakkında</h4>
-                        <p style="margin: 0; color: #6c757d; line-height: 1.5;">${descriptionText}</p>
-                        <div style="margin-top: 10px; font-size: 0.9em;">
-                            <strong>Yapılacak İşlemler:</strong>
-                            <ul style="margin: 5px 0 0 20px; color: #6c757d;">
-                                <li>🔍 Port tarama ve servis tespiti</li>
-                                <li>🔐 Erişim bilgileri ile sistem analizi</li>
-                                <li>💻 Donanım ve yazılım bilgisi toplama</li>
-                                <li>🛡️ Güvenlik durumu değerlendirmesi</li>
-                                <li>📊 Kapsamlı rapor oluşturma</li>
-                            </ul>
-                        </div>
+                    <p style="margin: 0 0 var(--space-3, 12px); color: var(--text-secondary);">${descriptionText}</p>
+
+                    <div class="form-group" style="margin-bottom: var(--space-3, 12px);">
+                        <label class="form-label" for="scanScope_${sk}">${t('an_scope_label')}</label>
+                        <select class="ds-select" id="scanScope_${sk}" style="max-width: 340px;">
+                            <option value="fast">${t('an_scope_fast')}</option>
+                            <option value="common" selected>${t('an_scope_common')}</option>
+                            <option value="full">${t('an_scope_full')}</option>
+                        </select>
+                        <p class="card-hint" style="margin-top: 4px;">${t('an_scope_hint')}</p>
                     </div>
 
                     <div id="unifiedAnalysisContent">
-                        <div class="analysis-section">
-                            <button id="startBtn_${sessionKey.replace(/\./g, '_')}" onclick="${startFunction}" class="btn btn-primary">
-                                ${buttonText}
-                            </button>
-                            <button id="stopBtn_${sessionKey.replace(/\./g, '_')}" onclick="stopAnalysis('${sessionKey}')" 
-                                class="btn btn-danger" style="display: none; margin-left: 10px;">
-                                🛑 Analizi Durdur
-                            </button>
-                            <button id="minimizeBtn_${sessionKey.replace(/\./g, '_')}" onclick="minimizeAnalysisModal('${sessionKey}')" 
-                                class="btn btn-secondary" style="display: none; margin-left: 10px;">
-                                📦 Minimize
-                            </button>
-                            <div id="analysisProgress" style="display: none; margin-top: 15px;">
-                                <div class="progress-bar" style="background: #e9ecef; height: 25px; border-radius: 5px; overflow: hidden;">
-                                    <div id="progressBar" style="width: 0%; background: linear-gradient(90deg, #007bff, #0056b3); height: 100%; transition: width 0.5s; color: white; text-align: center; line-height: 25px; font-weight: bold;"></div>
-                                </div>
-                                <div id="progressText" style="margin-top: 10px; font-weight: bold;">Analiz başlatılıyor...</div>
+                        <div class="analysis-section" style="display:flex; gap: var(--space-2, 8px); flex-wrap: wrap;">
+                            <button id="startBtn_${sk}" onclick="${startFunction}" class="btn btn-primary">${buttonText}</button>
+                            <button id="stopBtn_${sk}" onclick="stopAnalysis('${sessionKey}')" class="btn btn-danger" style="display: none;">${t('an_stop')}</button>
+                            <button id="minimizeBtn_${sk}" onclick="minimizeAnalysisModal('${sessionKey}')" class="btn btn-secondary" style="display: none;">${t('an_minimize')}</button>
+                        </div>
+                        <div id="analysisProgress" style="display: none; margin-top: var(--space-3, 12px);">
+                            <div class="progress-bar" style="background: var(--bg-surface-sunken, #e9ecef); height: 8px; border-radius: 999px; overflow: hidden;">
+                                <div id="progressBar" style="width: 0%; background: var(--accent-bg, #007bff); height: 100%; transition: width 0.4s;"></div>
+                            </div>
+                            <div id="progressText" style="margin-top: 8px; color: var(--text-secondary); font-size: var(--text-sm, .9em);">${t('an_starting')}</div>
+                        </div>
+
+                        <div class="verbose-logs-section" id="verboseLogsSection" style="display: none; margin-top: var(--space-3, 12px);">
+                            <div style="border: 1px solid var(--border-default, #ddd); border-radius: var(--radius-md, 6px); overflow: hidden;">
+                                <div style="background: var(--bg-surface-sunken, #e9ecef); padding: 8px 10px; border-bottom: 1px solid var(--border-default, #ddd); font-weight: 600; font-size: var(--text-sm, .9em);">${t('an_logs')}</div>
+                                <div id="verboseLogs" style="height: 240px; overflow-y: auto; padding: 10px; font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 12px; line-height: 1.5; background: var(--bg-surface, #fff);"></div>
                             </div>
                         </div>
-                        
-                        <!-- Verbose Log Section -->
-                        <div class="verbose-logs-section" id="verboseLogsSection" style="display: none; margin-top: 20px;">
-                            <div style="border: 1px solid #ddd; border-radius: 5px; background: #f8f9fa;">
-                                <div style="background: #e9ecef; padding: 10px; border-bottom: 1px solid #ddd; font-weight: bold;">
-                                    📝 Detaylı Analiz Logları (Real-time)
-                                </div>
-                                <div id="verboseLogs" style="height: 300px; overflow-y: auto; padding: 10px; font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.4; background: #fff;">
-                                    <!-- Verbose loglar buraya gelecek -->
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="analysis-results" id="analysisResults" style="display: none; margin-top: 20px;">
-                            <h3>Analiz Sonuçları</h3>
+
+                        <div class="analysis-results" id="analysisResults" style="display: none; margin-top: var(--space-3, 12px);">
+                            <h3 style="font-size: var(--text-base, 1rem);">${t('an_results')}</h3>
                             <div id="analysisResultsContent"></div>
                         </div>
                     </div>
@@ -473,9 +454,15 @@ function showUnifiedAnalysisModal(targetIP = null, analysisType = 'single') {
             </div>
         </div>
     `;
-    
+
     // Modal'ı sayfaya ekle
     document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+/** Read the chosen port-scan scope for a session's modal (default "common"). */
+function getAnalysisScope(sessionKey) {
+    const el = document.getElementById('scanScope_' + String(sessionKey).replace(/\./g, '_'));
+    return el ? el.value : 'common';
 }
 
 // Modal kapama işlemini yönet (aktif analiz varsa minimize et)
@@ -883,21 +870,49 @@ function calculateToasterPosition() {
 }
 
 // Toaster progress güncelle
-function updateToasterProgress(sessionKey, progressPercent, message) {
+// state: 'running' (default) | 'success' | 'error' — toaster rengini duruma göre değiştirir
+function updateToasterProgress(sessionKey, progressPercent, message, state = 'running') {
     if (!sessionKey) {
         console.warn('updateToasterProgress called without sessionKey');
         return;
     }
-    
-    const toasterProgressBar = document.getElementById(`toasterProgressBar_${sessionKey.replace(/\./g, '_')}`);
-    const toasterProgressText = document.getElementById(`toasterProgressText_${sessionKey.replace(/\./g, '_')}`);
-    
+
+    const id = sessionKey.replace(/\./g, '_');
+    const toaster = document.getElementById(`analysisToaster_${id}`);
+    const toasterProgressBar = document.getElementById(`toasterProgressBar_${id}`);
+    const toasterProgressText = document.getElementById(`toasterProgressText_${id}`);
+
+    const gradients = {
+        running: 'linear-gradient(135deg, #007bff, #0056b3)',
+        success: 'linear-gradient(135deg, #28a745, #20c997)',
+        error: 'linear-gradient(135deg, #dc3545, #c82333)',
+    };
+    if (toaster) {
+        toaster.style.background = gradients[state] || gradients.running;
+    }
+
     if (toasterProgressBar) {
         toasterProgressBar.style.width = progressPercent + '%';
     }
-    
+
     if (toasterProgressText) {
         toasterProgressText.textContent = message;
+    }
+}
+
+// Analiz bittikten sonra "Başlat" butonunu kilitle - yanlışlıkla yeniden analizi engeller
+function markAnalysisDone(sessionKey) {
+    const session = activeAnalysisSessions.get(sessionKey);
+    if (!session) return;
+    const modal = document.getElementById(session.modalId);
+    if (!modal) return;
+    const startBtn = modal.querySelector(`#startBtn_${sessionKey.replace(/\./g, '_')}`);
+    if (startBtn) {
+        startBtn.disabled = true;
+        startBtn.style.opacity = '0.6';
+        startBtn.style.cursor = 'not-allowed';
+        startBtn.textContent = '✅ Analiz tamamlandı';
+        startBtn.title = 'Yeniden analiz için pencereyi kapatıp tekrar açın';
     }
 }
 
@@ -959,7 +974,7 @@ async function saveAnalysisToTemp(sessionKey, analysisData) {
 }
 
 // Analiz tamamlandı notification'ı göster
-function showAnalysisCompletedNotification() {
+function showAnalysisCompletedNotification(ip, sessionKey) {
     const notificationHtml = `
         <div id="completedNotification" style="
             position: fixed;
@@ -991,10 +1006,10 @@ function showAnalysisCompletedNotification() {
                 ">&times;</div>
             </div>
             <div style="font-size: 14px; opacity: 0.9;">
-                ${currentAnalysisIP} için detaylı analiz başarıyla tamamlandı.
+                ${ip} için detaylı analiz başarıyla tamamlandı.
             </div>
             <div style="margin-top: 15px;">
-                <button onclick="maximizeAnalysisModal(); document.getElementById('completedNotification').remove();" 
+                <button onclick="maximizeAnalysisModal('${sessionKey}'); document.getElementById('completedNotification').remove();"
                         style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 8px 16px; border-radius: 5px; cursor: pointer;">
                     📊 Sonuçları Gör
                 </button>
@@ -1228,19 +1243,23 @@ async function startSingleDeviceAnalysis(ip) {
     // Butonları güncelle
     updateAnalysisButtons(sessionKey, true);
     
+    const scope = getAnalysisScope(sessionKey);
+
     try {
-        addVerboseLog('🚀 Detaylı analiz başlatılıyor...', sessionKey);
-        addVerboseLog(`📡 Hedef cihaz: ${ip}`, sessionKey);
-        
-        // Enhanced analiz başlat
+        addVerboseLog(`🚀 ${t('an_starting')}`, sessionKey);
+        addVerboseLog(`📡 ${ip} (${scope})`, sessionKey);
+
+        // Enhanced analiz başlat - kapsam (port scan scope) ile birlikte
         const response = await fetch(`/enhanced_analysis/${ip}`, {
-            method: 'POST'
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ scope })
         });
-        
+
         const result = await response.json();
-        
+
         if (response.ok) {
-            progressText.textContent = 'Analiz başlatıldı, ilerlenme takip ediliyor...';
+            progressText.textContent = t('an_starting');
             progressBar.textContent = '5%';
             addVerboseLog('✅ Analiz başarıyla başlatıldı', sessionKey);
             addVerboseLog('🔄 Real-time izleme başlatılıyor...', sessionKey);
@@ -1370,31 +1389,34 @@ function monitorSingleDeviceAnalysis(ip) {
                 progressPercent = 100;
                 progressBar.style.width = '100%';
                 progressBar.textContent = '100%';
-                progressText.textContent = 'Analiz tamamlandı!';
-                
+                progressBar.style.background = 'linear-gradient(90deg, #28a745, #20c997)';
+                progressText.textContent = '✅ Analiz tamamlandı!';
+
                 addVerboseLog('✅ Analiz başarıyla tamamlandı!', sessionKey);
                 addVerboseLog('📊 Sonuçlar yükleniyor...', sessionKey);
-                
-                // Butonları sıfırla
+
+                // Butonları sıfırla ve tekrar başlatmayı engelle (yanlışlıkla yeniden analiz)
                 updateAnalysisButtons(sessionKey, false);
-                
-                // Toaster progress güncelle
-                if (session.isMinimized) {
-                    updateToasterProgress(sessionKey, 100, 'Analiz tamamlandı!');
-                }
-                
+                markAnalysisDone(sessionKey);
+
+                // Toaster'ı yeşile çevir (bittiğini göster) - her durumda güncelle
+                updateToasterProgress(sessionKey, 100, '✅ Analiz tamamlandı!', 'success');
+
                 // Tamamlandı notification göster
-                showAnalysisCompletedNotification();
-                
+                showAnalysisCompletedNotification(ip, sessionKey);
+                showToast(`🎉 ${t('enhanced_analysis_completed', {ip: ip})}`, 'success');
+
                 // Sonuçları göster
                 setTimeout(() => {
                     modal.querySelector('#analysisProgress').style.display = 'none';
                     resultsDiv.style.display = 'block';
-                    
+
                     // Cihaz detaylarını yeniden yükle ve göster
                     loadDeviceAnalysisResults(ip, sessionKey);
+                    // Kart listesini yenile ki "Details" butonu görünsün
+                    if (typeof loadDevices === 'function') loadDevices(true);
                 }, 1000);
-                
+
             } else if (status.status === 'error') {
                 clearInterval(checkInterval);
                 progressText.textContent = `Analiz hatası: ${status.message}`;
@@ -1402,15 +1424,14 @@ function monitorSingleDeviceAnalysis(ip) {
                 progressBar.textContent = 'HATA';
                 
                 addVerboseLog(`❌ Analiz hatası: ${status.message}`, sessionKey);
-                
+                showToast(`❌ ${t('enhanced_analysis_error', {ip: ip, error: status.message || ''})}`, 'error');
+
                 // Butonları sıfırla
                 updateAnalysisButtons(sessionKey, false);
-                
-                // Toaster'ı güncelle
-                if (session.isMinimized) {
-                    updateToasterProgress(sessionKey, 0, 'Analiz hatası!');
-                }
-                
+
+                // Toaster'ı kırmızıya çevir (hata) - her durumda güncelle
+                updateToasterProgress(sessionKey, progressPercent || 100, `❌ ${status.message || 'Analiz hatası'}`, 'error');
+
             } else if (status.status === 'stopped') {
                 clearInterval(checkInterval);
                 progressText.textContent = 'Analiz durduruldu';
@@ -1455,7 +1476,7 @@ function monitorSingleDeviceAnalysis(ip) {
                 if (session.isMinimized) {
                     updateToasterProgress(sessionKey, progressPercent, currentMessage);
                 }
-                
+
                 // Temp dosyaya kaydet
                 saveAnalysisToTemp(sessionKey, {
                     progress: progressPercent,
@@ -1464,9 +1485,10 @@ function monitorSingleDeviceAnalysis(ip) {
                     analysis_results: resultsContent ? resultsContent.innerHTML : '',
                     timestamp: new Date().toISOString()
                 });
-                
-                // Mesajdan analiz türünü çıkar ve verbose log'a ekle
-                analyzeStatusMessage(currentMessage, sessionKey);
+                // Not: backend'ten gelen `currentMessage` zaten hangi port aralığının
+                // tarandığını içeriyor ve yukarıda sadece değiştiğinde loglanıyor.
+                // Eskiden burada çağrılan analyzeStatusMessage() her poll'da generic
+                // "Port tarama devam ediyor" satırı basıp log'u dolduruyordu - kaldırıldı.
             }
         } catch (error) {
             console.error('Analiz durumu kontrol hatası:', error);
@@ -1475,28 +1497,6 @@ function monitorSingleDeviceAnalysis(ip) {
     }, 2000); // Her 2 saniyede kontrol et
 }
 
-// Status mesajını analiz et ve detaylı bilgi ekle
-function analyzeStatusMessage(message, sessionKey) {
-    const verboseMessages = {
-        'erişim bilgileri': '🔐 Cihaz erişim bilgileri kontrol ediliyor',
-        'credential': '🔑 Kimlik bilgileri işleniyor',
-        'port tarama': '🔌 Port tarama işlemi devam ediyor',
-        'ssh': '🖥️ SSH servis analizi yapılıyor',
-        'web': '🌐 Web servisleri taranıyor', 
-        'snmp': '📊 SNMP bilgileri alınıyor',
-        'raspberry': '🥧 Raspberry Pi donanım analizi',
-        'analiz sonuçları': '💾 Sonuçlar kaydediliyor',
-        'kapsamlı': '🔍 Kapsamlı sistem taraması'
-    };
-    
-    const lowerMessage = message.toLowerCase();
-    for (const [keyword, verboseMsg] of Object.entries(verboseMessages)) {
-        if (lowerMessage.includes(keyword)) {
-            addVerboseLog(verboseMsg, sessionKey);
-            break;
-        }
-    }
-}
 
 // Cihaz analiz sonuçlarını yükle ve göster
 async function loadDeviceAnalysisResults(ip, sessionKey) {

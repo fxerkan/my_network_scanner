@@ -19,6 +19,7 @@
                 <button class="tab" onclick="switchTab('docker')"><svg class="ds-icon" aria-hidden="true"><use href="#i-plug"/></svg>{{ _('docker_network') }}</button>
                 <button class="tab" onclick="switchTab('filters')"><svg class="ds-icon" aria-hidden="true"><use href="#i-filter"/></svg>{{ _('default_filters') }}</button>
                 <button class="tab" onclick="switchTab('integrations')"><svg class="ds-icon" aria-hidden="true"><use href="#i-plug"/></svg>{{ _('integrations') }}</button>
+                <button class="tab" onclick="switchTab('logs')"><svg class="ds-icon" aria-hidden="true"><use href="#i-history"/></svg>{{ _('logs') }}</button>
             </div>
 
             <!-- Genel Ayarlar -->
@@ -84,7 +85,7 @@
                             <div id="devicePortsList">
                                 <div class="form-group">
                                     <label class="form-label">{{ _('select_device_type') }}</label>
-                                    <select class="form-select" id="deviceTypePortSelect">
+                                    <select class="ds-select" data-searchable id="deviceTypePortSelect" aria-label="{{ _('select_device_type') }}">
                                         <option value="">{{ _('select_device_type_for_ports') }}</option>
                                     </select>
                                 </div>
@@ -526,6 +527,38 @@
                     <div id="catalogTableWrap" style="margin-top: var(--space-3);"></div>
                 </div>
             </div>
+
+            <!-- Logs: live application log with search/highlight, level control,
+                 and export. Backed by /api/logs (in-memory ring + rotating file). -->
+            <div id="logs" class="tab-content">
+                <div class="card">
+                    <h3 class="card-title"><svg class="ds-icon" aria-hidden="true"><use href="#i-history"/></svg>{{ _('app_logs') }}</h3>
+                    <p style="margin-bottom: var(--space-3); color: var(--text-secondary);">{{ _('app_logs_hint') }}</p>
+                    <div class="docker-filters" style="margin-bottom: var(--space-3);">
+                        <input type="search" class="form-input" id="logSearch" placeholder="{{ _('search') }}" aria-label="{{ _('search') }}">
+                        <select class="form-select" id="logLevelFilter" aria-label="{{ _('log_level') }}">
+                            <option value="">{{ _('all') }}</option>
+                            <option value="ERROR">ERROR</option>
+                            <option value="WARNING">WARNING</option>
+                            <option value="INFO">INFO</option>
+                            <option value="DEBUG">DEBUG</option>
+                        </select>
+                        <button class="btn btn-small" onclick="loadLogs()"><svg class="ds-icon" aria-hidden="true"><use href="#i-refresh"/></svg>{{ _('refresh') }}</button>
+                        <button class="btn btn-small btn-secondary" onclick="downloadLogs()"><svg class="ds-icon" aria-hidden="true"><use href="#i-download"/></svg>{{ _('export') }}</button>
+                    </div>
+                    <div class="form-group" style="max-width: 360px;">
+                        <label class="form-label" for="logRuntimeLevel">{{ _('log_level') }}</label>
+                        <select class="form-select" id="logRuntimeLevel" onchange="setLogLevel(this.value)">
+                            <option value="ERROR">ERROR</option>
+                            <option value="WARNING">WARNING</option>
+                            <option value="INFO">INFO</option>
+                            <option value="DEBUG">DEBUG (verbose)</option>
+                        </select>
+                        <p class="card-hint">{{ _('log_level_hint') }}</p>
+                    </div>
+                    <div id="logViewer" class="log-viewer" aria-live="polite"></div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -552,6 +585,9 @@
                     <button type="button" class="btn btn-small btn-secondary" onclick="filterEmojiCategory('computer')" id="categoryComputer">Computer</button>
                     <button type="button" class="btn btn-small btn-secondary" onclick="filterEmojiCategory('gaming')" id="categoryGaming">Gaming</button>
                     <button type="button" class="btn btn-small btn-secondary" onclick="filterEmojiCategory('iot')" id="categoryIot">IoT</button>
+                    <button type="button" class="btn btn-small btn-secondary" onclick="filterEmojiCategory('appliance')" id="categoryAppliance">Appliance</button>
+                    <button type="button" class="btn btn-small btn-secondary" onclick="filterEmojiCategory('entertainment')" id="categoryEntertainment">Entertainment</button>
+                    <button type="button" class="btn btn-small btn-secondary" onclick="filterEmojiCategory('storage')" id="categoryStorage">Storage</button>
                 </div>
                 <input type="text" class="form-input" id="emojiSearchInput" placeholder="{{ _('emoji_search') }}" style="margin-bottom: 10px;" oninput="searchEmojisHandler(event)" onkeyup="searchEmojisHandler(event)">
             </div>

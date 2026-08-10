@@ -55,6 +55,8 @@ function switchTab(tabName) {
         setupConfigFilters();
     } else if (tabName === 'integrations') {
         setupIntegrationsTab();
+    } else if (tabName === 'logs') {
+        loadLogs();
     }
 }
 
@@ -1613,7 +1615,10 @@ function updateDetectionRuleSelects() {
         
         const option3 = document.createElement('option');
         option3.value = typeName;
-        option3.textContent = typeName;
+        // Icon + name so the searchable picker matches the rest of the app;
+        // .value stays the plain type name every save path already reads.
+        const icon3 = (currentDeviceTypes[typeName] || {}).icon || '';
+        option3.textContent = icon3 ? `${icon3} ${typeName}` : typeName;
         devicePortSelect.appendChild(option3);
     }
 }
@@ -2107,3 +2112,79 @@ function addToScanRange(subnet, networkName) {
     init();
   }
 })();
+
+/* ---------------- Settings > Logs tab --------------------------------------
+   Live application log viewer: search + highlight, level filter, runtime level
+   control, and export. Backed by /api/logs (in-memory ring + rotating file). */
+function logEsc(v) {
+    const d = document.createElement('div');
+    d.textContent = v == null ? '' : String(v);
+    return d.innerHTML;
+}
+
+function highlightLog(text, needle) {
+    const safe = logEsc(text);
+    if (!needle) return safe;
+    try {
+        const rx = new RegExp('(' + needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'ig');
+        return safe.replace(rx, '<mark>$1</mark>');
+    } catch (_) { return safe; }
+}
+
+async function loadLogs() {
+    const viewer = document.getElementById('logViewer');
+    if (!viewer) return;
+    const q = (document.getElementById('logSearch') || {}).value || '';
+    const level = (document.getElementById('logLevelFilter') || {}).value || '';
+    try {
+        const params = new URLSearchParams({ limit: '800' });
+        if (q) params.set('q', q);
+        if (level) params.set('level', level);
+        const data = await (await fetch('/api/logs?' + params.toString())).json();
+
+        // Keep the runtime-level dropdown in sync with the server.
+        const runtime = document.getElementById('logRuntimeLevel');
+        if (runtime && data.level) runtime.value = data.level;
+
+        const rows = (data.logs || []).map(r => {
+            const lvl = (r.level || 'INFO').toLowerCase();
+            return `<div class="log-line log-line--${lvl}">` +
+                `<span class="log-time">${logEsc(r.time)}</span>` +
+                `<span class="log-level log-level--${lvl}">${logEsc(r.level)}</span>` +
+                `<span class="log-logger">${logEsc(r.logger)}</span>` +
+                `<span class="log-msg">${highlightLog(r.message, q)}</span></div>`;
+        });
+        viewer.innerHTML = rows.length ? rows.join('') :
+            `<div class="details-no-data">${t('no_results') || '—'}</div>`;
+        viewer.scrollTop = viewer.scrollHeight;
+    } catch (e) {
+        viewer.innerHTML = `<div class="details-no-data">${t('error')}: ${logEsc(e.message)}</div>`;
+    }
+}
+
+async function setLogLevel(level) {
+    try {
+        await fetch('/api/logs/level', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ level })
+        });
+        showAlert(t('general_settings_saved') || 'OK');
+        loadLogs();
+    } catch (e) {
+        showAlert(t('error') + ': ' + e.message, 'error');
+    }
+}
+
+function downloadLogs() {
+    window.location.href = '/api/logs/download';
+}
+
+// Live search + filter without a button press.
+document.addEventListener('DOMContentLoaded', function () {
+    const s = document.getElementById('logSearch');
+    const f = document.getElementById('logLevelFilter');
+    let timer = null;
+    if (s) s.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(loadLogs, 250); });
+    if (f) f.addEventListener('change', loadLogs);
+});

@@ -412,6 +412,17 @@
     });
   }
 
+  /** A searchable <select> keeps the native element as source of truth; when we
+      repopulate it after enhancement we must (re)enhance + refresh so the popover
+      paints the new options. Without this the mute pickers opened up empty. */
+  function syncSearchable(el) {
+    if (!el || !window.MynesFilters) return;
+    try {
+      if (!el._ds) window.MynesFilters.enhanceSelect(el);
+      if (el._ds && el._ds.refresh) el._ds.refresh();
+    } catch (_) { /* the native select still works */ }
+  }
+
   /** Populate the device picker from the devices the scanner already knows. */
   function loadMuteOptions() {
     var ruleSelect = $('muteRule');
@@ -420,6 +431,7 @@
         Object.keys(RULE_LABELS).map(function (r) {
           return '<option value="' + r + '">' + esc(RULE_LABELS[r]) + '</option>';
         }).join('');
+      syncSearchable(ruleSelect);
     }
     return fetch('/get_devices').then(function (r) { return r.json(); }).then(function (data) {
       var devices = data.devices || data || [];
@@ -432,6 +444,7 @@
         return id ? '<option value="' + esc(id) + '" data-name="' + esc(name) + '">' +
           esc(name) + ' — ' + esc(id) + '</option>' : '';
       }).join('');
+      syncSearchable(select);
     }).catch(function () { /* the picker stays empty; the page still works */ });
   }
 

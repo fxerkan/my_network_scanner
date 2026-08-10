@@ -675,6 +675,6 @@
     "cve_source": "circl",
     "cve_sync_enabled": true,
     "cve_sync_interval_days": 30,
-    "cve_last_sync": "2026-08-10T05:52:58.800027+00:00"
+    "cve_last_sync": "2026-08-10T17:20:58.433246+00:00"
   }
 }

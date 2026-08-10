@@ -62,8 +62,9 @@ class EnhancedDeviceAnalyzer:
             'additional_info': additional_info or {}
         }
     
-    def get_comprehensive_device_info(self, ip, mac, hostname, vendor, progress_callback=None):
-        """Kapsamlı cihaz bilgileri toplama"""
+    def get_comprehensive_device_info(self, ip, mac, hostname, vendor, progress_callback=None, scope='common'):
+        """Kapsamlı cihaz bilgileri toplama. `scope` (fast|common|full) picks how
+        wide the port scan goes so the user isn't forced to wait out a full sweep."""
         
         def log_operation(operation, status="başlatılıyor", details=""):
             if progress_callback:
@@ -93,8 +94,8 @@ class EnhancedDeviceAnalyzer:
         }
         
         # 1. Gelişmiş Port Tarama
-        log_operation("🔌 Gelişmiş Port Analizi", "başlatılıyor", "1000+ port")
-        enhanced_info['detailed_ports'] = self.comprehensive_port_scan(ip, progress_callback)
+        log_operation("🔌 Gelişmiş Port Analizi", "başlatılıyor", scope)
+        enhanced_info['detailed_ports'] = self.comprehensive_port_scan(ip, progress_callback, scope=scope)
         log_operation("🔌 Gelişmiş Port Analizi", "tamamlandı", f"{len(enhanced_info['detailed_ports'])} port bulundu")
         
         # 2. Web Servisleri Analizi
@@ -137,9 +138,9 @@ class EnhancedDeviceAnalyzer:
         enhanced_info['system_identification']['os_detection'] = self.advanced_os_detection(ip)
         log_operation("💻 İşletim Sistemi Tespiti", "tamamlandı")
         
-        # 10. Güvenlik Analizi
-        log_operation("🛡️ Güvenlik Analizi", "başlatılıyor", "vulnerabilities, configs")
-        enhanced_info['security_analysis'] = self.security_analysis(ip)
+        # 10. Güvenlik Analizi - reuse the CVE DB over what we already collected.
+        log_operation("🛡️ Güvenlik Analizi", "başlatılıyor", "CVE database")
+        enhanced_info['security_analysis'] = self.security_analysis(ip, enhanced_info)
         log_operation("🛡️ Güvenlik Analizi", "tamamlandı")
         
         # 11. Kapsamlı Cihaz Tipi Analizi
@@ -159,48 +160,60 @@ class EnhancedDeviceAnalyzer:
         
         return enhanced_info
     
-    def comprehensive_port_scan(self, ip, progress_callback=None):
-        """Kapsamlı port taraması"""
-        
+    def comprehensive_port_scan(self, ip, progress_callback=None, scope='common'):
+        """Kapsamlı port taraması. `scope` controls how far it goes:
+        fast (system ports), common (1-10000, default), full (all 65535, slow)."""
+
         def log_port_operation(operation, details=""):
             if progress_callback:
                 progress_callback(f"{ip} - 🔌 Port Tarama: {operation} {details}")
-        
+
         port_info = {}
-        
+
+        # Aralık aralık gerçek tarama: her aralık AYRI bir nmap çağrısı, böylece
+        # ilerleme mesajı ("5001-10000 taranıyor") uzun tarama boyunca gerçekten
+        # ilerler ve kullanıcı takıldığını sanmaz. Eskiden tek --top-ports 1000
+        # çağrısı vardı ve mesaj dakikalarca donuyordu.
+        # ponytail: --version-light + -T4 hız için; -sT root gerektirmez.
+        PORT_SCOPES = {
+            'fast': [("1-1024", "1-1024 arası sistem portları")],
+            'common': [
+                ("1-1024", "1-1024 arası sistem portları"),
+                ("1025-5000", "1025-5000 arası kayıtlı portlar"),
+                ("5001-10000", "5001-10000 arası özel servis portları"),
+            ],
+            'full': [
+                ("1-16384", "1-16384"),
+                ("16385-32768", "16385-32768"),
+                ("32769-49152", "32769-49152"),
+                ("49153-65535", "49153-65535"),
+            ],
+        }
+        port_ranges = PORT_SCOPES.get(scope, PORT_SCOPES['common'])
+
         try:
             nm = nmap.PortScanner()
-            
-            log_port_operation("başladı", "(1000+ port)...")
-            log_port_operation("ön tanımlı standart portlar taranıyor", "(22,80,443,...)")
-            
-            # Port aralıkları tarama
-            port_ranges = [
-                ("1-100", "Port 1-100 arası sistem portları taranıyor..."),
-                ("100-1000", "Port 100-1000 arası uygulama portları taranıyor..."), 
-                ("1000-5000", "Port 1000-5000 arası kullanıcı portları taranıyor..."),
-                ("5000-10000", "Port 5000-10000 arası özel servis portları taranıyor...")
-            ]
-            
+            log_port_operation("başladı", "(1-10000 port, aralık aralık)...")
+            open_port_count = 0
+
             for port_range, description in port_ranges:
-                log_port_operation(description)
-                time.sleep(0.5)  # Görsel feedback için kısa bekleme
-            
-            # Top 1000 port taraması (root privileges gerektirmez)
-            result = nm.scan(ip, arguments='-sT -sV --top-ports 1000 --version-all')
-            
-            log_port_operation("servis versiyonları analiz ediliyor...")
-            
-            if ip in result['scan']:
-                host_info = result['scan'][ip]
-                open_port_count = 0
-                
+                log_port_operation("taranıyor", f"({description}) [{port_range}]...")
+                try:
+                    result = nm.scan(ip, ports=port_range, arguments='-sT -sV --version-light -T4')
+                except Exception as e:
+                    log_port_operation(f"aralık hatası [{port_range}]: {e}")
+                    continue
+
+                host_info = result.get('scan', {}).get(ip, {})
                 if 'tcp' in host_info:
                     for port, port_data in host_info['tcp'].items():
                         if port_data.get('state') == 'open':
                             open_port_count += 1
-                            log_port_operation(f"açık port bulundu: {port} ({port_data.get('name', 'unknown')})")
-                        
+                            log_port_operation(
+                                f"açık port bulundu: {port} "
+                                f"({port_data.get('name', 'unknown')}) [{port_range}]"
+                            )
+
                         port_info[port] = {
                             'state': port_data.get('state', 'unknown'),
                             'service': port_data.get('name', 'unknown'),
@@ -211,20 +224,26 @@ class EnhancedDeviceAnalyzer:
                             'method': port_data.get('method', ''),
                             'cpe': port_data.get('cpe', '')
                         }
-                
-                log_port_operation("işletim sistemi parmak izi analizi yapılıyor...")
-                
-                # Service-based OS fingerprinting
-                os_hints = self._analyze_service_os_hints(host_info.get('tcp', {}))
-                if os_hints:
-                    port_info['os_hints'] = os_hints
-                    log_port_operation(f"işletim sistemi ipucu bulundu: {os_hints.get('os_family', 'unknown')}")
-                
-                log_port_operation(f"tamamlandı - {open_port_count} açık port bulundu")
-                    
+
+            log_port_operation("işletim sistemi parmak izi analizi yapılıyor...")
+
+            # Service-based OS fingerprinting (tüm aralıklardan toplanan portlar üzerinde).
+            # _analyze_service_os_hints 'name' anahtarını okur; bizim kayıtta ad 'service'
+            # altında, bu yüzden alias'lıyoruz.
+            tcp_ports = {
+                p: {**v, 'name': v.get('service', '')}
+                for p, v in port_info.items() if isinstance(p, int)
+            }
+            os_hints = self._analyze_service_os_hints(tcp_ports)
+            if os_hints:
+                port_info['os_hints'] = os_hints
+                log_port_operation(f"işletim sistemi ipucu bulundu: {os_hints.get('os_family', 'unknown')}")
+
+            log_port_operation(f"tamamlandı - {open_port_count} açık port bulundu")
+
         except Exception as e:
             port_info['error'] = str(e)
-            
+
         return port_info
     
     def analyze_web_services(self, ip):
@@ -501,20 +520,6 @@ class EnhancedDeviceAnalyzer:
             os_info['error'] = str(e)
             
         return os_info
-    
-    def security_analysis(self, ip):
-        """Güvenlik analizi"""
-        security_info = {}
-        
-        try:
-            # Basit güvenlik kontrolleri
-            security_info['open_ports_check'] = 'Implemented'
-            security_info['note'] = 'Detaylı zafiyet taraması için nmap script tarama gerekli'
-                            
-        except Exception as e:
-            security_info['error'] = str(e)
-            
-        return security_info
     
     def check_port_open(self, ip, port):
         """Port açık mı kontrol et"""
@@ -917,27 +922,46 @@ class EnhancedDeviceAnalyzer:
             
         return os_info
     
-    def security_analysis(self, ip):
-        """Güvenlik analizi"""
-        security_info = {}
-        
+    def security_analysis(self, ip, enhanced_info=None):
+        """Security assessment for the Details modal.
+
+        Reuses the curated CVE database (mynes.security.cve) against the ports
+        and banners THIS analysis already gathered, instead of firing a second,
+        redundant nmap service scan that produced almost nothing. One security
+        code path, one source of truth - see the module docstring in cve.py.
+        """
         try:
-            # Açık portlarda zafiyet taraması - Non-privileged alternative
-            nm = nmap.PortScanner()
-            # Use service detection instead of vuln scripts (no root required)
-            result = nm.scan(ip, arguments='-sT -sV --version-all --script-timeout 30s')
-            
-            if ip in result['scan']:
-                host_info = result['scan'][ip]
-                if 'tcp' in host_info:
-                    for port, port_data in host_info['tcp'].items():
-                        if 'script' in port_data:
-                            security_info[f'port_{port}_vulns'] = port_data['script']
-                            
-        except Exception as e:
-            security_info['error'] = str(e)
-            
-        return security_info
+            from mynes.security import cve
+        except Exception as e:  # noqa: BLE001 - security tab degrades, scan lives
+            return {'error': str(e)}
+
+        info = enhanced_info or {}
+        basic = info.get('basic_info', {})
+
+        # Open ports from the scan we just did.
+        open_ports = [
+            int(p) for p, d in (info.get('detailed_ports') or {}).items()
+            if isinstance(d, dict) and d.get('state') == 'open' and str(p).isdigit()
+        ]
+
+        # Banners we already collected -> the signal shape cve.assess_device reads.
+        http = [
+            {'server': d.get('server', ''), 'title': d.get('title', '')}
+            for d in (info.get('web_services') or {}).values()
+            if isinstance(d, dict) and not d.get('error')
+        ]
+        ssh = ((info.get('remote_access') or {}).get('ssh') or {}).get('banner')
+        ftp = ((info.get('file_services') or {}).get('ftp') or {}).get('banner')
+
+        device = {
+            'ip': ip, 'vendor': basic.get('vendor'), 'hostname': basic.get('hostname'),
+            'open_ports': open_ports,
+            'fingerprint': {'http': http, 'ssh': ssh, 'ftp': ftp},
+        }
+        try:
+            return cve.assess_device(device)
+        except Exception as e:  # noqa: BLE001
+            return {'error': str(e)}
     
     def analyze_iot_http(self, ip, port):
         """IoT HTTP servisleri analizi"""

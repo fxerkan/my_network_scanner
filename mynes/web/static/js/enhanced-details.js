@@ -22,8 +22,8 @@ function openEnhancedDetailsModal(device) {
     }
     
     // Modal title'ı güncelle
-    document.getElementById('detailsDeviceTitle').innerHTML = 
-        `🔬 ${device.ip} - ${device.alias || device.hostname || 'Bilinmeyen Cihaz'}`;
+    document.getElementById('detailsDeviceTitle').innerHTML =
+        `🔬 ${device.ip} - ${device.alias || device.hostname || t('det_unknown_device')}`;
     
     // Modal'ı göster
     document.getElementById('enhancedDetailsModal').style.display = 'block';
@@ -95,7 +95,7 @@ function loadTabContent(tabName) {
             content = generateRawContent(enhancedInfo);
             break;
         default:
-            content = '<div class="details-no-data">Bilinmeyen tab</div>';
+            content = `<div class="details-no-data">${t('det_no_data')}</div>`;
     }
     
     contentDiv.innerHTML = content;
@@ -109,28 +109,28 @@ function generateOverviewContent(enhancedInfo, device) {
     
     return `
         <div class="details-section">
-            <h4>📊 Cihaz Özeti</h4>
+            <h4>📊 ${t('det_summary')}</h4>
             <div class="details-grid">
                 <div class="details-card">
-                    <h5>🔍 Temel Bilgiler</h5>
+                    <h5>🔍 ${t('det_basic_info')}</h5>
                     <ul class="details-list">
                         <li><span class="details-label">IP Adresi:</span><span class="details-value">${device.ip}</span></li>
                         <li><span class="details-label">MAC Adresi:</span><span class="details-value">${device.mac}</span></li>
                         <li><span class="details-label">Hostname:</span><span class="details-value">${device.hostname || 'N/A'}</span></li>
                         <li><span class="details-label">Alias:</span><span class="details-value">${device.alias || 'N/A'}</span></li>
                         <li><span class="details-label">Vendor:</span><span class="details-value">${device.vendor || 'N/A'}</span></li>
-                        <li><span class="details-label">Durum:</span><span class="details-value">
+                        <li><span class="details-label">${t('status')}:</span><span class="details-value">
                             <span class="status-badge status-${device.status}">${device.status}</span>
                         </span></li>
-                        <li><span class="details-label">Son Görülme:</span><span class="details-value">${formatDate(device.last_seen)}</span></li>
-                        ${device.last_enhanced_analysis ? 
-                            `<li><span class="details-label">Son Analiz:</span><span class="details-value">${formatDate(device.last_enhanced_analysis)}</span></li>` : ''
+                        <li><span class="details-label">${t('last_seen')}:</span><span class="details-value">${formatDate(device.last_seen)}</span></li>
+                        ${device.last_enhanced_analysis ?
+                            `<li><span class="details-label">${t('det_last_analysis') || 'Last Analysis'}:</span><span class="details-value">${formatDate(device.last_enhanced_analysis)}</span></li>` : ''
                         }
                     </ul>
                 </div>
-                
+
                 <div class="details-card">
-                    <h5>🎯 Tespit Olasılıkları</h5>
+                    <h5>🎯 ${t('det_type_probs')}</h5>
                     ${generateDeviceTypeProbabilities(enhancedInfo)}
                 </div>
             </div>
@@ -140,34 +140,37 @@ function generateOverviewContent(enhancedInfo, device) {
     `;
 }
 
-// Ağ Servisleri içeriği
+// Ağ Servisleri içeriği. A web service that only produced a connection error
+// means the port is closed - we render those quietly, not as a scary traceback.
 function generateNetworkContent(enhancedInfo) {
     const webServices = enhancedInfo.web_services || {};
     const networkServices = enhancedInfo.network_services || {};
     const sshInfo = enhancedInfo.remote_access?.ssh || {};
-    
+
+    const reachableWeb = Object.entries(webServices).filter(([, d]) => !d || !d.error);
+
     return `
         <div class="details-section">
-            <h4>🌐 Web Servisleri</h4>
-            ${Object.keys(webServices).length > 0 ? 
-                generateWebServicesGrid(webServices) : 
-                '<div class="details-no-data">Web servisi bulunamadı</div>'
+            <h4>🌐 ${t('det_web_services')}</h4>
+            ${reachableWeb.length > 0 ?
+                generateWebServicesGrid(Object.fromEntries(reachableWeb)) :
+                `<div class="details-no-data">${t('det_no_web')}</div>`
             }
         </div>
-        
+
         <div class="details-section">
-            <h4>🔐 Uzaktan Erişim</h4>
-            ${Object.keys(sshInfo).length > 0 ? 
-                generateSSHInfo(sshInfo) : 
-                '<div class="details-no-data">SSH bilgisi bulunamadı</div>'
+            <h4>🔐 ${t('det_remote_access')}</h4>
+            ${Object.keys(sshInfo).length > 0 ?
+                generateSSHInfo(sshInfo) :
+                `<div class="details-no-data">${t('det_no_ssh')}</div>`
             }
         </div>
-        
+
         <div class="details-section">
-            <h4>📡 SNMP ve Diğer Servisler</h4>
-            ${Object.keys(networkServices).length > 0 ? 
-                generateNetworkServicesInfo(networkServices) : 
-                '<div class="details-no-data">Ağ servisi bilgisi bulunamadı</div>'
+            <h4>📡 ${t('det_snmp_other')}</h4>
+            ${Object.keys(networkServices).length > 0 ?
+                generateNetworkServicesInfo(networkServices) :
+                `<div class="details-no-data">${t('det_no_netsvc')}</div>`
             }
         </div>
     `;
@@ -177,27 +180,23 @@ function generateNetworkContent(enhancedInfo) {
 function generatePortsContent(enhancedInfo) {
     const detailedPorts = enhancedInfo.detailed_ports || {};
     
+    // A scan error (usually "needs root") is not something to alarm the user
+    // with - the basic port list is on the device card regardless.
     if (detailedPorts.error) {
         return `
             <div class="details-section">
-                <h4>🔌 Port Tarama Hatası</h4>
-                <div class="vulnerability-item vulnerability-medium">
-                    <strong>⚠️ Hata:</strong> ${detailedPorts.error}
-                    <p style="margin-top: 10px; font-size: 14px;">
-                        Port taraması için root yetkileri gerekli olabilir. 
-                        Alternatif olarak temel port bilgileri cihaz listesinde mevcuttur.
-                    </p>
-                </div>
+                <h4>🔌 ${t('det_port_analysis')}</h4>
+                <div class="details-no-data">${t('det_no_ports')}</div>
             </div>
         `;
     }
-    
+
     return `
         <div class="details-section">
-            <h4>🔌 Detaylı Port Analizi</h4>
-            ${Object.keys(detailedPorts).length > 0 ? 
-                generatePortsGrid(detailedPorts) : 
-                '<div class="details-no-data">Port bilgisi bulunamadı</div>'
+            <h4>🔌 ${t('det_port_analysis')}</h4>
+            ${Object.keys(detailedPorts).length > 0 ?
+                generatePortsGrid(detailedPorts) :
+                `<div class="details-no-data">${t('det_no_ports')}</div>`
             }
         </div>
     `;
@@ -211,36 +210,55 @@ function generateSystemContent(enhancedInfo) {
     
     return `
         <div class="details-section">
-            <h4>💻 İşletim Sistemi Tespiti</h4>
-            ${Object.keys(osDetection).length > 0 ? 
-                generateOSDetectionInfo(osDetection) : 
-                '<div class="details-no-data">İşletim sistemi bilgisi bulunamadı</div>'
+            <h4>💻 ${t('det_os_detection')}</h4>
+            ${Object.keys(osDetection).length > 0 ?
+                generateOSDetectionInfo(osDetection) :
+                `<div class="details-no-data">${t('det_no_os')}</div>`
             }
         </div>
-        
+
         <div class="details-section">
-            <h4>🖥️ SSH Sistem Bilgileri</h4>
-            ${Object.keys(sshSystemInfo).length > 0 ? 
-                generateSSHSystemInfo(sshSystemInfo) : 
-                '<div class="details-no-data">SSH sistem bilgisi bulunamadı (Erişim bilgileri gerekli)</div>'
+            <h4>🖥️ ${t('det_ssh_sysinfo')}</h4>
+            ${Object.keys(sshSystemInfo).length > 0 ?
+                generateSSHSystemInfo(sshSystemInfo) :
+                `<div class="details-no-data">${t('det_no_ssh_sys')}</div>`
             }
         </div>
     `;
 }
 
-// Güvenlik içeriği
+// Güvenlik içeriği. The security step now returns the CVE-database assessment
+// (findings + attack-surface exposures + risk) - the same source as the
+// Security page - instead of a separate ad-hoc scan.
 function generateSecurityContent(enhancedInfo) {
-    const securityAnalysis = enhancedInfo.security_analysis || {};
-    
+    const sec = enhancedInfo.security_analysis || {};
+    const findings = sec.findings || [];
+    const exposures = sec.exposures || [];
+
+    if (sec.error || (!findings.length && !exposures.length && !sec.risk_level)) {
+        return `<div class="details-section"><h4>🛡️ ${t('det_security')}</h4>
+            <div class="details-no-data">${t('det_no_security')}</div></div>`;
+    }
+
+    const item = (f, isFinding) => `
+        <div class="details-card">
+            <h5>${escSec(isFinding ? (f.cve_id || f.title) : f.title)}
+                <span class="status-badge status-${(f.severity || 'info')}">${escSec(f.severity || 'info')}</span></h5>
+            <div class="details-value" style="color: var(--text-secondary);">${escSec(f.description || f.title || '')}</div>
+        </div>`;
+
     return `
         <div class="details-section">
-            <h4>🛡️ Güvenlik Analizi</h4>
-            ${Object.keys(securityAnalysis).length > 0 ? 
-                generateSecurityAnalysisInfo(securityAnalysis) : 
-                '<div class="details-no-data">Güvenlik analizi bilgisi bulunamadı</div>'
-            }
+            <h4>🛡️ ${t('det_security')} — ${escSec((sec.risk_level || '').toUpperCase())} (${sec.risk_score ?? 0})</h4>
+            ${findings.length ? `<div class="details-grid">${findings.map(f => item(f, true)).join('')}</div>`
+                              : `<div class="details-no-data">${t('det_no_security')}</div>`}
+            ${exposures.length ? `<div class="details-grid" style="margin-top:8px;">${exposures.map(e => item(e, false)).join('')}</div>` : ''}
         </div>
     `;
+}
+
+function escSec(v) {
+    return String(v == null ? '' : v).replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
 }
 
 // Donanım içeriği
@@ -250,15 +268,15 @@ function generateHardwareContent(enhancedInfo) {
     
     return `
         <div class="details-section">
-            <h4>🔧 Donanım Bilgileri</h4>
-            ${Object.keys(hardwareInfo).length > 0 ? 
-                generateHardwareInfo(hardwareInfo) : 
-                '<div class="details-no-data">Donanım bilgisi bulunamadı (SSH erişimi gerekli)</div>'
+            <h4>🔧 ${t('det_hardware')}</h4>
+            ${Object.keys(hardwareInfo).length > 0 ?
+                generateHardwareInfo(hardwareInfo) :
+                `<div class="details-no-data">${t('det_no_hardware')}</div>`
             }
         </div>
-        
+
         <div class="details-section">
-            <h4>🥧 Raspberry Pi Servisleri</h4>
+            <h4>🥧 ${t('det_rpi_services')}</h4>
             ${generateRaspberryPiServices(raspberryInfo)}
         </div>
     `;
@@ -272,9 +290,8 @@ function generateDiscoveryContent(device) {
     const esc = v => String(v == null ? '' : v).replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
 
     if (!d.sources || !d.sources.length) {
-        return '<div class="details-section"><h4>📡 Protokol Keşfi</h4>' +
-            '<div class="details-no-data">Bu cihaz için keşif verisi yok. ' +
-            'Discovery sayfasında bir sweep çalıştırıp "Save to devices" deyin.</div></div>';
+        return `<div class="details-section"><h4>📡 ${t('det_protocol_discovery')}</h4>` +
+            `<div class="details-no-data">${t('det_no_data')}</div></div>`;
     }
 
     // Her SSDP description.xml belgesi bir kart: üretici, model, seri no, servisler.
@@ -291,14 +308,14 @@ function generateDiscoveryContent(device) {
 
     return `
         <div class="details-section">
-            <h4>📡 Protokol Keşfi</h4>
+            <h4>📡 ${t('det_protocol_discovery')}</h4>
             <ul class="details-list">
                 <li><span class="details-label">Görüldüğü protokoller:</span><span class="details-value">${esc(d.sources.join(', '))}</span></li>
                 <li><span class="details-label">Model:</span><span class="details-value">${esc(d.model || 'N/A')}</span></li>
                 <li><span class="details-label">Servisler:</span><span class="details-value">${esc((d.services || []).join(', ') || 'N/A')}</span></li>
             </ul>
         </div>
-        ${descCards ? `<div class="details-section"><h4>🧾 UPnP Cihaz Tanımı (description.xml)</h4>
+        ${descCards ? `<div class="details-section"><h4>🧾 UPnP (description.xml)</h4>
             <div class="details-grid">${descCards}</div></div>` : ''}
         <div class="details-section">
             <h4>🗂️ Tüm Keşif Verisi</h4>
@@ -310,7 +327,7 @@ function generateDiscoveryContent(device) {
 function generateRawContent(enhancedInfo) {
     return `
         <div class="details-section">
-            <h4>📄 Ham Veri (JSON)</h4>
+            <h4>📄 ${t('det_raw_json')}</h4>
             <div class="details-code">${JSON.stringify(enhancedInfo, null, 2)}</div>
         </div>
     `;
@@ -326,7 +343,10 @@ function getProbabilityClass(probability) {
 function formatDate(dateString) {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
-    return date.toLocaleString('tr-TR');
+    // Follow the selected UI language, not a hardcoded Turkish locale.
+    const lang = (typeof translationManager !== 'undefined' && translationManager.getCurrentLanguage)
+        ? translationManager.getCurrentLanguage() : 'en';
+    return date.toLocaleString(lang === 'tr' ? 'tr-TR' : 'en-GB');
 }
 
 function generateQuickStats(enhancedInfo, device) {
@@ -336,19 +356,19 @@ function generateQuickStats(enhancedInfo, device) {
     
     return `
         <div class="details-section">
-            <h4>📈 Hızlı İstatistikler</h4>
+            <h4>📈 ${t('det_quick_stats')}</h4>
             <div class="details-grid">
                 <div class="details-card" style="text-align: center;">
-                    <h5>🚪 Açık Portlar</h5>
-                    <div style="font-size: 32px; font-weight: bold; color: #28a745;">${openPorts}</div>
+                    <h5>🚪 ${t('det_open_ports')}</h5>
+                    <div style="font-size: 32px; font-weight: bold; color: var(--severity-ok-fg, #28a745);">${openPorts}</div>
                 </div>
                 <div class="details-card" style="text-align: center;">
-                    <h5>🌐 Web Servisleri</h5>
-                    <div style="font-size: 32px; font-weight: bold; color: #007bff;">${webServices}</div>
+                    <h5>🌐 ${t('det_web_services')}</h5>
+                    <div style="font-size: 32px; font-weight: bold; color: var(--accent-fg, #007bff);">${webServices}</div>
                 </div>
                 <div class="details-card" style="text-align: center;">
-                    <h5>🛡️ Güvenlik Kontrolü</h5>
-                    <div style="font-size: 32px; font-weight: bold; color: #ffc107;">${securityIssues}</div>
+                    <h5>🛡️ ${t('det_security_checks')}</h5>
+                    <div style="font-size: 32px; font-weight: bold; color: var(--severity-warn-fg, #ffc107);">${securityIssues}</div>
                 </div>
             </div>
         </div>
@@ -360,12 +380,12 @@ function generateWebServicesGrid(webServices) {
     
     for (const [service, data] of Object.entries(webServices)) {
         if (data.error) {
+            // A connection error just means the port is closed. Show a quiet
+            // "closed" chip instead of dumping the raw Python exception at the user.
             html += `
                 <div class="details-card">
                     <h5>${service}</h5>
-                    <div class="vulnerability-item vulnerability-medium">
-                        <strong>❌ Hata:</strong> ${data.error}
-                    </div>
+                    <div class="details-no-data">${t('det_service_closed')}</div>
                 </div>
             `;
         } else {
@@ -404,7 +424,7 @@ function generateSSHInfo(sshInfo) {
                 ${sshInfo.connection_test ? `
                     <li><span class="details-label">Connection Test:</span><span class="details-value">
                         <span class="status-badge ${sshInfo.connection_test.success ? 'status-online' : 'status-error'}">
-                            ${sshInfo.connection_test.success ? 'Başarılı' : 'Başarısız'}
+                            ${sshInfo.connection_test.success ? t('det_success') : t('det_failed')}
                         </span>
                     </span></li>
                     ${sshInfo.connection_test.user ? `
@@ -528,7 +548,7 @@ function generateRaspberryPiServices(raspberryInfo) {
     }
     
     if (html === '<div class="details-grid">') {
-        return '<div class="details-no-data">Raspberry Pi servisi bulunamadı</div>';
+        return `<div class="details-no-data">${t('det_no_rpi')}</div>`;
     }
     
     html += '</div>';
@@ -542,9 +562,9 @@ function generateNetworkServicesInfo(networkServices) {
         html += `
             <div class="details-card">
                 <h5>${service.toUpperCase()}</h5>
-                ${Object.keys(data).length > 0 ? 
+                ${Object.keys(data).length > 0 ?
                     `<div class="details-code">${JSON.stringify(data, null, 2)}</div>` :
-                    '<div class="details-no-data">Veri bulunamadı</div>'
+                    `<div class="details-no-data">${t('det_no_data')}</div>`
                 }
             </div>
         `;
@@ -756,7 +776,7 @@ function generateDeviceTypeProbabilities(enhancedInfo) {
     
     // Eğer hiç sonuç yoksa
     if (html === '') {
-        html = '<div style="color: #666; font-style: italic;">Cihaz tipi analizi yapılmadı</div>';
+        html = `<div class="details-no-data">${t('det_no_data')}</div>`;
     }
     
     return html;

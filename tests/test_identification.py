@@ -14,6 +14,11 @@ def test_fingerprint_self_check():
     fingerprint.demo()
 
 
+def test_logsetup_self_check():
+    from mynes.core import logsetup
+    logsetup.demo()
+
+
 def test_os_detect_self_check():
     os_detect.demo()
 

@@ -19,6 +19,10 @@ warnings.filterwarnings("ignore", category=DeprecationWarning, module="scapy")
 import logging
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
 
+# App logging: rotating file + in-memory ring buffer feeding Settings > Logs.
+from mynes.core import logsetup
+logsetup.setup_logging(os.environ.get("MYNES_LOG_LEVEL", "INFO"))
+
 # Environment variables için dotenv desteği
 try:
     from dotenv import load_dotenv
@@ -1461,10 +1465,13 @@ def enhanced_analysis(ip):
             "started_at": datetime.now().isoformat()
         }
         
+        # Port-scan scope (fast|common|full) from the modal, default common.
+        scope = (request.get_json(silent=True) or {}).get('scope', 'common')
+
         # Arkaplan thread'inde gelişmiş analiz çalıştır
         analysis_thread = threading.Thread(
-            target=run_enhanced_analysis, 
-            args=(ip,)
+            target=run_enhanced_analysis,
+            args=(ip, scope)
         )
         analysis_thread.start()
         
@@ -1549,7 +1556,7 @@ def merge_lists_unique(list1, list2):
         print(f"List merge hatası: {e}")
         return list1 + list2
 
-def run_enhanced_analysis(ip):
+def run_enhanced_analysis(ip, scope='common'):
     """Run enhanced analysis in a background thread"""
     global enhanced_analysis_status
     
@@ -1643,11 +1650,12 @@ def run_enhanced_analysis(ip):
         
         # Gelişmiş analiz yap
         enhanced_info = scanner.enhanced_analyzer.get_comprehensive_device_info(
-            ip, 
+            ip,
             device.get('mac', ''),
             device.get('hostname', ''),
             device.get('vendor', ''),
-            progress_callback=progress_callback
+            progress_callback=progress_callback,
+            scope=scope
         )
         
         # Status güncelle

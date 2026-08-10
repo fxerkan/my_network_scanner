@@ -91,6 +91,22 @@ def _has_stable_identity(device: dict) -> bool:
     return bool(device.get("ip"))
 
 
+def _seen(mapping: dict, a, b) -> bool:
+    """Has the a->b pairing been recorded before?"""
+    return bool(a) and b in mapping.get(a, ())
+
+
+def _remember(mapping: dict, a, b, cap: int = 8) -> None:
+    """Record an a->b pairing, keeping the last `cap` values per key."""
+    if not a or not b:
+        return
+    lst = mapping.setdefault(a, [])
+    if b not in lst:
+        lst.append(b)
+        if len(lst) > cap:
+            del lst[0]
+
+
 def _label(device: dict) -> str:
     return device.get("alias") or device.get("hostname") or device.get("name") or device.get("ip") or "unknown"
 
@@ -134,21 +150,44 @@ def evaluate(
     miss_counts: dict[str, int] | None = None,
     thresholds: dict | None = None,
     enabled_rules: list[str] | None = None,
-) -> tuple[list[Alert], dict[str, int]]:
+    known_pairs: dict | None = None,
+) -> tuple[list[Alert], dict[str, int], dict]:
     """Compare two snapshots keyed by device identity.
 
     `miss_counts` carries how many consecutive scans each device has been absent,
-    so a single dropped ARP reply does not page the user. Returns the alerts plus
-    the updated miss counts, which the caller persists for the next round.
+    so a single dropped ARP reply does not page the user.
+
+    `known_pairs` is a self-learning memory of the (device, ip) and (ip, mac)
+    pairings this network has already shown. A dual-homed host - a Pi with both
+    Ethernet and Wi-Fi on the same L2 - answers ARP for either IP from either
+    NIC, so its IP<->MAC mapping flaps between a small, fixed set of values every
+    scan. Without memory that flapping fires IP_CHANGED / MAC_CHANGED endlessly.
+    We alert the *first* time a new pairing appears (genuinely informative) and
+    stay quiet on every repeat, while a real move to a never-before-seen IP/MAC
+    still fires. No device/ip/mac is hardcoded - the set is learned per network.
+
+    Returns the alerts, the updated miss counts, and the updated known_pairs,
+    all of which the caller persists for the next round.
     """
     th = {**DEFAULT_THRESHOLDS, **(thresholds or {})}
     misses = dict(miss_counts or {})
     alerts: list[Alert] = []
 
+    kp = known_pairs if known_pairs is not None else {}
+    ips_by_key = kp.setdefault("ips_by_key", {})   # snapshot key (mac) -> [ips seen]
+    macs_by_ip = kp.setdefault("macs_by_ip", {})   # ip -> [macs seen]
+
+    def _learn_current():
+        for k, d in current.items():
+            _remember(ips_by_key, k, d.get("ip"))
+            if d.get("ip") and d.get("mac"):
+                _remember(macs_by_ip, d["ip"], d["mac"].lower())
+
     # First run: there is no baseline, so *every* device looks new. Record the
     # snapshot silently instead of reporting the whole network as arrivals.
     if not previous:
-        return [], misses
+        _learn_current()
+        return [], misses, kp
 
     def emit(rule, severity, title, message, device, **details):
         if enabled_rules is not None and rule not in enabled_rules:
@@ -193,7 +232,12 @@ def evaluate(
             if online and not was_online:
                 emit(DEVICE_ONLINE, "info", f"Back online: {name}", f"{name} is reachable again.", dev)
 
-            if old.get("ip") and dev.get("ip") and old["ip"] != dev["ip"]:
+            if (
+                old.get("ip") and dev.get("ip") and old["ip"] != dev["ip"]
+                and not _seen(ips_by_key, key, dev["ip"])
+            ):
+                # Only the first time this device is seen at this IP. A dual-homed
+                # host flapping between its known IPs stays quiet after that.
                 emit(
                     IP_CHANGED,
                     "info",
@@ -299,7 +343,13 @@ def evaluate(
     prev_by_ip = {d["ip"]: d for d in previous.values() if d.get("ip") and d.get("mac")}
     for dev in current.values():
         old = prev_by_ip.get(dev.get("ip"))
-        if old and dev.get("mac") and old["mac"].lower() != dev["mac"].lower():
+        if (
+            old and dev.get("mac") and old["mac"].lower() != dev["mac"].lower()
+            and not _seen(macs_by_ip, dev.get("ip"), dev["mac"].lower())
+        ):
+            # First time this IP answers from this MAC. A dual-homed host whose
+            # two NICs both reply for either IP no longer trips this every scan;
+            # a genuinely new MAC on the IP still fires once.
             emit(
                 MAC_CHANGED,
                 "critical",
@@ -311,7 +361,10 @@ def evaluate(
                 new_mac=dev["mac"],
             )
 
-    return alerts, misses
+    # Record this scan's pairings AFTER all checks, so the guards above compared
+    # against prior scans only.
+    _learn_current()
+    return alerts, misses, kp
 
 
 def demo():
@@ -333,7 +386,7 @@ def demo():
         NEW: {"mac": NEW, "ip": "192.168.1.12", "alias": "New Thing", "status": "online"},
     }
 
-    alerts, misses = evaluate(prev, cur)
+    alerts, misses, _ = evaluate(prev, cur)
     fired = {a.rule for a in alerts}
     assert NEW_DEVICE in fired, fired
     assert IP_CHANGED in fired, fired
@@ -344,7 +397,7 @@ def demo():
 
     # NAS missed once -> silent; missed twice -> alert. No flapping on a single drop.
     assert DEVICE_OFFLINE not in fired, "should not alert on the first miss"
-    alerts2, _ = evaluate(prev, cur, miss_counts=misses)
+    alerts2, _, _ = evaluate(prev, cur, miss_counts=misses)
     assert DEVICE_OFFLINE in {a.rule for a in alerts2}, "should alert on the second miss"
 
     # Identical snapshots must produce nothing.
@@ -352,16 +405,44 @@ def demo():
 
     # Same IP, different MAC -> critical.
     spoof_mac = "de:ad:be:ef:00:99"
-    spoof, _ = evaluate(prev, {spoof_mac: {"mac": spoof_mac, "ip": "192.168.1.10", "status": "online"}})
+    spoof, _, _ = evaluate(prev, {spoof_mac: {"mac": spoof_mac, "ip": "192.168.1.10", "status": "online"}})
     assert MAC_CHANGED in {a.rule for a in spoof}
 
     # A rotating BLE address must not read as an arrival.
     ble = "7DE7F807-A905-9E49-54FD-7CAD1F3E786D"
-    quiet, _ = evaluate(prev, {**prev, ble.lower(): {"mac": ble, "status": "online"}})
+    quiet, _, _ = evaluate(prev, {**prev, ble.lower(): {"mac": ble, "status": "online"}})
     assert quiet == [], [a.title for a in quiet]
 
     # No baseline yet -> record it silently rather than report the whole network.
     assert evaluate({}, cur)[0] == [], "the first run must not alert"
+
+    # Dual-homed host: a Pi with eth0+wlan0 on the same L2 flaps its IP<->MAC
+    # mapping between two fixed values. It must alert at most once per new pairing,
+    # then go quiet - not fire IP_CHANGED / MAC_CHANGED on every single scan.
+    ETH, WIFI = "d8:3a:dd:de:d8:67", "d8:3a:dd:de:d8:68"
+    base = {
+        ETH: {"mac": ETH, "ip": "192.168.1.62", "alias": "RPIFX", "status": "online"},
+        WIFI: {"mac": WIFI, "ip": "192.168.1.116", "alias": "RPIFX", "status": "online"},
+    }
+    swapped = {
+        ETH: {"mac": ETH, "ip": "192.168.1.116", "alias": "RPIFX", "status": "online"},
+        WIFI: {"mac": WIFI, "ip": "192.168.1.62", "alias": "RPIFX", "status": "online"},
+    }
+    kp: dict = {}
+    _, _, kp = evaluate({}, base, known_pairs=kp)          # baseline, silent
+    a1, _, kp = evaluate(base, swapped, known_pairs=kp)    # first swap: learns, may alert once
+    flap_rules = {IP_CHANGED, MAC_CHANGED}
+    for _ in range(5):                                     # keep flapping back and forth
+        a_back, _, kp = evaluate(swapped, base, known_pairs=kp)
+        a_fwd, _, kp = evaluate(base, swapped, known_pairs=kp)
+        assert not (flap_rules & {a.rule for a in a_back}), "flapping must be silent after learning"
+        assert not (flap_rules & {a.rule for a in a_fwd}), "flapping must be silent after learning"
+
+    # But a genuinely new IP the host has never used still fires once.
+    moved = {ETH: {"mac": ETH, "ip": "192.168.1.200", "alias": "RPIFX", "status": "online"},
+             WIFI: base[WIFI]}
+    a_new, _, kp = evaluate(base, moved, known_pairs=kp)
+    assert IP_CHANGED in {a.rule for a in a_new}, "a never-seen IP must still alert"
 
     # Muting silences notifications, and only for what the user picked.
     offline = {"rule": "device_offline", "device_id": "AA:BB:CC:DD:EE:01", "ip": "192.168.1.9"}

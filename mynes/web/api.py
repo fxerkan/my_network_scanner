@@ -335,6 +335,38 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
         the "what should I fix" view instead of clicking through each one."""
         return jsonify(cve_mod.fleet_summary(_devices()))
 
+    # -- application logs (Settings > Logs) --------------------------------
+    from mynes.core import logsetup
+
+    @bp.get("/logs")
+    def logs_get():
+        """Recent log records, filterable by minimum level and free text."""
+        try:
+            limit = min(2000, max(1, int(request.args.get("limit", 500))))
+        except (TypeError, ValueError):
+            limit = 500
+        return jsonify({
+            "level": logsetup.get_level(),
+            "levels": logsetup.LEVELS,
+            "logs": logsetup.recent(limit, request.args.get("level"), request.args.get("q")),
+        })
+
+    @bp.post("/logs/level")
+    def logs_set_level():
+        """Change the live log verbosity (verbose/info/etc.)."""
+        body = request.get_json(silent=True) or {}
+        return jsonify({"level": logsetup.set_level(body.get("level", "INFO"))})
+
+    @bp.get("/logs/download")
+    def logs_download():
+        """Download the full rotating log file as plain text."""
+        from flask import send_file
+        try:
+            return send_file(logsetup.LOG_FILE, as_attachment=True,
+                             download_name="mynes.log", mimetype="text/plain")
+        except FileNotFoundError:
+            return jsonify({"error": "no log file yet"}), 404
+
     # -- CVE database overlay (offline, refreshable) -----------------------
     # Same UX as the OUI database: the built-in CVE_PATTERNS is the seed, a
     # downloadable JSON overlay augments it. Never becomes a live NVD feed.

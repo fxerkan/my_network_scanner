@@ -189,12 +189,13 @@ class MonitorScheduler:
         previous = state.get("snapshot") or {}
         is_baseline = not previous
         current = _snapshot(devices)
-        alerts, misses = rules.evaluate(
+        alerts, misses, known_pairs = rules.evaluate(
             previous=previous,
             current=current,
             miss_counts=state.get("miss_counts") or {},
             thresholds=settings["thresholds"],
             enabled_rules=settings["enabled_rules"],
+            known_pairs=state.get("known_pairs") or {},
         )
 
         alert_dicts = [a.to_dict() for a in alerts]
@@ -204,7 +205,12 @@ class MonitorScheduler:
         notifiable = [a for a in alert_dicts if not rules.is_muted(a, settings["muted_devices"])]
         store.add_alerts(alert_dicts)
         self.last_run = datetime.now(timezone.utc).isoformat()
-        store.save_state({"snapshot": current, "miss_counts": misses, "last_run": self.last_run})
+        store.save_state({
+            "snapshot": current,
+            "miss_counts": misses,
+            "known_pairs": known_pairs,
+            "last_run": self.last_run,
+        })
 
         # One cell per device per run, for the History page's uptime strip.
         # The aggregate scan history says how many were up, never which.

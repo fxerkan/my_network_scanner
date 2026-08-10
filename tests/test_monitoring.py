@@ -33,21 +33,21 @@ def test_offline_alert_is_not_repeated_every_scan():
     prev = {"aa": {"mac": "aa", "ip": "10.0.0.2", "status": "online"}}
     gone: dict = {}
 
-    fired, misses = rules.evaluate(prev, gone)
+    fired, misses, _ = rules.evaluate(prev, gone)
     assert fired == []  # first miss is tolerated
 
-    fired, misses = rules.evaluate(prev, gone, miss_counts=misses)
+    fired, misses, _ = rules.evaluate(prev, gone, miss_counts=misses)
     assert [a.rule for a in fired] == [rules.DEVICE_OFFLINE]
 
     for _ in range(5):
-        fired, misses = rules.evaluate(prev, gone, miss_counts=misses)
+        fired, misses, _ = rules.evaluate(prev, gone, miss_counts=misses)
         assert fired == [], "must stay quiet while the device remains offline"
 
 
 def test_disabled_rules_are_filtered_out():
     prev: dict = {}
     cur = {"aa": {"mac": "aa", "ip": "10.0.0.2", "status": "online"}}
-    fired, _ = rules.evaluate(prev, cur, enabled_rules=[rules.DEVICE_OFFLINE])
+    fired, _, _ = rules.evaluate(prev, cur, enabled_rules=[rules.DEVICE_OFFLINE])
     assert fired == []
 
 
@@ -58,12 +58,12 @@ def test_first_run_records_a_baseline_instead_of_alerting():
         f"aa:bb:cc:00:00:{i:02x}": {"mac": f"aa:bb:cc:00:00:{i:02x}", "ip": f"10.0.0.{i}", "status": "online"}
         for i in range(30)
     }
-    alerts, _ = rules.evaluate({}, current)
+    alerts, _, _ = rules.evaluate({}, current)
     assert alerts == [], f"first run must be silent, got {len(alerts)}"
 
     # ...but a genuine arrival on the NEXT run still alerts.
     later = {**current, "aa:bb:cc:99:99:99": {"mac": "aa:bb:cc:99:99:99", "ip": "10.0.0.99", "status": "online"}}
-    alerts, _ = rules.evaluate(current, later)
+    alerts, _, _ = rules.evaluate(current, later)
     assert [a.rule for a in alerts] == [rules.NEW_DEVICE]
 
 
@@ -77,7 +77,7 @@ def test_rotating_ble_addresses_do_not_alert():
             "mac": "7DE7F807-A905-9E49-54FD-7CAD1F3E786D", "status": "online",
         },
     }
-    alerts, _ = rules.evaluate(known, with_ble)
+    alerts, _, _ = rules.evaluate(known, with_ble)
     assert alerts == [], [a.title for a in alerts]
 
 
