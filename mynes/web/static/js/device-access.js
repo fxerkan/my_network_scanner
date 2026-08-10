@@ -536,6 +536,10 @@ function closeUnifiedAnalysisModal(sessionKey) {
     
     // Session'ı sil
     activeAnalysisSessions.delete(sessionKey);
+
+    // Analiz penceresi kapatılınca kart listesini tazele ki "Details" butonu
+    // (ve güncel portlar) görünsün.
+    if (typeof loadDevices === 'function') loadDevices(true);
 }
 
 // Modal'ı minimize et
@@ -900,6 +904,51 @@ function updateToasterProgress(sessionKey, progressPercent, message, state = 'ru
     }
 }
 
+// Analiz tamamlanınca cihaz listesini güvenilir şekilde tazele. loadDevices()
+// tek başına yeterli olmalı ama zamanlama/yarış durumlarına karşı: (1) tam
+// listeyi yeniden çek, (2) yetmezse ilgili cihazı /device/<ip> ile tek tek
+// çekip global `devices` dizisine enjekte ederek kartı yeniden çizdir, (3) bir
+// kez daha dene. Böylece "Details" butonu app'i yeniden başlatmadan gelir.
+async function refreshDevicesAfterAnalysis(ip) {
+    const hasEnhanced = (d) => d && (d.enhanced_comprehensive_info || d.advanced_scan_summary || d.enhanced_info);
+
+    async function fullRefresh() {
+        if (typeof loadDevices === 'function') {
+            try { await loadDevices(true); } catch (e) { console.warn('loadDevices hatası:', e); }
+        }
+    }
+
+    async function mergeSingle() {
+        // Fallback: authoritative tekil cihaz verisini çekip global diziye işle.
+        try {
+            const resp = await fetch(`/device/${ip}`);
+            if (!resp.ok) return false;
+            const dev = await resp.json();
+            if (!hasEnhanced(dev)) return false;
+            if (typeof devices !== 'undefined' && Array.isArray(devices)) {
+                const i = devices.findIndex(d => d.ip === ip);
+                if (i >= 0) Object.assign(devices[i], dev); else devices.push(dev);
+                if (typeof filterDevices === 'function') filterDevices();
+                else if (typeof displayDevices === 'function') displayDevices(devices);
+            }
+            return true;
+        } catch (e) {
+            console.warn('mergeSingle hatası:', e);
+            return false;
+        }
+    }
+
+    await fullRefresh();
+    // Kart hâlâ enhanced göstermiyorsa tekil merge + bir tekrar dene.
+    const shown = (typeof devices !== 'undefined' && Array.isArray(devices))
+        ? hasEnhanced(devices.find(d => d.ip === ip)) : true;
+    if (!shown) {
+        if (!(await mergeSingle())) {
+            setTimeout(() => { fullRefresh().then(() => mergeSingle()); }, 1500);
+        }
+    }
+}
+
 // Analiz bittikten sonra "Başlat" butonunu kilitle - yanlışlıkla yeniden analizi engeller
 function markAnalysisDone(sessionKey) {
     const session = activeAnalysisSessions.get(sessionKey);
@@ -940,7 +989,10 @@ function handleToasterClose(sessionKey) {
                 if (activeAnalysisSessions.has(sessionKey)) {
                     activeAnalysisSessions.delete(sessionKey);
                 }
-                
+
+                // Kart listesini tazele ki tamamlanan analizin "Details" butonu gelsin
+                if (typeof loadDevices === 'function') loadDevices(true);
+
                 // Temp dosyasını temizle
                 fetch(`/clear_analysis_temp/${sessionKey}`, { method: 'POST' })
                     .catch(error => console.warn('Temp dosya temizleme hatası:', error));
@@ -1406,15 +1458,21 @@ function monitorSingleDeviceAnalysis(ip) {
                 showAnalysisCompletedNotification(ip, sessionKey);
                 showToast(`🎉 ${t('enhanced_analysis_completed', {ip: ip})}`, 'success');
 
-                // Sonuçları göster
-                setTimeout(() => {
-                    modal.querySelector('#analysisProgress').style.display = 'none';
-                    resultsDiv.style.display = 'block';
+                // Kart listesini HEMEN ve koşulsuz tazele - "Details" butonunun
+                // gelmesi buna bağlı. Modal minimize/kapalı olsa bile çalışsın diye
+                // modal'a dokunan koddan ÖNCE ve ayrı olarak çağırıyoruz.
+                refreshDevicesAfterAnalysis(ip);
 
-                    // Cihaz detaylarını yeniden yükle ve göster
-                    loadDeviceAnalysisResults(ip, sessionKey);
-                    // Kart listesini yenile ki "Details" butonu görünsün
-                    if (typeof loadDevices === 'function') loadDevices(true);
+                // Sonuçları modal içinde göster (modal DOM'u hâlâ varsa)
+                setTimeout(() => {
+                    try {
+                        const pd = modal && modal.querySelector('#analysisProgress');
+                        if (pd) pd.style.display = 'none';
+                        if (resultsDiv) resultsDiv.style.display = 'block';
+                        loadDeviceAnalysisResults(ip, sessionKey);
+                    } catch (e) {
+                        console.warn('Modal sonuç gösterimi atlandı:', e);
+                    }
                 }, 1000);
 
             } else if (status.status === 'error') {

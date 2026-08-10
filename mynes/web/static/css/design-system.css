@@ -940,6 +940,12 @@ body.tv-mode :focus-visible {
 .ds-multi__label { font-weight: 600; }
 .ds-multi__count { color: var(--text-tertiary); }
 .ds-multi__btn.is-active .ds-multi__count { color: var(--accent-text); }
+/* A .ds-card clips to its rounded corners with overflow:hidden, which also
+   clipped the absolutely-positioned dropdown popover inside it - the options
+   rendered but were cut off at the card edge (the "empty dropdown" bug). Let a
+   card that actually contains an open-able popover show its overflow. */
+.ds-card:has(.ds-multi__pop) { overflow: visible; }
+
 .ds-multi__pop {
   position: absolute; z-index: var(--z-dropdown, 400); top: calc(100% + 4px); left: 0;
   min-width: 220px; max-width: 320px;

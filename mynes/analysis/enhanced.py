@@ -66,9 +66,9 @@ class EnhancedDeviceAnalyzer:
         """Kapsamlı cihaz bilgileri toplama. `scope` (fast|common|full) picks how
         wide the port scan goes so the user isn't forced to wait out a full sweep."""
         
-        def log_operation(operation, status="başlatılıyor", details=""):
+        def log_operation(operation, status="starting", details=""):
             if progress_callback:
-                message = f"{ip} - 🔬🔬 {operation}: {status}"
+                message = f"{ip} - {operation}: {status}"
                 if details:
                     message += f" ({details})"
                 progress_callback(message)
@@ -93,67 +93,67 @@ class EnhancedDeviceAnalyzer:
             'detailed_ports': {}
         }
         
-        # 1. Gelişmiş Port Tarama
-        log_operation("🔌 Gelişmiş Port Analizi", "başlatılıyor", scope)
+        # 1. Port scan
+        log_operation("🔌 Port analysis", "starting", scope)
         enhanced_info['detailed_ports'] = self.comprehensive_port_scan(ip, progress_callback, scope=scope)
-        log_operation("🔌 Gelişmiş Port Analizi", "tamamlandı", f"{len(enhanced_info['detailed_ports'])} port bulundu")
-        
-        # 2. Web Servisleri Analizi
-        log_operation("🌐 Web Servisleri Analizi", "başlatılıyor", "HTTP/HTTPS derinlemesine")
+        log_operation("🔌 Port analysis", "done", f"{len(enhanced_info['detailed_ports'])} ports")
+
+        # 2. Web services
+        log_operation("🌐 Web services", "starting", "HTTP/HTTPS")
         enhanced_info['web_services'] = self.analyze_web_services(ip)
-        log_operation("🌐 Web Servisleri Analizi", "tamamlandı")
-        
-        # 3. SSH Analizi ve Erişim
-        log_operation("🔐 SSH Analizi", "başlatılıyor", "banner, algoritma, erişim")
+        log_operation("🌐 Web services", "done")
+
+        # 3. SSH
+        log_operation("🔐 SSH analysis", "starting", "banner, algorithms, access")
         enhanced_info['remote_access']['ssh'] = self.analyze_ssh_service(ip, progress_callback)
-        log_operation("🔐 SSH Analizi", "tamamlandı")
-        
-        # 4. FTP Analizi
-        log_operation("📁 FTP Analizi", "başlatılıyor", "anonymous, banner")
+        log_operation("🔐 SSH analysis", "done")
+
+        # 4. FTP
+        log_operation("📁 FTP analysis", "starting", "anonymous, banner")
         enhanced_info['file_services']['ftp'] = self.analyze_ftp_service(ip)
-        log_operation("📁 FTP Analizi", "tamamlandı")
-        
-        # 5. SMB/CIFS Derinlemesine Analiz
-        log_operation("🗂️ SMB/CIFS Analizi", "başlatılıyor", "shares, permissions")
+        log_operation("📁 FTP analysis", "done")
+
+        # 5. SMB/CIFS
+        log_operation("🗂️ SMB/CIFS analysis", "starting", "shares, permissions")
         enhanced_info['file_services']['smb'] = self.analyze_smb_comprehensive(ip)
-        log_operation("🗂️ SMB/CIFS Analizi", "tamamlandı")
-        
-        # 6. SNMP Detaylı Analiz
-        log_operation("📡 SNMP Detaylı Analiz", "başlatılıyor", "system, network, processes")
+        log_operation("🗂️ SMB/CIFS analysis", "done")
+
+        # 6. SNMP
+        log_operation("📡 SNMP analysis", "starting", "system, network, processes")
         enhanced_info['network_services']['snmp'] = self.analyze_snmp_comprehensive(ip)
-        log_operation("📡 SNMP Detaylı Analiz", "tamamlandı")
-        
-        # 7. Raspberry Pi Özel Analizi
-        log_operation("🥧 Raspberry Pi Analizi", "başlatılıyor", "GPIO, hardware, services")
+        log_operation("📡 SNMP analysis", "done")
+
+        # 7. Raspberry Pi
+        log_operation("🥧 Raspberry Pi analysis", "starting", "GPIO, hardware, services")
         enhanced_info['raspberry_pi_analysis'] = self.analyze_raspberry_pi(ip)
-        log_operation("🥧 Raspberry Pi Analizi", "tamamlandı")
-        
-        # 8. IoT Cihaz Analizi
-        log_operation("🌐 IoT Cihaz Analizi", "başlatılıyor", "protokoller, API'ler")
+        log_operation("🥧 Raspberry Pi analysis", "done")
+
+        # 8. IoT
+        log_operation("🌐 IoT analysis", "starting", "protocols, APIs")
         enhanced_info['iot_analysis'] = self.analyze_iot_device(ip)
-        log_operation("🌐 IoT Cihaz Analizi", "tamamlandı")
-        
-        # 9. OS Fingerprinting
-        log_operation("💻 İşletim Sistemi Tespiti", "başlatılıyor", "nmap, TTL, TCP")
+        log_operation("🌐 IoT analysis", "done")
+
+        # 9. OS fingerprinting
+        log_operation("💻 OS detection", "starting", "nmap, TTL, TCP")
         enhanced_info['system_identification']['os_detection'] = self.advanced_os_detection(ip)
-        log_operation("💻 İşletim Sistemi Tespiti", "tamamlandı")
-        
-        # 10. Güvenlik Analizi - reuse the CVE DB over what we already collected.
-        log_operation("🛡️ Güvenlik Analizi", "başlatılıyor", "CVE database")
+        log_operation("💻 OS detection", "done")
+
+        # 10. Security - reuse the CVE DB over what we already collected.
+        log_operation("🛡️ Security analysis", "starting", "CVE database")
         enhanced_info['security_analysis'] = self.security_analysis(ip, enhanced_info)
-        log_operation("🛡️ Güvenlik Analizi", "tamamlandı")
-        
-        # 11. Kapsamlı Cihaz Tipi Analizi
-        log_operation("🎯 Cihaz Tipi Analizi", "başlatılıyor", "comprehensive device detection")
+        log_operation("🛡️ Security analysis", "done")
+
+        # 11. Device type
+        log_operation("🎯 Device type analysis", "starting", "comprehensive detection")
         enhanced_info['device_type_analysis'] = self.comprehensive_device_type_analysis(
             ip, mac, hostname, vendor, enhanced_info
         )
-        log_operation("🎯 Cihaz Tipi Analizi", "tamamlandı")
-        
-        # 12. Credential-Based Advanced Analysis
-        log_operation("🔐 Erişim Tabanlı Analiz", "başlatılıyor", "authenticated access analysis")
+        log_operation("🎯 Device type analysis", "done")
+
+        # 12. Credential-based analysis
+        log_operation("🔐 Credential-based analysis", "starting", "authenticated access")
         enhanced_info['credential_based_analysis'] = self.credential_based_analysis(ip)
-        log_operation("🔐 Erişim Tabanlı Analiz", "tamamlandı")
+        log_operation("🔐 Credential-based analysis", "done")
         
         # Bulunan servisleri open_ports formatına dönüştür
         enhanced_info['discovered_ports'] = self.extract_discovered_ports(enhanced_info)
@@ -166,7 +166,7 @@ class EnhancedDeviceAnalyzer:
 
         def log_port_operation(operation, details=""):
             if progress_callback:
-                progress_callback(f"{ip} - 🔌 Port Tarama: {operation} {details}")
+                progress_callback(f"{ip} - Port scan: {operation} {details}")
 
         port_info = {}
 
@@ -176,32 +176,32 @@ class EnhancedDeviceAnalyzer:
         # çağrısı vardı ve mesaj dakikalarca donuyordu.
         # ponytail: --version-light + -T4 hız için; -sT root gerektirmez.
         PORT_SCOPES = {
-            'fast': [("1-1024", "1-1024 arası sistem portları")],
+            'fast': [("1-1024", "system ports 1-1024")],
             'common': [
-                ("1-1024", "1-1024 arası sistem portları"),
-                ("1025-5000", "1025-5000 arası kayıtlı portlar"),
-                ("5001-10000", "5001-10000 arası özel servis portları"),
+                ("1-1024", "system ports 1-1024"),
+                ("1025-5000", "registered ports 1025-5000"),
+                ("5001-10000", "service ports 5001-10000"),
             ],
             'full': [
-                ("1-16384", "1-16384"),
-                ("16385-32768", "16385-32768"),
-                ("32769-49152", "32769-49152"),
-                ("49153-65535", "49153-65535"),
+                ("1-16384", "ports 1-16384"),
+                ("16385-32768", "ports 16385-32768"),
+                ("32769-49152", "ports 32769-49152"),
+                ("49153-65535", "ports 49153-65535"),
             ],
         }
         port_ranges = PORT_SCOPES.get(scope, PORT_SCOPES['common'])
 
         try:
             nm = nmap.PortScanner()
-            log_port_operation("başladı", "(1-10000 port, aralık aralık)...")
+            log_port_operation("started", f"(scope: {scope}, range by range)...")
             open_port_count = 0
 
             for port_range, description in port_ranges:
-                log_port_operation("taranıyor", f"({description}) [{port_range}]...")
+                log_port_operation("scanning", f"({description}) [{port_range}]...")
                 try:
                     result = nm.scan(ip, ports=port_range, arguments='-sT -sV --version-light -T4')
                 except Exception as e:
-                    log_port_operation(f"aralık hatası [{port_range}]: {e}")
+                    log_port_operation(f"range error [{port_range}]: {e}")
                     continue
 
                 host_info = result.get('scan', {}).get(ip, {})
@@ -210,7 +210,7 @@ class EnhancedDeviceAnalyzer:
                         if port_data.get('state') == 'open':
                             open_port_count += 1
                             log_port_operation(
-                                f"açık port bulundu: {port} "
+                                f"open port found: {port} "
                                 f"({port_data.get('name', 'unknown')}) [{port_range}]"
                             )
 
@@ -225,7 +225,7 @@ class EnhancedDeviceAnalyzer:
                             'cpe': port_data.get('cpe', '')
                         }
 
-            log_port_operation("işletim sistemi parmak izi analizi yapılıyor...")
+            log_port_operation("analysing OS fingerprint...")
 
             # Service-based OS fingerprinting (tüm aralıklardan toplanan portlar üzerinde).
             # _analyze_service_os_hints 'name' anahtarını okur; bizim kayıtta ad 'service'

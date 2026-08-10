@@ -1665,64 +1665,19 @@ def run_enhanced_analysis(ip, scope='common'):
         }
         
         print(f"Enhanced analysis: {ip} analizi tamamlandı, sonuçlar kaydediliyor...")
-        
-        # Mevcut enhanced info'yu koru ve yeni bilgilerle merge et
-        existing_enhanced_info = device.get('enhanced_comprehensive_info', {})
-        
-        # Deep merge - mevcut veriyi koruyarak yeni veriyi ekle
-        merged_enhanced_info = merge_enhanced_info(existing_enhanced_info, enhanced_info)
-        
-        # Unified model ile enhanced analysis sonuçlarını merge et
-        enhanced_analysis_data = {
-            "analysis_data": {
-                "enhanced_analysis_info": merged_enhanced_info,
-                "last_enhanced_analysis": datetime.now().isoformat()
-            }
-        }
-        
-        # Mevcut device'ı unified format'a migrate et
-        unified_device = unified_model.migrate_legacy_data(device)
-        
-        # Enhanced analysis sonuçlarını merge et
-        merged_device = unified_model.merge_device_data(unified_device, enhanced_analysis_data, "enhanced_analysis")
-        
-        # Sonuçları device'a geri yaz
-        device.update(merged_device)
-        
-        # Backward compatibility için legacy field'ları da güncelle
-        device['enhanced_comprehensive_info'] = merged_enhanced_info
-        device['last_enhanced_analysis'] = datetime.now().isoformat()
-        device['advanced_scan_summary'] = merged_enhanced_info
-        device['enhanced_info'] = merged_enhanced_info
-        
-        # Bulunan servisleri unified model ile open_ports'a ekle
-        discovered_ports = enhanced_info.get('discovered_ports', [])
-        if discovered_ports:
-            # Discovered port'ları unified port format'a dönüştür
-            unified_ports = []
-            for discovered_port in discovered_ports:
-                unified_port = unified_model.create_unified_port(
-                    discovered_port.get('port', 0),
-                    service=discovered_port.get('service', 'unknown'),
-                    state=discovered_port.get('state', 'open'),
-                    version=discovered_port.get('version', ''),
-                    product=discovered_port.get('product', ''),
-                    description=discovered_port.get('description', ''),
-                    manual=False,
-                    source="enhanced_analysis"
-                )
-                unified_ports.append(unified_port)
-            
-            # Mevcut port'larla merge et
-            current_ports = device.get('open_ports', [])
-            merged_ports = unified_model.merge_ports(current_ports, unified_ports, "enhanced_analysis")
-            device['open_ports'] = merged_ports
-            
-            print(f"Enhanced analysis: {ip} için port'lar unified model ile merge edildi")
-        
-        # Kaydet
-        scanner.save_to_json()
-        
+
+        # Persist atomically: re-locate the device in the LIVE list and write +
+        # save under the scanner lock. The `device` grabbed at the start of this
+        # (minutes-long) run may have been orphaned by a scan that rebuilt
+        # self.devices in the meantime - writing to it would never reach disk.
+        scanner.apply_enhanced_analysis(
+            ip,
+            device.get('mac', ''),
+            enhanced_info,
+            discovered_ports=enhanced_info.get('discovered_ports', []),
+        )
+        print(f"Enhanced analysis: {ip} sonuçları kalıcı olarak kaydedildi")
+
         # Başarılı tamamlandı
         enhanced_analysis_status[ip] = {
             "status": "completed",

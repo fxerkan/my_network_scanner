@@ -119,6 +119,10 @@ class LANScanner:
         self.last_arp_method = None
         self.privilege_hint = None
         self.devices = []
+        # Serialises writes to self.devices/disk. Enhanced analysis runs for
+        # minutes; without this a scan that rebuilds self.devices mid-analysis
+        # would orphan the result and it would never reach disk.
+        self._io_lock = threading.RLock()
         self.mac_lookup = MacLookup()
         self.oui_manager = OUIManager()
         self.scanning = False
@@ -1449,7 +1453,30 @@ class LANScanner:
         
         if preserved_count > 0:
             print(f"✅ {preserved_count} çevrimdışı cihaz korundu")
-        
+
+        # Enhanced-analysis sonuçlarını MAC bazında koru. Dual-homed bir host'un
+        # IP<->MAC eşleşmesi taramalar arasında flap yapınca mac@ip anahtarı
+        # tutmuyor ve online cihaz enhanced verisini kaybediyordu. Adaptör (MAC)
+        # sabit olduğu için diskteki enhanced veriyi MAC'e göre geri yükle.
+        enhanced_by_mac = {}
+        for ud in existing_devices.values():
+            enh = ud.get('enhanced_comprehensive_info') or ud.get('advanced_scan_summary')
+            mac = (ud.get('mac') or '').lower()
+            if enh and mac:
+                enhanced_by_mac[mac] = ud
+        for dev in self.devices:
+            mac = (dev.get('mac') or '').lower()
+            src = enhanced_by_mac.get(mac)
+            if src and not (dev.get('enhanced_comprehensive_info') or dev.get('advanced_scan_summary')):
+                enh = src.get('enhanced_comprehensive_info') or src.get('advanced_scan_summary')
+                dev['enhanced_comprehensive_info'] = enh
+                dev['advanced_scan_summary'] = enh
+                dev['enhanced_info'] = enh
+                dev['last_enhanced_analysis'] = src.get('last_enhanced_analysis')
+                ad = dev.setdefault('analysis_data', {})
+                ad.setdefault('enhanced_analysis_info', (src.get('analysis_data') or {}).get('enhanced_analysis_info') or enh)
+                ad.setdefault('last_enhanced_analysis', src.get('last_enhanced_analysis'))
+
         # Final MAC+IP tekrarı kontrolü ve temizleme
         print(f"\n🔍 Final MAC+IP tekrarı kontrolü...")
         unique_devices = []
@@ -1536,9 +1563,72 @@ class LANScanner:
         """Taramayı durdurur"""
         self.scanning = False
     
+    def apply_enhanced_analysis(self, ip, mac, enhanced_info, discovered_ports=None):
+        """Persist enhanced-analysis results into the LIVE device list, atomically.
+
+        The caller cannot hold a device reference across the analysis: it runs for
+        minutes and a scan may rebuild self.devices in the meantime, orphaning that
+        reference so the write never reaches disk. So we re-locate the device HERE,
+        under the io lock, preferring an exact mac@ip match, then mac-only (the
+        adapter is stable even if the IP flapped), then ip-only. Returns the device
+        that was updated (a new stub if it had vanished entirely), so the result is
+        never silently dropped.
+        """
+        with self._io_lock:
+            mac_l = (mac or '').lower()
+            target = None
+            for d in self.devices:
+                if (d.get('mac') or '').lower() == mac_l and d.get('ip') == ip and mac_l:
+                    target = d
+                    break
+            if target is None and mac_l:
+                target = next((d for d in self.devices if (d.get('mac') or '').lower() == mac_l), None)
+            if target is None:
+                target = next((d for d in self.devices if d.get('ip') == ip), None)
+            if target is None:
+                target = {'ip': ip, 'mac': mac, 'status': 'online'}
+                self.devices.append(target)
+
+            # Merge with whatever the live device already had, not a stale copy.
+            # Shallow section-level merge: a fresh section overwrites the old one,
+            # sections not re-scanned this run are kept.
+            existing = target.get('enhanced_comprehensive_info') or {}
+            merged = {**existing, **enhanced_info} if isinstance(existing, dict) else enhanced_info
+
+            now = datetime.now().isoformat()
+            ad = target.setdefault('analysis_data', {})
+            ad['enhanced_analysis_info'] = merged
+            ad['last_enhanced_analysis'] = now
+            target['enhanced_comprehensive_info'] = merged
+            target['advanced_scan_summary'] = merged
+            target['enhanced_info'] = merged
+            target['last_enhanced_analysis'] = now
+
+            if discovered_ports:
+                unified_ports = [
+                    unified_model.create_unified_port(
+                        p.get('port', 0),
+                        service=p.get('service', 'unknown'),
+                        state=p.get('state', 'open'),
+                        version=p.get('version', ''),
+                        product=p.get('product', ''),
+                        description=p.get('description', ''),
+                        manual=False,
+                        source="enhanced_analysis",
+                    )
+                    for p in discovered_ports
+                ]
+                target['open_ports'] = unified_model.merge_ports(
+                    target.get('open_ports', []), unified_ports, "enhanced_analysis"
+                )
+
+            self.save_to_json()
+            return target
+
     def save_to_json(self, filename=data_file('lan_devices.json')):
         """Cihaz bilgilerini JSON dosyasına kaydeder (credential'ları encrypted olarak)"""
         try:
+          with self._io_lock:
             # Dizin yoksa oluştur
             os.makedirs(os.path.dirname(filename), exist_ok=True)
             
