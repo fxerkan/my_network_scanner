@@ -7,7 +7,7 @@
   "port": 5883,
   "id": "mynes",
   "tipi_version": 1,
-  "version": "1.4.3",
+  "version": "1.4.4",
   "categories": [
     "network",
     "utilities"
