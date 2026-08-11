@@ -33,7 +33,7 @@ services:
       # the bus as unreachable instead of failing. Remove to disable BLE.
       - /run/dbus/system_bus_socket:/run/dbus/system_bus_socket
     healthcheck:
-      test: ["CMD", "python", "-c", "import http.client as h; c=h.HTTPConnection('localhost',5883,timeout=5); c.request('GET','/api/version'); exit(0 if c.getresponse().status < 500 else 1)"]
+      test: ["CMD", "python", "-c", "import http.client as h; c=h.HTTPConnection('localhost',5883,timeout=5); c.request('GET','/api/health'); exit(0 if c.getresponse().status < 500 else 1)"]
       interval: 30s
       timeout: 10s
       retries: 3

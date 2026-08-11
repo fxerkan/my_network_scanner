@@ -73,6 +73,9 @@ function loadTabContent(tabName) {
         case 'overview':
             content = generateOverviewContent(enhancedInfo, currentDevice);
             break;
+        case 'ai':
+            content = generateAIContent(currentDevice, enhancedInfo);
+            break;
         case 'network':
             content = generateNetworkContent(enhancedInfo);
             break;
@@ -259,6 +262,146 @@ function generateSecurityContent(enhancedInfo) {
 
 function escSec(v) {
     return String(v == null ? '' : v).replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
+}
+
+// ---------------------------------------------------------------------------
+// AI identification tab: the result the AI agent researched on the web, plus a
+// button to (re)run it. Result lands under enhanced_*.ai_identification once the
+// backend's apply_enhanced_analysis merges it in.
+// ---------------------------------------------------------------------------
+
+function getAiIdentification(device, enhancedInfo) {
+    return (enhancedInfo && enhancedInfo.ai_identification)
+        || (device.enhanced_comprehensive_info || {}).ai_identification
+        || (((device.analysis_data || {}).enhanced_analysis_info || {}).ai_identification)
+        || null;
+}
+
+let aiIdentifyPolling = null;
+
+function generateAIContent(device, enhancedInfo) {
+    const ai = getAiIdentification(device, enhancedInfo);
+    const ip = device.ip;
+    const runBtn = ip ? `
+        <button class="btn-ai-run" onclick="runAiIdentify('${escSec(ip)}')">
+            <svg class="ds-icon" aria-hidden="true"><use href="#i-sparkles"/></svg>
+            <span>${t('ai_run') === 'ai_run' ? 'Identify with AI' : t('ai_run')}</span>
+        </button>` : '';
+
+    if (!ai) {
+        return `
+            <div class="details-section ai-section">
+                <div class="ai-empty">
+                    <svg class="ds-icon ai-empty-icon" aria-hidden="true"><use href="#i-sparkles"/></svg>
+                    <p>${t('ai_empty') === 'ai_empty' ? 'No AI identification yet. The AI agent searches the web (manuals, OUI databases, support pages) to work out exactly what this device is.' : t('ai_empty')}</p>
+                    <div id="aiIdentifyStatus" class="ai-status"></div>
+                    ${runBtn}
+                </div>
+            </div>`;
+    }
+
+    const conf = Math.round((Number(ai.confidence) || 0) * 100);
+    const confClass = conf >= 75 ? 'probability-high' : conf >= 45 ? 'probability-medium' : 'probability-low';
+    const title = [ai.brand || ai.manufacturer, ai.model].filter(Boolean).join(' ') || ai.product_type || t('det_unknown_device');
+    const chips = (arr, cls) => (arr || []).map(x => `<span class="ai-chip ${cls || ''}">${escSec(x)}</span>`).join('');
+    const meta = ai._meta || {};
+
+    const kv = (label, value) => value ? `<li><span class="details-label">${label}:</span><span class="details-value">${escSec(value)}</span></li>` : '';
+
+    return `
+        <div class="details-section ai-section">
+            <div class="ai-hero">
+                <div class="ai-hero-head">
+                    <svg class="ds-icon ai-hero-icon" aria-hidden="true"><use href="#i-sparkles"/></svg>
+                    <div>
+                        <div class="ai-hero-title">${escSec(title)}</div>
+                        <div class="ai-hero-sub">${escSec(ai.product_type || '')}${ai.category ? ' · ' + escSec(ai.category) : ''}</div>
+                    </div>
+                    <span class="status-badge status-online ai-conf-badge">${conf}%</span>
+                </div>
+                ${ai.what_it_is ? `<p class="ai-lead">${escSec(ai.what_it_is)}</p>` : ''}
+                <div class="probability-bar"><div class="probability-fill ${confClass}" style="width:${conf}%"></div></div>
+            </div>
+
+            <div class="details-grid">
+                <div class="details-card">
+                    <h5>${t('ai_identity') === 'ai_identity' ? 'Identity' : t('ai_identity')}</h5>
+                    <ul class="details-list">
+                        ${kv(t('ai_manufacturer') === 'ai_manufacturer' ? 'Manufacturer' : t('ai_manufacturer'), ai.manufacturer)}
+                        ${kv('Brand', ai.brand)}
+                        ${kv('Model', ai.model)}
+                        ${kv(t('ai_category') === 'ai_category' ? 'Category' : t('ai_category'), ai.category)}
+                    </ul>
+                </div>
+                <div class="details-card">
+                    <h5>${t('ai_what') === 'ai_what' ? 'What it does' : t('ai_what')}</h5>
+                    <div class="details-value" style="text-align:left; color: var(--text-secondary);">${escSec(ai.what_it_does || '—')}</div>
+                </div>
+            </div>
+
+            ${(ai.key_features || []).length ? `<div class="details-card ai-block">
+                <h5>${t('ai_features') === 'ai_features' ? 'Key features' : t('ai_features')}</h5>
+                <div class="ai-chips">${chips(ai.key_features)}</div></div>` : ''}
+
+            ${((ai.typical_protocols || []).length || (ai.typical_ports || []).length) ? `<div class="details-card ai-block">
+                <h5>${t('ai_protocols') === 'ai_protocols' ? 'Protocols & ports' : t('ai_protocols')}</h5>
+                <div class="ai-chips">${chips(ai.typical_protocols)}${chips((ai.typical_ports || []).map(String), 'ai-chip-port')}</div></div>` : ''}
+
+            ${ai.setup_notes ? `<div class="details-card ai-block"><h5>${t('ai_setup') === 'ai_setup' ? 'Setup' : t('ai_setup')}</h5>
+                <div class="details-value" style="text-align:left; color: var(--text-secondary);">${escSec(ai.setup_notes)}</div></div>` : ''}
+
+            ${ai.security_notes ? `<div class="details-card ai-block ai-security">
+                <h5><svg class="ds-icon" aria-hidden="true"><use href="#i-shield"/></svg> ${t('ai_security') === 'ai_security' ? 'Security notes' : t('ai_security')}</h5>
+                <div class="details-value" style="text-align:left;">${escSec(ai.security_notes)}</div></div>` : ''}
+
+            ${ai.reasoning ? `<div class="details-card ai-block"><h5>${t('ai_reasoning') === 'ai_reasoning' ? 'Reasoning' : t('ai_reasoning')}</h5>
+                <div class="details-value" style="text-align:left; color: var(--text-tertiary);">${escSec(ai.reasoning)}</div></div>` : ''}
+
+            ${(ai.sources || []).length ? `<div class="details-card ai-block"><h5>${t('ai_sources') === 'ai_sources' ? 'Sources' : t('ai_sources')}</h5>
+                <ul class="ai-sources">${(ai.sources || []).map(s => `<li><a href="${escSec(s.url)}" target="_blank" rel="noopener noreferrer">${escSec(s.title || s.url)}</a></li>`).join('')}</ul></div>` : ''}
+
+            <div class="ai-footer">
+                <span class="ai-meta">${escSec(meta.provider || '')}${meta.model ? ' · ' + escSec(meta.model) : ''}</span>
+                <div id="aiIdentifyStatus" class="ai-status"></div>
+                ${runBtn}
+            </div>
+        </div>`;
+}
+
+async function runAiIdentify(ip) {
+    const statusEl = () => document.getElementById('aiIdentifyStatus');
+    const setStatus = (msg, cls) => { const el = statusEl(); if (el) el.innerHTML = `<span class="ai-status-${cls || 'info'}">${msg}</span>`; };
+    if (aiIdentifyPolling) { clearInterval(aiIdentifyPolling); aiIdentifyPolling = null; }
+
+    try {
+        const start = await fetch(`/api/devices/${ip}/ai-identify`, { method: 'POST' });
+        const body = await start.json();
+        if (!start.ok) { setStatus(escSec(body.error || 'error'), 'error'); return; }
+        setStatus(t('ai_running') === 'ai_running' ? 'Researching on the web…' : t('ai_running'), 'info');
+
+        aiIdentifyPolling = setInterval(async () => {
+            let st;
+            try { st = await fetch(`/api/devices/${ip}/ai-identify/status`).then(r => r.json()); }
+            catch (e) { return; }
+            if (st.status === 'completed') {
+                clearInterval(aiIdentifyPolling); aiIdentifyPolling = null;
+                // Stash the fresh result on the open device so the tab re-renders it,
+                // and refresh the card list so the change sticks in the UI.
+                if (currentDevice) {
+                    currentDevice.enhanced_comprehensive_info = currentDevice.enhanced_comprehensive_info || {};
+                    currentDevice.enhanced_comprehensive_info.ai_identification = st.result;
+                }
+                if (typeof showToast === 'function') showToast(t('ai_done') === 'ai_done' ? 'AI identification complete' : t('ai_done'), 'success');
+                if (typeof refreshDevicesAfterAnalysis === 'function') refreshDevicesAfterAnalysis(ip);
+                if (currentTab === 'ai') loadTabContent('ai');
+            } else if (st.status === 'error') {
+                clearInterval(aiIdentifyPolling); aiIdentifyPolling = null;
+                setStatus(escSec(st.error || 'error'), 'error');
+            }
+        }, 2500);
+    } catch (e) {
+        setStatus(escSec(String(e)), 'error');
+    }
 }
 
 // Donanım içeriği

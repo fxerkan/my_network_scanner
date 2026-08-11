@@ -104,6 +104,15 @@
                         <div id="vendorFilterMulti"></div>
                     </div>
                     <div class="filter-group">
+                        <label class="filter-label" for="trustFilter">{{ _('trust_status') }}</label>
+                        <select id="trustFilter" class="filter-select" onchange="filterDevices()">
+                            <option value="">{{ _('all') }}</option>
+                            <option value="trusted">{{ _('trust_trusted') }}</option>
+                            <option value="known">{{ _('trust_known') }}</option>
+                            <option value="unknown">{{ _('trust_unknown') }}</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
                         <label class="filter-label" for="aliasFilter">{{ _('alias') }}</label>
                         <select id="aliasFilter" class="filter-select" data-searchable onchange="filterDevices()">
                             <option value="">{{ _('all') }}</option>
@@ -264,6 +273,10 @@
                     <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-history"/></svg>
                     <span>{{ _('logs_tab') }}</span>
                 </button>
+                <button class="tab-button" data-tab="raw" onclick="switchEditTab('raw')">
+                    <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-table"/></svg>
+                    <span>{{ _('raw_json_tab') }}</span>
+                </button>
             </div>
             
             <!-- Tab Content -->
@@ -296,6 +309,32 @@
                             <select id="enhancedEditDeviceType" class="form-input">
                                 <option value="">{{ _('select_device_type') }}</option>
                             </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="enhancedEditTrust">{{ _('trust_status') }}</label>
+                            <select id="enhancedEditTrust" class="form-input">
+                                <option value="unknown">{{ _('trust_unknown') }}</option>
+                                <option value="known">{{ _('trust_known') }}</option>
+                                <option value="trusted">{{ _('trust_trusted') }}</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="enhancedEditLocation">{{ _('location') }}</label>
+                            <input type="text" id="enhancedEditLocation" class="form-input" list="locationOptions" placeholder="{{ _('location') }}">
+                            <datalist id="locationOptions">
+                                <option value="{{ _('loc_living_room') }}"></option>
+                                <option value="{{ _('loc_bedroom') }}"></option>
+                                <option value="{{ _('loc_kitchen') }}"></option>
+                                <option value="{{ _('loc_bathroom') }}"></option>
+                                <option value="{{ _('loc_office') }}"></option>
+                                <option value="{{ _('loc_garage') }}"></option>
+                                <option value="{{ _('loc_garden') }}"></option>
+                                <option value="{{ _('loc_balcony') }}"></option>
+                                <option value="{{ _('loc_basement') }}"></option>
+                                <option value="{{ _('loc_roof') }}"></option>
+                                <option value="{{ _('loc_floor1') }}"></option>
+                                <option value="{{ _('loc_floor2') }}"></option>
+                            </datalist>
                         </div>
                         <div class="form-group" id="enhancedEditUplinkGroup">
                             <label class="form-label" for="enhancedEditUplink">{{ _('connected_via') }}</label>
@@ -415,6 +454,10 @@
                                 <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-plug"/></svg>
                                 {{ _('tool_port_probe') }}
                             </button>
+                            <button type="button" class="btn btn-secondary btn-small" onclick="runDeviceWakeOnLan()">
+                                <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-play"/></svg>
+                                {{ _('tool_wake_on_lan') }}
+                            </button>
                         </div>
                         <div class="form-group">
                             <label class="form-label" for="netToolsPortsInput">{{ _('tool_port_probe_ports') }}</label>
@@ -449,10 +492,36 @@
                     </div>
                 </div>
 
+                <!-- Raw JSON Tab: every attribute of this device from
+                     lan_devices.json, editable. Only the fields you change are
+                     recorded as user-owned (see saveRawJson). -->
+                <div id="raw-tab" class="tab-pane">
+                    <div class="raw-json">
+                        <p class="form-hint">{{ _('raw_json_hint') }}</p>
+                        <textarea id="rawJsonEditor" class="form-textarea raw-json__editor" spellcheck="false"></textarea>
+                        <div id="rawJsonError" class="raw-json__error"></div>
+                        <div class="raw-json__actions">
+                            <button type="button" class="btn btn-secondary btn-small" onclick="loadRawJsonTab()">
+                                <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-refresh"/></svg>
+                                <span>{{ _('reset') }}</span>
+                            </button>
+                            <button type="button" class="btn btn-primary btn-small" onclick="saveRawJson()">
+                                <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-check"/></svg>
+                                <span>{{ _('save_raw_json') }}</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
             </div>
             
             <!-- Modal Footer -->
             <div class="modal-footer">
+                <button type="button" class="btn btn-danger enhanced-edit-delete" onclick="deleteDeviceFromEditModal()">
+                    <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-trash"/></svg>
+                    <span>{{ _('delete_device') }}</span>
+                </button>
+                <div class="ds-spacer"></div>
                 <button type="button" class="btn btn-primary" onclick="saveEnhancedDevice()">
                     <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-check"/></svg>
                     <span>{{ _('save_all_changes') }}</span>
@@ -489,6 +558,7 @@
             <div class="modal-body enhanced-details-body">
                 <div class="details-tabs">
                     <button class="tab-button active" onclick="switchDetailsTab('overview')">📊 {{ _('overview_tab') }}</button>
+                    <button class="tab-button tab-button-ai" onclick="switchDetailsTab('ai')"><svg class="ds-icon" aria-hidden="true"><use href="#i-sparkles"/></svg> {{ _('ai_identify_tab') if _('ai_identify_tab') != 'ai_identify_tab' else 'AI' }}</button>
                     <button class="tab-button" onclick="switchDetailsTab('network')">🌐 {{ _('network_services_tab') }}</button>
                     <button class="tab-button" onclick="switchDetailsTab('ports')">🔌 {{ _('port_analysis_tab') }}</button>
                     <button class="tab-button" onclick="switchDetailsTab('system')">💻 {{ _('system_info_tab') }}</button>

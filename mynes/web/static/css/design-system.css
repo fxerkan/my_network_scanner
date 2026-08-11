@@ -404,9 +404,11 @@ hr { border: 0; border-top: 1px solid var(--border-subtle); margin: var(--space-
 }
 @media (min-width: 768px) { .ds-header__inner { gap: var(--space-4); } }
 
-/* Tablets run the full top nav next to the brand. Something has to give, and
-   a truncated wordmark ("M…") reads as broken - the logo alone does not. */
-@media (min-width: 768px) and (max-width: 1099px) {
+/* Tablets and small laptops run the full top nav plus the 230px Scan button
+   next to the brand. Something has to give, and a truncated wordmark ("M…")
+   crashing into the Scan button reads as broken - the logo alone does not.
+   The wordmark only earns its space back once the row genuinely fits it. */
+@media (min-width: 768px) and (max-width: 1279px) {
   .ds-brand > span { display: none; }
 }
 
@@ -1017,6 +1019,11 @@ body.tv-mode :focus-visible {
 .device-logs__fact dd { margin: 0; font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
 .device-logs__heading { margin: var(--space-3) 0 var(--space-2); font-size: var(--text-sm); font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; }
 .device-logs__timeline { display: flex; flex-direction: column; }
+.device-logs__json { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: var(--space-3); font-size: var(--text-xs); color: var(--text-secondary); overflow-x: auto; white-space: pre; }
+.raw-json { display: flex; flex-direction: column; gap: var(--space-3); }
+.raw-json__editor { min-height: 420px; font-family: var(--font-mono, ui-monospace, monospace); font-size: var(--text-xs); white-space: pre; overflow-wrap: normal; tab-size: 2; }
+.raw-json__error { color: var(--severity-critical-bg, #dc2626); font-size: var(--text-sm); white-space: pre-wrap; }
+.raw-json__actions { display: flex; gap: var(--space-2); justify-content: flex-end; }
 .device-logs__event { display: grid; grid-template-columns: auto 150px 120px 1fr; align-items: baseline; gap: var(--space-2); padding: var(--space-2) 0; border-bottom: 1px solid var(--border-subtle); font-size: var(--text-sm); }
 .device-logs__dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-tertiary); align-self: center; }
 .device-logs__dot.is-degraded { background: var(--severity-warning-bg, #d97706); }

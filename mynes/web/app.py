@@ -187,10 +187,20 @@ def get_translated_device_types():
     
     return jsonify(translated_types)
 
-def progress_callback(message):
-    """Callback for scan progress"""
+def progress_callback(message, stage=None, ip=None, scanned=None, total=None):
+    """Callback for scan progress.
+
+    ``message`` stays a (Turkish) human string for logs/fallback, but the
+    optional structured fields let the frontend render the step in the user's
+    own language - the scanner runs in a background thread with no request
+    context, so it cannot know the session locale itself. See main.js.
+    """
     global scan_progress
     scan_progress["message"] = message
+    scan_progress["stage"] = stage
+    scan_progress["current_ip"] = ip
+    scan_progress["scanned"] = scanned
+    scan_progress["total"] = total
     if "cihaz bulundu" in message:
         try:
             # "X cihaz bulundu" mesajından sayıyı çıkar
@@ -242,9 +252,12 @@ def scan_network_thread():
         config_manager.save_scan_result(scan_result)
         
         scan_progress["status"] = "completed"
+        scan_progress["stage"] = "completed"
+        scan_progress["devices_found"] = len(devices)
         scan_progress["message"] = f"Tarama tamamlandı! {len(devices)} cihaz bulundu."
     except Exception as e:
         scan_progress["status"] = "error"
+        scan_progress["stage"] = "error"
         scan_progress["message"] = f"Tarama hatası: {str(e)}"
 
 def scan_network_custom_thread(ip_range=None, include_offline=False):
@@ -284,11 +297,14 @@ def scan_network_custom_thread(ip_range=None, include_offline=False):
             "include_offline": include_offline
         }
         config_manager.save_scan_result(scan_result)
-        
+
         scan_progress["status"] = "completed"
+        scan_progress["stage"] = "completed"
+        scan_progress["devices_found"] = len(devices)
         scan_progress["message"] = f"Tarama tamamlandı! {len(devices)} cihaz bulundu."
     except Exception as e:
         scan_progress["status"] = "error"
+        scan_progress["stage"] = "error"
         scan_progress["message"] = f"Tarama hatası: {str(e)}"
 
 def run_detailed_analysis():
@@ -499,6 +515,7 @@ def stop_scan():
     global scan_progress
     scanner.stop_scan()
     scan_progress["status"] = "stopped"
+    scan_progress["stage"] = "stopped"
     scan_progress["message"] = "Tarama durduruldu"
     return jsonify({"message": "Tarama durduruldu"})
 
@@ -1556,6 +1573,37 @@ def merge_lists_unique(list1, list2):
         print(f"List merge hatası: {e}")
         return list1 + list2
 
+def _run_ai_identification_step(ip, device, status_dict):
+    """Have the AI agent research the device and store an ai_identification section.
+
+    A step of the enhanced-analysis job, not a separate request: it runs on the
+    same background thread once the deterministic analysis is persisted. Skipped
+    silently when no AI key is configured; any AI/network error is logged and
+    swallowed so the completed analysis still reports success.
+    """
+    from mynes.analysis import ai_identify
+
+    config_manager = scanner.get_config_manager()
+    settings = ai_identify.get_ai_settings(config_manager)
+    key = ai_identify.resolve_api_key(scanner.credential_manager, settings["provider"])
+    if not key:
+        print(f"AI identify: {ip} atlandı (AI anahtarı tanımlı değil)")
+        return
+    try:
+        status_dict[ip] = {"status": "analyzing",
+                           "message": f"{ip} AI ajanı ile web'de araştırılıyor..."}
+        facts = ai_identify.build_facts(device)
+        result = ai_identify.identify_device(
+            facts, api_key=key, model=settings["model"],
+            provider=settings["provider"], base_url=settings["base_url"],
+            max_search_uses=settings["max_search_uses"])
+        scanner.apply_enhanced_analysis(
+            ip, device.get("mac", ""), {"ai_identification": result})
+        print(f"AI identify: {ip} tamamlandı ({result.get('manufacturer') or 'belirsiz'})")
+    except Exception as e:  # noqa: BLE001 - never fail the analysis over the AI step
+        print(f"AI identify hatası {ip}: {e}")
+
+
 def run_enhanced_analysis(ip, scope='common'):
     """Run enhanced analysis in a background thread"""
     global enhanced_analysis_status
@@ -1677,6 +1725,12 @@ def run_enhanced_analysis(ip, scope='common'):
             discovered_ports=enhanced_info.get('discovered_ports', []),
         )
         print(f"Enhanced analysis: {ip} sonuçları kalıcı olarak kaydedildi")
+
+        # AI identification step: research the device on the web with the user's
+        # own AI key and fold the result in as an "ai_identification" section.
+        # Best-effort and only when a key is configured - a missing key or an AI
+        # error must never fail the analysis that already succeeded above.
+        _run_ai_identification_step(ip, device, enhanced_analysis_status)
 
         # Başarılı tamamlandı
         enhanced_analysis_status[ip] = {
@@ -1900,9 +1954,12 @@ def delete_device(ip):
         device_found = False
         device_name = ip
         
-        # Cihazı bul ve sil
+        # Cihazı bul ve sil. ``ip`` is really a device key: an IP, or - for a
+        # radio-only device with no IP - its MAC (same convention as update).
+        key = (ip or '').lower()
         for i, device in enumerate(devices):
-            if device.get('ip') == ip:
+            if device.get('ip') == ip or (
+                    not device.get('ip') and (device.get('mac') or '').lower() == key):
                 device_name = device.get('alias') or device.get('hostname') or ip
                 devices.pop(i)
                 device_found = True

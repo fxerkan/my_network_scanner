@@ -558,6 +558,7 @@ async function loadAllSettings() {
         currentSettings = await settingsResponse.json();
         displayGeneralSettings();
         await populateIpRangeOptions();
+        await populateInterfaceOptions();
         displayDetectionRules();
         displayDevicePortRules();
         
@@ -1368,6 +1369,35 @@ async function populateIpRangeOptions() {
         .join('');
 }
 
+/**
+ * Fill the scan-interface dropdown from live interfaces. "Auto" (empty) lets
+ * the OS pick the route; naming one (en0/eth0/...) binds the raw ARP sweep to
+ * that NIC - useful on a multi-homed host (WiFi + Ethernet).
+ */
+async function populateInterfaceOptions() {
+    const sel = document.getElementById('scanInterface');
+    if (!sel) return;
+
+    let networks = [];
+    try {
+        networks = await (await fetch('/api/networks')).json();
+    } catch (e) { /* keep going */ }
+
+    const saved = (currentSettings.scan_settings || {}).interface || '';
+    const byName = new Map();  // iface -> label, deduped
+    (Array.isArray(networks) ? networks : []).forEach(n => {
+        const name = n.interface;
+        if (!name || byName.has(name)) return;
+        byName.set(name, `${name}${n.network_range ? ` — ${n.network_range}` : ''}`);
+    });
+    if (saved && !byName.has(saved)) byName.set(saved, saved);  // keep an offline choice
+
+    sel.innerHTML = `<option value=""${saved ? '' : ' selected'}>${t('all_interfaces_auto')}</option>`
+        + [...byName.entries()]
+            .map(([name, label]) => `<option value="${name}"${name === saved ? ' selected' : ''}>${label}</option>`)
+            .join('');
+}
+
 async function loadNetworks() {
     try {
         const response = await fetch('/api/networks');
@@ -1408,6 +1438,7 @@ async function saveGeneralSettings() {
         const settingsData = {
             scan_settings: {
                 default_ip_range: defaultIpRangeEl.value || '192.168.1.0/24',
+                interface: (document.getElementById('scanInterface') || {}).value || '',
                 timeout: parseInt(timeoutEl.value) || 3,
                 max_threads: parseInt(maxThreadsEl.value) || 50,
                 include_offline: includeOfflineEl.checked

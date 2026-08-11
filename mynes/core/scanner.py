@@ -531,7 +531,8 @@ class LANScanner:
         böylece normal kullanıcıda da cihazlar bulunur. Kullanılan yöntem
         `self.last_arp_method` / `self.privilege_hint` üzerinden UI'ya taşınır.
         """
-        result = arp_discovery.discover(target_ip, timeout=3)
+        iface = (self.scan_settings.get('interface') or '').strip() or None
+        result = arp_discovery.discover(target_ip, timeout=3, iface=iface)
         self.last_arp_method = result['method']
         self.privilege_hint = result['hint']
         if result['hint']:
@@ -1304,7 +1305,7 @@ class LANScanner:
         # One ONVIF probe for the whole sweep: cameras answer with the name
         # their owner configured, which no port scan can tell us.
         if progress_callback:
-            progress_callback("ONVIF kamera keşfi...")
+            progress_callback("ONVIF kamera keşfi...", stage="onvif")
         onvif_found = self.refresh_onvif_cache()
         if onvif_found:
             print(f"ONVIF: {len(onvif_found)} kamera bulundu -> "
@@ -1348,7 +1349,8 @@ class LANScanner:
         total_devices = len(arp_devices)
         
         if progress_callback:
-            progress_callback(f"{total_devices} cihaz bulundu (yerel makine dahil), detaylı tarama başlıyor...")
+            progress_callback(f"{total_devices} cihaz bulundu (yerel makine dahil), detaylı tarama başlıyor...",
+                              stage="finding", total=total_devices)
         
         # Statistics için
         device_types = {}
@@ -1361,7 +1363,9 @@ class LANScanner:
                 break
                 
             if progress_callback:
-                progress_callback(f"Taranıyor: {device['ip']} ({i+1}/{total_devices})")
+                progress_callback(f"Taranıyor: {device['ip']} ({i+1}/{total_devices})",
+                              stage="scanning", ip=device['ip'],
+                              scanned=i+1, total=total_devices)
             
             try:
                 # Yerel makine bilgilerini hazırla
@@ -1819,6 +1823,25 @@ class LANScanner:
                 
                 # Diğer güncellemeleri uygula
                 device.update(updates)
+
+                # Record every field the user touched so no later scan can
+                # overwrite it. user_modified is the single source of truth for
+                # "a human set this"; merge_device_data reapplies it after every
+                # scan. Identity/transient fields are excluded - they are not
+                # user *content*, they are how the device is located and dated.
+                system_fields = {'ip', 'mac', 'status', 'last_seen', 'last_modified',
+                                 'manual_ports', 'open_ports', 'encrypted_credentials',
+                                 'user_modified', 'scan_log'}
+                um = device.setdefault('user_modified', {})
+                for field, value in updates.items():
+                    if field not in system_fields:
+                        um[field] = value
+                device['last_modified'] = datetime.now().isoformat()
+                # Keep the legacy markers too so any older merge path still sees intent.
+                if 'alias' in um:
+                    device['alias_source'] = 'user'
+                if 'device_type' in um:
+                    device['device_type_source'] = 'user'
                 return True
         return False
     

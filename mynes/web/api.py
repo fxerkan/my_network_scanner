@@ -10,11 +10,15 @@ from __future__ import annotations
 import ipaddress
 import logging
 import re
+import threading
+
+from datetime import datetime
 
 from flask import Blueprint, Response, current_app, jsonify, request
 
 from mynes.paths import load_local, save_local
 
+from mynes.analysis import ai_identify
 from mynes.core import diagnostics
 from mynes.core import subnets as subnets_mod
 from mynes.core import topology
@@ -313,6 +317,22 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
         timeout = min(max(float(body.get("timeout", 1.5)), 0.2), 5.0)
         return jsonify(diagnostics.port_probe(ip, ports, timeout=timeout))
 
+    @bp.post("/diagnostics/<ip>/wol")
+    def diagnostics_wol(ip):
+        # Wake-on-LAN needs the MAC, not the IP (the host is asleep and has no
+        # live ARP entry). Take it from the stored device, or an explicit body
+        # override. Broadcast on the device's subnet directed-broadcast so the
+        # packet reaches an asleep host the router won't ARP-resolve.
+        body = request.get_json(silent=True) or {}
+        mac = body.get("mac")
+        if not mac:
+            dev = next((d for d in scanner.get_devices() if d.get("ip") == ip), None)
+            mac = (dev or {}).get("mac")
+        if not mac:
+            return jsonify({"success": False, "error": "no MAC for this device"}), 400
+        broadcast = body.get("broadcast") or "255.255.255.255"
+        return jsonify(diagnostics.wake_on_lan(mac, broadcast=broadcast))
+
     # -- security / attack surface -----------------------------------------
     # Curated CVE-pattern matching + port-based exposure heuristics against
     # data a scan already collected - see security/cve.py for why this is
@@ -328,6 +348,80 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
             return jsonify(cve_mod.assess_device(device))
         except Exception as e:  # noqa: BLE001 - never return an HTML 500 to a fetch()
             return jsonify({"error": f"assessment failed: {e}"}), 500
+
+    # -- AI-assisted device identification ---------------------------------
+    # The user brings their own AI API key; the agent researches the device on
+    # the web and writes an "ai_identification" enhanced-analysis section. See
+    # analysis/ai_identify.py for the agent's instructions (the "skill").
+    _ai_status: dict[str, dict] = {}  # ip -> {status, ...}; per-process, fine
+
+    @bp.get("/ai/settings")
+    def ai_settings_get():
+        settings = ai_identify.get_ai_settings(config_manager)
+        # Never return the key itself - only whether one is resolvable.
+        settings["configured"] = bool(
+            ai_identify.resolve_api_key(scanner.credential_manager, settings["provider"]))
+        return jsonify(settings)
+
+    @bp.post("/ai/settings")
+    def ai_settings_set():
+        body = request.get_json(silent=True) or {}
+        settings = ai_identify.save_ai_settings(
+            config_manager,
+            provider=body.get("provider"),
+            model=body.get("model"),
+            base_url=body.get("base_url"),
+            max_search_uses=body.get("max_search_uses"),
+        )
+        key = body.get("api_key")
+        if key:
+            ai_identify.save_api_key(scanner.credential_manager, settings["provider"], key)
+        settings["configured"] = bool(
+            ai_identify.resolve_api_key(scanner.credential_manager, settings["provider"]))
+        return jsonify(settings)
+
+    def _run_ai_identify(ip, device):
+        settings = ai_identify.get_ai_settings(config_manager)
+        try:
+            key = ai_identify.resolve_api_key(scanner.credential_manager, settings["provider"])
+            facts = ai_identify.build_facts(device)
+            result = ai_identify.identify_device(
+                facts, api_key=key, model=settings["model"],
+                provider=settings["provider"], base_url=settings["base_url"],
+                max_search_uses=settings["max_search_uses"])
+            scanner.apply_enhanced_analysis(
+                ip, device.get("mac", ""), {"ai_identification": result})
+            _ai_status[ip] = {"status": "completed",
+                              "finished_at": datetime.now().isoformat(),
+                              "result": result}
+        except Exception as e:  # noqa: BLE001 - surface it as status, never crash the thread
+            log.exception("AI identify failed for %s", ip)
+            _ai_status[ip] = {"status": "error", "error": f"{type(e).__name__}: {e}",
+                              "finished_at": datetime.now().isoformat()}
+
+    @bp.post("/devices/<ip>/ai-identify")
+    def ai_identify_start(ip):
+        if not _valid_ip(ip):
+            return jsonify({"error": "invalid IP address"}), 400
+        settings = ai_identify.get_ai_settings(config_manager)
+        if not ai_identify.resolve_api_key(scanner.credential_manager, settings["provider"]):
+            return jsonify({"error": "no AI API key configured; set one via POST /api/ai/settings "
+                                     "or the MYNES_AI_API_KEY env var"}), 400
+        device = next((d for d in _devices() if d.get("ip") == ip), None)
+        if not device:
+            return jsonify({"error": "device not found"}), 404
+        if _ai_status.get(ip, {}).get("status") == "running":
+            return jsonify({"status": "running", "ip": ip})
+        _ai_status[ip] = {"status": "running", "started_at": datetime.now().isoformat()}
+        threading.Thread(target=_run_ai_identify, args=(ip, device), daemon=True).start()
+        return jsonify({"status": "started", "ip": ip,
+                        "check_at": f"/api/devices/{ip}/ai-identify/status"})
+
+    @bp.get("/devices/<ip>/ai-identify/status")
+    def ai_identify_status(ip):
+        if not _valid_ip(ip):
+            return jsonify({"error": "invalid IP address"}), 400
+        return jsonify(_ai_status.get(ip, {"status": "not_found"}))
 
     @bp.get("/security/vulnerabilities")
     def security_fleet_assessment():

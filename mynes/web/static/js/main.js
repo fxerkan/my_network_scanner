@@ -309,23 +309,62 @@ async function checkScanStatus() {
         
         // Scan durumuna göre buton durumlarını ayarla
         if (progress.status === 'scanning') {
-            document.getElementById('scanBtn').disabled = true;
-            document.getElementById('stopBtn').style.display = 'inline-block';
+            setScanUiState(true);
             document.getElementById('progressContainer').style.display = 'block';
             // Progress tracking'i başlat
             startProgressUpdates();
         } else {
             // Idle, completed, error, stopped durumları
-            document.getElementById('scanBtn').disabled = false;
-            document.getElementById('stopBtn').style.display = 'none';
+            setScanUiState(false);
             document.getElementById('progressContainer').style.display = 'none';
         }
     } catch (error) {
         console.error(t('scan_status_error'), error);
         // Hata durumunda güvenli taraf için butonları normal duruma getir
-        document.getElementById('scanBtn').disabled = false;
-        document.getElementById('stopBtn').style.display = 'none';
+        setScanUiState(false);
         document.getElementById('progressContainer').style.display = 'none';
+    }
+}
+
+// One button drives the whole scan: it opens the scan menu when idle and
+// becomes a red "Stop Scan" while a scan runs, so a second scan can't be
+// launched over a running one. setScanUiState flips its look; the click router
+// picks the action from the current state.
+function setScanUiState(scanning) {
+    const trig = document.getElementById('toolsDropdown');
+    if (!trig) return;
+    trig.classList.toggle('btn-danger', scanning);
+    trig.classList.toggle('btn-primary', !scanning);
+    trig.dataset.scanning = scanning ? '1' : '';
+    const label = trig.querySelector('.scan-trigger__label');
+    const icon = trig.querySelector('.scan-trigger__icon use');
+    const caret = trig.querySelector('.actions-menu__caret');
+    if (label) label.textContent = scanning ? t('stop_scan') : t('scan');
+    if (icon) icon.setAttribute('href', scanning ? '#i-stop' : '#i-search');
+    if (caret) caret.style.display = scanning ? 'none' : '';
+    if (scanning) closeToolsDropdown();
+}
+
+function onScanTriggerClick() {
+    const trig = document.getElementById('toolsDropdown');
+    if (trig && trig.dataset.scanning) {
+        stopScan();
+    } else {
+        toggleToolsDropdown();
+    }
+}
+
+// Localize a progress step from the structured fields the scanner emits; the
+// scanner thread has no session locale, so it sends stage+data and we render.
+function progressLabel(p) {
+    switch (p.stage) {
+        case 'scanning': return t('scanning_ip', {ip: p.current_ip, scanned: p.scanned, total: p.total});
+        case 'finding': return t('scan_finding', {total: p.total});
+        case 'onvif': return t('scan_onvif');
+        case 'completed': return t('scan_completed_count', {count: p.devices_found});
+        case 'stopped': return t('scan_stopped');
+        case 'error': return t('error') + ': ' + (p.message || '');
+        default: return p.message || '';
     }
 }
 
@@ -442,6 +481,14 @@ function displayDevicesCard() {
             
             ${device.notes ? `<div class="device-notes">📝 ${device.notes.replace(/\n/g, '<br>')}</div>` : ''}
 
+            ${(device.trust_status && device.trust_status !== 'unknown') || device.location ? `
+                <div class="device-meta-row">
+                    ${device.trust_status && device.trust_status !== 'unknown'
+                        ? `<span class="trust-badge trust-badge--${device.trust_status}">${t('trust_' + device.trust_status)}</span>` : ''}
+                    ${device.location
+                        ? `<span class="device-location"><svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-home"/></svg> ${escHtml(device.location)}</span>` : ''}
+                </div>` : ''}
+
             <div class="device-details">
                 <div class="detail-row">
                     <span class="detail-label">MAC:</span>
@@ -517,10 +564,14 @@ function filterDevices() {
     }
     const aliasFilter = (document.getElementById('aliasFilter') || {}).value || '';
     const portFilter = (document.getElementById('portFilter') || {}).value || '';
+    const trustFilter = (document.getElementById('trustFilter') || {}).value || '';
 
     const filteredDevices = devices.filter(device => {
         // Type/vendor/status/text/visibility all live in the shared store.
         if (window.MynesFilters && !MynesFilters.match(device)) return false;
+
+        // Unset trust reads as "unknown" so that filter still catches legacy devices.
+        if (trustFilter && (device.trust_status || 'unknown') !== trustFilter) return false;
 
         // Alias + port stay page-local (single-select, rarely reused elsewhere).
         const matchesAlias = !aliasFilter || device.alias === aliasFilter;
@@ -542,7 +593,7 @@ function filterDevices() {
     // Reflect the active-filter count on the panel badge.
     const badge = document.getElementById('activeFilterCount');
     if (badge && window.MynesFilters) {
-        const n = MynesFilters.activeCount() + (aliasFilter ? 1 : 0) + (portFilter ? 1 : 0);
+        const n = MynesFilters.activeCount() + (aliasFilter ? 1 : 0) + (portFilter ? 1 : 0) + (trustFilter ? 1 : 0);
         badge.textContent = n;
         badge.hidden = n === 0;
     }
@@ -1045,8 +1096,7 @@ async function startScan() {
         const result = await response.json();
         
         if (response.ok) {
-            document.getElementById('scanBtn').disabled = true;
-            document.getElementById('stopBtn').style.display = 'inline-block';
+            setScanUiState(true);
             document.getElementById('progressContainer').style.display = 'block';
             // Toast bildirimi göster
             showToast(t('scanning_network'), 'info');
@@ -1064,9 +1114,8 @@ async function stopScan() {
     try {
         const response = await fetch('/stop_scan');
         const result = await response.json();
-        
-        document.getElementById('scanBtn').disabled = false;
-        document.getElementById('stopBtn').style.display = 'none';
+
+        setScanUiState(false);
         document.getElementById('progressContainer').style.display = 'none';
         
         // Progress interval'ını durdur
@@ -1076,7 +1125,7 @@ async function stopScan() {
         }
         
         // Toast bildirimi göster
-        showToast(result.message, 'warning');
+        showToast(t('scan_stopped'), 'warning');
     } catch (error) {
         showToast(t('scan_stop_error') + ': ' + error.message, 'error');
     }
@@ -1093,14 +1142,15 @@ function startProgressUpdates() {
             const response = await fetch('/progress');
             const progress = await response.json();
             
-            document.getElementById('progressText').textContent = progress.message;
-            
+            document.getElementById('progressText').textContent = progressLabel(progress);
+
             if (progress.status === 'scanning') {
-                document.getElementById('progressFill').style.width = '50%';
+                // Real fraction when the scanner reports one, else the old 50%.
+                const pct = (progress.total ? Math.round(100 * progress.scanned / progress.total) : 50);
+                document.getElementById('progressFill').style.width = pct + '%';
             } else if (progress.status === 'completed') {
                 document.getElementById('progressFill').style.width = '100%';
-                document.getElementById('scanBtn').disabled = false;
-                document.getElementById('stopBtn').style.display = 'none';
+                setScanUiState(false);
                 
                 // Interval'ı durdur
                 clearInterval(progressInterval);
@@ -1116,8 +1166,7 @@ function startProgressUpdates() {
                 }, 2000);
             } else if (progress.status === 'error') {
                 document.getElementById('progressFill').style.width = '0%';
-                document.getElementById('scanBtn').disabled = false;
-                document.getElementById('stopBtn').style.display = 'none';
+                setScanUiState(false);
                 document.getElementById('progressContainer').style.display = 'none';
                 
                 // Toast bildirimi göster
@@ -2531,9 +2580,19 @@ async function loadLogsTab() {
             <span class="device-logs__msg">${escHtml(al.message || al.title || '')}</span>
         </div>`).join('') : `<p class="details-no-data">${t('no_events') || 'No recorded events for this device yet.'}</p>`;
 
+    // Scan-vs-your-edits: fields the user set by hand where a later scan saw a
+    // different value. The edit always wins; this is the stored breadcrumb of
+    // what the scan found, shown as raw JSON so nothing is hidden. See
+    // models.merge_device_data (scan_log).
+    const scanLog = device.scan_log || [];
+    const overrides = scanLog.length ? `
+        <h4 class="device-logs__heading">${t('scan_vs_edits') || 'Scan vs. your edits'}</h4>
+        <pre class="device-logs__json">${escHtml(JSON.stringify(scanLog, null, 2))}</pre>` : '';
+
     box.innerHTML = `
         <h4 class="device-logs__heading">${t('activity_log') || 'Activity log'}</h4>
-        <div class="device-logs__timeline">${timeline}</div>`;
+        <div class="device-logs__timeline">${timeline}</div>
+        ${overrides}`;
 }
 
 /*
@@ -2578,6 +2637,45 @@ async function runDevicePortProbe() {
     } catch (error) {
         box.innerHTML = `<p class="details-no-data">${t('tool_error')}: ${escHtml(error)}</p>`;
     }
+}
+
+async function runDeviceWakeOnLan() {
+    if (!currentEnhancedEditingIp) return;
+    const device = deviceByKey(currentEnhancedEditingIp);
+    const mac = device && device.mac;
+    const box = document.getElementById('netToolsResult');
+    if (!mac || mac === 'N/A') {
+        box.innerHTML = `<p class="details-no-data">${t('wol_no_mac')}</p>`;
+        return;
+    }
+    box.innerHTML = `<p class="details-no-data">${t('tool_running')}</p>`;
+    try {
+        const res = await fetch(`/api/diagnostics/${encodeURIComponent(currentEnhancedEditingIp)}/wol`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mac }),
+        });
+        const data = await res.json();
+        if (data.success) {
+            box.innerHTML = `<div class="net-tools__summary"><span class="ds-badge ds-badge--success">✓</span> ${t('wol_sent', { mac })}</div>`;
+            showToast(t('wol_sent', { mac }), 'success');
+        } else {
+            box.innerHTML = `<div class="net-tools__summary net-tools__summary--fail">${t('tool_error')}${data.error ? ': ' + escHtml(data.error) : ''}</div>`;
+        }
+    } catch (error) {
+        box.innerHTML = `<p class="details-no-data">${t('tool_error')}: ${escHtml(error)}</p>`;
+    }
+}
+
+// Delete the device being edited, from the modal footer. Reuses the existing
+// deleteDevice() + /delete_device endpoint; just adds the confirm + modal close.
+function deleteDeviceFromEditModal() {
+    if (!currentEnhancedEditingIp) return;
+    const device = deviceByKey(currentEnhancedEditingIp);
+    const name = (device && (device.alias || device.hostname || device.ip || device.mac)) || currentEnhancedEditingIp;
+    if (!confirm(`"${name}" ${t('confirm_delete_device')}`)) return;
+    const key = currentEnhancedEditingIp;
+    closeEnhancedEditModal();
+    deleteDevice(key);
 }
 
 function renderDiagnosticResult(tool, data) {
@@ -2726,6 +2824,78 @@ function switchEditTab(tabName) {
         loadAccessTab();
     } else if (tabName === 'logs') {
         loadLogsTab();
+    } else if (tabName === 'raw') {
+        loadRawJsonTab();
+    }
+}
+
+/*
+ * Raw JSON tab: the whole device record from lan_devices.json, editable. On
+ * save we diff against the original and send only the CHANGED top-level keys to
+ * /update_device, so update_device records exactly those as user-owned (never
+ * the untouched analysis_data/ports). Diff-and-update also means a field the
+ * editor doesn't show (e.g. encrypted_credentials) can never be dropped.
+ */
+let _rawJsonOriginal = null;
+
+function loadRawJsonTab() {
+    const device = deviceByKey(currentEnhancedEditingIp);
+    const editor = document.getElementById('rawJsonEditor');
+    const err = document.getElementById('rawJsonError');
+    if (!device || !editor) return;
+    err.textContent = '';
+    // Hide the encrypted-credentials blob - it's an opaque secret, not something
+    // to hand-edit. Omitting it also means the diff-save never touches it.
+    const { encrypted_credentials, ...shown } = device;
+    _rawJsonOriginal = shown;
+    editor.value = JSON.stringify(shown, null, 2);
+}
+
+async function saveRawJson() {
+    const editor = document.getElementById('rawJsonEditor');
+    const err = document.getElementById('rawJsonError');
+    if (!editor || !currentEnhancedEditingIp) return;
+    err.textContent = '';
+
+    let edited;
+    try {
+        edited = JSON.parse(editor.value);
+    } catch (e) {
+        err.textContent = (t('invalid_json') || 'Invalid JSON') + ': ' + e.message;
+        return;
+    }
+    if (!edited || typeof edited !== 'object' || Array.isArray(edited)) {
+        err.textContent = t('invalid_json') || 'Invalid JSON';
+        return;
+    }
+
+    // Only send keys whose value actually changed (compared structurally).
+    const orig = _rawJsonOriginal || {};
+    const changed = {};
+    for (const [k, v] of Object.entries(edited)) {
+        if (JSON.stringify(v) !== JSON.stringify(orig[k])) changed[k] = v;
+    }
+    if (Object.keys(changed).length === 0) {
+        showToast(t('no_changes') || 'No changes', 'info');
+        return;
+    }
+
+    try {
+        const res = await fetch(`/update_device/${currentEnhancedEditingIp}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(changed),
+        });
+        const result = await res.json().catch(() => ({}));
+        if (res.ok) {
+            showToast(t('device_updated_success'), 'success');
+            closeEnhancedEditModal();
+            await loadDevices();
+        } else {
+            err.textContent = (t('update_error') || 'Update error') + ': ' + (result.error || res.status);
+        }
+    } catch (e) {
+        err.textContent = (t('connection_error') || 'Connection error') + ': ' + e.message;
     }
 }
 
@@ -2737,6 +2907,10 @@ function loadDeviceToEnhancedModal(device) {
     document.getElementById('enhancedEditHostname').value = device.hostname || '';
     document.getElementById('enhancedEditVendor').value = device.vendor || '';
     document.getElementById('enhancedEditNotes').value = device.notes || '';
+    const trustEl = document.getElementById('enhancedEditTrust');
+    if (trustEl) { trustEl.value = device.trust_status || 'unknown'; trustEl._ds?.refresh(); }
+    const locEl = document.getElementById('enhancedEditLocation');
+    if (locEl) locEl.value = device.location || '';
     
     // Load device types to dropdown first, then set selected value
     loadDeviceTypesToEnhancedModal().then(() => {
@@ -3218,6 +3392,8 @@ async function saveEnhancedDevice() {
         vendor: document.getElementById('enhancedEditVendor').value,
         device_type: document.getElementById('enhancedEditDeviceType').value,
         notes: document.getElementById('enhancedEditNotes').value,
+        trust_status: document.getElementById('enhancedEditTrust').value,
+        location: document.getElementById('enhancedEditLocation').value,
         open_ports: device.open_ports || []
     };
 

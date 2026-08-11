@@ -56,10 +56,10 @@
                  same place on a phone and on a desktop. Devices page only:
                  its handlers are in main.js. -->
 <div class="dropdown actions-menu">
-            <button class="btn btn-primary actions-menu__trigger" onclick="toggleToolsDropdown()"
+            <button class="btn btn-primary actions-menu__trigger" onclick="onScanTriggerClick()"
             id="toolsDropdown" aria-haspopup="true" aria-expanded="false">
-            <svg class="ds-icon" aria-hidden="true"><use href="#i-search"/></svg>
-            <span>{{ _('scan') if _('scan') != 'scan' else 'Scan' }}</span>
+            <svg class="ds-icon scan-trigger__icon" aria-hidden="true"><use href="#i-search"/></svg>
+            <span class="scan-trigger__label">{{ _('scan') if _('scan') != 'scan' else 'Scan' }}</span>
             <svg class="ds-icon ds-icon--sm actions-menu__caret" aria-hidden="true"><use href="#i-chevron-down"/></svg>
             </button>
             <div class="dropdown-menu" id="toolsDropdownMenu" style="display:none">
@@ -95,10 +95,6 @@
             </button>
             </div>
             </div>
-            <button id="stopBtn" class="btn btn-danger" onclick="stopScan()" style="display:none">
-            <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-stop"/></svg>
-            <span>{{ _('stop_scan') }}</span>
-            </button>
             <input type="file" id="importFile" accept=".json" hidden onchange="importData()">
             {% endif %}
 

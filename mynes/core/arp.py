@@ -118,15 +118,18 @@ def ping_sweep(network: str, timeout: float = 1.0, workers: int = 128) -> None:
         list(pool.map(lambda ip: _touch(ip, timeout), hosts))
 
 
-def _scapy_arp(network: str, timeout: float) -> list[dict]:
+def _scapy_arp(network: str, timeout: float, iface: str | None = None) -> list[dict]:
     from scapy.all import ARP, Ether, srp
 
-    answered = srp(Ether(dst='ff:ff:ff:ff:ff:ff') / ARP(pdst=network),
-                   timeout=timeout, verbose=0)[0]
+    kwargs = {'timeout': timeout, 'verbose': 0}
+    if iface:
+        kwargs['iface'] = iface  # bind the sweep to a chosen NIC (Settings)
+    answered = srp(Ether(dst='ff:ff:ff:ff:ff:ff') / ARP(pdst=network), **kwargs)[0]
     return [{'ip': r.psrc, 'mac': normalise_mac(r.hwsrc), 'method': 'arp'} for _, r in answered]
 
 
-def discover(network: str, timeout: float = 2.0, prefer_raw: bool = True) -> dict:
+def discover(network: str, timeout: float = 2.0, prefer_raw: bool = True,
+             iface: str | None = None) -> dict:
     """Find every layer-2 reachable host on `network`.
 
     Returns {"devices": [{ip, mac, method}], "method": str, "elevated": bool,
@@ -134,7 +137,7 @@ def discover(network: str, timeout: float = 2.0, prefer_raw: bool = True) -> dic
     """
     if prefer_raw and has_raw_socket_privilege():
         try:
-            devices = _scapy_arp(network, timeout)
+            devices = _scapy_arp(network, timeout, iface)
             if devices:
                 return {'devices': devices, 'method': 'arp-raw', 'elevated': True, 'hint': None}
             log.info('raw ARP returned nothing on %s; falling back to the ping sweep', network)

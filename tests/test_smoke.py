@@ -81,6 +81,18 @@ def test_arp_parsing_self_check():
     arp.demo()
 
 
+def test_fingerprint_self_check():
+    from mynes.analysis import fingerprint
+
+    fingerprint.demo()
+
+
+def test_ai_identify_self_check():
+    from mynes.analysis import ai_identify
+
+    ai_identify.demo()
+
+
 def test_capabilities_endpoint(client):
     data = client.get("/api/capabilities").get_json()
     # A superset, not an exact match: /api/capabilities is meant to grow as

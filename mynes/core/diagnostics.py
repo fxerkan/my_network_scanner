@@ -138,6 +138,31 @@ def port_probe(ip: str, ports: list, timeout: float = 1.5) -> dict:
     return {'ip': ip, 'checked': ports, 'open': sorted(open_ports)}
 
 
+def _magic_packet(mac: str) -> bytes:
+    """Pure: a MAC -> the 102-byte WOL magic packet (6x 0xFF + MAC x16)."""
+    hexmac = re.sub(r'[^0-9a-fA-F]', '', mac)
+    if len(hexmac) != 12:
+        raise ValueError(f'invalid MAC for WOL: {mac!r}')
+    return b'\xff' * 6 + bytes.fromhex(hexmac) * 16
+
+
+def wake_on_lan(mac: str, broadcast: str = '255.255.255.255', port: int = 9) -> dict:
+    """Send a Wake-on-LAN magic packet. Never raises - a bad MAC or a dead
+    socket comes back as ``success: False`` with an ``error``. The device must
+    have WOL enabled in its BIOS/OS for this to actually wake it."""
+    try:
+        packet = _magic_packet(mac)
+    except ValueError as exc:
+        return {'success': False, 'mac': mac, 'error': str(exc)}
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+            sock.sendto(packet, (broadcast, port))
+        return {'success': True, 'mac': mac, 'broadcast': broadcast, 'port': port}
+    except OSError as exc:
+        return {'success': False, 'mac': mac, 'error': str(exc)}
+
+
 def dns_lookup(ip: str, timeout: float = 3.0) -> dict:
     """Reverse DNS for one IP, on demand - the periodic scan already tries
     this once, but a user watching a device's name change wants a retry
@@ -213,6 +238,14 @@ def demo():
     # Garbage port values are dropped rather than raising.
     assert port_probe('192.0.2.1', ['not-a-port', 80], timeout=0.01)['checked'] == [80]
 
+    # WOL magic packet: 6 bytes of 0xFF then the MAC repeated 16 times, and any
+    # separator style parses. A bad MAC is a clean failure, not an exception.
+    pkt = _magic_packet('01:02:03:04:05:06')
+    assert len(pkt) == 102 and pkt[:6] == b'\xff' * 6
+    assert pkt[6:12] == bytes.fromhex('010203040506')
+    assert _magic_packet('01-02-03-04-05-06') == pkt == _magic_packet('010203040506')
+    assert wake_on_lan('nonsense')['success'] is False
+
     print('diagnostics: OK')
     return True
 
@@ -224,5 +257,8 @@ if __name__ == '__main__':
     elif len(sys.argv) > 2 and sys.argv[1] == 'traceroute':
         import json
         print(json.dumps(traceroute(sys.argv[2]), indent=2))
+    elif len(sys.argv) > 2 and sys.argv[1] == 'wol':
+        import json
+        print(json.dumps(wake_on_lan(sys.argv[2]), indent=2))
     else:
         demo()

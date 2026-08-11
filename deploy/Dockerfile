@@ -63,11 +63,11 @@ RUN chmod +x /usr/local/bin/entrypoint.sh
 EXPOSE 5883
 
 # python, not curl: curl dragged in libcurl/openldap/krb5/gnutls and 15 CVEs for
-# one HTTP GET. http.client rather than urllib because urlopen raises on 401 and
-# /api/version returns 401 once auth is on - that read 'unhealthy' forever. Any
-# reply below 500 means the server is up, which is all a healthcheck should ask.
+# one HTTP GET. /api/health is the auth-exempt liveness probe (web/auth.py), so
+# it returns a clean 200 even with MYNES_PASSWORD set - unlike /api/version, which
+# sits behind the login gate. <500 still means the server is up.
 HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
-    CMD python -c "import http.client as h; c=h.HTTPConnection('localhost',5883,timeout=5); c.request('GET','/api/version'); exit(0 if c.getresponse().status < 500 else 1)" || exit 1
+    CMD python -c "import http.client as h; c=h.HTTPConnection('localhost',5883,timeout=5); c.request('GET','/api/health'); exit(0 if c.getresponse().status < 500 else 1)" || exit 1
 
 # Starts as root only to join the docker socket's group, then drops to
 # `scanner` for the application itself. See entrypoint.sh.

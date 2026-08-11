@@ -170,7 +170,27 @@ class UnifiedDeviceModel:
         # Encrypted credentials'ları koru (çok önemli!)
         if "encrypted_credentials" in existing_device:
             merged["encrypted_credentials"] = existing_device["encrypted_credentials"]
-        
+
+        # The human always wins. Every field the user edited is recorded in
+        # user_modified (see scanner.update_device); reapply it over whatever
+        # this scan produced so NO scan can ever overwrite a manual edit. When
+        # the scan actually saw a different value, drop a JSON breadcrumb into
+        # scan_log so the Logs tab can show "here's what we found, your edit
+        # stands". This is the general replacement for the old per-field
+        # *_source markers, which only ever covered alias/device_type.
+        user_mod = existing_device.get("user_modified") or {}
+        if user_mod:
+            merged["user_modified"] = dict(user_mod)
+            log = list(existing_device.get("scan_log") or [])
+            for field, user_val in user_mod.items():
+                found = new_device.get(field)
+                if found not in (None, "", user_val):
+                    log.append({"ts": datetime.now().isoformat(), "field": field,
+                                "kept": user_val, "found": found, "source": scan_type})
+                merged[field] = user_val
+            if log:
+                merged["scan_log"] = log[-50:]  # cap; newest 50 kept
+
         return merged
     
     def merge_ports(self, existing_ports: List[Dict], new_ports: List[Dict], 
@@ -230,10 +250,17 @@ class UnifiedDeviceModel:
         # bug. name_source/icon carry the same intent for the custom name/icon.
         basic_fields = ["hostname", "vendor", "device_type", "status", "last_seen",
                         "alias", "notes", "device_type_source", "alias_source",
-                        "name", "name_source", "icon"]
+                        "name", "name_source", "icon",
+                        "user_modified", "scan_log", "last_modified"]
         for field in basic_fields:
             if field in legacy_device:
                 unified_device[field] = legacy_device[field]
+
+        # user_modified is authoritative and may name fields outside basic_fields
+        # (e.g. a description the user typed by hand). Restore them onto the
+        # top-level record so a plain load/migrate never drops a manual edit.
+        for field, value in (legacy_device.get("user_modified") or {}).items():
+            unified_device[field] = value
 
         # Heal device types renamed to registered ones. Older scans stored guesses
         # like "Robot Vacuum" that were never in the type registry, so they showed

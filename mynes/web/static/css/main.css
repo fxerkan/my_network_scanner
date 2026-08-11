@@ -365,6 +365,46 @@
     border-left: 3px solid var(--severity-warning-border);
 }
 
+/* Trust level + location row on the device card. */
+.device-meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    font-size: 0.85em;
+}
+.device-location {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--text-secondary);
+}
+.trust-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 10px;
+    border-radius: var(--radius-pill, 999px);
+    font-size: 0.8em;
+    font-weight: 600;
+    border: 1px solid transparent;
+}
+.trust-badge--trusted {
+    background: var(--severity-success-bg, var(--severity-info-bg));
+    color: var(--severity-success-fg, var(--severity-info-fg));
+    border-color: var(--severity-success-border, transparent);
+}
+.trust-badge--known {
+    background: var(--severity-info-bg);
+    color: var(--severity-info-fg);
+    border-color: var(--severity-info-border, transparent);
+}
+.trust-badge--unknown {
+    background: var(--bg-surface-sunken);
+    color: var(--text-secondary);
+    border-color: var(--border-subtle);
+}
+
 .ports-container {
     margin-bottom: 15px;
 }
@@ -1840,3 +1880,66 @@
    as disabled there too. */
 .dropdown-item:disabled { opacity: 0.5; cursor: default; }
 .dropdown-item:disabled:hover { background: transparent; }
+
+/* ---------------------------------------------------------------------------
+   AI identification tab (Details modal). Tokens only - no hardcoded colours.
+   --------------------------------------------------------------------------- */
+.tab-button-ai { display: inline-flex; align-items: center; gap: var(--space-1); }
+.tab-button-ai .ds-icon { width: 16px; height: 16px; color: var(--accent-bg); }
+
+.ai-section { display: flex; flex-direction: column; gap: var(--space-3); }
+
+/* Empty state */
+.ai-empty { text-align: center; padding: var(--space-8) var(--space-4); color: var(--text-secondary); }
+.ai-empty-icon { width: 40px; height: 40px; color: var(--accent-bg); opacity: 0.8; }
+.ai-empty p { max-width: 46ch; margin: var(--space-3) auto var(--space-4); line-height: 1.5; }
+
+/* Run button */
+.btn-ai-run {
+    display: inline-flex; align-items: center; gap: var(--space-2);
+    padding: var(--space-2) var(--space-4);
+    background: var(--accent-bg); color: var(--text-inverse);
+    border: none; border-radius: var(--radius-md); cursor: pointer;
+    font-weight: 600; font-size: 0.9rem;
+}
+.btn-ai-run:hover { filter: brightness(1.05); }
+.btn-ai-run .ds-icon { width: 16px; height: 16px; }
+
+/* Hero card */
+.ai-hero {
+    padding: var(--space-4);
+    background: var(--bg-surface-sunken);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+}
+.ai-hero-head { display: flex; align-items: center; gap: var(--space-3); }
+.ai-hero-icon { width: 28px; height: 28px; color: var(--accent-bg); flex: none; }
+.ai-hero-title { font-size: 1.1rem; font-weight: 700; color: var(--text-primary); }
+.ai-hero-sub { font-size: 0.85rem; color: var(--text-tertiary); }
+.ai-conf-badge { margin-left: auto; }
+.ai-lead { margin: var(--space-3) 0; color: var(--text-secondary); line-height: 1.5; }
+
+/* Chips */
+.ai-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.ai-chip {
+    display: inline-block; padding: 2px var(--space-2);
+    background: var(--severity-info-bg); color: var(--severity-info-fg);
+    border-radius: var(--radius-full); font-size: 0.8rem; font-weight: 500;
+}
+.ai-chip-port { background: var(--bg-hover); color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+
+.ai-block { margin-top: var(--space-2); }
+.ai-security { border-left: 3px solid var(--severity-warning-fg); }
+.ai-security h5 { display: inline-flex; align-items: center; gap: var(--space-1); }
+.ai-security h5 .ds-icon { width: 16px; height: 16px; color: var(--severity-warning-fg); }
+
+.ai-sources { margin: 0; padding-left: var(--space-4); }
+.ai-sources a { color: var(--accent-bg); word-break: break-all; }
+
+.ai-footer { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; margin-top: var(--space-2); }
+.ai-meta { font-size: 0.78rem; color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+.ai-footer .btn-ai-run { margin-left: auto; }
+
+.ai-status { font-size: 0.85rem; }
+.ai-status-info { color: var(--text-secondary); }
+.ai-status-error { color: var(--severity-critical-fg); }
