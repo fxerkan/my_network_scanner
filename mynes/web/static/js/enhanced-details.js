@@ -621,23 +621,47 @@ function saveAiToDevice(ip) {
     return applyDeviceType(ip, mynesTypeFor(ai.product_type || ai.category), true);
 }
 
+let aiTimerCycle = null;
+
+// Toggle the "working" visuals: a spinner + live elapsed-seconds counter in the
+// status line, a pulsing hero/empty icon, and a disabled button. The counter is
+// the honest signal that something is happening - we get no step-by-step
+// progress from the single POST, so we show elapsed time rather than fake steps.
+function setAiWorking(on, startedAt) {
+    document.querySelectorAll('.ai-section .btn-ai-run').forEach(b => {
+        b.disabled = on; b.classList.toggle('is-loading', on);
+    });
+    document.querySelectorAll('.ai-empty-icon, .ai-hero-icon').forEach(i => i.classList.toggle('is-loading', on));
+    if (aiTimerCycle) { clearInterval(aiTimerCycle); aiTimerCycle = null; }
+    const el = document.getElementById('aiIdentifyStatus');
+    if (!on || !el) return;
+    const base = t('ai_running') === 'ai_running' ? 'Researching on the web…' : t('ai_running');
+    const render = () => {
+        const secs = Math.max(0, Math.round((Date.now() - startedAt) / 1000));
+        el.innerHTML = `<span class="ai-working"><span class="ai-spinner"></span>` +
+            `<span class="ai-status-info">${escSec(base)} <span class="ai-elapsed">(${secs}s)</span></span></span>`;
+    };
+    render();
+    aiTimerCycle = setInterval(render, 1000);
+}
+
 async function runAiIdentify(ip) {
-    const statusEl = () => document.getElementById('aiIdentifyStatus');
-    const setStatus = (msg, cls) => { const el = statusEl(); if (el) el.innerHTML = `<span class="ai-status-${cls || 'info'}">${msg}</span>`; };
+    const setStatus = (msg, cls) => { const el = document.getElementById('aiIdentifyStatus'); if (el) el.innerHTML = `<span class="ai-status-${cls || 'info'}">${msg}</span>`; };
+    const stopWork = () => setAiWorking(false);
     if (aiIdentifyPolling) { clearInterval(aiIdentifyPolling); aiIdentifyPolling = null; }
 
     try {
         const start = await fetch(`/api/devices/${ip}/ai-identify`, { method: 'POST' });
         const body = await start.json();
-        if (!start.ok) { setStatus(escSec(body.error || 'error'), 'error'); return; }
-        setStatus(t('ai_running') === 'ai_running' ? 'Researching on the web…' : t('ai_running'), 'info');
+        if (!start.ok) { stopWork(); setStatus(escSec(body.error || 'error'), 'error'); return; }
+        setAiWorking(true, Date.now());
 
         aiIdentifyPolling = setInterval(async () => {
             let st;
             try { st = await fetch(`/api/devices/${ip}/ai-identify/status`).then(r => r.json()); }
             catch (e) { return; }
             if (st.status === 'completed') {
-                clearInterval(aiIdentifyPolling); aiIdentifyPolling = null;
+                clearInterval(aiIdentifyPolling); aiIdentifyPolling = null; stopWork();
                 // Stash the fresh result on the open device so the tab re-renders it,
                 // and refresh the card list so the change sticks in the UI.
                 if (currentDevice) {
@@ -648,12 +672,12 @@ async function runAiIdentify(ip) {
                 if (typeof refreshDevicesAfterAnalysis === 'function') refreshDevicesAfterAnalysis(ip);
                 if (currentTab === 'ai') loadTabContent('ai');
             } else if (st.status === 'error') {
-                clearInterval(aiIdentifyPolling); aiIdentifyPolling = null;
+                clearInterval(aiIdentifyPolling); aiIdentifyPolling = null; stopWork();
                 setStatus(escSec(st.error || 'error'), 'error');
             }
         }, 2500);
     } catch (e) {
-        setStatus(escSec(String(e)), 'error');
+        stopWork(); setStatus(escSec(String(e)), 'error');
     }
 }
 
@@ -820,8 +844,13 @@ function formatDate(dateString) {
 
 function generateQuickStats(enhancedInfo, device) {
     const openPorts = device.open_ports ? device.open_ports.length : 0;
-    const webServices = enhancedInfo.web_services ? Object.keys(enhancedInfo.web_services).length : 0;
-    const securityIssues = enhancedInfo.security_analysis ? Object.keys(enhancedInfo.security_analysis).length : 0;
+    // Count only what the tabs actually render, so the KPI can't claim 11 web
+    // services when the Network tab shows 2 reachable, or 5 "security checks"
+    // that are really just dict keys with zero findings.
+    const webServices = Object.values(enhancedInfo.web_services || {})
+        .filter(d => d && !d.error).length;
+    const sec = enhancedInfo.security_analysis || {};
+    const securityIssues = (sec.findings || []).length + (sec.exposures || []).length;
     
     return `
         <div class="details-section">
@@ -858,6 +887,15 @@ function generateWebServicesGrid(webServices) {
                 </div>
             `;
         } else {
+            // Many embedded/IoT devices answer 200 but send no <title> and no
+            // Server header - so Title/Server alone made this card look empty
+            // even though the scan captured a full set of response headers.
+            // Surface those (Content-Length, ETag, security headers, ...) so a
+            // reachable service always shows the evidence it actually collected.
+            const headers = data.headers || {};
+            const hdrEntries = Object.entries(headers);
+            const secHdrs = ['x-frame-options', 'content-security-policy', 'strict-transport-security',
+                             'x-content-type-options', 'x-xss-protection', 'referrer-policy'];
             html += `
                 <div class="details-card">
                     <h5>${service}</h5>
@@ -866,14 +904,23 @@ function generateWebServicesGrid(webServices) {
                         <li><span class="details-label">Title:</span><span class="details-value">${data.title || 'N/A'}</span></li>
                         <li><span class="details-label">Server:</span><span class="details-value">${data.server || 'N/A'}</span></li>
                         <li><span class="details-label">Content Type:</span><span class="details-value">${data.content_type || 'N/A'}</span></li>
-                        ${data.technologies && data.technologies.length > 0 ? 
+                        ${data.content_length != null ? `<li><span class="details-label">Content Length:</span><span class="details-value">${data.content_length}</span></li>` : ''}
+                        ${data.redirect_url ? `<li><span class="details-label">Redirect:</span><span class="details-value">${escSec(data.redirect_url)}</span></li>` : ''}
+                        ${data.technologies && data.technologies.length > 0 ?
                             `<li><span class="details-label">Technologies:</span><span class="details-value">
                                 <div class="port-list">
-                                    ${data.technologies.map(tech => `<span class="port-tag">${tech}</span>`).join('')}
+                                    ${data.technologies.map(tech => `<span class="port-tag">${escSec(tech)}</span>`).join('')}
                                 </div>
                             </span></li>` : ''
                         }
                     </ul>
+                    ${hdrEntries.length ? `
+                        <div class="details-label" style="margin-top:8px;">${t('det_http_headers') === 'det_http_headers' ? 'HTTP Headers' : t('det_http_headers')}</div>
+                        <ul class="details-list">
+                            ${hdrEntries.map(([k, v]) => `<li>
+                                <span class="details-label">${escSec(k)}${secHdrs.includes(k.toLowerCase()) ? ' 🛡️' : ''}:</span>
+                                <span class="details-value">${escSec(v)}</span></li>`).join('')}
+                        </ul>` : ''}
                 </div>
             `;
         }

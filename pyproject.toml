@@ -38,7 +38,7 @@ discovery = ["zeroconf>=0.131", "paho-mqtt>=1.6"]
 homeassistant = ["websocket-client>=1.7"]
 bluetooth = ["bleak>=0.21"]
 # Credentialed deep analysis of a device.
-analysis = ["paramiko>=3.0", "pysnmp>=4.4.12"]
+analysis = ["paramiko>=3.0", "pysnmp>=7.0"]
 # System tray / menu bar icon.
 tray = ["pystray>=0.19", "pillow>=10.0"]
 # MyNeS's own Web Push, so alerts need no Home Assistant or third-party relay.

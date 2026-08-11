@@ -1422,9 +1422,19 @@ function monitorSingleDeviceAnalysis(ip) {
     const sessionKey = ip;
     const session = activeAnalysisSessions.get(sessionKey);
     const modal = document.getElementById(session.modalId);
-    
+
     const progressBar = modal.querySelector('#progressBar');
     const progressText = modal.querySelector('#progressText');
+
+    // Reveal the live progress + log sections whenever monitoring is active.
+    // On a page refresh the modal is rebuilt fresh (start() never ran), so
+    // without this the reopened popup shows only buttons and looks idle even
+    // though the analysis is still running.
+    const progressDiv = modal.querySelector('#analysisProgress');
+    const verboseLogsSection = modal.querySelector('#verboseLogsSection');
+    if (progressDiv) progressDiv.style.display = 'block';
+    if (verboseLogsSection) verboseLogsSection.style.display = 'block';
+    updateAnalysisButtons(sessionKey, true);
     const resultsDiv = modal.querySelector('#analysisResults');
     const resultsContent = modal.querySelector('#analysisResultsContent');
     

@@ -756,7 +756,16 @@
 .mnt tbody td { background: var(--bg-surface); }
 .mnt tbody tr:nth-child(even) td { background: var(--bg-surface-sunken); }
 .mnt tbody tr:hover td { background: var(--bg-hover); }
-.mnt tbody tr.mnt-row--sel td { background: var(--accent-bg-subtle); }
+/* Selected rows: a clearly-blue tint (not the near-grey zebra), theme-aware,
+   overriding both zebra shades. The left accent bar makes it unmistakable. */
+.mnt tbody tr.mnt-row--sel td,
+.mnt tbody tr.mnt-row--sel:nth-child(even) td {
+    background: color-mix(in srgb, var(--accent-bg) 20%, var(--bg-surface));
+}
+.mnt tbody tr.mnt-row--sel:hover td {
+    background: color-mix(in srgb, var(--accent-bg) 28%, var(--bg-surface));
+}
+.mnt tbody tr.mnt-row--sel td.mnt-col-select { box-shadow: inset 3px 0 0 var(--accent-bg); }
 
 /* Frozen columns: checkbox (left:0) + IP (left:44px, the checkbox width).
    Selector must out-specify `.mnt td { position: relative }` above. */
@@ -807,6 +816,13 @@
     border-bottom: 1px solid var(--border-default);
 }
 .mnt-bulk-count { font-weight: 600; margin-right: 4px; }
+/* The native <select>s are searchable-enhanced into .ds-multi (display:block,
+   width:100% by default) — pin them to a fixed inline width so all four sit
+   in one row instead of each grabbing the full toolbar width. */
+.mnt-bulk .ds-multi { flex: 0 0 auto; width: 180px; }
+/* Button stays 180px, but the open list is wider than it (out-specifies the
+   `.ds-single .ds-multi__pop { width:100% }` rule that would pin it narrow). */
+.mnt-bulk .ds-single .ds-multi__pop { width: auto; min-width: 280px; max-width: 420px; }
 .mnt-bulk .filter-select { max-width: 200px; }
 
 /* Column picker */
@@ -830,6 +846,14 @@
 }
 .mnt-picker-add { display: flex; gap: 8px; }
 .mnt-picker-add .form-input { flex: 1; }
+.mnt-picker-head { display: flex; align-items: center; justify-content: space-between; }
+.mnt-picker-title { font-weight: 700; color: var(--text-primary); }
+.mnt-picker-close {
+    background: none; border: none; cursor: pointer; font-size: 1.1em; line-height: 1;
+    color: var(--text-secondary); padding: 4px 8px; border-radius: var(--radius-sm);
+}
+.mnt-picker-close:hover { background: var(--bg-hover); color: var(--text-primary); }
+.mnt-picker-foot { display: flex; justify-content: space-between; gap: 8px; }
 
 .device-status.online {
     color: var(--success-bg);
@@ -2043,3 +2067,24 @@
 .modal-header-actions { display: flex; align-items: center; gap: var(--space-3); }
 .btn-ai-run--sm { padding: var(--space-1) var(--space-3); font-size: 0.85rem; }
 .btn-ai-run--sm .ds-icon { width: 15px; height: 15px; }
+
+/* AI identify — "working" animations */
+@keyframes ai-spin { to { transform: rotate(360deg); } }
+@keyframes ai-pulse { 0%,100% { opacity: .55; transform: scale(1); } 50% { opacity: 1; transform: scale(1.12); } }
+
+.ai-working { display: inline-flex; align-items: center; gap: var(--space-2); }
+.ai-spinner {
+    width: 15px; height: 15px; flex: none; border-radius: 50%;
+    border: 2px solid var(--border-default);
+    border-top-color: var(--accent-bg);
+    animation: ai-spin 0.8s linear infinite;
+}
+.ai-elapsed { color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+
+/* Pulse the big empty-state / hero icon while researching */
+.ai-empty-icon.is-loading, .ai-hero-icon.is-loading { animation: ai-pulse 1.3s ease-in-out infinite; }
+
+/* Button in loading state: spin its icon, dim, block clicks */
+.btn-ai-run.is-loading { opacity: 0.75; cursor: progress; }
+.btn-ai-run.is-loading .ds-icon { animation: ai-spin 0.8s linear infinite; }
+.btn-ai-run:disabled { cursor: progress; }

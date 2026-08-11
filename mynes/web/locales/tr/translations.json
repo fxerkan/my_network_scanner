@@ -1031,5 +1031,9 @@
   "no_ip_skipped": "IP'si olmayan {count} cihaz atlandı",
   "hostname": "Ana bilgisayar adı",
   "status": "Durum",
-  "auto_detected": "Otomatik (algılanan)"
+  "auto_detected": "Otomatik (algılanan)",
+  "change_location": "Konum değiştir",
+  "change_trust": "Güven değiştir",
+  "close": "Kapat",
+  "done": "Tamam"
 }

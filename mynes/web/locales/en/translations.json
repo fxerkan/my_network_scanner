@@ -427,6 +427,7 @@
   "det_remote_access": "Remote Access",
   "det_snmp_other": "SNMP & Other Services",
   "det_no_web": "No reachable web service",
+  "det_http_headers": "HTTP Headers",
   "det_no_ssh": "No SSH service",
   "det_no_netsvc": "No network service data",
   "det_port_analysis": "Detailed Port Analysis",
@@ -1031,5 +1032,9 @@
   "no_ip_skipped": "{count} device(s) without an IP were skipped",
   "hostname": "Hostname",
   "status": "Status",
-  "auto_detected": "Auto (detected)"
+  "auto_detected": "Auto (detected)",
+  "change_location": "Change location",
+  "change_trust": "Change trust",
+  "close": "Close",
+  "done": "Done"
 }

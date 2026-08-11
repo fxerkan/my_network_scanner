@@ -22,12 +22,39 @@ import ssl
 import nmap
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-# SNMP imports
+# SNMP imports — pysnmp 7.x is fully async (the old sync nextCmd/getCmd are
+# gone), so wrap one async GET in a small sync helper the threaded analyzer can
+# call plainly.
+import asyncio
 try:
-    from pysnmp.hlapi import *
+    from pysnmp.hlapi.v3arch.asyncio import (
+        SnmpEngine, CommunityData, UdpTransportTarget, ContextData,
+        ObjectType, ObjectIdentity, get_cmd,
+    )
     SNMP_AVAILABLE = True
 except ImportError:
     SNMP_AVAILABLE = False
+
+
+def snmp_get(ip, oid, community='public', port=161, timeout=2):
+    """One SNMPv2c GET. Returns the value string, or None on any error/timeout.
+    ponytail: sync wrapper over pysnmp 7's async API; fine for a handful of OIDs."""
+    if not SNMP_AVAILABLE:
+        return None
+
+    async def _run():
+        ei, es, _ex, var_binds = await get_cmd(
+            SnmpEngine(), CommunityData(community, mpModel=1),
+            await UdpTransportTarget.create((ip, port), timeout=timeout, retries=0),
+            ContextData(), ObjectType(ObjectIdentity(oid)))
+        if ei or es or not var_binds:
+            return None
+        return var_binds[0][1].prettyPrint()
+
+    try:
+        return asyncio.run(_run())
+    except Exception:
+        return None
 
 # MQTT imports  
 try:
@@ -856,45 +883,21 @@ class EnhancedDeviceAnalyzer:
     def analyze_snmp_comprehensive(self, ip):
         """SNMP kapsamlı analiz"""
         snmp_info = {}
-        
-        try:
-            if not SNMP_AVAILABLE:
-                snmp_info['error'] = 'pysnmp kütüphanesi bulunamadı'
-                return snmp_info
-            
-            # SNMP OID'ler
-            oids = {
-                'system_description': '1.3.6.1.2.1.1.1.0',
-                'system_name': '1.3.6.1.2.1.1.5.0',
-                'system_uptime': '1.3.6.1.2.1.1.3.0',
-                'system_contact': '1.3.6.1.2.1.1.4.0',
-                'system_location': '1.3.6.1.2.1.1.6.0'
-            }
-            
-            for name, oid in oids.items():
-                try:
-                    for (errorIndication, errorStatus, errorIndex, varBinds) in nextCmd(
-                        SnmpEngine(),
-                        CommunityData('public'),
-                        UdpTransportTarget((ip, 161)),
-                        ContextData(),
-                        ObjectType(ObjectIdentity(oid)),
-                        lexicographicMode=False):
-                        
-                        if errorIndication:
-                            break
-                        elif errorStatus:
-                            break
-                        else:
-                            for varBind in varBinds:
-                                snmp_info[name] = str(varBind[1])
-                            break
-                except:
-                    pass
-                    
-        except Exception as e:
-            snmp_info['error'] = str(e)
-            
+        if not SNMP_AVAILABLE:
+            snmp_info['error'] = 'pysnmp kütüphanesi bulunamadı'
+            return snmp_info
+
+        oids = {
+            'system_description': '1.3.6.1.2.1.1.1.0',
+            'system_name': '1.3.6.1.2.1.1.5.0',
+            'system_uptime': '1.3.6.1.2.1.1.3.0',
+            'system_contact': '1.3.6.1.2.1.1.4.0',
+            'system_location': '1.3.6.1.2.1.1.6.0',
+        }
+        for name, oid in oids.items():
+            val = snmp_get(ip, oid)
+            if val is not None:
+                snmp_info[name] = val
         return snmp_info
     
     def advanced_os_detection(self, ip):
@@ -1675,47 +1678,23 @@ class EnhancedDeviceAnalyzer:
             'device_info': {}
         }
         
-        try:
-            from pysnmp.hlapi import (
-                SnmpEngine, CommunityData, UdpTransportTarget, ContextData,
-                ObjectType, ObjectIdentity, nextCmd
-            )
-            
-            port = creds.get('port', 161)
-            community = creds.get('username', 'public')
-            
-            # Sistem OID'leri
-            oids = {
-                'system_description': '1.3.6.1.2.1.1.1.0',
-                'system_uptime': '1.3.6.1.2.1.1.3.0',
-                'system_contact': '1.3.6.1.2.1.1.4.0',
-                'system_name': '1.3.6.1.2.1.1.5.0',
-                'system_location': '1.3.6.1.2.1.1.6.0'
-            }
-            
-            for name, oid in oids.items():
-                try:
-                    for (errorIndication, errorStatus, errorIndex, varBinds) in nextCmd(
-                        SnmpEngine(),
-                        CommunityData(community),
-                        UdpTransportTarget((ip, port), timeout=10),
-                        ContextData(),
-                        ObjectType(ObjectIdentity(oid)),
-                        lexicographicMode=False,
-                        maxRows=1
-                    ):
-                        if not errorIndication and not errorStatus:
-                            for varBind in varBinds:
-                                analysis['system_info'][name] = varBind[1].prettyPrint()
-                        break
-                except Exception as e:
-                    analysis['system_info'][name] = f'Error: {str(e)}'
-            
-        except ImportError:
+        if not SNMP_AVAILABLE:
             analysis['error'] = 'SNMP analiz için pysnmp kütüphanesi gerekli'
-        except Exception as e:
-            analysis['error'] = f'SNMP analiz hatası: {str(e)}'
-        
+            return analysis
+
+        port = creds.get('port', 161)
+        community = creds.get('username', 'public')
+        oids = {
+            'system_description': '1.3.6.1.2.1.1.1.0',
+            'system_uptime': '1.3.6.1.2.1.1.3.0',
+            'system_contact': '1.3.6.1.2.1.1.4.0',
+            'system_name': '1.3.6.1.2.1.1.5.0',
+            'system_location': '1.3.6.1.2.1.1.6.0',
+        }
+        for name, oid in oids.items():
+            val = snmp_get(ip, oid, community=community, port=port)
+            if val is not None:
+                analysis['system_info'][name] = val
         return analysis
     
     def _analyze_via_api(self, ip, creds):
