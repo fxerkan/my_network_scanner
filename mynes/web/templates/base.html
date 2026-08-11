@@ -135,7 +135,7 @@
             </button>
 
             <label class="ds-visually-hidden" for="languageSelect">{{ _('language') if _('language') != 'language' else 'Language' }}</label>
-            <select id="languageSelect" class="ds-select" data-native style="width:auto;min-width:64px"
+            <select id="languageSelect" class="ds-select" style="width:auto;min-width:64px"
                     onchange="changeLanguage(this.value)">
                 {% for lang_code in language_info.supported %}
                     <option value="{{ lang_code }}" {% if lang_code == current_language %}selected{% endif %}>

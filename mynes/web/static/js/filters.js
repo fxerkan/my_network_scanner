@@ -220,6 +220,13 @@
                     html += optHtml(node);
                 }
             }
+            // data-allow-custom: let the typed value become a new option (free-text
+            // fields like Location) instead of forcing a pick from the list.
+            const typed = (q || '').trim();
+            if (sel.hasAttribute('data-allow-custom') && typed &&
+                ![...sel.options].some(o => o.textContent.toLowerCase() === typed.toLowerCase())) {
+                html = `<button type="button" role="option" class="ds-multi__opt ds-multi__opt--new" data-value="${esc(typed)}" data-new="1">＋ “${esc(typed)}”</button>` + html;
+            }
             box.innerHTML = html || `<div class="ds-multi__empty">${esc(tr('no_results', '—'))}</div>`;
         }
         function open() {
@@ -234,6 +241,13 @@
         box.addEventListener('click', e => {
             const opt = e.target.closest('.ds-multi__opt');
             if (!opt) return;
+            // A "＋ typed" pick has no matching <option> yet - create it so
+            // setting sel.value below actually takes.
+            if (opt.dataset.new === '1' && ![...sel.options].some(o => o.value === opt.dataset.value)) {
+                const o = document.createElement('option');
+                o.value = o.textContent = opt.dataset.value;
+                sel.appendChild(o);
+            }
             sel.value = opt.dataset.value;
             syncLabel(); close();
             // Fire change so onchange="..." handlers and change listeners run,
@@ -276,6 +290,21 @@
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => autoEnhance());
     else autoEnhance();
+
+    // Dynamically-rendered selects (config rule rows, alert channels, etc.) never
+    // pass through autoEnhance's one-shot pass - enhance them as they're inserted.
+    // enhanceSelect only adds <div>/<button> siblings (never a <select>), so this
+    // can't feed itself. ponytail: whole-body observer, fine at home-LAN scale;
+    // scope it to specific roots only if a giant list ever makes it lag.
+    try {
+        new MutationObserver(muts => {
+            for (const m of muts) for (const n of m.addedNodes) {
+                if (n.nodeType !== 1) continue;
+                if (n.tagName === 'SELECT') { if (!n.matches('[data-native],[multiple]')) { try { enhanceSelect(n); } catch (_) {} } }
+                else if (n.querySelector && n.querySelector('select')) autoEnhance(n);
+            }
+        }).observe(document.documentElement, { childList: true, subtree: true });
+    } catch (_) { /* no MutationObserver: static selects still enhanced above */ }
 
     function _selftest() {
         const c = { device_type: 'Local Machine (Docker)', ip: '10.0.0.5', docker_info: { image: 'x' } };

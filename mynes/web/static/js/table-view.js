@@ -216,10 +216,10 @@
 
   // ---- Toolbar (bulk actions + column button) ------------------------------
   // Distinct existing locations across all devices, plus the app's predefined
-  // room list (read live from the edit modal's <datalist>).
+  // room list (read live from the edit modal's location <select>).
   function locationOptions() {
     const set = new Set();
-    document.querySelectorAll('#locationOptions option').forEach(o => o.value && set.add(o.value));
+    document.querySelectorAll('#enhancedEditLocation option').forEach(o => o.value && set.add(o.value));
     (devices || []).forEach(d => d.location && set.add(d.location));
     return [...set].sort((a, b) => a.localeCompare(b));
   }
@@ -227,9 +227,10 @@
   function toolbar(count) {
     if (!selected.size) return '';
     // Each control is a native <select> (searchable-enhanced in wire()), with a
-    // placeholder first option that doubles as the button label.
-    const sel = (cls, placeholder, opts) =>
-      `<select class="${cls} mnt-bulk-select"><option value="">${placeholder}…</option>${opts}</select>`;
+    // placeholder first option that doubles as the button label. `attrs` lets a
+    // control opt into free-text entry (Location).
+    const sel = (cls, placeholder, opts, attrs = '') =>
+      `<select class="${cls} mnt-bulk-select" ${attrs}><option value="">${placeholder}…</option>${opts}</select>`;
 
     const typeOpts = Object.keys(deviceTypes || {})
       .map(k => `<option value="${escHtml(k)}">${getDeviceIcon(k)} ${escHtml(getTranslatedDeviceType(k))}</option>`).join('');
@@ -247,7 +248,7 @@
       <span class="mnt-bulk-count">${L('selected_count', selected.size + ' selected', { count: selected.size })}</span>
       <button class="btn btn-danger btn-small mnt-bulk-del">🗑 ${L('delete', 'Delete')}</button>
       ${sel('mnt-bulk-type', L('change_type', 'Change type'), typeOpts)}
-      ${sel('mnt-bulk-loc', L('change_location', 'Change location'), locOpts)}
+      ${sel('mnt-bulk-loc', L('change_location', 'Change location'), locOpts, 'data-allow-custom')}
       ${sel('mnt-bulk-trust', L('change_trust', 'Change trust'), trustOpts)}
       ${sel('mnt-bulk-uplink', L('connected_via', 'Connected via'), uplinkOpts)}
       <button class="btn btn-secondary btn-small mnt-bulk-clear">${L('clear_selection', 'Clear')}</button>

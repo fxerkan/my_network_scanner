@@ -2888,7 +2888,16 @@ function loadDeviceToEnhancedModal(device) {
     const trustEl = document.getElementById('enhancedEditTrust');
     if (trustEl) { trustEl.value = device.trust_status || 'unknown'; trustEl._ds?.refresh(); }
     const locEl = document.getElementById('enhancedEditLocation');
-    if (locEl) locEl.value = device.location || '';
+    if (locEl) {
+        // A custom location saved earlier may not be one of the preset rooms -
+        // add it as an option so the <select> can show it.
+        const loc = device.location || '';
+        if (loc && ![...locEl.options].some(o => o.value === loc)) {
+            locEl.add(new Option(loc, loc));
+        }
+        locEl.value = loc;
+        locEl._ds?.refresh();
+    }
     
     // Load device types to dropdown first, then set selected value
     loadDeviceTypesToEnhancedModal().then(() => {

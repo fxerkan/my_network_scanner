@@ -298,21 +298,23 @@
                         </div>
                         <div class="form-group">
                             <label class="form-label" for="enhancedEditLocation">{{ _('location') }}</label>
-                            <input type="text" id="enhancedEditLocation" class="form-input" list="locationOptions" placeholder="{{ _('location') }}">
-                            <datalist id="locationOptions">
-                                <option value="{{ _('loc_living_room') }}"></option>
-                                <option value="{{ _('loc_bedroom') }}"></option>
-                                <option value="{{ _('loc_kitchen') }}"></option>
-                                <option value="{{ _('loc_bathroom') }}"></option>
-                                <option value="{{ _('loc_office') }}"></option>
-                                <option value="{{ _('loc_garage') }}"></option>
-                                <option value="{{ _('loc_garden') }}"></option>
-                                <option value="{{ _('loc_balcony') }}"></option>
-                                <option value="{{ _('loc_basement') }}"></option>
-                                <option value="{{ _('loc_roof') }}"></option>
-                                <option value="{{ _('loc_floor1') }}"></option>
-                                <option value="{{ _('loc_floor2') }}"></option>
-                            </datalist>
+                            <!-- data-allow-custom: app searchable dropdown that still
+                                 accepts a typed room not in the list (see filters.js). -->
+                            <select id="enhancedEditLocation" class="form-input" data-allow-custom>
+                                <option value="">{{ _('location') }}</option>
+                                <option value="{{ _('loc_living_room') }}">{{ _('loc_living_room') }}</option>
+                                <option value="{{ _('loc_bedroom') }}">{{ _('loc_bedroom') }}</option>
+                                <option value="{{ _('loc_kitchen') }}">{{ _('loc_kitchen') }}</option>
+                                <option value="{{ _('loc_bathroom') }}">{{ _('loc_bathroom') }}</option>
+                                <option value="{{ _('loc_office') }}">{{ _('loc_office') }}</option>
+                                <option value="{{ _('loc_garage') }}">{{ _('loc_garage') }}</option>
+                                <option value="{{ _('loc_garden') }}">{{ _('loc_garden') }}</option>
+                                <option value="{{ _('loc_balcony') }}">{{ _('loc_balcony') }}</option>
+                                <option value="{{ _('loc_basement') }}">{{ _('loc_basement') }}</option>
+                                <option value="{{ _('loc_roof') }}">{{ _('loc_roof') }}</option>
+                                <option value="{{ _('loc_floor1') }}">{{ _('loc_floor1') }}</option>
+                                <option value="{{ _('loc_floor2') }}">{{ _('loc_floor2') }}</option>
+                            </select>
                         </div>
                         <div class="form-group" id="enhancedEditUplinkGroup">
                             <label class="form-label" for="enhancedEditUplink">{{ _('connected_via') }}</label>
