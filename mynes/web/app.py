@@ -19,9 +19,10 @@ warnings.filterwarnings("ignore", category=DeprecationWarning, module="scapy")
 import logging
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
 
-# App logging: rotating file + in-memory ring buffer feeding Settings > Logs.
+# App logging: daily-rotated file + in-memory ring buffer feeding Settings > Logs.
 from mynes.core import logsetup
 logsetup.setup_logging(os.environ.get("MYNES_LOG_LEVEL", "INFO"))
+log = logging.getLogger("mynes.web.app")
 
 # Environment variables için dotenv desteği
 try:
@@ -220,6 +221,7 @@ def scan_network_thread():
     try:
         start_time = datetime.now()
         scan_progress["status"] = "scanning"
+        log.info("Network scan started (default range)")
         scanner.scan_network(progress_callback)
         scanner.save_to_json()
         
@@ -266,6 +268,8 @@ def scan_network_custom_thread(ip_range=None, include_offline=False):
     try:
         start_time = datetime.now()
         scan_progress["status"] = "scanning"
+        log.info("Network scan started (range=%s, include_offline=%s)",
+                 ip_range or "auto", include_offline)
         scanner.scan_network(progress_callback, ip_range, include_offline)
         scanner.save_to_json()
         
@@ -1475,9 +1479,10 @@ def enhanced_analysis(ip):
     global enhanced_analysis_status
     
     try:
+        log.info("Enhanced (detailed) analysis started for %s", ip)
         # Status'u analyzing olarak ayarla
         enhanced_analysis_status[ip] = {
-            "status": "analyzing", 
+            "status": "analyzing",
             "message": f"{ip} için gelişmiş analiz başlatılıyor...",
             "started_at": datetime.now().isoformat()
         }

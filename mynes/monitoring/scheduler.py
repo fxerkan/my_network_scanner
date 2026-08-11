@@ -179,6 +179,7 @@ class MonitorScheduler:
         settings = settings or self.settings()
         started = time.monotonic()
 
+        log.info("Monitoring scan started (include_offline=%s)", settings["include_offline"])
         self.scanner.scan_network(include_offline=settings["include_offline"])
         devices = self.scanner.get_devices()
 
@@ -197,6 +198,11 @@ class MonitorScheduler:
             enabled_rules=settings["enabled_rules"],
             known_pairs=state.get("known_pairs") or {},
         )
+
+        # Breadcrumb each event into the persistent log - "new device added",
+        # "device offline", etc. show up in Settings > Logs, not just Alerts.
+        for a in alerts:
+            log.info("Event: %s - %s (%s)", a.rule, a.device_name or a.ip or "?", a.title)
 
         alert_dicts = [a.to_dict() for a in alerts]
         # Muted devices still get recorded - the History strip and the alert log

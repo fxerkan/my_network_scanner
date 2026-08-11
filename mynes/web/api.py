@@ -345,9 +345,11 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
         if not device:
             return jsonify({"error": "device not found"}), 404
         try:
+            log.info("Security scan started for %s", ip)
             return jsonify(cve_mod.assess_device(device))
-        except Exception as e:  # noqa: BLE001 - never return an HTML 500 to a fetch()
-            return jsonify({"error": f"assessment failed: {e}"}), 500
+        except Exception:  # never return an HTML 500 to a fetch()
+            log.exception("security assessment failed for %s", ip)
+            return jsonify({"error": "assessment failed"}), 500
 
     # -- AI-assisted device identification ---------------------------------
     # The user brings their own AI API key; the agent researches the device on
@@ -489,12 +491,17 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
         body = request.get_json(silent=True) or {}
         # A provider key ('cveorg'/'circl') or a custom native-overlay URL.
         source = (body.get("source") or body.get("url") or "").strip() or None
+        log.info("CVE database update started (source=%s)", source or "default")
         result = cve_mod.sync_cve_data(source)
         if result.get("ok"):
             cfg = config_manager.config.setdefault("security", {})
             cfg["cve_source"] = source or cve_mod.DEFAULT_CVE_SOURCE
             cfg["cve_last_sync"] = result.get("last_updated")
             config_manager.save_config()
+            log.info("CVE database updated: %s patterns (%s)",
+                     result.get("count", "?"), result.get("last_updated", ""))
+        else:
+            log.warning("CVE database update failed: %s", result.get("error", "unknown"))
         return jsonify(result)
 
     @bp.post("/security/cve-db/update-list")
