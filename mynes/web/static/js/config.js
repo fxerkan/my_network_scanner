@@ -2167,22 +2167,27 @@ async function loadLogs() {
     if (!viewer) return;
     const q = (document.getElementById('logSearch') || {}).value || '';
     const level = (document.getElementById('logLevelFilter') || {}).value || '';
+    const date = (document.getElementById('logDate') || {}).value || '';
     try {
-        const params = new URLSearchParams({ limit: '800' });
+        const params = new URLSearchParams({ limit: '2000' });
         if (q) params.set('q', q);
         if (level) params.set('level', level);
+        if (date) params.set('date', date);
         const data = await (await fetch('/api/logs?' + params.toString())).json();
 
         // Keep the runtime-level dropdown in sync with the server.
         const runtime = document.getElementById('logRuntimeLevel');
         if (runtime && data.level) runtime.value = data.level;
+        populateLogDates(data.dates, date);
 
         const rows = (data.logs || []).map(r => {
             const lvl = (r.level || 'INFO').toLowerCase();
+            const loc = r.location ? `<span class="log-loc">${logEsc(r.location)}</span>` : '';
+            const code = r.code ? `<span class="log-code">${logEsc(r.code)}</span>` : '';
             return `<div class="log-line log-line--${lvl}">` +
                 `<span class="log-time">${logEsc(r.time)}</span>` +
                 `<span class="log-level log-level--${lvl}">${logEsc(r.level)}</span>` +
-                `<span class="log-logger">${logEsc(r.logger)}</span>` +
+                `<span class="log-logger">${logEsc(r.logger)}</span>` + loc + code +
                 `<span class="log-msg">${highlightLog(r.message, q)}</span></div>`;
         });
         viewer.innerHTML = rows.length ? rows.join('') :
@@ -2208,14 +2213,36 @@ async function setLogLevel(level) {
 }
 
 function downloadLogs() {
-    window.location.href = '/api/logs/download';
+    const date = (document.getElementById('logDate') || {}).value || '';
+    window.location.href = '/api/logs/download' + (date ? '?date=' + encodeURIComponent(date) : '');
+}
+
+// Fill the day picker from the server's list of available dates, keeping the
+// current selection. "" = live/today (always the first option, from the DOM).
+function populateLogDates(dates, selected) {
+    const sel = document.getElementById('logDate');
+    if (!sel || !Array.isArray(dates)) return;
+    const want = (selected || '') + '|' + dates.join(',');
+    if (sel.dataset.filled === want) return;  // no churn on every refresh
+    sel.dataset.filled = want;
+    const live = sel.options[0];  // the {{ _('log_live') }} option
+    sel.innerHTML = '';
+    sel.appendChild(live);
+    dates.forEach(d => {
+        const o = document.createElement('option');
+        o.value = d; o.textContent = d;
+        sel.appendChild(o);
+    });
+    sel.value = selected || '';
 }
 
 // Live search + filter without a button press.
 document.addEventListener('DOMContentLoaded', function () {
     const s = document.getElementById('logSearch');
     const f = document.getElementById('logLevelFilter');
+    const d = document.getElementById('logDate');
     let timer = null;
     if (s) s.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(loadLogs, 250); });
     if (f) f.addEventListener('change', loadLogs);
+    if (d) d.addEventListener('change', loadLogs);
 });

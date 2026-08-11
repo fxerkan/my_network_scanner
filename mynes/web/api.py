@@ -434,15 +434,23 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
 
     @bp.get("/logs")
     def logs_get():
-        """Recent log records, filterable by minimum level and free text."""
+        """Log records for a given day (default today), filterable by level+text.
+
+        Without ``date`` this returns today's live records; a past YYYY-MM-DD is
+        read back from that day's rotated file so logs survive a restart."""
         try:
             limit = min(2000, max(1, int(request.args.get("limit", 500))))
         except (TypeError, ValueError):
             limit = 500
+        date = request.args.get("date")
+        level, q = request.args.get("level"), request.args.get("q")
+        logs = logsetup.for_date(date, limit, level, q) if date \
+            else logsetup.recent(limit, level, q)
         return jsonify({
             "level": logsetup.get_level(),
             "levels": logsetup.LEVELS,
-            "logs": logsetup.recent(limit, request.args.get("level"), request.args.get("q")),
+            "dates": logsetup.available_dates(),
+            "logs": logs,
         })
 
     @bp.post("/logs/level")
@@ -453,11 +461,17 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
 
     @bp.get("/logs/download")
     def logs_download():
-        """Download the full rotating log file as plain text."""
+        """Download a day's log file as plain text (?date=YYYY-MM-DD, else today)."""
+        import re as _re
+        import time as _time
         from flask import send_file
+        date = request.args.get("date", "")
+        path, name = logsetup.LOG_FILE, "mynes.log"
+        if _re.fullmatch(r"\d{4}-\d\d-\d\d", date) and date != _time.strftime("%Y-%m-%d"):
+            path, name = f"{logsetup.LOG_FILE}.{date}", f"mynes-{date}.log"
         try:
-            return send_file(logsetup.LOG_FILE, as_attachment=True,
-                             download_name="mynes.log", mimetype="text/plain")
+            return send_file(path, as_attachment=True,
+                             download_name=name, mimetype="text/plain")
         except FileNotFoundError:
             return jsonify({"error": "no log file yet"}), 404
 

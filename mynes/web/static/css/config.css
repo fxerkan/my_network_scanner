@@ -787,7 +787,9 @@
 /* Settings > Logs: monospace log viewer with per-level tinting + search marks. */
 .log-viewer {
     margin-top: var(--space-3);
-    max-height: 480px;
+    /* Fill down to near the bottom of the viewport instead of a fixed box. */
+    height: calc(100vh - 320px);
+    min-height: 320px;
     overflow-y: auto;
     background: var(--bg-surface-sunken, var(--bg-surface));
     border: 1px solid var(--border-default);
@@ -808,4 +810,7 @@
 .log-level--debug { color: var(--text-tertiary); }
 .log-logger { color: var(--text-tertiary); flex: 0 0 auto; }
 .log-msg { flex: 1 1 auto; word-break: break-word; }
+/* Source location + exception type for error/warning records. */
+.log-loc { color: var(--text-tertiary); flex: 0 0 auto; font-style: italic; }
+.log-code { color: var(--severity-critical-fg, #dc2626); font-weight: 700; flex: 0 0 auto; }
 .log-msg mark { background: var(--severity-warn-bg, #fde68a); color: inherit; border-radius: 2px; }

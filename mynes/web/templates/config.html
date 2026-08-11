@@ -541,6 +541,9 @@
                     <p style="margin-bottom: var(--space-3); color: var(--text-secondary);">{{ _('app_logs_hint') }}</p>
                     <div class="docker-filters" style="margin-bottom: var(--space-3);">
                         <input type="search" class="form-input" id="logSearch" placeholder="{{ _('search') }}" aria-label="{{ _('search') }}">
+                        <select class="form-select" id="logDate" aria-label="{{ _('log_day') }}">
+                            <option value="">{{ _('log_live') }}</option>
+                        </select>
                         <select class="form-select" id="logLevelFilter" aria-label="{{ _('log_level') }}">
                             <option value="">{{ _('all') }}</option>
                             <option value="ERROR">ERROR</option>
