@@ -45,7 +45,7 @@ PROVIDER_BASE_URLS = {"anthropic": "https://api.anthropic.com",
 # over sparse signals rewards reasoning, and a mini model over-claims (invents a
 # specific camera model from bare ports). Override with MYNES_AI_MODEL.
 PROVIDER_MODELS = {"anthropic": "claude-opus-4-8", "openai": "gpt-4o",
-                   "openrouter": "openai/gpt-4o"}
+                   "openrouter": "openai/gpt-oss-120b"}
 # The basic web-search tool variant is accepted across every current Claude
 # model (the newer _20260209 dynamic-filtering variant is Opus-4.6+ only). We
 # take the widely-compatible one so a user's own key/model choice just works.
@@ -225,7 +225,8 @@ def identify_device(facts: dict, *, api_key: str, model: str = DEFAULT_MODEL,
     elif provider == "openai":
         text = _call_openai(api_key, base_url, model, SYSTEM_PROMPT, user, timeout)
     elif provider == "openrouter":
-        text = _call_openrouter(api_key, base_url, model, SYSTEM_PROMPT, user, timeout)
+        text = _call_openrouter(api_key, base_url, model, SYSTEM_PROMPT, user,
+                                max_search_uses, timeout)
     else:
         raise ValueError(f"AI provider {provider!r} is not supported; "
                          "use 'anthropic', 'openai' or 'openrouter'")
@@ -307,11 +308,26 @@ def _openai_output_text(data) -> str:
     return "".join(parts).strip()
 
 
-def _call_openrouter(api_key, base_url, model, system, user, timeout):
+# Steers OpenRouter's web plugin toward the sources that actually identify
+# hardware, instead of shopping/marketplace pages. Prepended to the injected
+# results so the model treats them as the evidence to cross-check.
+WEB_SEARCH_PROMPT = (
+    "A web search was run to identify a network device. Prioritise primary "
+    "sources: the manufacturer's own site, product manuals/datasheets/spec "
+    "sheets, MAC-vendor/OUI databases (macvendors, hwaddress, Wireshark OUI, "
+    "IEEE), and community integration threads (Home Assistant, OpenWrt, iSpy). "
+    "Cross-check the OUI vendor and any banner/port signals against these. "
+    "Here are the results:"
+)
+
+
+def _call_openrouter(api_key, base_url, model, system, user, max_search_uses, timeout):
     """POST to an OpenAI-compatible /chat/completions gateway (OpenRouter).
 
     Web search is enabled with OpenRouter's ``web`` plugin, which works on any
-    model (equivalent to the ``:online`` model suffix). Returns the reply text.
+    model (equivalent to the ``:online`` model suffix). ``max_results`` is driven
+    by the same ``max_search_uses`` knob the Anthropic path uses, so raising it
+    deepens the source pool for every provider. Returns the reply text.
     """
     import requests
 
@@ -322,7 +338,9 @@ def _call_openrouter(api_key, base_url, model, system, user, timeout):
         "model": model,
         "messages": [{"role": "system", "content": system},
                      {"role": "user", "content": user}],
-        "plugins": [{"id": "web"}],
+        "plugins": [{"id": "web",
+                     "max_results": max(3, int(max_search_uses)),
+                     "search_prompt": WEB_SEARCH_PROMPT}],
         "max_tokens": 8000,
     }
     resp = requests.post(url, headers=headers, json=body, timeout=timeout)

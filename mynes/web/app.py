@@ -652,7 +652,7 @@ def analyze_device_background(ip):
             "status": "starting",
             "ip": ip,
             "progress": 0,
-            "message": "Analiz başlatılıyor...",
+            "message": "Starting analysis...",
             "start_time": datetime.now(),
             "result": None,
             "commands": [],
@@ -1483,7 +1483,7 @@ def enhanced_analysis(ip):
         # Status'u analyzing olarak ayarla
         enhanced_analysis_status[ip] = {
             "status": "analyzing",
-            "message": f"{ip} için gelişmiş analiz başlatılıyor...",
+            "message": f"Starting advanced analysis for {ip}...",
             "started_at": datetime.now().isoformat()
         }
         
@@ -1596,7 +1596,7 @@ def _run_ai_identification_step(ip, device, status_dict):
         return
     try:
         status_dict[ip] = {"status": "analyzing",
-                           "message": f"{ip} AI ajanı ile web'de araştırılıyor..."}
+                           "message": f"Researching {ip} on the web with the AI agent..."}
         facts = ai_identify.build_facts(device)
         result = ai_identify.identify_device(
             facts, api_key=key, model=settings["model"],
@@ -1617,7 +1617,7 @@ def run_enhanced_analysis(ip, scope='common'):
         # Status güncelle
         enhanced_analysis_status[ip] = {
             "status": "analyzing",
-            "message": f"{ip} cihaz bilgileri alınıyor..."
+            "message": f"Fetching device info for {ip}..."
         }
         
         # Cihaz bilgilerini bul
@@ -1638,7 +1638,7 @@ def run_enhanced_analysis(ip, scope='common'):
         # Status güncelle
         enhanced_analysis_status[ip] = {
             "status": "analyzing",
-            "message": f"{ip} erişim bilgileri kontrol ediliyor..."
+            "message": f"Checking access credentials for {ip}..."
         }
         
         # Credential'ları güvenli depolamadan yükle ve enhanced analyzer'a aktar
@@ -1657,9 +1657,9 @@ def run_enhanced_analysis(ip, scope='common'):
                 credentials_set = True
         
         if credentials_set:
-            enhanced_analysis_status[ip]["message"] = f"{ip} credential'lar ayarlandı, analiz başlatılıyor..."
+            enhanced_analysis_status[ip]["message"] = f"Credentials set for {ip}, starting analysis..."
         else:
-            enhanced_analysis_status[ip]["message"] = f"{ip} credential bulunamadı, genel analiz yapılıyor..."
+            enhanced_analysis_status[ip]["message"] = f"No credentials for {ip}, running a general analysis..."
         
         # Progress tracking
         total_steps = 8  # Port scan, Web, SSH, FTP, SNMP, Hardware, IoT, Final
@@ -1685,7 +1685,7 @@ def run_enhanced_analysis(ip, scope='common'):
                 current_step = max(current_step, 6)
             elif "IoT" in message or "🏠" in message:
                 current_step = max(current_step, 7)
-            elif "sonuçları kaydediliyor" in message:
+            elif "Saving analysis results" in message or "sonuçları kaydediliyor" in message:
                 current_step = 8
             
             # Progress percentage hesapla (5-95 arası)
@@ -1714,7 +1714,7 @@ def run_enhanced_analysis(ip, scope='common'):
         # Status güncelle
         enhanced_analysis_status[ip] = {
             "status": "analyzing",
-            "message": f"{ip} analiz sonuçları kaydediliyor..."
+            "message": f"Saving analysis results for {ip}..."
         }
         
         print(f"Enhanced analysis: {ip} analysis completed, saving results...")
@@ -1740,7 +1740,7 @@ def run_enhanced_analysis(ip, scope='common'):
         # Başarılı tamamlandı
         enhanced_analysis_status[ip] = {
             "status": "completed",
-            "message": f"{ip} gelişmiş analizi başarıyla tamamlandı",
+            "message": f"Advanced analysis for {ip} completed successfully",
             "completed_at": datetime.now().isoformat()
         }
         

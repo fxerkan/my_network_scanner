@@ -417,6 +417,10 @@ hr { border: 0; border-top: 1px solid var(--border-subtle); margin: var(--space-
    it earns its space back only once the row genuinely fits it (>=1280px). */
 .ds-brand__sub { display: none; font-weight: var(--weight-normal); color: var(--text-tertiary); font-size: var(--text-xs); }
 @media (min-width: 1280px) { .ds-brand__sub { display: block; } }
+/* Brand convention: a name ending in "er" tints that suffix a touch toward the
+   accent — subtle, not a shout, and theme-adaptive via tokens (both light/dark).
+   Reuse <span class="brand-er">er</span> for any future "…er" brand word. */
+.brand-er { color: color-mix(in srgb, var(--accent-bg) 60%, var(--text-tertiary)); font-weight: var(--weight-medium); }
 
 .ds-nav { display: flex; align-items: center; gap: var(--space-1); }
 
@@ -1015,7 +1019,23 @@ body.tv-mode :focus-visible {
 .device-logs__timeline { display: flex; flex-direction: column; }
 .device-logs__json { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: var(--space-3); font-size: var(--text-xs); color: var(--text-secondary); overflow-x: auto; white-space: pre; }
 .raw-json { display: flex; flex-direction: column; gap: var(--space-3); }
-.raw-json__editor { min-height: 420px; font-family: var(--font-mono, ui-monospace, monospace); font-size: var(--text-xs); white-space: pre; overflow-wrap: normal; tab-size: 2; }
+/* Highlighted editable JSON: a transparent textarea over a highlighted <pre>.
+   Same dark theme + tokens as the read-only Details view; the caret and typing
+   stay in the textarea, the colors are painted by the <pre> behind it. */
+.code-editor { position: relative; border: 1px solid #30363d; border-radius: var(--radius-md); overflow: hidden; background: #0d1117; }
+.code-editor__hl, .code-editor__input {
+    margin: 0; padding: 12px; border: 0;
+    font-family: var(--font-mono, ui-monospace, monospace); font-size: var(--text-xs);
+    line-height: 1.5; white-space: pre; overflow-wrap: normal; tab-size: 2;
+}
+.code-editor__hl { position: absolute; inset: 0; overflow: auto; pointer-events: none; background: transparent; color: #c9d1d9; }
+.code-editor__hl code { display: block; }
+.code-editor__input {
+    position: relative; display: block; width: 100%; min-height: 480px; resize: vertical;
+    background: transparent; color: transparent; caret-color: #c9d1d9; overflow: auto;
+}
+.code-editor__input:focus { outline: none; }
+.code-editor__input::selection { background: #264f78; color: transparent; }
 .raw-json__error { color: var(--severity-critical-bg, #dc2626); font-size: var(--text-sm); white-space: pre-wrap; }
 .raw-json__actions { display: flex; gap: var(--space-2); justify-content: flex-end; }
 .device-logs__event { display: grid; grid-template-columns: auto 150px 120px 1fr; align-items: baseline; gap: var(--space-2); padding: var(--space-2) 0; border-bottom: 1px solid var(--border-subtle); font-size: var(--text-sm); }

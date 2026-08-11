@@ -28,36 +28,8 @@ function openEnhancedDetailsModal(device) {
     // Modal'ı göster
     document.getElementById('enhancedDetailsModal').style.display = 'block';
 
-    // İlk tab'ı aktif et (header eylem çubuğu switchDetailsTab içinde ayarlanır).
+    // İlk tab'ı aktif et.
     switchDetailsTab('overview');
-}
-
-// Üst eylem çubuğu ("Cihaza Kaydet" / "AI ile Tanımla") yalnızca AI sekmesinde
-// görünür. Zaten AI tanımlaması yapılmışsa Identify butonu gri/disabled olur.
-function renderDetailsHeaderActions() {
-    const bar = document.getElementById('detailsHeaderActions');
-    if (!bar || !currentDevice) return;
-    if (currentTab !== 'ai') { bar.style.display = 'none'; bar.innerHTML = ''; return; }
-    bar.style.display = 'flex';
-    const ip = currentDevice.ip || '';
-    const ai = getAiIdentification(currentDevice, null);
-    const hasAi = !!ai;
-
-    const saveBtn = `<button class="btn-ai-run" ${hasAi ? '' : 'disabled'}
-            title="${hasAi ? '' : (t('ai_save_hint') === 'ai_save_hint' ? 'Run AI identify first' : t('ai_save_hint'))}"
-            onclick="saveAiToDevice('${escSec(ip)}')">
-        <svg class="ds-icon" aria-hidden="true"><use href="#i-check"/></svg>
-        <span>${t('ai_save') === 'ai_save' ? 'Save to device' : t('ai_save')}</span>
-    </button>`;
-
-    const idBtn = `<button class="btn-ai-run" ${hasAi ? 'disabled' : ''}
-            title="${hasAi ? (t('ai_already') === 'ai_already' ? 'Already identified by AI' : t('ai_already')) : ''}"
-            onclick="runAiIdentify('${escSec(ip)}')">
-        <svg class="ds-icon" aria-hidden="true"><use href="#i-sparkles"/></svg>
-        <span>${t('ai_run') === 'ai_run' ? 'Identify with AI' : t('ai_run')}</span>
-    </button>`;
-
-    bar.innerHTML = `${saveBtn}<div id="aiIdentifyStatus" class="ai-status"></div>${idBtn}`;
 }
 
 // Enhanced Details Modal'ını kapatma fonksiyonu
@@ -80,9 +52,6 @@ function switchDetailsTab(tabName) {
     event?.target?.classList.add('active') || 
     document.querySelector(`[onclick="switchDetailsTab('${tabName}')"]`)?.classList.add('active');
     
-    // Save/Identify butonları sadece AI sekmesinde.
-    renderDetailsHeaderActions();
-
     // İçeriği yükle
     loadTabContent(tabName);
 }
@@ -422,6 +391,11 @@ function generateAIContent(device, enhancedInfo) {
                 <div class="ai-empty">
                     <svg class="ds-icon ai-empty-icon" aria-hidden="true"><use href="#i-sparkles"/></svg>
                     <p>${t('ai_empty') === 'ai_empty' ? 'No AI identification yet. The AI agent searches the web (manuals, OUI databases, support pages) to work out exactly what this device is.' : t('ai_empty')}</p>
+                    <button class="btn-ai-run" onclick="runAiIdentify('${escSec(ip)}')">
+                        <svg class="ds-icon" aria-hidden="true"><use href="#i-sparkles"/></svg>
+                        <span>${t('ai_run') === 'ai_run' ? 'Identify with AI' : t('ai_run')}</span>
+                    </button>
+                    <div id="aiIdentifyStatus" class="ai-status"></div>
                 </div>
             </div>`;
     }
@@ -458,6 +432,13 @@ function generateAIContent(device, enhancedInfo) {
                     <div>
                         <div class="ai-hero-title">${escSec(title)}</div>
                         <div class="ai-hero-sub">${escSec(ai.product_type || '')}${ai.category ? ' · ' + escSec(ai.category) : ''}</div>
+                    </div>
+                    <div class="ai-hero-actions">
+                        <button class="btn-ai-run" onclick="saveAiToDevice('${escSec(ip)}')">
+                            <svg class="ds-icon" aria-hidden="true"><use href="#i-check"/></svg>
+                            <span>${t('ai_save') === 'ai_save' ? 'Save to device' : t('ai_save')}</span>
+                        </button>
+                        <div id="aiIdentifyStatus" class="ai-status"></div>
                     </div>
                 </div>
                 ${ai.what_it_is ? `<p class="ai-lead">${escSec(ai.what_it_is)}</p>` : ''}
@@ -665,7 +646,6 @@ async function runAiIdentify(ip) {
                 }
                 if (typeof showToast === 'function') showToast(t('ai_done') === 'ai_done' ? 'AI identification complete' : t('ai_done'), 'success');
                 if (typeof refreshDevicesAfterAnalysis === 'function') refreshDevicesAfterAnalysis(ip);
-                renderDetailsHeaderActions();  // Identify -> disabled, Save -> enabled
                 if (currentTab === 'ai') loadTabContent('ai');
             } else if (st.status === 'error') {
                 clearInterval(aiIdentifyPolling); aiIdentifyPolling = null;
@@ -675,6 +655,33 @@ async function runAiIdentify(ip) {
     } catch (e) {
         setStatus(escSec(String(e)), 'error');
     }
+}
+
+// Entry point from the Device Edit popup's "Identify with AI" button. Opens the
+// Details modal straight onto the AI tab and, if the device has no result yet,
+// kicks off the identify run so the user watches it happen and sees the result.
+function openAiIdentify(ip) {
+    const device = (typeof deviceByKey === 'function' && deviceByKey(ip)) || null;
+    if (!device) { if (typeof showToast === 'function') showToast(t('device_not_found'), 'error'); return; }
+    currentDevice = device;
+
+    const titleEl = document.getElementById('detailsDeviceTitle');
+    if (titleEl) titleEl.textContent = `${device.ip || device.mac} — ${device.alias || device.hostname || t('det_unknown_device')}`;
+    document.getElementById('enhancedDetailsModal').style.display = 'block';
+    switchDetailsTab('ai');
+
+    if (!getAiIdentification(device, null)) {
+        runAiIdentify(device.ip);
+    }
+}
+
+// Called by the header button in the Edit popup: close the edit modal, then run
+// AI identification for the device being edited.
+function startEditAiIdentify() {
+    const ip = (typeof currentEnhancedEditingIp !== 'undefined' && currentEnhancedEditingIp) || null;
+    if (!ip) return;
+    if (typeof closeEnhancedEditModal === 'function') closeEnhancedEditModal();
+    openAiIdentify(ip);
 }
 
 // Donanım içeriği
@@ -741,12 +748,58 @@ function generateDiscoveryContent(device) {
 }
 
 function generateRawContent(enhancedInfo) {
+    const ip = (currentDevice && currentDevice.ip) || 'device';
     return `
         <div class="details-section">
-            <h4>📄 ${t('det_raw_json')}</h4>
-            <div class="details-code">${JSON.stringify(enhancedInfo, null, 2)}</div>
+            <h4>📄 ${t('det_raw_json')}
+                <button class="btn-ai-run btn-sm json-dl-btn" onclick="downloadEnhancedJson()">
+                    <svg class="ds-icon" aria-hidden="true"><use href="#i-download"/></svg>
+                    <span>${t('json_download') === 'json_download' ? 'Download JSON' : t('json_download')}</span>
+                </button>
+            </h4>
+            <pre class="details-code json-view">${mynesHighlightJson(enhancedInfo)}</pre>
         </div>
     `;
+}
+
+// Küçük regex tabanlı JSON syntax highlighter (kütüphane yok). Girdi önce
+// escape edilir, sonra token'lar renklendirilir.
+function mynesHighlightJson(obj) {
+    let json;
+    try { json = typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2); }
+    catch (e) { json = String(obj); }
+    json = json.replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
+    return json.replace(
+        /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)/g,
+        (m) => {
+            let cls = 'jn';                         // number
+            if (/^"/.test(m)) cls = /:$/.test(m) ? 'jk' : 'js';   // key / string
+            else if (/true|false/.test(m)) cls = 'jb';            // boolean
+            else if (/null/.test(m)) cls = 'jz';                  // null
+            return `<span class="${cls}">${m}</span>`;
+        });
+}
+
+// Açık cihazın ham analiz JSON'unu indir (Raw Data sekmesindeki buton).
+function downloadEnhancedJson() {
+    const d = currentDevice || {};
+    const raw = d.enhanced_comprehensive_info || d.advanced_scan_summary || d.enhanced_info || {};
+    mynesDownloadJson(raw, `mynes-${d.ip || 'device'}-analysis.json`);
+}
+
+// JSON'ı dosya olarak indir (Blob + geçici <a>). Kütüphane yok.
+function mynesDownloadJson(obj, filename) {
+    try {
+        const text = typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2);
+        const blob = new Blob([text], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = filename || 'data.json';
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (e) {
+        if (typeof showToast === 'function') showToast('Download failed', 'error');
+    }
 }
 
 // Yardımcı fonksiyonlar

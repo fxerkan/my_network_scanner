@@ -1152,12 +1152,12 @@ async function startBulkAnalysis() {
             monitorBulkAnalysisProgress();
             
         } else {
-            progressText.textContent = `Analiz hatası: ${result.error}`;
+            progressText.textContent = `Analysis error: ${result.error}`;
             addVerboseLog(`❌ Analiz başlatma hatası: ${result.error}`);
             progressDiv.style.display = 'none';
         }
     } catch (error) {
-        progressText.textContent = `Bağlantı hatası: ${error.message}`;
+        progressText.textContent = `Connection error: ${error.message}`;
         addVerboseLog(`❌ Bağlantı hatası: ${error.message}`);
         progressDiv.style.display = 'none';
     }
@@ -1213,7 +1213,7 @@ function monitorBulkAnalysisProgress() {
                 
             } else if (status.status === 'error') {
                 clearInterval(checkInterval);
-                progressText.textContent = `Analiz hatası: ${status.message}`;
+                progressText.textContent = `Analysis error: ${status.message}`;
                 progressBar.style.backgroundColor = '#dc3545';
                 progressBar.textContent = 'HATA';
                 
@@ -1225,7 +1225,7 @@ function monitorBulkAnalysisProgress() {
                 }
                 
             } else if (status.status === 'analyzing') {
-                const currentMessage = status.message || 'Analiz devam ediyor...';
+                const currentMessage = status.message || 'Analysis in progress...';
                 progressText.textContent = currentMessage;
                 
                 // Verbose log'a sadece yeni mesajları ekle
@@ -1313,20 +1313,20 @@ async function startSingleDeviceAnalysis(ip) {
         if (response.ok) {
             progressText.textContent = t('an_starting');
             progressBar.textContent = '5%';
-            addVerboseLog('✅ Analiz başarıyla başlatıldı', sessionKey);
-            addVerboseLog('🔄 Real-time izleme başlatılıyor...', sessionKey);
+            addVerboseLog('✅ Analysis started successfully', sessionKey);
+            addVerboseLog('🔄 Starting real-time monitoring...', sessionKey);
             
             // Progress takip et
             monitorSingleDeviceAnalysis(ip);
             
         } else {
-            progressText.textContent = `Analiz hatası: ${result.error}`;
-            addVerboseLog(`❌ Analiz başlatma hatası: ${result.error}`, sessionKey);
+            progressText.textContent = `Analysis error: ${result.error}`;
+            addVerboseLog(`❌ Failed to start analysis: ${result.error}`, sessionKey);
             progressDiv.style.display = 'none';
         }
     } catch (error) {
-        progressText.textContent = `Bağlantı hatası: ${error.message}`;
-        addVerboseLog(`❌ Bağlantı hatası: ${error.message}`, sessionKey);
+        progressText.textContent = `Connection error: ${error.message}`;
+        addVerboseLog(`❌ Connection error: ${error.message}`, sessionKey);
         progressDiv.style.display = 'none';
     }
 }
@@ -1366,13 +1366,13 @@ async function stopAnalysis(sessionKey) {
             const response = await fetch('/stop_bulk_analysis', {
                 method: 'POST'
             });
-            addVerboseLog('🛑 Toplu analiz durdurma talebi gönderildi...', sessionKey);
+            addVerboseLog('🛑 Bulk analysis stop request sent...', sessionKey);
         } else {
             // Tek cihaz analizini durdur
             const response = await fetch(`/stop_enhanced_analysis/${session.targetIP}`, {
                 method: 'POST'
             });
-            addVerboseLog(`🛑 ${session.targetIP} analizi durdurma talebi gönderildi...`, sessionKey);
+            addVerboseLog(`🛑 Stop request sent for ${session.targetIP} analysis...`, sessionKey);
         }
         
         // Butonları güncelle
@@ -1382,13 +1382,13 @@ async function stopAnalysis(sessionKey) {
         const modal = document.getElementById(session.modalId);
         const progressText = modal.querySelector('#progressText');
         if (progressText) {
-            progressText.textContent = 'Analiz durduruldu.';
+            progressText.textContent = 'Analysis stopped.';
         }
         
-        addVerboseLog('✅ Analiz başarıyla durduruldu', sessionKey);
+        addVerboseLog('✅ Analysis stopped successfully', sessionKey);
         
     } catch (error) {
-        addVerboseLog(`❌ Analiz durdurma hatası: ${error.message}`, sessionKey);
+        addVerboseLog(`❌ Failed to stop analysis: ${error.message}`, sessionKey);
     }
 }
 
@@ -1442,10 +1442,10 @@ function monitorSingleDeviceAnalysis(ip) {
                 progressBar.style.width = '100%';
                 progressBar.textContent = '100%';
                 progressBar.style.background = 'linear-gradient(90deg, #28a745, #20c997)';
-                progressText.textContent = '✅ Analiz tamamlandı!';
+                progressText.textContent = '✅ Analysis complete!';
 
-                addVerboseLog('✅ Analiz başarıyla tamamlandı!', sessionKey);
-                addVerboseLog('📊 Sonuçlar yükleniyor...', sessionKey);
+                addVerboseLog('✅ Analysis completed successfully!', sessionKey);
+                addVerboseLog('📊 Loading results...', sessionKey);
 
                 // Butonları sıfırla ve tekrar başlatmayı engelle (yanlışlıkla yeniden analiz)
                 updateAnalysisButtons(sessionKey, false);
@@ -1463,25 +1463,27 @@ function monitorSingleDeviceAnalysis(ip) {
                 // modal'a dokunan koddan ÖNCE ve ayrı olarak çağırıyoruz.
                 refreshDevicesAfterAnalysis(ip);
 
-                // Sonuçları modal içinde göster (modal DOM'u hâlâ varsa)
-                setTimeout(() => {
+                // Analiz bitince ham JSON dökmek yerine analiz penceresini kapat
+                // ve doğrudan cihazın "Details" sayfasını aç.
+                setTimeout(async () => {
                     try {
-                        const pd = modal && modal.querySelector('#analysisProgress');
-                        if (pd) pd.style.display = 'none';
-                        if (resultsDiv) resultsDiv.style.display = 'block';
-                        loadDeviceAnalysisResults(ip, sessionKey);
+                        const device = await fetch(`/device/${ip}`).then(r => r.json());
+                        closeUnifiedAnalysisModal(sessionKey);
+                        if (device && typeof openEnhancedDetailsModal === 'function') {
+                            openEnhancedDetailsModal(device);
+                        }
                     } catch (e) {
-                        console.warn('Modal sonuç gösterimi atlandı:', e);
+                        console.warn('Details açılışı atlandı:', e);
                     }
-                }, 1000);
+                }, 800);
 
             } else if (status.status === 'error') {
                 clearInterval(checkInterval);
-                progressText.textContent = `Analiz hatası: ${status.message}`;
+                progressText.textContent = `Analysis error: ${status.message}`;
                 progressBar.style.backgroundColor = '#dc3545';
                 progressBar.textContent = 'HATA';
                 
-                addVerboseLog(`❌ Analiz hatası: ${status.message}`, sessionKey);
+                addVerboseLog(`❌ Analysis error: ${status.message}`, sessionKey);
                 showToast(`❌ ${t('enhanced_analysis_error', {ip: ip, error: status.message || ''})}`, 'error');
 
                 // Butonları sıfırla
@@ -1492,11 +1494,11 @@ function monitorSingleDeviceAnalysis(ip) {
 
             } else if (status.status === 'stopped') {
                 clearInterval(checkInterval);
-                progressText.textContent = 'Analiz durduruldu';
+                progressText.textContent = 'Analysis stopped';
                 progressBar.style.backgroundColor = '#6c757d';
                 progressBar.textContent = 'DURDURULDU';
                 
-                addVerboseLog('🛑 Analiz kullanıcı tarafından durduruldu', sessionKey);
+                addVerboseLog('🛑 Analysis stopped by user', sessionKey);
                 
                 // Butonları sıfırla
                 updateAnalysisButtons(sessionKey, false);
@@ -1507,7 +1509,7 @@ function monitorSingleDeviceAnalysis(ip) {
                 }
                 
             } else if (status.status === 'analyzing') {
-                const currentMessage = status.message || 'Analiz devam ediyor...';
+                const currentMessage = status.message || 'Analysis in progress...';
                 progressText.textContent = currentMessage;
                 
                 // Verbose log'a sadece yeni mesajları ekle
@@ -1550,7 +1552,7 @@ function monitorSingleDeviceAnalysis(ip) {
             }
         } catch (error) {
             console.error('Analiz durumu kontrol hatası:', error);
-            addVerboseLog(`⚠️ Status kontrol hatası: ${error.message}`, sessionKey);
+            addVerboseLog(`⚠️ Status check error: ${error.message}`, sessionKey);
         }
     }, 2000); // Her 2 saniyede kontrol et
 }

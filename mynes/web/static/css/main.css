@@ -710,84 +710,126 @@
     background: var(--bg-surface);
 }
 
-.devices-table {
-    width: 100%;
-    border-collapse: collapse;
+/* ---- Configurable device table (static/js/table-view.js / MynesTable) ---- */
+/* --mnt-head-bg is a clearly distinct band, not a near-invisible tint. */
+:root { --mnt-head-bg: var(--border-default); }
+
+/* overflow-x:auto forces overflow-y to compute as auto too, so a bounded
+   height is what lets both the sticky header (top) and frozen IP column (left)
+   actually stick — the trap flagged in design-system.css. */
+.mnt-wrap {
+    overflow: auto;
+    max-height: calc(100vh - 240px);
+    -webkit-overflow-scrolling: touch;
+}
+.mnt {
+    border-collapse: separate;
+    border-spacing: 0;
+    table-layout: fixed;        /* <colgroup> widths are authoritative (resize) */
+    min-width: 100%;            /* explicit px width is set from JS (sum of cols) */
     font-size: 0.9em;
 }
-
-.devices-table th {
-    background: var(--bg-surface-sunken);
-    color: var(--text-secondary);
-    border-bottom: 1px solid var(--border-default);
-    font-weight: 600;
-    padding: 15px 12px;
+.mnt th, .mnt td {
+    padding: 10px 12px;
     text-align: left;
-    border: none;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--border-subtle);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    position: relative;
+}
+.mnt thead th {
     position: sticky;
     top: 0;
-    z-index: 10;
-}
-
-/* Sıralama özelliği için stiller */
-.devices-table th.sortable {
-    cursor: pointer;
-    user-select: none;
-    position: relative;
-    transition: background 0.3s ease;
-}
-
-.devices-table th.sortable:hover {
-    background: var(--bg-hover);
+    z-index: 3;
+    background: var(--mnt-head-bg);
     color: var(--text-primary);
+    font-weight: 700;
+    user-select: none;
 }
+.mnt .mnt-sort { cursor: pointer; }
+.mnt .mnt-sort:hover { background: var(--bg-hover); }
 
-.sort-indicator {
-    font-size: 0.9em;
-    margin-left: 5px;
-    color: var(--accent-bg);
-    font-weight: bold;
-    transition: all 0.3s ease;
-}
+/* Zebra: applied to cells (not <tr>) so frozen cells stay opaque while the
+   table scrolls sideways under them. */
+.mnt tbody td { background: var(--bg-surface); }
+.mnt tbody tr:nth-child(even) td { background: var(--bg-surface-sunken); }
+.mnt tbody tr:hover td { background: var(--bg-hover); }
+.mnt tbody tr.mnt-row--sel td { background: var(--accent-bg-subtle); }
 
-.devices-table td {
-    padding: 12px;
-    border-bottom: 1px solid var(--border-subtle);
-    vertical-align: middle;
-}
+/* Frozen columns: checkbox (left:0) + IP (left:44px, the checkbox width).
+   Selector must out-specify `.mnt td { position: relative }` above. */
+.mnt th.mnt-freeze, .mnt td.mnt-freeze { position: sticky; z-index: 2; }
+.mnt thead th.mnt-freeze { z-index: 4; }
+.mnt-col-select { left: 0; width: 44px; text-align: center; }
+.mnt-col-ip { left: 44px; box-shadow: 1px 0 0 var(--border-default); }
+.mnt-col-actions { text-align: center; }
 
-.table-row {
-    transition: all 0.2s ease;
-    cursor: pointer;
-}
+.mnt-ip { color: var(--accent-bg); font-weight: 600; cursor: pointer; }
+.mnt-ip:hover { text-decoration: underline; }
+.mnt-muted { color: var(--text-secondary); }
+.mnt-empty { text-align: center; padding: 40px; color: var(--text-secondary); }
 
-.table-row:hover {
-    background: var(--bg-surface-sunken);
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+/* Resize handle on each header's right edge. */
+.mnt-resize {
+    position: absolute; top: 0; right: 0; width: 6px; height: 100%;
+    cursor: col-resize; user-select: none;
 }
+.mnt-resize:hover { background: var(--accent-bg); opacity: 0.5; }
 
-.table-row.selected {
-    background: rgba(0,123,255,0.1);
-    border-left: 4px solid var(--accent-bg);
-}
+.port-badge--more { background: var(--bg-surface-sunken); color: var(--text-secondary); }
 
-.table-cell {
-    vertical-align: middle;
+/* Row kebab menu */
+.mnt-menu { position: relative; display: inline-block; }
+.mnt-menu-btn {
+    background: none; border: none; cursor: pointer; font-size: 1.3em; line-height: 1;
+    color: var(--text-secondary); padding: 2px 8px; border-radius: var(--radius-sm);
 }
+.mnt-menu-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+/* position:fixed so the cell's overflow:hidden (needed for ellipsis) can't clip it */
+.mnt-menu-list {
+    position: fixed; z-index: 400; min-width: 190px;
+    background: var(--bg-surface-raised); border: 1px solid var(--border-default);
+    border-radius: var(--radius-md); box-shadow: var(--shadow-lg); padding: 4px;
+}
+.mnt-menu-list button {
+    display: flex; align-items: center; gap: 8px; width: 100%; text-align: left;
+    background: none; border: none; cursor: pointer; padding: 8px 10px;
+    border-radius: var(--radius-sm); color: var(--text-primary); font-size: 0.95em;
+}
+.mnt-menu-list button:hover { background: var(--bg-hover); }
 
-.ip-cell {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-weight: 600;
-    color: var(--accent-bg);
-    cursor: pointer;
+/* Bulk-action toolbar (shown only when rows are selected) */
+.mnt-bulk {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
+    padding: 10px 12px; background: var(--accent-bg-subtle);
+    border-bottom: 1px solid var(--border-default);
 }
+.mnt-bulk-count { font-weight: 600; margin-right: 4px; }
+.mnt-bulk .filter-select { max-width: 200px; }
 
-.ip-cell:hover {
-    text-decoration: underline;
+/* Column picker */
+.mnt-cols-btn {
+    background: none; border: none; cursor: pointer; color: var(--text-secondary);
+    padding: 4px; border-radius: var(--radius-sm);
 }
+.mnt-cols-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+.mnt-picker {
+    padding: 12px; background: var(--bg-surface-raised);
+    border-bottom: 1px solid var(--border-default);
+    display: flex; flex-direction: column; gap: 10px;
+}
+.mnt-picker-list {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 4px;
+}
+.mnt-pick-row { display: flex; align-items: center; gap: 6px; font-size: 0.92em; }
+.mnt-rm-custom {
+    margin-left: auto; background: none; border: none; cursor: pointer;
+    color: var(--danger-bg); font-weight: 700;
+}
+.mnt-picker-add { display: flex; gap: 8px; }
+.mnt-picker-add .form-input { flex: 1; }
 
 .device-status.online {
     color: var(--success-bg);
@@ -1287,6 +1329,19 @@
     max-height: 300px;
     overflow-y: auto;
 }
+
+/* Highlighted JSON view (Raw Data tab + edit Raw JSON) — dark code theme */
+.json-view {
+    background: #0d1117; color: #c9d1d9;
+    border-color: #30363d; max-height: 460px;
+    line-height: 1.5;
+}
+.json-view .jk, .code-editor .jk { color: #7ee787; }   /* key */
+.json-view .js, .code-editor .js { color: #a5d6ff; }   /* string */
+.json-view .jn, .code-editor .jn { color: #79c0ff; }   /* number */
+.json-view .jb, .code-editor .jb { color: #ffa657; }   /* boolean */
+.json-view .jz, .code-editor .jz { color: #ff7b72; }   /* null */
+.json-dl-btn { float: right; margin-top: -4px; }
 
 .details-no-data {
     text-align: center;
@@ -1945,15 +2000,8 @@
 .ai-status-error { color: var(--severity-critical-fg); }
 .ai-status-success { color: var(--severity-ok-fg, #28a745); }
 
-/* Popup üst eylem çubuğu: Save to device / Identify with AI */
-.details-header-actions {
-    display: flex; align-items: center; gap: var(--space-3);
-    padding: var(--space-3) var(--space-4);
-    border-bottom: 1px solid var(--border-subtle);
-    background: var(--bg-surface-sunken);
-}
-.details-header-actions #aiIdentifyStatus { flex: 1 1 auto; text-align: center; }
-.details-header-actions .btn-ai-run:last-child { margin-left: auto; }
+/* AI tab: tek durum-duyarlı buton hero'nun sağ üstünde */
+.ai-hero-actions { margin-left: auto; display: flex; align-items: center; gap: var(--space-2); }
 .btn-ai-run:disabled { opacity: 0.45; cursor: not-allowed; filter: grayscale(0.6); }
 
 /* Confidence: a KPI card + explanation of what the % means */
@@ -1990,3 +2038,8 @@
 .ai-candidate-type { flex: 1 1 auto; font-weight: 600; color: var(--text-primary); }
 .ai-candidate-pct { font-variant-numeric: tabular-nums; color: var(--text-secondary); min-width: 3.2em; text-align: right; }
 .btn-ai-run.btn-sm { padding: var(--space-1) var(--space-3); font-size: 0.8rem; }
+
+/* AI header action in the Device Edit popup */
+.modal-header-actions { display: flex; align-items: center; gap: var(--space-3); }
+.btn-ai-run--sm { padding: var(--space-1) var(--space-3); font-size: 0.85rem; }
+.btn-ai-run--sm .ds-icon { width: 15px; height: 15px; }

@@ -1746,84 +1746,10 @@ function switchView(view) {
     displayDevices();
 }
 
+// The Table view is owned by static/js/table-view.js (MynesTable). It reads the
+// same already-filtered `devices` global and renders header/body/toolbar itself.
 function displayDevicesTable() {
-    const tableBody = document.querySelector('#devicesTable tbody');
-    
-    if (devices.length === 0) {
-        tableBody.innerHTML = `
-            <tr>
-                <td colspan="8" style="text-align: center; padding: 40px; color: #6c757d;">
-                    <div>📡 Henüz cihaz bulunamadı</div>
-                    <div style="margin-top: 10px; font-size: 0.9em;">Ağınızı taramak için "Taramayı Başlat" butonuna tıklayın</div>
-                </td>
-            </tr>
-        `;
-        return;
-    }
-
-    // Sıralama fonksiyonunu kullan
-    const sortedDevices = sortDevices(devices);
-
-    tableBody.innerHTML = sortedDevices.map(device => {
-        const ports = device.open_ports && device.open_ports.length > 0 ? 
-            device.open_ports.map(port => {
-                if (typeof port === 'object') {
-                    return `<span class="port-badge" onclick="openPort('${device.ip}', ${port.port}, '${port.description || port.service || ''}')" title="${port.description || port.service || ''}">${port.port}</span>`;
-                } else {
-                    return `<span class="port-badge" onclick="openPort('${device.ip}', ${port}, '')" title="Port ${port}">${port}</span>`;
-                }
-            }).join(' ') : 
-            '<span style="color: #6c757d;">-</span>';
-
-        return `
-            <tr class="table-row" onclick="selectTableRow(this)">
-                <td class="table-cell">
-                    <div class="ip-cell"${device.ip ? ` onclick="openDevice('${device.ip}'); event.stopPropagation();"` : ''}>
-                        <span class="device-status ${device.status === 'online' ? 'online' : 'offline'}">${device.status === 'online' ? '🟢' : '🔴'}</span>
-                        ${device.ip || `<span class="device-ip--none" title="${t('discovery_only')}">${device.hostname || device.mac || '—'}</span>`}
-                    </div>
-                </td>
-                <td class="table-cell">${device.alias || '-'}</td>
-                <td class="table-cell" title="${device.vendor || 'Bilinmeyen'}">${truncateText(device.vendor || 'Bilinmeyen', 20)}</td>
-                <td class="table-cell">
-                    <span class="device-type-badge">
-                        ${getDeviceIcon(device.device_type)} ${getTranslatedDeviceType(device.device_type)}
-                    </span>
-                </td>
-                <td class="table-cell">
-                    ${device.mac && device.mac !== 'N/A' ? `
-                        <div class="mac-container">
-                            <span class="mac-address" title="${device.mac}">${truncateText(device.mac, 17)}</span>
-                            <button class="copy-mac-btn" onclick="copyMacAddress('${device.mac}', this); event.stopPropagation();" title="${t('copy_mac_address')}" aria-label="${t('copy_mac_address')}"><svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-copy"/></svg></button>
-                        </div>
-                    ` : '<span class="mac-address">N/A</span>'}
-                </td>
-                <td class="table-cell">
-                    <div class="ports-cell">${ports}</div>
-                </td>
-                <td class="table-cell" title="${formatDate(device.last_seen)}">
-                    ${formatRelativeTime(device.last_seen)}
-                </td>
-                <td class="table-cell">
-                    <div class="device-actions">
-                        ${device.ip || device.mac ? `<button class="btn btn-primary btn-small" onclick="openEnhancedEditModal('${device.ip || device.mac}'); event.stopPropagation();" title="${t('edit')}" aria-label="${t('edit')}"><svg class="ds-icon" aria-hidden="true"><use href="#i-wrench"/></svg></button>` : ''}
-                        ${device.ip ? `<button class="btn btn-warning btn-small" onclick="openSingleDeviceAnalysisPage('${device.ip}'); event.stopPropagation();" title="${t('detailed_analysis')}" aria-label="${t('detailed_analysis')}"><svg class="ds-icon" aria-hidden="true"><use href="#i-microscope"/></svg></button>` : ''}
-                        ${hasEnhancedInfo(device) ?
-                            `<button class="btn btn-success btn-small" onclick="openEnhancedDetailsModal(${JSON.stringify(device).replace(/"/g, '&quot;')}); event.stopPropagation();" title="${t('details')}" aria-label="${t('details')}"><svg class="ds-icon" aria-hidden="true"><use href="#i-graph"/></svg></button>` : 
-                            ''
-                        }
-                    </div>
-                </td>
-            </tr>
-        `;
-    }).join('');
-}
-
-function selectTableRow(row) {
-    // Önceki seçili satırdan seçimi kaldır
-    document.querySelectorAll('.table-row').forEach(r => r.classList.remove('selected'));
-    // Yeni satırı seçili yap
-    row.classList.add('selected');
+    if (window.MynesTable) window.MynesTable.render();
 }
 
 function truncateText(text, maxLength) {
@@ -2439,6 +2365,15 @@ function openEnhancedEditModal(ip) {
     loadDeviceToEnhancedModal(device);
     loadUplinkField(device);
 
+    // "Identify with AI" header action: only for devices that have NOT been
+    // AI-identified yet - once a result exists it lives in the Details modal's
+    // AI tab, so the shortcut here would be redundant.
+    const aiBtn = document.getElementById('enhancedEditAiBtn');
+    if (aiBtn) {
+        const identified = typeof getAiIdentification === 'function' && getAiIdentification(device, null);
+        aiBtn.style.display = (device.ip && !identified) ? '' : 'none';
+    }
+
     // Radio-only discovery devices (Bluetooth/Zigbee - no IP) can be given an
     // alias/name and have logs, but ports/access/tools/security all need an IP
     // to probe. Hide those tabs (and the uplink field) so the modal only offers
@@ -2571,8 +2506,27 @@ async function loadLogsTab() {
     const fmt = ts => ts ? new Date(ts).toLocaleString() : '—';
     const mine = (alertsRes.alerts || []).filter(al => _sameDevice(al, device));
 
+    // The alert history is only half the story: a device that was scanned or
+    // deep-analysed but never triggered an alert would show "no events". Fold in
+    // the device's own analysis timestamps so the timeline reflects what ran.
+    const a = device.analysis_data || {};
+    const ai = (device.enhanced_comprehensive_info || {}).ai_identification ||
+               (a.enhanced_analysis_info || {}).ai_identification;
+    const aiMeta = ai && ai._meta ? [ai._meta.provider, ai._meta.model].filter(Boolean).join(' · ') : '';
+    const activity = [
+        { timestamp: a.last_normal_scan, severity: 'info', rule: 'scan',
+          message: t('log_normal_scan') || 'Normal scan' },
+        { timestamp: a.last_enhanced_analysis || device.last_enhanced_analysis, severity: 'info', rule: 'deep',
+          message: t('log_deep_analysis') || 'Detailed analysis' },
+        ai ? { timestamp: a.last_enhanced_analysis || device.last_enhanced_analysis, severity: 'info', rule: 'ai',
+               message: (t('log_ai_identify') || 'AI identification') + (aiMeta ? ` — ${aiMeta}` : '') } : null,
+    ].filter(e => e && e.timestamp);
+
+    const events = [...mine, ...activity].sort((x, y) =>
+        new Date(y.timestamp || 0) - new Date(x.timestamp || 0));
+
     const sev = s => ({ critical: 'is-down', warning: 'is-degraded', info: '' }[s] || '');
-    const timeline = mine.length ? mine.map(al => `
+    const timeline = events.length ? events.map(al => `
         <div class="device-logs__event">
             <span class="device-logs__dot ${sev(al.severity)}"></span>
             <span class="device-logs__time">${escHtml(fmt(al.timestamp))}</span>
@@ -2849,6 +2803,30 @@ function loadRawJsonTab() {
     const { encrypted_credentials, ...shown } = device;
     _rawJsonOriginal = shown;
     editor.value = JSON.stringify(shown, null, 2);
+    syncRawJsonHl();
+}
+
+// Overlay-editör senkronu: textarea içeriğini renklendirip arkadaki <pre>'ye bas
+// ve kaydırmayı hizala. mynesHighlightJson enhanced-details.js'te tanımlı.
+function syncRawJsonHl() {
+    const ta = document.getElementById('rawJsonEditor');
+    const code = document.getElementById('rawJsonHl');
+    if (!ta || !code || typeof mynesHighlightJson !== 'function') return;
+    code.innerHTML = mynesHighlightJson(ta.value) + '\n';
+    syncRawJsonScroll();
+}
+function syncRawJsonScroll() {
+    const ta = document.getElementById('rawJsonEditor');
+    const pre = ta && ta.parentElement.querySelector('.code-editor__hl');
+    if (pre) { pre.scrollTop = ta.scrollTop; pre.scrollLeft = ta.scrollLeft; }
+}
+
+// Editör içeriğini .json dosyası olarak indir (mynesDownloadJson enhanced-details.js'te).
+function downloadRawJson() {
+    const editor = document.getElementById('rawJsonEditor');
+    if (!editor) return;
+    const name = `mynes-${(currentEnhancedEditingIp || 'device')}.json`;
+    if (typeof mynesDownloadJson === 'function') mynesDownloadJson(editor.value, name);
 }
 
 async function saveRawJson() {

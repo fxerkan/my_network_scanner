@@ -141,40 +141,8 @@
                 <!-- Cihazlar JavaScript ile yüklenecek -->
             </div>
 
-            <!-- Tablo Görünümü (başlangıçta gizli) -->
-            <div id="tableContainer" class="table-container" style="display: none;">
-                <table id="devicesTable" class="devices-table">
-                    <thead>
-                        <tr>
-                            <th class="sortable" data-column="ip" data-type="ip">
-                                🌐 {{ _('ip_address') }} <span class="sort-indicator"></span>
-                            </th>
-                            <th class="sortable" data-column="alias" data-type="text">
-                                🏷️ {{ _('alias') }} <span class="sort-indicator"></span>
-                            </th>
-                            <th class="sortable" data-column="vendor" data-type="text">
-                                🏢 {{ _('vendor') }} <span class="sort-indicator"></span>
-                            </th>
-                            <th class="sortable" data-column="device_type" data-type="text">
-                                📱 {{ _('device_type') }} <span class="sort-indicator"></span>
-                            </th>
-                            <th class="sortable" data-column="mac" data-type="text">
-                                🔌 {{ _('mac_address') }} <span class="sort-indicator"></span>
-                            </th>
-                            <th class="sortable" data-column="open_ports" data-type="ports">
-                                🚪 {{ _('open_ports') }} <span class="sort-indicator"></span>
-                            </th>
-                            <th class="sortable" data-column="last_seen" data-type="date">
-                                ⏰ {{ _('last_seen') }} <span class="sort-indicator"></span>
-                            </th>
-                            <th>🔧 {{ _('actions') }}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Tablo verileri JavaScript ile yüklenecek -->
-                    </tbody>
-                </table>
-            </div>
+            <!-- Tablo Görünümü — tümüyle static/js/table-view.js (MynesTable) tarafından çizilir -->
+            <div id="tableContainer" class="table-container" style="display: none;"></div>
 
             <!-- Graph / Topology / Home plan - rendered by static/js/views.js -->
             <div id="graphContainer" class="graph-container" style="display: none;"></div>
@@ -244,7 +212,17 @@
         <div class="modal-content enhanced-edit-modal">
             <div class="modal-header">
                 <h2 class="modal-title" id="enhancedEditTitle">{{ _('advanced_device_edit') }}</h2>
-                <span class="close" onclick="closeEnhancedEditModal()">&times;</span>
+                <div class="modal-header-actions">
+                    <!-- Only shown for devices not yet AI-identified; toggled in
+                         openEnhancedEditModal(). Runs the AI identify step and
+                         opens the result view. -->
+                    <button type="button" id="enhancedEditAiBtn" class="btn-ai-run btn-ai-run--sm"
+                            style="display:none;" onclick="startEditAiIdentify()">
+                        <svg class="ds-icon" aria-hidden="true"><use href="#i-sparkles"/></svg>
+                        <span>{{ _('ai_run') if _('ai_run') != 'ai_run' else 'Identify with AI' }}</span>
+                    </button>
+                    <span class="close" onclick="closeEnhancedEditModal()">&times;</span>
+                </div>
             </div>
             
             <!-- Tab Navigation -->
@@ -498,9 +476,17 @@
                 <div id="raw-tab" class="tab-pane">
                     <div class="raw-json">
                         <p class="form-hint">{{ _('raw_json_hint') }}</p>
-                        <textarea id="rawJsonEditor" class="form-textarea raw-json__editor" spellcheck="false"></textarea>
+                        <div class="code-editor">
+                            <pre class="code-editor__hl" aria-hidden="true"><code id="rawJsonHl"></code></pre>
+                            <textarea id="rawJsonEditor" class="code-editor__input" spellcheck="false"
+                                      oninput="syncRawJsonHl()" onscroll="syncRawJsonScroll()"></textarea>
+                        </div>
                         <div id="rawJsonError" class="raw-json__error"></div>
                         <div class="raw-json__actions">
+                            <button type="button" class="btn btn-secondary btn-small" onclick="downloadRawJson()">
+                                <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-download"/></svg>
+                                <span>{{ _('json_download') }}</span>
+                            </button>
                             <button type="button" class="btn btn-secondary btn-small" onclick="loadRawJsonTab()">
                                 <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-refresh"/></svg>
                                 <span>{{ _('reset') }}</span>
@@ -555,7 +541,6 @@
                 <h3><span id="detailsDeviceTitle">{{ _('detailed_analysis_details') }}</span></h3>
                 <span class="close" onclick="closeEnhancedDetailsModal()">&times;</span>
             </div>
-            <div id="detailsHeaderActions" class="details-header-actions"><!-- Save / Identify buttons injected by JS --></div>
             <div class="modal-body enhanced-details-body">
                 <div class="details-tabs">
                     <button class="tab-button active" onclick="switchDetailsTab('overview')">📊 {{ _('overview_tab') }}</button>
@@ -668,6 +653,7 @@
 {% block scripts %}
 <script src="/static/js/translations.js"></script>
 <script src="/static/js/main.js"></script>
+<script src="/static/js/table-view.js"></script>
 <script src="/static/js/views.js"></script>
 <script src="/static/js/device-access.js"></script>
 <script src="/static/js/enhanced-details.js"></script>
