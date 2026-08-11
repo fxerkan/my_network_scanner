@@ -273,6 +273,14 @@ def http_banner(ip, port, tls=False, timeout=READ_TIMEOUT):
             headers[key.strip().lower()] = value.strip()
 
     title_match = _TITLE_RE.search(body)
+    body_lc = body.lower()
+    # An appliance Wi-Fi adapter caught in setup mode names itself by its flow,
+    # not a <title>: an AC (RAC) adapter serves a language picker linking to
+    # "/aplist?lang=" then a "select the access point to be connected" list.
+    # The portal is the signal; the module OUI (AzureWave etc.) never is.
+    appliance = 'ac-wifi-adapter' if (
+        'aplist?lang=' in body_lc or 'access point to be connected' in body_lc
+    ) else ''
     return {
         'port': port,
         'tls': tls,
@@ -281,6 +289,7 @@ def http_banner(ip, port, tls=False, timeout=READ_TIMEOUT):
         'realm': _realm(headers.get('www-authenticate', '')),
         'title': ' '.join(title_match.group(1).split())[:120] if title_match else '',
         'powered_by': headers.get('x-powered-by', ''),
+        'appliance': appliance,
     }
 
 
@@ -492,6 +501,12 @@ def classify(signals):
         return verdict('IP Camera', 0.97,
                        f"RTSP on port {signals['rtsp']['port']}"
                        + (f" ({server})" if server else ''))
+
+    # An air-conditioner Wi-Fi adapter sitting in setup mode serves a captive
+    # portal. Unambiguous: nothing else pairs a language picker with an AP list.
+    for banner in signals.get('http') or []:
+        if banner.get('appliance') == 'ac-wifi-adapter':
+            return verdict('Air Conditioner', 0.9, 'AC Wi-Fi setup portal')
 
     # 3. Camera firmware named itself over HTTP, or an ONVIF port is open.
     if _has(text, CAMERA_HINTS):
@@ -726,6 +741,15 @@ def demo():
                'http': [{'port': 80, 'server': 'Hikvision-Webs', 'title': '',
                          'realm': '', 'powered_by': '', 'tls': False, 'status': '200'}]}
     assert classify(web_cam)['device_type'] == 'IP Camera'
+
+    # An AC Wi-Fi adapter in setup mode: only port 80, AzureWave OUI names
+    # nothing, but the captive portal marks it. (Real device: 192.168.1.84.)
+    ac = {'ip': '192.168.1.84', 'open_ports': [80], 'vendor': 'AzureWave Technology',
+          'hostname': '', 'is_gateway': False, 'ssh': None, 'rtsp': None,
+          'http': [{'port': 80, 'server': '', 'title': '', 'realm': '',
+                    'powered_by': '', 'tls': False, 'status': '200',
+                    'appliance': 'ac-wifi-adapter'}]}
+    assert classify(ac)['device_type'] == 'Air Conditioner', classify(ac)
 
     # Printers win on port alone - 9100 is not ambiguous.
     printer = dict(pi, vendor='Brother', open_ports=[80, 515, 9100])

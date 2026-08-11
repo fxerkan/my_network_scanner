@@ -347,16 +347,22 @@
         return (d.docker_info || {}).host_ip || null;
     }
 
-    function buildGraphModel(list) {
+    function buildGraphModel(list, topo) {
         const nodes = [], links = [], hubIndexes = [];
         const bySubnet = new Map();
         const radio = [];
+
+        // Uplink parents, same source topology uses: a device plugged into a
+        // switch links to that switch, not straight to the gateway hub.
+        const parentIp = new Map(((topo && topo.nodes) || [])
+            .filter(n => n.parent).map(n => [n.ip, n.parent]));
 
         // A container belongs to its host, not to whatever /24 Docker handed
         // its bridge. Hanging it off a subnet hub drew a cluster of orphans
         // next to the machine that was actually running them.
         const byIp = new Map(list.filter(d => d.ip).map(d => [d.ip, d]));
         const nodeIndexByIp = new Map();
+        const memberLinks = [];            // deferred so switch parents resolve
         const hosted = new Map();          // host ip -> containers
         const containers = new Set();
         list.forEach(d => {
@@ -399,8 +405,16 @@
                     device: d, cls: deviceClass(d), offline: d.status !== 'online',
                 }) - 1;
                 if (d.ip) nodeIndexByIp.set(d.ip, idx);
-                links.push([hubIndex, idx]);
+                memberLinks.push({ idx, hubIndex, ip: d.ip });
             });
+        });
+
+        // All member nodes exist now, so a parent that is itself a member (a
+        // switch/AP) can be resolved. Fall back to the subnet hub when the
+        // uplink is the gateway itself or is off screen.
+        memberLinks.forEach(({ idx, hubIndex, ip }) => {
+            const pIdx = ip ? nodeIndexByIp.get(parentIp.get(ip)) : undefined;
+            links.push([pIdx !== undefined && pIdx !== idx ? pIdx : hubIndex, idx]);
         });
 
         // Containers last, so every possible host already has a node index.
@@ -482,7 +496,7 @@
         };
     }
 
-    function renderGraph(container, list) {
+    async function renderGraph(container, list) {
         if (!list.length) return emptyState(container);
 
         // Legend goes at the TOP now, and it can mute whole categories.
@@ -500,7 +514,10 @@
             return;
         }
 
-        const { nodes, links } = buildGraphModel(shown);
+        // Uplinks come from topology; cached after the first fetch so this is
+        // only a real await once per session.
+        const topo = await fetchTopology();
+        const { nodes, links } = buildGraphModel(shown, topo);
         layoutForce(nodes, links, 900, 700);
 
         const pad = 60;

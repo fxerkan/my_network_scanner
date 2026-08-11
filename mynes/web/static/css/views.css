@@ -193,8 +193,10 @@
      this, min-height fed back into the width and the stage overflowed. */
   width: 100%;
   height: auto;
-  min-height: 320px;
-  max-height: 820px;
+  /* Fill down to the page bottom instead of leaving a big gap under a wide,
+     shallow tree. preserveAspectRatio keeps the whole diagram visible; the
+     extra room just centres it. */
+  min-height: max(360px, calc(100vh - 20rem));
   border-radius: var(--radius-md);
   background: var(--bg-surface-sunken);
   overflow: hidden;
