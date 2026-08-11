@@ -116,7 +116,7 @@ class DockerManager:
             finally:
                 conn.close()
         except Exception as e:
-            print(f"Docker socket API hatası: {e}")
+            print(f"Docker socket API error: {e}")
             return None
     
     def get_docker_networks(self):
@@ -136,7 +136,7 @@ class DockerManager:
                             networks.append(detailed_info)
                     return networks
             except Exception as e:
-                print(f"Docker socket API kullanımı başarısız: {e}")
+                print(f"Docker socket API call failed: {e}")
                 # Fallback to docker command
         
         # Normal docker komutunu kullan
@@ -163,7 +163,7 @@ class DockerManager:
             return networks
             
         except Exception as e:
-            print(f"Docker network bilgileri alınamadı: {e}")
+            print(f"Failed to get Docker network info: {e}")
             return []
     
     def _get_network_details_from_socket(self, network_id):
@@ -207,7 +207,7 @@ class DockerManager:
             }
             
         except Exception as e:
-            print(f"Socket network {network_id} detayları alınamadı: {e}")
+            print(f"Failed to get socket network {network_id} details: {e}")
             return None
     
     def _get_network_details(self, network_id):
@@ -255,7 +255,7 @@ class DockerManager:
             }
             
         except Exception as e:
-            print(f"Network {network_id} detayları alınamadı: {e}")
+            print(f"Failed to get network {network_id} details: {e}")
             return None
     
     def _extract_gateway(self, network_data):
@@ -315,7 +315,7 @@ class DockerManager:
             return containers
             
         except Exception as e:
-            print(f"Docker container bilgileri alınamadı: {e}")
+            print(f"Failed to get Docker container info: {e}")
             return []
     
     def _containers_via_socket(self):
@@ -418,7 +418,7 @@ class DockerManager:
             return {'networks': networks, 'ip_addresses': ip_addresses}
             
         except Exception as e:
-            print(f"Container {container_id} network detayları alınamadı: {e}")
+            print(f"Failed to get container {container_id} network details: {e}")
             return {'networks': [], 'ip_addresses': []}
     
     def get_docker_scan_ranges(self):
@@ -492,7 +492,7 @@ class DockerManager:
             except Exception:
                 pass
         except Exception as e:
-            print(f"Docker interface bilgileri alınamadı: {e}")
+            print(f"Failed to get Docker interface info: {e}")
         
         return docker_interfaces
     

@@ -237,9 +237,9 @@ class EnhancedDeviceAnalyzer:
             os_hints = self._analyze_service_os_hints(tcp_ports)
             if os_hints:
                 port_info['os_hints'] = os_hints
-                log_port_operation(f"işletim sistemi ipucu bulundu: {os_hints.get('os_family', 'unknown')}")
+                log_port_operation(f"OS hint found: {os_hints.get('os_family', 'unknown')}")
 
-            log_port_operation(f"tamamlandı - {open_port_count} açık port bulundu")
+            log_port_operation(f"completed - {open_port_count} open ports found")
 
         except Exception as e:
             port_info['error'] = str(e)
@@ -297,12 +297,12 @@ class EnhancedDeviceAnalyzer:
         
         def log_ssh_operation(operation, details=""):
             if progress_callback:
-                progress_callback(f"{ip} - 🔐 SSH Analizi: {operation} {details}")
+                progress_callback(f"{ip} - 🔐 SSH Analysis: {operation} {details}")
         
         ssh_info = {}
         
         try:
-            log_ssh_operation("SSH portu kontrol ediliyor", "(port 22)")
+            log_ssh_operation("checking SSH port", "(port 22)")
             
             # SSH banner grabbing
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -310,17 +310,17 @@ class EnhancedDeviceAnalyzer:
             
             result = sock.connect_ex((ip, 22))
             if result == 0:
-                log_ssh_operation("SSH servisi algılandı, banner bilgisi alınıyor...")
+                log_ssh_operation("SSH service detected, grabbing banner...")
                 
                 banner = sock.recv(1024).decode().strip()
                 ssh_info['banner'] = banner
                 ssh_info['version'] = self.parse_ssh_version(banner)
                 
-                log_ssh_operation(f"SSH versiyonu: {ssh_info['version']}")
+                log_ssh_operation(f"SSH version: {ssh_info['version']}")
                 
                 # SSH bağlantı testi (eğer credential varsa)
                 if ip in self.device_credentials and 'ssh' in self.device_credentials[ip]:
-                    log_ssh_operation("kayıtlı SSH bilgileri bulundu, bağlantı test ediliyor...")
+                    log_ssh_operation("saved SSH credentials found, testing connection...")
                     
                     creds = self.device_credentials[ip]['ssh']
                     ssh_info['connection_test'] = self.test_ssh_connection(
@@ -328,22 +328,22 @@ class EnhancedDeviceAnalyzer:
                     )
                     
                     if ssh_info['connection_test'].get('success'):
-                        log_ssh_operation("SSH bağlantısı başarılı!")
-                        log_ssh_operation("SSH ile cihaz üzerinde detaylı sistem bilgisi analizi yapılıyor...")
-                        log_ssh_operation("işletim sistemi, disk, uygulamalar, kullanıcılar analiz ediliyor...")
+                        log_ssh_operation("SSH connection successful!")
+                        log_ssh_operation("running detailed system analysis on the device over SSH...")
+                        log_ssh_operation("analysing OS, disk, applications, users...")
                         
                         # SSH üzerinden sistem bilgisi toplama
                         ssh_info['system_info'] = self.get_ssh_system_info(
                             ip, creds['username'], creds['password']
                         )
                         
-                        log_ssh_operation("sistem bilgisi analizi tamamlandı")
+                        log_ssh_operation("system information analysis completed")
                     else:
-                        log_ssh_operation("SSH bağlantısı başarısız - kimlik bilgileri geçersiz")
+                        log_ssh_operation("SSH connection failed - invalid credentials")
                 else:
-                    log_ssh_operation("kayıtlı SSH bilgisi yok, sadece banner analizi yapıldı")
+                    log_ssh_operation("no saved SSH credentials, banner analysis only")
             else:
-                log_ssh_operation("SSH servisi bulunamadı (port 22 kapalı)")
+                log_ssh_operation("SSH service not found (port 22 closed)")
             
             sock.close()
             
@@ -1105,7 +1105,7 @@ class EnhancedDeviceAnalyzer:
                     })
             
         except Exception as e:
-            print(f"Extract discovered ports hatası: {e}")
+            print(f"Extract discovered ports error: {e}")
         
         return discovered_ports
     
@@ -1147,7 +1147,7 @@ class EnhancedDeviceAnalyzer:
                     return "HTTP Web Service"
                     
         except Exception as e:
-            print(f"Service description hatası: {e}")
+            print(f"Service description error: {e}")
             return "Web Service"
     
     def generate_rpi_service_description(self, indicator, title):
@@ -1172,7 +1172,7 @@ class EnhancedDeviceAnalyzer:
                 return f"RPI Service - {indicator}" if indicator else "Raspberry Pi Service"
                 
         except Exception as e:
-            print(f"RPI service description hatası: {e}")
+            print(f"RPI service description error: {e}")
             return "Raspberry Pi Service"
     
     def generate_detailed_port_description(self, service, version, product):
@@ -1194,7 +1194,7 @@ class EnhancedDeviceAnalyzer:
                 return None
                 
         except Exception as e:
-            print(f"Detailed port description hatası: {e}")
+            print(f"Detailed port description error: {e}")
             return None
     
     def _analyze_service_os_hints(self, tcp_ports):
@@ -1325,7 +1325,7 @@ class EnhancedDeviceAnalyzer:
             return analysis_result
             
         except Exception as e:
-            print(f"Comprehensive device type analysis hatası: {e}")
+            print(f"Comprehensive device type analysis error: {e}")
             return {
                 'detected_type': 'unknown',
                 'confidence': 0.0,
@@ -1413,7 +1413,7 @@ class EnhancedDeviceAnalyzer:
                     indicators.append('pet_vendor')
             
         except Exception as e:
-            print(f"Device type indicators hatası ({device_type}): {e}")
+            print(f"Device type indicators error ({device_type}): {e}")
         
         return indicators
     

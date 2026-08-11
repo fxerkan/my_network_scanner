@@ -27,9 +27,38 @@ function openEnhancedDetailsModal(device) {
     
     // Modal'ı göster
     document.getElementById('enhancedDetailsModal').style.display = 'block';
-    
+
+    // Save / Identify butonları popup'ın en üstünde, her tab'da görünür.
+    renderDetailsHeaderActions();
+
     // İlk tab'ı aktif et
     switchDetailsTab('overview');
+}
+
+// Popup üst eylem çubuğu: "Cihaza Kaydet" ve "AI ile Tanımla". Zaten AI
+// tanımlaması yapılmış bir cihazda Identify butonu gri/disabled olur.
+function renderDetailsHeaderActions() {
+    const bar = document.getElementById('detailsHeaderActions');
+    if (!bar || !currentDevice) return;
+    const ip = currentDevice.ip || '';
+    const ai = getAiIdentification(currentDevice, null);
+    const hasAi = !!ai;
+
+    const saveBtn = `<button class="btn-ai-run" ${hasAi ? '' : 'disabled'}
+            title="${hasAi ? '' : (t('ai_save_hint') === 'ai_save_hint' ? 'Run AI identify first' : t('ai_save_hint'))}"
+            onclick="saveAiToDevice('${escSec(ip)}')">
+        <svg class="ds-icon" aria-hidden="true"><use href="#i-check"/></svg>
+        <span>${t('ai_save') === 'ai_save' ? 'Save to device' : t('ai_save')}</span>
+    </button>`;
+
+    const idBtn = `<button class="btn-ai-run" ${hasAi ? 'disabled' : ''}
+            title="${hasAi ? (t('ai_already') === 'ai_already' ? 'Already identified by AI' : t('ai_already')) : ''}"
+            onclick="runAiIdentify('${escSec(ip)}')">
+        <svg class="ds-icon" aria-hidden="true"><use href="#i-sparkles"/></svg>
+        <span>${t('ai_run') === 'ai_run' ? 'Identify with AI' : t('ai_run')}</span>
+    </button>`;
+
+    bar.innerHTML = `${saveBtn}<div id="aiIdentifyStatus" class="ai-status"></div>${idBtn}`;
 }
 
 // Enhanced Details Modal'ını kapatma fonksiyonu
@@ -61,12 +90,13 @@ function loadTabContent(tabName) {
     if (!currentDevice) return;
     
     const contentDiv = document.getElementById('detailsContent');
-    
-    // Enhanced info'yu al
-    const enhancedInfo = currentDevice.enhanced_comprehensive_info || 
-                        currentDevice.advanced_scan_summary || 
-                        currentDevice.enhanced_info || {};
-    
+
+    // Enhanced info'yu al ve normal-scan/AI verisinden eksik bölümleri türet.
+    const rawInfo = currentDevice.enhanced_comprehensive_info ||
+                    currentDevice.advanced_scan_summary ||
+                    currentDevice.enhanced_info || {};
+    const enhancedInfo = deriveEnhancedInfo(currentDevice, rawInfo);
+
     let content = '';
     
     switch (tabName) {
@@ -102,6 +132,107 @@ function loadTabContent(tabName) {
     }
     
     contentDiv.innerHTML = content;
+}
+
+// Comprehensive-scan yapılmamış olsa bile normal tarama + AI zaten çok şey
+// biliyor (açık portlar, SSH banner'ı, OS ailesi, cihaz-tipi skorları). Bu
+// veriyi tabların beklediği bölüm şekline dönüştür ki sekmeler "veri yok"
+// yerine gerçek bilgiyi göstersin. Yalnızca EKSİK bölümleri doldururuz;
+// gerçek comprehensive-scan sonucu her zaman kazanır.
+function deriveEnhancedInfo(device, rawInfo) {
+    const info = { ...(rawInfo || {}) };
+    const ai = getAiIdentification(device, rawInfo) || {};
+    const ad = device.analysis_data || {};
+    const nsi = ad.normal_scan_info || {};
+    const idres = nsi.identification_result || {};
+    const sys = idres.system_info || {};
+    const ports = (device.open_ports || []).filter(p => p && p.port);
+    const isRpi = /raspberry/i.test((ai.brand || '') + (ai.manufacturer || '') + (device.vendor || ''));
+
+    const isWeb = p => /http|web/i.test(p.service || '') ||
+        [80, 443, 8000, 8008, 8080, 8443, 8888, 5000].includes(p.port);
+    const isSsh = p => p.port === 22 || /ssh/i.test(p.service || '');
+
+    // Port Analysis: açık port listesinden doğrudan.
+    if (!info.detailed_ports || !Object.keys(info.detailed_ports).length) {
+        const dp = {};
+        for (const p of ports) dp[String(p.port)] = {
+            state: p.state || 'open', service: p.service || '',
+            version: p.version || '', product: p.product || ''
+        };
+        if (Object.keys(dp).length) info.detailed_ports = dp;
+    }
+
+    // System Information: OS ailesi + SSH banner + TTL (normal taramadan).
+    info.system_identification = info.system_identification || {};
+    if (!Object.keys(info.system_identification.os_detection || {}).length &&
+        (sys.os || sys.ssh_banner || ai.what_it_is)) {
+        info.system_identification.os_detection = {
+            basic: {
+                os_family: sys.os || '', ttl: sys.ttl,
+                ssh_banner: sys.ssh_banner || '', ssh_version: sys.ssh_version || '',
+                identified: [ai.brand, ai.model].filter(Boolean).join(' ')
+            }
+        };
+    }
+
+    // Network Services: SSH banner'ı + kalan açık servisler.
+    info.remote_access = info.remote_access || {};
+    if (!Object.keys(info.remote_access.ssh || {}).length && (sys.ssh_banner || ports.some(isSsh))) {
+        info.remote_access.ssh = { banner: sys.ssh_banner || '', version: sys.ssh_version || '' };
+    }
+    if (!info.web_services || !Object.keys(info.web_services).length) {
+        const web = {};
+        for (const p of ports.filter(isWeb)) web[`${(p.service || 'http').toUpperCase()} :${p.port}`] =
+            { status_code: 'open', title: p.product || t('det_from_portscan') || 'Detected via port scan', server: p.version || '' };
+        if (Object.keys(web).length) info.web_services = web;
+    }
+    if (!info.network_services || !Object.keys(info.network_services).length) {
+        const net = {};
+        for (const p of ports.filter(p => !isWeb(p) && !isSsh(p)))
+            net[`${p.service || 'service'} (${p.port})`] = { port: p.port, state: p.state || 'open', product: p.product || '' };
+        if (Object.keys(net).length) info.network_services = net;
+    }
+
+    // Hardware: AI'nın bulduğu donanım özelliklerini yüzeye çıkar.
+    if (isRpi && (ai.key_features || []).length) {
+        info.raspberry_pi_analysis = info.raspberry_pi_analysis || {};
+        if (!Object.keys(info.raspberry_pi_analysis.hardware || {}).length) {
+            const hw = {};
+            if (ai.model) hw['🧩 Model'] = ai.model;
+            (ai.key_features || []).forEach((f, i) => { hw[`• ${i + 1}`] = f; });
+            info.raspberry_pi_analysis.hardware = hw;
+        }
+    }
+
+    // Security: gerçek CVE verisi yoksa AI güvenlik notunu göster.
+    const sec = info.security_analysis || {};
+    if (!(sec.findings || []).length && !(sec.exposures || []).length && !sec.risk_level && ai.security_notes) {
+        info.security_analysis = {
+            risk_level: 'info', risk_score: 0,
+            exposures: [{ title: t('ai_security') === 'ai_security' ? 'AI security note' : t('ai_security'),
+                          description: ai.security_notes, severity: 'info' }]
+        };
+    }
+
+    // Overview cihaz-tipi olasılıkları: normal-tarama skorları (max'a göre
+    // normalize) + AI'nın kimliği. 0% yerine gerçek sinyali göster.
+    const scores = idres.scores || {};
+    const probs = {};
+    const maxScore = Math.max(1, ...Object.values(scores).map(Number));
+    for (const [k, v] of Object.entries(scores)) probs[k] = Math.min(1, (Number(v) || 0) / maxScore);
+    if (ai.confidence) {
+        const conf = Number(ai.confidence) || 0;
+        if (isRpi) probs.raspberry_pi = Math.max(probs.raspberry_pi || 0, conf);
+        if (/comput|server|sbc|single.board/i.test((ai.category || '') + (ai.product_type || '')))
+            probs.computer = Math.max(probs.computer || 0, conf);
+    }
+    if (Object.keys(probs).length &&
+        !Object.keys((info.device_type_analysis || {}).device_probabilities || {}).length) {
+        info.device_type_analysis = { device_probabilities: probs, indicators: {} };
+    }
+
+    return info;
 }
 
 // Genel Bakış içeriği
@@ -282,11 +413,6 @@ let aiIdentifyPolling = null;
 function generateAIContent(device, enhancedInfo) {
     const ai = getAiIdentification(device, enhancedInfo);
     const ip = device.ip;
-    const runBtn = ip ? `
-        <button class="btn-ai-run" onclick="runAiIdentify('${escSec(ip)}')">
-            <svg class="ds-icon" aria-hidden="true"><use href="#i-sparkles"/></svg>
-            <span>${t('ai_run') === 'ai_run' ? 'Identify with AI' : t('ai_run')}</span>
-        </button>` : '';
 
     if (!ai) {
         return `
@@ -294,19 +420,32 @@ function generateAIContent(device, enhancedInfo) {
                 <div class="ai-empty">
                     <svg class="ds-icon ai-empty-icon" aria-hidden="true"><use href="#i-sparkles"/></svg>
                     <p>${t('ai_empty') === 'ai_empty' ? 'No AI identification yet. The AI agent searches the web (manuals, OUI databases, support pages) to work out exactly what this device is.' : t('ai_empty')}</p>
-                    <div id="aiIdentifyStatus" class="ai-status"></div>
-                    ${runBtn}
                 </div>
             </div>`;
     }
 
     const conf = Math.round((Number(ai.confidence) || 0) * 100);
     const confClass = conf >= 75 ? 'probability-high' : conf >= 45 ? 'probability-medium' : 'probability-low';
-    const title = [ai.brand || ai.manufacturer, ai.model].filter(Boolean).join(' ') || ai.product_type || t('det_unknown_device');
+    const what = ai.product_type || ai.category || t('det_unknown_device');
+    const title = [ai.brand || ai.manufacturer, ai.model].filter(Boolean).join(' ') || what;
     const chips = (arr, cls) => (arr || []).map(x => `<span class="ai-chip ${cls || ''}">${escSec(x)}</span>`).join('');
     const meta = ai._meta || {};
 
     const kv = (label, value) => value ? `<li><span class="details-label">${label}:</span><span class="details-value">${escSec(value)}</span></li>` : '';
+
+    // Olası cihaz tipleri (AI + normal-tarama skorları), her biri bir MyNeS
+    // Device Type'ına eşlenir; kullanıcı birini seçip cihaza uygular.
+    const candidates = buildAiCandidates(device, ai, enhancedInfo);
+    const icon = mt => (typeof deviceTypes === 'object' && deviceTypes && deviceTypes[mt] && deviceTypes[mt].icon) || '🏷️';
+    const name = mt => (typeof deviceTypes === 'object' && deviceTypes && deviceTypes[mt] && deviceTypes[mt].name) || mt;
+    const candRow = c => `
+        <div class="ai-candidate${c.primary ? ' ai-candidate-primary' : ''}">
+            <span class="ai-candidate-type">${icon(c.type)} ${escSec(name(c.type))}</span>
+            <span class="ai-candidate-pct">${c.pct}%</span>
+            <button class="btn-ai-run btn-sm" onclick="applyDeviceType('${escSec(ip)}','${escSec(c.type)}',${c.primary ? 'true' : 'false'})">
+                ${t('ai_use_this') === 'ai_use_this' ? 'Use this' : t('ai_use_this')}
+            </button>
+        </div>`;
 
     return `
         <div class="details-section ai-section">
@@ -317,11 +456,22 @@ function generateAIContent(device, enhancedInfo) {
                         <div class="ai-hero-title">${escSec(title)}</div>
                         <div class="ai-hero-sub">${escSec(ai.product_type || '')}${ai.category ? ' · ' + escSec(ai.category) : ''}</div>
                     </div>
-                    <span class="status-badge status-online ai-conf-badge">${conf}%</span>
                 </div>
                 ${ai.what_it_is ? `<p class="ai-lead">${escSec(ai.what_it_is)}</p>` : ''}
-                <div class="probability-bar"><div class="probability-fill ${confClass}" style="width:${conf}%"></div></div>
+                <div class="ai-conf">
+                    <div class="ai-conf-big ${confClass}">${conf}%</div>
+                    <div class="ai-conf-text">
+                        <div class="ai-conf-line">${t('ai_conf_is') === 'ai_conf_is' ? 'confident this is a' : t('ai_conf_is')} <b>${escSec(what)}</b></div>
+                        <div class="probability-bar"><div class="probability-fill ${confClass}" style="width:${conf}%"></div></div>
+                        <div class="ai-conf-caption">${t('ai_conf_caption') === 'ai_conf_caption' ? "AI's confidence in the identification above" : t('ai_conf_caption')}</div>
+                    </div>
+                </div>
             </div>
+
+            ${candidates.length ? `<div class="details-card ai-block">
+                <h5>${t('ai_candidates') === 'ai_candidates' ? 'Possible device types — pick one to apply' : t('ai_candidates')}</h5>
+                <div class="ai-candidates">${candidates.map(candRow).join('')}</div>
+            </div>` : ''}
 
             <div class="details-grid">
                 <div class="details-card">
@@ -362,10 +512,126 @@ function generateAIContent(device, enhancedInfo) {
 
             <div class="ai-footer">
                 <span class="ai-meta">${escSec(meta.provider || '')}${meta.model ? ' · ' + escSec(meta.model) : ''}</span>
-                <div id="aiIdentifyStatus" class="ai-status"></div>
-                ${runBtn}
             </div>
         </div>`;
+}
+
+// Serbest metin / iç skor anahtarını GEÇERLİ bir MyNeS Device Type'ına eşle.
+// AI'nın önerdiği her tip mutlaka mevcut bir tipe karşılık gelir; eşleşme
+// bulunamazsa "IoT Device"a düşer. Global deviceTypes yüklüyse doğrulanır.
+function mynesTypeFor(label) {
+    if (!label) return '';
+    const s = String(label).toLowerCase();
+    const rules = [
+        [/raspberry|\brpi\b/, 'Raspberry Pi Server'],
+        [/\bnas\b|network.attached|storage/, 'NAS'],
+        [/ip.?camera|\bcamera\b|webcam|cctv|surveillance/, 'IP Camera'],
+        [/access.?point|\bap\b/, 'Access Point'],
+        [/router|gateway/, 'Router'],
+        [/\bmodem\b/, 'Modem'],
+        [/network.?switch|\bswitch\b/, 'Switch'],
+        [/printer/, 'Printer'],
+        [/scanner/, 'Scanner'],
+        [/air.?condition|\bhvac\b/, 'Air Conditioner'],
+        [/air.?puri/, 'Air Purifier'],
+        [/thermostat/, 'Smart Thermostat'],
+        [/smart.?light|\bbulb\b|\blight\b/, 'Smart Light'],
+        [/smart.?lock|door.?lock/, 'Smart Lock'],
+        [/smart.?speaker|echo|alexa|google.?home|homepod/, 'Smart Speaker'],
+        [/smart.?tv|television|\btv\b/, 'Smart TV'],
+        [/stream|chromecast|roku|fire.?tv|apple.?tv/, 'Streaming Device'],
+        [/vacuum|roomba|robot.?clean/, 'Vacuum Cleaner'],
+        [/refrigerator|fridge/, 'Refrigerator'],
+        [/dishwasher/, 'Dishwasher'],
+        [/washing.?machine|washer/, 'Washing Machine'],
+        [/game|console|playstation|xbox|nintendo/, 'Game Console'],
+        [/airtag/, 'Apple AirTag'],
+        [/apple|iphone|ipad|mac(book)?|\bios\b/, 'Apple Device'],
+        [/smart.?watch/, 'Smart Watch'],
+        [/wearable/, 'Wearable'],
+        [/headphone|earbud|airpods/, 'Headphones'],
+        [/tablet/, 'Tablet'],
+        [/laptop|notebook/, 'Laptop'],
+        [/desktop|workstation/, 'Desktop'],
+        [/smartphone|\bphone\b|android|mobile/, 'Smartphone'],
+        [/pet.?feeder/, 'Pet Feeder'],
+        [/pet.?camera/, 'Pet Camera'],
+        [/\bpet\b|animal/, 'Pet Tracker'],
+        [/beacon/, 'Beacon'],
+        [/zigbee/, 'Zigbee Device'],
+        [/z.?wave/, 'Z-Wave Device'],
+        [/bluetooth|\bble\b/, 'Bluetooth Device'],
+        [/sensor/, 'Sensor'],
+        [/docker|container/, 'Docker Container'],
+        [/security.?system|alarm/, 'Security System'],
+        [/smart.?home|home.?automation|\bhub\b/, 'Smart Home'],
+        [/server|\bsbc\b|single.?board/, 'Server'],
+        [/comput/, 'Desktop'],
+        [/\biot\b|module|microcontroller|esp32|esp8266/, 'IoT Device'],
+    ];
+    for (const [re, mt] of rules) if (re.test(s)) return validMynesType(mt);
+    return validMynesType('IoT Device');
+}
+
+function validMynesType(mt) {
+    if (typeof deviceTypes === 'object' && deviceTypes && Object.keys(deviceTypes).length) {
+        return deviceTypes[mt] ? mt : (deviceTypes['IoT Device'] ? 'IoT Device' : mt);
+    }
+    return mt;
+}
+
+// AI'nın birincil tahmini + alternatifleri + normal-tarama skorlarını tek bir
+// aday listesine indir; her biri bir MyNeS tipine eşlenir, orana göre sıralı.
+function buildAiCandidates(device, ai, enhancedInfo) {
+    const map = {};
+    const add = (label, pct, primary) => {
+        const mt = mynesTypeFor(label);
+        if (!mt) return;
+        pct = Math.round(pct);
+        const cur = map[mt];
+        map[mt] = { type: mt, pct: Math.max(pct, cur ? cur.pct : 0), primary: primary || (cur && cur.primary) };
+    };
+    add(ai.product_type || ai.category, (Number(ai.confidence) || 0) * 100, true);
+    (ai.alternatives || []).forEach(a =>
+        add(a.product_type || a.category || a.label || a.device_type, (Number(a.confidence) || 0) * 100, false));
+    const probs = (enhancedInfo.device_type_analysis || {}).device_probabilities || {};
+    Object.entries(probs).forEach(([k, v]) => add(k, (Number(v) || 0) * 100, false));
+    return Object.values(map)
+        .sort((a, b) => (b.primary ? 1 : 0) - (a.primary ? 1 : 0) || b.pct - a.pct)
+        .slice(0, 6);
+}
+
+// Bir aday tipi (ve "Cihaza Kaydet"te AI model/vendor'ını) cihaza kalıcı yaz.
+async function applyDeviceType(ip, mynesType, includeAiFields) {
+    const setStatus = (msg, cls) => { const el = document.getElementById('aiIdentifyStatus'); if (el) el.innerHTML = `<span class="ai-status-${cls || 'info'}">${msg}</span>`; };
+    const updates = {};
+    if (mynesType) updates.device_type = mynesType;
+    if (includeAiFields) {
+        const ai = getAiIdentification(currentDevice, null) || {};
+        if (ai.model) updates.model = ai.model;
+        if (ai.brand || ai.manufacturer) updates.vendor = ai.brand || ai.manufacturer;
+    }
+    if (!Object.keys(updates).length) { setStatus('Nothing to save', 'error'); return; }
+    try {
+        const r = await fetch(`/update_device/${ip}`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updates)
+        });
+        if (!r.ok) { const b = await r.json().catch(() => ({})); setStatus(escSec(b.error || 'save failed'), 'error'); return; }
+        Object.assign(currentDevice, updates);
+        if (typeof showToast === 'function') showToast(t('ai_saved') === 'ai_saved' ? 'Saved to device' : t('ai_saved'), 'success');
+        if (typeof refreshDevicesAfterAnalysis === 'function') refreshDevicesAfterAnalysis(ip);
+        setStatus('✓', 'success');
+    } catch (e) {
+        setStatus(escSec(String(e)), 'error');
+    }
+}
+
+// "Cihaza Kaydet" (üst çubuk): AI'nın birincil kimliğini uygula.
+function saveAiToDevice(ip) {
+    const ai = getAiIdentification(currentDevice, null);
+    if (!ai) return;
+    return applyDeviceType(ip, mynesTypeFor(ai.product_type || ai.category), true);
 }
 
 async function runAiIdentify(ip) {
@@ -393,6 +659,7 @@ async function runAiIdentify(ip) {
                 }
                 if (typeof showToast === 'function') showToast(t('ai_done') === 'ai_done' ? 'AI identification complete' : t('ai_done'), 'success');
                 if (typeof refreshDevicesAfterAnalysis === 'function') refreshDevicesAfterAnalysis(ip);
+                renderDetailsHeaderActions();  // Identify -> disabled, Save -> enabled
                 if (currentTab === 'ai') loadTabContent('ai');
             } else if (st.status === 'error') {
                 clearInterval(aiIdentifyPolling); aiIdentifyPolling = null;
@@ -749,7 +1016,23 @@ function formatSystemKey(key) {
 
 function generateOSDetectionInfo(osDetection) {
     let html = '<div class="details-grid">';
-    
+
+    // Normal taramadan türetilmiş temel OS bilgisi (nmap os_matches yoksa).
+    const b = osDetection.basic;
+    if (b && (b.os_family || b.ssh_banner || b.identified)) {
+        html += `
+            <div class="details-card">
+                <h5>💻 ${b.identified || b.os_family || 'OS'}</h5>
+                <ul class="details-list">
+                    ${b.os_family ? `<li><span class="details-label">OS Family:</span><span class="details-value">${escSec(b.os_family)}</span></li>` : ''}
+                    ${b.ttl != null ? `<li><span class="details-label">TTL:</span><span class="details-value">${escSec(b.ttl)}</span></li>` : ''}
+                    ${b.ssh_version ? `<li><span class="details-label">SSH Version:</span><span class="details-value">${escSec(b.ssh_version)}</span></li>` : ''}
+                    ${b.ssh_banner ? `<li><span class="details-label">SSH Banner:</span><span class="details-value">${escSec(b.ssh_banner)}</span></li>` : ''}
+                </ul>
+            </div>
+        `;
+    }
+
     if (osDetection.os_matches && osDetection.os_matches.length > 0) {
         html += `
             <div class="details-card">
@@ -807,7 +1090,9 @@ function generateDeviceTypeProbabilities(enhancedInfo) {
         'printer': { icon: '🖨️', name: 'Printer' },
         'nas': { icon: '💾', name: 'NAS' },
         'smartphone': { icon: '📱', name: 'Smartphone' },
-        'iot_device': { icon: '🔗', name: 'IoT Device' }
+        'iot_device': { icon: '🔗', name: 'IoT Device' },
+        'computer': { icon: '💻', name: 'Computer' },
+        'raspberry_pi': { icon: '🥧', name: 'Raspberry Pi' }
     };
     
     // Fallback: Eğer yeni analiz yoksa eski verileri kullan

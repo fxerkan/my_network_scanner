@@ -1943,3 +1943,42 @@
 .ai-status { font-size: 0.85rem; }
 .ai-status-info { color: var(--text-secondary); }
 .ai-status-error { color: var(--severity-critical-fg); }
+.ai-status-success { color: var(--severity-ok-fg, #28a745); }
+
+/* Popup üst eylem çubuğu: Save to device / Identify with AI */
+.details-header-actions {
+    display: flex; align-items: center; gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--bg-surface-sunken);
+}
+.details-header-actions #aiIdentifyStatus { flex: 1 1 auto; text-align: center; }
+.details-header-actions .btn-ai-run:last-child { margin-left: auto; }
+.btn-ai-run:disabled { opacity: 0.45; cursor: not-allowed; filter: grayscale(0.6); }
+
+/* Confidence: what the % means, shown large */
+.ai-conf { display: flex; align-items: center; gap: var(--space-4); margin-top: var(--space-3); }
+.ai-conf-big {
+    font-size: 2.4rem; font-weight: 800; line-height: 1;
+    font-variant-numeric: tabular-nums; flex: none;
+}
+.ai-conf-big.probability-high { color: var(--severity-ok-fg, #28a745); }
+.ai-conf-big.probability-medium { color: var(--severity-warning-fg, #d98a00); }
+.ai-conf-big.probability-low { color: var(--severity-critical-fg, #d64545); }
+.ai-conf-text { flex: 1 1 auto; min-width: 0; }
+.ai-conf-line { color: var(--text-secondary); margin-bottom: var(--space-2); }
+.ai-conf-line b { color: var(--text-primary); }
+.ai-conf-caption { font-size: 0.78rem; color: var(--text-tertiary); margin-top: var(--space-1); }
+
+/* Candidate device-type picker */
+.ai-candidates { display: flex; flex-direction: column; gap: var(--space-2); }
+.ai-candidate {
+    display: flex; align-items: center; gap: var(--space-3);
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--border-subtle); border-radius: var(--radius-md);
+    background: var(--bg-surface);
+}
+.ai-candidate-primary { border-color: var(--accent-bg); }
+.ai-candidate-type { flex: 1 1 auto; font-weight: 600; color: var(--text-primary); }
+.ai-candidate-pct { font-variant-numeric: tabular-nums; color: var(--text-secondary); min-width: 3.2em; text-align: right; }
+.btn-ai-run.btn-sm { padding: var(--space-1) var(--space-3); font-size: 0.8rem; }

@@ -1148,7 +1148,7 @@ def process_ieee_csv(csv_file):
         return processed_count
         
     except Exception as e:
-        print(f"CSV işleme hatası: {e}")
+        print(f"CSV processing error: {e}")
         return 0
         
 
@@ -1533,7 +1533,7 @@ def merge_enhanced_info(existing, new_info):
         
         return merged
     except Exception as e:
-        print(f"Enhanced info merge hatası: {e}")
+        print(f"Enhanced info merge error: {e}")
         return new_info
 
 def merge_dict_recursive(dict1, dict2):
@@ -1575,7 +1575,7 @@ def merge_lists_unique(list1, list2):
         
         return merged
     except Exception as e:
-        print(f"List merge hatası: {e}")
+        print(f"List merge error: {e}")
         return list1 + list2
 
 def _run_ai_identification_step(ip, device, status_dict):
@@ -1592,7 +1592,7 @@ def _run_ai_identification_step(ip, device, status_dict):
     settings = ai_identify.get_ai_settings(config_manager)
     key = ai_identify.resolve_api_key(scanner.credential_manager, settings["provider"])
     if not key:
-        print(f"AI identify: {ip} atlandı (AI anahtarı tanımlı değil)")
+        print(f"AI identify: {ip} skipped (AI key not configured)")
         return
     try:
         status_dict[ip] = {"status": "analyzing",
@@ -1604,9 +1604,9 @@ def _run_ai_identification_step(ip, device, status_dict):
             max_search_uses=settings["max_search_uses"])
         scanner.apply_enhanced_analysis(
             ip, device.get("mac", ""), {"ai_identification": result})
-        print(f"AI identify: {ip} tamamlandı ({result.get('manufacturer') or 'belirsiz'})")
+        print(f"AI identify: {ip} completed ({result.get('manufacturer') or 'unknown'})")
     except Exception as e:  # noqa: BLE001 - never fail the analysis over the AI step
-        print(f"AI identify hatası {ip}: {e}")
+        print(f"AI identify error {ip}: {e}")
 
 
 def run_enhanced_analysis(ip, scope='common'):
@@ -1632,7 +1632,7 @@ def run_enhanced_analysis(ip, scope='common'):
                 "status": "error",
                 "message": f"{ip} cihazı bulunamadı"
             }
-            print(f"Enhanced analysis: {ip} cihazı bulunamadı")
+            print(f"Enhanced analysis: {ip} device not found")
             return
         
         # Status güncelle
@@ -1653,7 +1653,7 @@ def run_enhanced_analysis(ip, scope='common'):
                     creds.get('port'),
                     creds.get('additional_info')
                 )
-                print(f"Enhanced analysis: {ip} için {access_type} credential'ları güvenli depolamadan yüklendi")
+                print(f"Enhanced analysis: loaded {access_type} credentials for {ip} from secure storage")
                 credentials_set = True
         
         if credentials_set:
@@ -1699,7 +1699,7 @@ def run_enhanced_analysis(ip, scope='common'):
                 "total_steps": total_steps
             }
         
-        print(f"Enhanced analysis: {ip} için kapsamlı analiz başlatılıyor...")
+        print(f"Enhanced analysis: starting comprehensive analysis for {ip}...")
         
         # Gelişmiş analiz yap
         enhanced_info = scanner.enhanced_analyzer.get_comprehensive_device_info(
@@ -1717,7 +1717,7 @@ def run_enhanced_analysis(ip, scope='common'):
             "message": f"{ip} analiz sonuçları kaydediliyor..."
         }
         
-        print(f"Enhanced analysis: {ip} analizi tamamlandı, sonuçlar kaydediliyor...")
+        print(f"Enhanced analysis: {ip} analysis completed, saving results...")
 
         # Persist atomically: re-locate the device in the LIVE list and write +
         # save under the scanner lock. The `device` grabbed at the start of this
@@ -1729,7 +1729,7 @@ def run_enhanced_analysis(ip, scope='common'):
             enhanced_info,
             discovered_ports=enhanced_info.get('discovered_ports', []),
         )
-        print(f"Enhanced analysis: {ip} sonuçları kalıcı olarak kaydedildi")
+        print(f"Enhanced analysis: {ip} results persisted permanently")
 
         # AI identification step: research the device on the web with the user's
         # own AI key and fold the result in as an "ai_identification" section.
@@ -1744,7 +1744,7 @@ def run_enhanced_analysis(ip, scope='common'):
             "completed_at": datetime.now().isoformat()
         }
         
-        print(f"Enhanced analysis: {ip} için gelişmiş analiz başarıyla tamamlandı")
+        print(f"Enhanced analysis: advanced analysis for {ip} completed successfully")
         
     except Exception as e:
         enhanced_analysis_status[ip] = {
@@ -1752,7 +1752,7 @@ def run_enhanced_analysis(ip, scope='common'):
             "message": f"{ip} analiz hatası: {str(e)}",
             "error_at": datetime.now().isoformat()
         }
-        print(f"Enhanced analysis hatası {ip}: {e}")
+        print(f"Enhanced analysis error {ip}: {e}")
         import traceback
         traceback.print_exc()
 
@@ -1865,7 +1865,7 @@ def add_manual_device():
         # Dosyaya kaydet
         scanner.save_devices()
         
-        print(f"Manuel cihaz eklendi: {ip} ({new_device['alias']})")
+        print(f"Manual device added: {ip} ({new_device['alias']})")
         
         return jsonify({
             "success": True, 
@@ -1874,7 +1874,7 @@ def add_manual_device():
         })
         
     except Exception as e:
-        print(f"Manuel cihaz ekleme hatası: {e}")
+        print(f"Manual device add error: {e}")
         return jsonify({"success": False, "message": f"Cihaz ekleme hatası: {str(e)}"}), 500
 
 @app.route('/save_device', methods=['POST'])
@@ -1976,7 +1976,7 @@ def delete_device(ip):
         # Dosyaya kaydet
         scanner.save_devices()
         
-        print(f"Cihaz silindi: {ip} ({device_name})")
+        print(f"Device deleted: {ip} ({device_name})")
         
         return jsonify({
             "success": True, 
@@ -1984,7 +1984,7 @@ def delete_device(ip):
         })
         
     except Exception as e:
-        print(f"Cihaz silme hatası: {e}")
+        print(f"Device delete error: {e}")
         return jsonify({"success": False, "message": f"Cihaz silme hatası: {str(e)}"}), 500
 
 

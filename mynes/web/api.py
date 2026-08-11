@@ -498,8 +498,9 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
             cfg["cve_source"] = source or cve_mod.DEFAULT_CVE_SOURCE
             cfg["cve_last_sync"] = result.get("last_updated")
             config_manager.save_config()
+            kept = result.get("kept", result.get("enriched", result.get("total", "?")))
             log.info("CVE database updated: %s patterns (%s)",
-                     result.get("count", "?"), result.get("last_updated", ""))
+                     kept, result.get("last_updated", ""))
         else:
             log.warning("CVE database update failed: %s", result.get("error", "unknown"))
         return jsonify(result)

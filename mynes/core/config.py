@@ -352,7 +352,7 @@ class ConfigManager:
                 self.config = self.default_config.copy()
                 self.save_config()
         except Exception as e:
-            print(f"Config yükleme hatası: {e}")
+            print(f"Config load error: {e}")
             self.config = self.default_config.copy()
     
     def save_config(self):
@@ -362,7 +362,7 @@ class ConfigManager:
             with open(self.config_file, 'w', encoding='utf-8') as f:
                 json.dump(self.config, f, ensure_ascii=False, indent=2)
         except Exception as e:
-            print(f"Config kaydetme hatası: {e}")
+            print(f"Config save error: {e}")
     
     def load_oui_database(self):
         """OUI veritabanını yükle"""
@@ -374,7 +374,7 @@ class ConfigManager:
                 self.save_oui_database(self.default_oui_database)
                 return self.default_oui_database.copy()
         except Exception as e:
-            print(f"OUI database yükleme hatası: {e}")
+            print(f"OUI database load error: {e}")
             return self.default_oui_database.copy()
     
     def save_oui_database(self, oui_data):
@@ -384,7 +384,7 @@ class ConfigManager:
             with open(self.oui_file, 'w', encoding='utf-8') as f:
                 json.dump(oui_data, f, ensure_ascii=False, indent=2)
         except Exception as e:
-            print(f"OUI database kaydetme hatası: {e}")
+            print(f"OUI database save error: {e}")
     
     def load_device_types(self):
         """Cihaz tiplerini yükle"""
@@ -396,7 +396,7 @@ class ConfigManager:
                 self.save_device_types(self.default_device_types)
                 return self.default_device_types.copy()
         except Exception as e:
-            print(f"Device types yükleme hatası: {e}")
+            print(f"Device types load error: {e}")
             return self.default_device_types.copy()
     
     def save_device_types(self, device_types):
@@ -406,7 +406,7 @@ class ConfigManager:
             with open(self.device_types_file, 'w', encoding='utf-8') as f:
                 json.dump(device_types, f, ensure_ascii=False, indent=2)
         except Exception as e:
-            print(f"Device types kaydetme hatası: {e}")
+            print(f"Device types save error: {e}")
     
     def add_scan_history(self, scan_data):
         """Tarama geçmişine kayıt ekle"""
@@ -430,7 +430,7 @@ class ConfigManager:
             with open(self.scan_history_file, 'w', encoding='utf-8') as f:
                 json.dump(history, f, ensure_ascii=False, indent=2)
         except Exception as e:
-            print(f"Scan history kaydetme hatası: {e}")
+            print(f"Scan history save error: {e}")
     
     def load_scan_history(self):
         """Tarama geçmişini yükle"""
@@ -440,7 +440,7 @@ class ConfigManager:
                     return json.load(f)
             return []
         except Exception as e:
-            print(f"Scan history yükleme hatası: {e}")
+            print(f"Scan history load error: {e}")
             return []
     
     def get_setting(self, section, key, default=None):
@@ -459,7 +459,7 @@ class ConfigManager:
             self.save_config()
             return True
         except Exception as e:
-            print(f"Setting güncelleme hatası: {e}")
+            print(f"Setting update error: {e}")
             return False
     
     def save_scan_result(self, scan_result):
@@ -476,4 +476,4 @@ class ConfigManager:
             with open(self.scan_history_file, 'w', encoding='utf-8') as f:
                 json.dump(history, f, ensure_ascii=False, indent=2)
         except Exception as e:
-            print(f"Scan result kaydetme hatası: {e}")
+            print(f"Scan result save error: {e}")

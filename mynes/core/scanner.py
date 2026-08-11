@@ -192,7 +192,7 @@ class LANScanner:
             networks.extend(docker_networks)
             
         except Exception as e:
-            print(f"Network interface tarama hatası: {e}")
+            print(f"Network interface scan error: {e}")
             
         return networks
 
@@ -239,11 +239,11 @@ class LANScanner:
                             }
                         })
                     except Exception as e:
-                        print(f"Docker network parse hatası: {e}")
+                        print(f"Docker network parse error: {e}")
                         continue
         
         except Exception as e:
-            print(f"Docker network bilgileri alınamadı: {e}")
+            print(f"Could not get Docker network information: {e}")
         
         return docker_networks
 
@@ -324,8 +324,8 @@ class LANScanner:
                         docker_devices.append(device)
             
         except Exception as e:
-            print(f"Docker container tarama hatası: {e}")
-        
+            print(f"Docker container scan error: {e}")
+
         return docker_devices
     
     def _get_container_ports(self, container):
@@ -451,7 +451,7 @@ class LANScanner:
             
             return default_range
         except Exception as e:
-            print(f"Network detection hatası: {e}")
+            print(f"Network detection error: {e}")
             return self.scan_settings.get('default_ip_range', '192.168.1.0/24')
     
     def _is_ip_in_range(self, ip, network_ip, netmask):
@@ -512,7 +512,7 @@ class LANScanner:
                     'type': self._get_interface_type(interface)
                 })
         except Exception as e:
-            print(f"Yerel interface tarama hatası: {e}")
+            print(f"Local interface scan error: {e}")
         
         return local_interfaces
     
@@ -632,7 +632,7 @@ class LANScanner:
                         'port': (dev.attributes.get('onvif') or {}).get('port'),
                     }
         except Exception as e:
-            print(f"ONVIF keşif hatası: {e}")
+            print(f"ONVIF discovery error: {e}")
         return self._onvif_cache
 
     def fingerprint_device(self, ip, open_ports, vendor='', hostname=''):
@@ -653,7 +653,7 @@ class LANScanner:
             signals['onvif'] = getattr(self, '_onvif_cache', {}).get(ip)
             return signals
         except Exception as e:
-            print(f"Fingerprint hatası {ip}: {e}")
+            print(f"Fingerprint error {ip}: {e}")
             return {
                 'ip': ip, 'open_ports': port_numbers, 'vendor': vendor or '',
                 'hostname': hostname or '', 'rtsp': None, 'http': [], 'ssh': None,
@@ -672,7 +672,7 @@ class LANScanner:
         try:
             ports = fingerprint.scan_tcp(ip)
         except Exception as e:
-            print(f"Hızlı port tarama hatası {ip}: {e}")
+            print(f"Fast port scan error {ip}: {e}")
             return []
 
         return [{'port': port,
@@ -714,7 +714,7 @@ class LANScanner:
             
             return open_ports
         except Exception as e:
-            print(f"Port tarama hatası {ip}: {e}")
+            print(f"Port scan error {ip}: {e}")
             return []
 
     def detailed_device_analysis(self, ip):
@@ -877,7 +877,7 @@ class LANScanner:
                 
                 return open_ports
             except Exception as e:
-                print(f"Port tarama hatası {ip}: {e}")
+                print(f"Port scan error {ip}: {e}")
                 return []
         else:
             # Yeni enhanced version kullan
@@ -885,10 +885,10 @@ class LANScanner:
 
     def scan_single_device(self, ip, mac, existing_devices=None, detailed_analysis=False, progress_callback=None, local_interface_info=None):
         """Tek bir cihazı tarar - detailed_analysis=True ise gelişmiş analiz yapar"""
-        print(f"Taranıyor: {ip}")
-        
+        print(f"Scanning: {ip}")
+
         # Detaylı logging için helper function
-        def log_operation(operation, status="başlatılıyor", details=""):
+        def log_operation(operation, status="starting", details=""):
             if progress_callback and detailed_analysis:
                 message = f"{ip} - {operation}: {status}"
                 if details:
@@ -903,48 +903,48 @@ class LANScanner:
         existing_hostname = existing_device.get('hostname', '')
         existing_vendor = existing_device.get('vendor', '')
         
-        log_operation("🔍 Hostname Çözümleme", "başlatılıyor")
-        
+        log_operation("🔍 Hostname Resolution", "starting")
+
         # Yerel makine için özel hostname belirleme
         if local_interface_info:
             hostname = self.get_local_machine_hostname()
             # Yerel makine hostname'ini interface tipi ile zenginleştir
             if local_interface_info.get('interface_type'):
                 hostname = f"{hostname} ({self.local_interface_label(local_interface_info)})"
-            log_operation("🔍 Hostname Çözümleme", "yerel makine", hostname)
+            log_operation("🔍 Hostname Resolution", "local machine", hostname)
         elif existing_hostname and not detailed_analysis:
             # Hızlı taramada mevcut hostname'i koru
             hostname = existing_hostname
-            log_operation("🔍 Hostname Çözümleme", "korundu", hostname)
+            log_operation("🔍 Hostname Resolution", "preserved", hostname)
         else:
             hostname = self.get_hostname(ip)
             # Yeni hostname yoksa eski'yi koru
             if not hostname and existing_hostname:
                 hostname = existing_hostname
-                log_operation("🔍 Hostname Çözümleme", "eski korundu", hostname)
+                log_operation("🔍 Hostname Resolution", "old value preserved", hostname)
             else:
-                log_operation("🔍 Hostname Çözümleme", "tamamlandı", hostname or "hostname bulunamadı")
-        
-        log_operation("🏷️ MAC Vendor Lookup", "başlatılıyor")
+                log_operation("🔍 Hostname Resolution", "completed", hostname or "no hostname found")
+
+        log_operation("🏷️ MAC Vendor Lookup", "starting")
         
         # Yerel makine için özel vendor belirleme
         if local_interface_info:
             vendor = self.get_device_vendor_enhanced(mac)
             if not vendor or vendor == "Bilinmeyen":
                 vendor = "Apple Inc." if mac.startswith(('00:e0:4c', '1e:48:ac')) else "Local Machine"
-            log_operation("🏷️ MAC Vendor Lookup", "yerel makine", vendor)
+            log_operation("🏷️ MAC Vendor Lookup", "local machine", vendor)
         elif existing_vendor and not detailed_analysis:
             # Hızlı taramada mevcut vendor'ı koru
             vendor = existing_vendor
-            log_operation("🏷️ MAC Vendor Lookup", "korundu", vendor)
+            log_operation("🏷️ MAC Vendor Lookup", "preserved", vendor)
         else:
             vendor = self.get_device_vendor_enhanced(mac)
             # Yeni vendor yoksa eski'yi koru
             if not vendor and existing_vendor:
                 vendor = existing_vendor
-                log_operation("🏷️ MAC Vendor Lookup", "eski korundu", vendor)
+                log_operation("🏷️ MAC Vendor Lookup", "old value preserved", vendor)
             else:
-                log_operation("🏷️ MAC Vendor Lookup", "tamamlandı", vendor or "vendor bulunamadı")
+                log_operation("🏷️ MAC Vendor Lookup", "completed", vendor or "no vendor found")
         
         # Smart naming aktif mi ve detaylı analiz istenmiş mi kontrol et
         smart_naming_enabled = self.smart_naming_config.get('enabled', False) and detailed_analysis
@@ -953,54 +953,54 @@ class LANScanner:
         enhanced_hostname_info = None
         if smart_naming_enabled and self.smart_naming_config.get('hostname_resolution', True):
             try:
-                log_operation("🧠 Gelişmiş Hostname Analizi", "başlatılıyor", "RDN & DNS analizi")
+                log_operation("🧠 Advanced Hostname Analysis", "starting", "RDN & DNS analysis")
                 enhanced_hostname_info = self.hostname_resolver.resolve_hostname_comprehensive(ip)
                 if enhanced_hostname_info.get('primary_hostname'):
                     hostname = enhanced_hostname_info['primary_hostname']
-                    log_operation("🧠 Gelişmiş Hostname Analizi", "tamamlandı", f"hostname: {hostname}")
+                    log_operation("🧠 Advanced Hostname Analysis", "completed", f"hostname: {hostname}")
                 else:
-                    log_operation("🧠 Gelişmiş Hostname Analizi", "tamamlandı", "ek hostname bulunamadı")
+                    log_operation("🧠 Advanced Hostname Analysis", "completed", "no additional hostname found")
             except Exception as e:
-                log_operation("🧠 Gelişmiş Hostname Analizi", "hata", str(e))
-                print(f"Gelişmiş hostname çözümleme hatası {ip}: {e}")
+                log_operation("🧠 Advanced Hostname Analysis", "error", str(e))
+                print(f"Advanced hostname resolution error {ip}: {e}")
         
         # Port taraması - detaylı analizde daha kapsamlı
         if detailed_analysis:
-            log_operation("🔌 Gelişmiş Port Tarama", "başlatılıyor", "tüm servisler")
+            log_operation("🔌 Advanced Port Scan", "starting", "all services")
             open_ports = self.scan_ports_enhanced(ip)
-            log_operation("🔌 Gelişmiş Port Tarama", "tamamlandı", f"{len(open_ports)} port bulundu")
+            log_operation("🔌 Advanced Port Scan", "completed", f"{len(open_ports)} ports found")
         else:
             # Hızlı tarama için sadece temel portlar
-            log_operation("🔌 Hızlı Port Tarama", "başlatılıyor", "temel portlar")
+            log_operation("🔌 Fast Port Scan", "starting", "basic ports")
             open_ports = self.scan_ports_basic(ip)
-            log_operation("🔌 Hızlı Port Tarama", "tamamlandı", f"{len(open_ports)} port bulundu")
+            log_operation("🔌 Fast Port Scan", "completed", f"{len(open_ports)} ports found")
         
         port_numbers = [port['port'] if isinstance(port, dict) else port for port in open_ports]
 
         # Ask the open services what they are. This is what makes an RTSP
         # camera identifiable at all, and what stops a Pi from being a router.
-        log_operation("🧬 Servis Parmak İzi", "başlatılıyor", f"{len(port_numbers)} port")
+        log_operation("🧬 Service Fingerprint", "starting", f"{len(port_numbers)} ports")
         signals = self.fingerprint_device(ip, port_numbers, vendor, hostname)
         if signals.get('rtsp'):
-            log_operation("🧬 Servis Parmak İzi", "tamamlandı",
+            log_operation("🧬 Service Fingerprint", "completed",
                           f"RTSP {signals['rtsp']['url']}")
         else:
             evidence = [b.get('server') or b.get('title') for b in signals.get('http') or []]
             evidence = [e for e in evidence if e] or ([signals['ssh']] if signals.get('ssh') else [])
-            log_operation("🧬 Servis Parmak İzi", "tamamlandı",
-                          '; '.join(evidence)[:120] or "yanıt yok")
+            log_operation("🧬 Service Fingerprint", "completed",
+                          '; '.join(evidence)[:120] or "no response")
 
         # Gelişmiş cihaz bilgisi toplama (Sadece detaylı analizde)
         enhanced_info = None
         if smart_naming_enabled and self.smart_naming_config.get('advanced_scanning', True):
             try:
-                log_operation("🔬 Gelişmiş Cihaz Analizi", "başlatılıyor", "DNS, SNMP, Web, SMB, UPnP")
+                log_operation("🔬 Advanced Device Analysis", "starting", "DNS, SNMP, Web, SMB, UPnP")
                 enhanced_info = self.advanced_scanner.get_enhanced_device_info(ip, mac, hostname, vendor, progress_callback)
                 methods_count = len(enhanced_info.keys()) if enhanced_info else 0
-                log_operation("🔬 Gelişmiş Cihaz Analizi", "tamamlandı", f"{methods_count} yöntem kullanıldı")
+                log_operation("🔬 Advanced Device Analysis", "completed", f"{methods_count} methods used")
             except Exception as e:
-                log_operation("🔬 Gelişmiş Cihaz Analizi", "hata", str(e))
-                print(f"Gelişmiş cihaz analizi hatası {ip}: {e}")
+                log_operation("🔬 Advanced Device Analysis", "error", str(e))
+                print(f"Advanced device analysis error {ip}: {e}")
         
         # Cihaz tipini belirle. Only a type the *user* picked is preserved - a
         # type we guessed on an earlier scan gets re-derived, otherwise one bad
@@ -1008,7 +1008,7 @@ class LANScanner:
         if existing_device.get('device_type') and existing_device.get('device_type_source') == 'user':
             device_type = existing_device.get('device_type')
             identification_result = {'device_type': device_type, 'confidence': 1.0, 'user_defined': True}
-            print(f"Kullanıcı tanımlı device_type korundu: {device_type} ({ip})")
+            print(f"User-defined device_type preserved: {device_type} ({ip})")
         elif local_interface_info:
             # Yerel makine için özel device_type belirleme
             interface_type = local_interface_info.get('interface_type', 'Other')
@@ -1019,12 +1019,12 @@ class LANScanner:
             else:
                 device_type = f'Local Machine ({interface_type})'
             identification_result = {'device_type': device_type, 'confidence': 1.0, 'local_machine': True}
-            print(f"Yerel makine device_type: {device_type} ({ip})")
+            print(f"Local machine device_type: {device_type} ({ip})")
         else:
             # Smart identification kullan (sadece yeni cihazlar veya tanımlanmamış olanlar için)
             if smart_naming_enabled:
                 try:
-                    log_operation("🤖 Akıllı Cihaz Tanımlama", "başlatılıyor", "AI algoritması")
+                    log_operation("🤖 Smart Device Identification", "starting", "AI algorithm")
                     device_info_for_id = {
                         'ip': ip,
                         'mac': mac,
@@ -1037,39 +1037,39 @@ class LANScanner:
                     )
                     device_type = identification_result.get('device_type', 'unknown')
                     confidence = identification_result.get('confidence', 0)
-                    log_operation("🤖 Akıllı Cihaz Tanımlama", "tamamlandı", f"{device_type} (güven: {confidence:.2f})")
-                    
+                    log_operation("🤖 Smart Device Identification", "completed", f"{device_type} (confidence: {confidence:.2f})")
+
                     # Güven eşiğini kontrol et
                     confidence_threshold = self.smart_naming_config.get('confidence_threshold', 0.5)
                     if identification_result.get('confidence', 0) < confidence_threshold:
                         # Düşük güven skoru, eski yöntemi kullan
-                        log_operation("🔄 Fallback Analizi", "başlatılıyor", "düşük güven skoru")
+                        log_operation("🔄 Fallback Analysis", "starting", "low confidence score")
                         device_type = self.detect_device_type_smart_enhanced(ip, mac, hostname, vendor, port_numbers, signals)
                         identification_result['device_type'] = device_type
                         identification_result['fallback'] = True
-                        log_operation("🔄 Fallback Analizi", "tamamlandı", device_type)
-                        
+                        log_operation("🔄 Fallback Analysis", "completed", device_type)
+
                 except Exception as e:
-                    log_operation("🤖 Akıllı Cihaz Tanımlama", "hata", str(e))
-                    print(f"Smart identification hatası {ip}: {e}")
+                    log_operation("🤖 Smart Device Identification", "error", str(e))
+                    print(f"Smart identification error {ip}: {e}")
                     device_type = self.detect_device_type_smart_enhanced(ip, mac, hostname, vendor, port_numbers, signals)
                     identification_result = {'device_type': device_type, 'confidence': 0.5, 'error': str(e)}
             else:
                 # Basit yöntem
-                log_operation("🔍 Basit Cihaz Tanımlama", "başlatılıyor")
+                log_operation("🔍 Basic Device Identification", "starting")
                 device_type = self.detect_device_type_smart_enhanced(ip, mac, hostname, vendor, port_numbers, signals)
                 identification_result = {'device_type': device_type, 'confidence': 0.5}
-                log_operation("🔍 Basit Cihaz Tanımlama", "tamamlandı", device_type)
+                log_operation("🔍 Basic Device Identification", "completed", device_type)
         
         # Cihaz tipine özgü detaylı port taraması (sadece detaylı analizde)
         if detailed_analysis and device_type != 'Unknown':
-            log_operation("🎯 Cihaz Özel Port Tarama", "başlatılıyor", f"{device_type} için")
+            log_operation("🎯 Device-Specific Port Scan", "starting", f"for {device_type}")
             detailed_ports = self.scan_ports_enhanced(ip, device_type)
             if len(detailed_ports) > len(open_ports):
                 open_ports = detailed_ports
-                log_operation("🎯 Cihaz Özel Port Tarama", "tamamlandı", f"{len(detailed_ports)} ek port bulundu")
+                log_operation("🎯 Device-Specific Port Scan", "completed", f"{len(detailed_ports)} additional ports found")
             else:
-                log_operation("🎯 Cihaz Özel Port Tarama", "tamamlandı", "yeni port bulunamadı")
+                log_operation("🎯 Device-Specific Port Scan", "completed", "no new ports found")
         
         # Manuel portları ve enhanced analiz portlarını koruyarak birleştir
         manual_ports = existing_device.get('manual_ports', [])
@@ -1100,7 +1100,7 @@ class LANScanner:
                 # Enhanced port bulunamadıysa ekle
                 open_ports.append(enhanced_port)
                 if detailed_analysis:
-                    print(f"Enhanced port korundu: {enhanced_port_num} ({ip})")
+                    print(f"Enhanced port preserved: {enhanced_port_num} ({ip})")
         
         # Sonra manuel portları ekle
         for manual_port in manual_ports:
@@ -1121,7 +1121,7 @@ class LANScanner:
             
             if not port_exists:
                 open_ports.append(manual_port)
-                print(f"Manuel port korundu: {manual_port_num} ({ip})")
+                print(f"Manual port preserved: {manual_port_num} ({ip})")
         
         # Cihaz bilgilerini oluştur
         device_info = {
@@ -1176,7 +1176,7 @@ class LANScanner:
             if suggested:
                 device_info['alias'] = suggested
                 device_info['alias_source'] = 'auto'
-                log_operation("🏷️ Otomatik İsimlendirme", "tamamlandı", suggested)
+                log_operation("🏷️ Automatic Naming", "completed", suggested)
         elif alias_source:
             device_info['alias_source'] = alias_source
 
@@ -1184,15 +1184,15 @@ class LANScanner:
         # Mevcut enhanced analiz bilgilerini her durumda koru
         if existing_device.get('enhanced_comprehensive_info'):
             device_info['enhanced_comprehensive_info'] = existing_device['enhanced_comprehensive_info']
-            print(f"Enhanced comprehensive info korundu ({ip})")
+            print(f"Enhanced comprehensive info preserved ({ip})")
         
         if existing_device.get('advanced_scan_summary'):
             device_info['advanced_scan_summary'] = existing_device['advanced_scan_summary']
-            print(f"Advanced scan summary korundu ({ip})")
+            print(f"Advanced scan summary preserved ({ip})")
             
         if existing_device.get('last_enhanced_analysis'):
             device_info['last_enhanced_analysis'] = existing_device['last_enhanced_analysis']
-            print(f"Last enhanced analysis timestamp korundu ({ip})")
+            print(f"Last enhanced analysis timestamp preserved ({ip})")
         
         # Enhanced_info'yu her zaman koru (detaylı analizde üzerine yazılabilir)
         preserve_enhanced_info = existing_device.get('enhanced_info', {})
@@ -1206,38 +1206,38 @@ class LANScanner:
             else:
                 # Normal taramada tamamen koru
                 device_info['enhanced_info'] = preserve_enhanced_info
-            print(f"Enhanced info korundu ({ip})")
+            print(f"Enhanced info preserved ({ip})")
             
         # Detaylı analizde olmasa da önemli enhanced bilgileri koru
         if not detailed_analysis:
-            print(f"🔒 Normal tarama - {ip} için tüm enhanced bilgiler korunuyor")
+            print(f"🔒 Normal scan - preserving all enhanced info for {ip}")
         
         # Smart alias oluşturma (sadece detaylı analizde ve kullanıcı tanımlı alias yoksa)
         if (smart_naming_enabled and 
             self.smart_naming_config.get('auto_alias', True) and 
             not device_info['alias']):
             try:
-                log_operation("🏷️ Otomatik Alias Oluşturma", "başlatılıyor")
+                log_operation("🏷️ Automatic Alias Generation", "starting")
                 smart_alias = self.smart_identifier.generate_smart_alias(
                     device_info, identification_result, enhanced_info
                 )
                 if smart_alias:
                     device_info['alias'] = smart_alias
-                    log_operation("🏷️ Otomatik Alias Oluşturma", "tamamlandı", smart_alias)
+                    log_operation("🏷️ Automatic Alias Generation", "completed", smart_alias)
                 else:
-                    log_operation("🏷️ Otomatik Alias Oluşturma", "tamamlandı", "alias oluşturulamadı")
+                    log_operation("🏷️ Automatic Alias Generation", "completed", "could not generate alias")
             except Exception as e:
-                log_operation("🏷️ Otomatik Alias Oluşturma", "hata", str(e))
-                print(f"Smart alias oluşturma hatası {ip}: {e}")
+                log_operation("🏷️ Automatic Alias Generation", "error", str(e))
+                print(f"Smart alias generation error {ip}: {e}")
         elif local_interface_info and not device_info['alias']:
             # Yerel makine için özel alias oluşturma
             interface_name = local_interface_info.get('interface_name', 'unknown')
             interface_type = local_interface_info.get('interface_type', 'Other')
             local_hostname = hostname.split(' (')[0]  # Parantez kısmını çıkar
             device_info['alias'] = f"{local_hostname} - {self.local_interface_label(local_interface_info)}"
-            print(f"Yerel makine alias oluşturuldu: {device_info['alias']} ({ip})")
+            print(f"Local machine alias generated: {device_info['alias']} ({ip})")
         elif device_info['alias']:
-            print(f"Kullanıcı tanımlı alias korundu: {device_info['alias']} ({ip})")
+            print(f"User-defined alias preserved: {device_info['alias']} ({ip})")
         
         # Gelişmiş bilgileri ekle (sadece detaylı analizde)
         if detailed_analysis and enhanced_info:
@@ -1258,8 +1258,8 @@ class LANScanner:
         if detailed_analysis and progress_callback:
             alias_info = f" - Alias: {device_info.get('alias', 'N/A')}" if device_info.get('alias') else ""
             ports_info = f" - {len(device_info.get('open_ports', []))} port"
-            smart_info = " - 🧠 Smart Analiz" if device_info.get('enhanced_info') else ""
-            progress_callback(f"✅ {ip} analizi tamamlandı: {device_info.get('device_type', 'Unknown')}{alias_info}{ports_info}{smart_info}")
+            smart_info = " - 🧠 Smart Analysis" if device_info.get('enhanced_info') else ""
+            progress_callback(f"✅ {ip} analysis completed: {device_info.get('device_type', 'Unknown')}{alias_info}{ports_info}{smart_info}")
         
         return device_info
     
@@ -1289,7 +1289,7 @@ class LANScanner:
                             existing_devices[device_key] = unified_device
                             print(f"📤 Legacy data migrated: {ip} (MAC: {mac}) - {unified_device.get('alias', 'N/A')}")
             except Exception as e:
-                print(f"Mevcut cihaz bilgileri yükleme hatası: {e}")
+                print(f"Error loading existing device information: {e}")
         
         self.devices = []
         start_time = datetime.now()
@@ -1300,20 +1300,20 @@ class LANScanner:
         if include_offline is None:
             include_offline = self.scan_settings.get('include_offline', False)
         
-        print(f"Taranacak ağ: {ip_range}")
+        print(f"Network to scan: {ip_range}")
 
         # One ONVIF probe for the whole sweep: cameras answer with the name
         # their owner configured, which no port scan can tell us.
         if progress_callback:
-            progress_callback("ONVIF kamera keşfi...", stage="onvif")
+            progress_callback("ONVIF camera discovery...", stage="onvif")
         onvif_found = self.refresh_onvif_cache()
         if onvif_found:
-            print(f"ONVIF: {len(onvif_found)} kamera bulundu -> "
+            print(f"ONVIF: {len(onvif_found)} cameras found -> "
                   + ', '.join(f"{ip} ({info.get('name') or '?'})"
                               for ip, info in onvif_found.items()))
 
         if progress_callback:
-            progress_callback("ARP taraması başlıyor...")
+            progress_callback("ARP scan starting...")
         
         # ARP ile hızlı tarama
         arp_devices = self.scan_network_arp(ip_range)
@@ -1335,7 +1335,7 @@ class LANScanner:
                 existing['interface_type'] = interface['type']
                 if not existing.get('mac') or existing['mac'] in ('Unknown', 'N/A', ''):
                     existing['mac'] = interface['mac']
-                print(f"🖥️ Yerel makine ARP'de bulundu, işaretlendi: {interface['ip']} ({interface['interface']})")
+                print(f"🖥️ Local machine found in ARP, marked: {interface['ip']} ({interface['interface']})")
             else:
                 arp_devices.append({
                     'ip': interface['ip'],
@@ -1344,12 +1344,12 @@ class LANScanner:
                     'interface_name': interface['interface'],
                     'interface_type': interface['type']
                 })
-                print(f"🖥️ Yerel makine interface'i eklendi: {interface['ip']} (MAC: {interface['mac']}, Interface: {interface['interface']})")
+                print(f"🖥️ Local machine interface added: {interface['ip']} (MAC: {interface['mac']}, Interface: {interface['interface']})")
         
         total_devices = len(arp_devices)
         
         if progress_callback:
-            progress_callback(f"{total_devices} cihaz bulundu (yerel makine dahil), detaylı tarama başlıyor...",
+            progress_callback(f"{total_devices} devices found (including local machine), starting detailed scan...",
                               stage="finding", total=total_devices)
         
         # Statistics için
@@ -1363,7 +1363,7 @@ class LANScanner:
                 break
                 
             if progress_callback:
-                progress_callback(f"Taranıyor: {device['ip']} ({i+1}/{total_devices})",
+                progress_callback(f"Scanning: {device['ip']} ({i+1}/{total_devices})",
                               stage="scanning", ip=device['ip'],
                               scanned=i+1, total=total_devices)
             
@@ -1416,7 +1416,7 @@ class LANScanner:
                 vendors[vendor] = vendors.get(vendor, 0) + 1
                 
             except Exception as e:
-                print(f"Cihaz tarama hatası {device['ip']}: {e}")
+                print(f"Device scan error {device['ip']}: {e}")
         
         # ALWAYS korumak için eski cihazları kontrol et (include_offline ayarına bakılmaksızın)
         # Kullanıcı tanımlı bilgileri olan tüm cihazları koru
@@ -1453,10 +1453,10 @@ class LANScanner:
                     unified_device['last_seen'] = unified_device.get('last_seen', datetime.now().isoformat())
                     self.devices.append(unified_device)
                     preserved_count += 1
-                    print(f"📴 Çevrimdışı cihaz korundu: {unified_device.get('ip', 'N/A')} (MAC: {unified_device.get('mac', 'N/A')}) - {unified_device.get('alias', 'N/A')}")
-        
+                    print(f"📴 Offline device preserved: {unified_device.get('ip', 'N/A')} (MAC: {unified_device.get('mac', 'N/A')}) - {unified_device.get('alias', 'N/A')}")
+
         if preserved_count > 0:
-            print(f"✅ {preserved_count} çevrimdışı cihaz korundu")
+            print(f"✅ {preserved_count} offline devices preserved")
 
         # Enhanced-analysis sonuçlarını MAC bazında koru. Dual-homed bir host'un
         # IP<->MAC eşleşmesi taramalar arasında flap yapınca mac@ip anahtarı
@@ -1482,7 +1482,7 @@ class LANScanner:
                 ad.setdefault('last_enhanced_analysis', src.get('last_enhanced_analysis'))
 
         # Final MAC+IP tekrarı kontrolü ve temizleme
-        print(f"\n🔍 Final MAC+IP tekrarı kontrolü...")
+        print(f"\n🔍 Final MAC+IP duplicate check...")
         unique_devices = []
         seen_device_keys = set()
         
@@ -1492,7 +1492,7 @@ class LANScanner:
             device_key = f"{mac}@{ip}"
             
             if device_key in seen_device_keys:
-                print(f"⚠️ Tekrar eden MAC+IP tespit edildi: {device_key} - atlanıyor")
+                print(f"⚠️ Duplicate MAC+IP detected: {device_key} - skipping")
                 continue
             
             seen_device_keys.add(device_key)
@@ -1500,9 +1500,9 @@ class LANScanner:
         
         if len(unique_devices) != len(self.devices):
             self.devices = unique_devices
-            print(f"🧹 {len(self.devices)} unique cihaz kaldı (MAC+IP tekrarlar temizlendi)")
+            print(f"🧹 {len(self.devices)} unique devices remain (MAC+IP duplicates removed)")
         else:
-            print(f"✅ Tüm cihazlar unique - {len(self.devices)} cihaz (MAC+IP bazında)")
+            print(f"✅ All devices unique - {len(self.devices)} devices (by MAC+IP)")
         
         scan_duration = (datetime.now() - start_time).total_seconds()
         
@@ -1520,7 +1520,7 @@ class LANScanner:
         
         # Docker container'larını da taramaya ekle
         if progress_callback:
-            progress_callback("Docker container'ları tespit ediliyor...")
+            progress_callback("Detecting Docker containers...")
         
         try:
             docker_devices = self.scan_docker_containers_directly()
@@ -1552,14 +1552,14 @@ class LANScanner:
                 self.config_manager.add_scan_history(scan_data)
                 
                 if progress_callback:
-                    progress_callback(f"{len(docker_devices)} Docker container eklendi.")
-                    
+                    progress_callback(f"{len(docker_devices)} Docker containers added.")
+
         except Exception as e:
-            print(f"Docker container tarama hatası: {e}")
+            print(f"Docker container scan error: {e}")
         
         self.scanning = False
         if progress_callback:
-            progress_callback(f"Tarama tamamlandı! {len(self.devices)} cihaz bulundu.")
+            progress_callback(f"Scan completed! {len(self.devices)} devices found.")
         
         return self.devices
     
@@ -1658,7 +1658,7 @@ class LANScanner:
                 json.dump(sanitized_devices, f, ensure_ascii=False, indent=2)
             return True
         except Exception as e:
-            print(f"JSON kaydetme hatası: {e}")
+            print(f"JSON save error: {e}")
             return False
     
     def save_devices(self, filename=data_file('lan_devices.json')):
@@ -1698,13 +1698,13 @@ class LANScanner:
                 # Ana dosya yoksa sample dosyasını yükle
                 sample_filename = data_file('lan_devices_sample.json')
                 if os.path.exists(sample_filename):
-                    print(f"Ana dosya bulunamadı, sample veriler yükleniyor: {sample_filename}")
+                    print(f"Main file not found, loading sample data: {sample_filename}")
                     return self.load_from_json(sample_filename)
                 else:
-                    print(f"Dosya bulunamadı: {filename}")
+                    print(f"File not found: {filename}")
                     return False
         except Exception as e:
-            print(f"JSON yükleme hatası: {e}")
+            print(f"JSON load error: {e}")
             return False
     
     def _encrypt_credentials_simple(self, credentials):
@@ -1718,7 +1718,7 @@ class LANScanner:
             encoded_bytes = base64.b64encode(json_str.encode('utf-8'))
             return encoded_bytes.decode('utf-8')
         except Exception as e:
-            print(f"Credential encryption hatası: {e}")
+            print(f"Credential encryption error: {e}")
             return None
     
     def _decrypt_credentials_simple(self, encrypted_data):
@@ -1729,7 +1729,7 @@ class LANScanner:
             
             # Yeni format (dict) ise, credential manager tarafından işlenecek, skip et
             if isinstance(encrypted_data, dict):
-                print(f"🔧 Yeni credential formatı tespit edildi, credential manager tarafından işlenecek")
+                print(f"🔧 New credential format detected, will be handled by credential manager")
                 return None
             
             # Eski format (string) ise base64 decode et
@@ -1739,11 +1739,11 @@ class LANScanner:
                 json_str = decoded_bytes.decode('utf-8')
                 return json.loads(json_str)
             
-            print(f"⚠️ Beklenmeyen credential veri tipi: {type(encrypted_data)}")
+            print(f"⚠️ Unexpected credential data type: {type(encrypted_data)}")
             return None
             
         except Exception as e:
-            print(f"Credential decryption hatası: {e}")
+            print(f"Credential decryption error: {e}")
             return None
     
     def update_device(self, ip, updates):
@@ -1767,17 +1767,17 @@ class LANScanner:
                 new_device_key = f"{new_mac.lower()}@{new_ip}"
                 
                 if old_device_key != new_device_key:
-                    print(f"📍 Device key değişikliği: {old_device_key} -> {new_device_key}")
+                    print(f"📍 Device key change: {old_device_key} -> {new_device_key}")
                     
                     # Yeni device key'in çakışıp çakışmadığını kontrol et
                     for other_device in self.devices:
                         if other_device != device:
                             other_key = f"{other_device['mac'].lower()}@{other_device['ip']}"
                             if other_key == new_device_key:
-                                print(f"❌ Device key çakışması: {new_device_key} zaten mevcut")
+                                print(f"❌ Device key conflict: {new_device_key} already exists")
                                 return False
                 
-                print(f"🔄 Cihaz güncelleniyor: {device['ip']} -> {new_ip} (MAC: {device['mac']} -> {new_mac})")
+                print(f"🔄 Updating device: {device['ip']} -> {new_ip} (MAC: {device['mac']} -> {new_mac})")
                 # Manuel portları işle
                 if 'manual_ports' in updates:
                     manual_ports = updates.pop('manual_ports')  # updates'ten çıkar
@@ -1898,11 +1898,11 @@ class LANScanner:
         """Mevcut cihazlar için paralel detaylı analiz yapar"""
         if not self.devices:
             if progress_callback:
-                progress_callback("Detaylı analiz için önce tarama yapılmalı!")
+                progress_callback("A scan must be run before detailed analysis!")
             return
         
         if progress_callback:
-            progress_callback("🚀 Paralel detaylı analiz başlatılıyor...")
+            progress_callback("🚀 Starting parallel detailed analysis...")
         
         # Mevcut cihaz bilgilerini korumak için önce yükle
         existing_devices = {}
@@ -1920,7 +1920,7 @@ class LANScanner:
                                 'manual_ports': [p for p in device.get('open_ports', []) if p.get('manual', False)]
                             }
             except Exception as e:
-                print(f"Mevcut cihaz bilgileri yükleme hatası: {e}")
+                print(f"Error loading existing device information: {e}")
         
         # Online cihazları al
         online_devices = [d for d in self.devices if d.get('status') == 'online']
@@ -1928,7 +1928,7 @@ class LANScanner:
         total_devices = len(online_devices)
         
         if progress_callback:
-            progress_callback(f"📊 {total_devices} online cihaz, {len(offline_devices)} offline cihaz tespit edildi")
+            progress_callback(f"📊 {total_devices} online devices, {len(offline_devices)} offline devices detected")
         
         analyzed_devices = []
         completed_count = 0
@@ -1941,7 +1941,7 @@ class LANScanner:
                 with analysis_lock:
                     completed_count += 1
                     if progress_callback:
-                        progress_callback(f"🔍 Analiz başlatılıyor: {device['ip']} ({completed_count}/{total_devices})")
+                        progress_callback(f"🔍 Starting analysis: {device['ip']} ({completed_count}/{total_devices})")
                 
                 # Detaylı analiz yap
                 detailed_device = self.scan_single_device(
@@ -1959,7 +1959,7 @@ class LANScanner:
                 return detailed_device
                 
             except Exception as e:
-                print(f"Detaylı analiz hatası {device['ip']}: {e}")
+                print(f"Detailed analysis error {device['ip']}: {e}")
                 # Hata durumunda eski cihaz bilgisini koru
                 return device
         
@@ -1967,7 +1967,7 @@ class LANScanner:
         max_workers = min(4, len(online_devices))  # Maximum 4 thread
         
         if progress_callback:
-            progress_callback(f"🛠️ {max_workers} paralel thread kullanılarak analiz başlatılıyor...")
+            progress_callback(f"🛠️ Starting analysis using {max_workers} parallel threads...")
         
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             # Tüm cihazlar için analiz task'larını başlat
@@ -1983,7 +1983,7 @@ class LANScanner:
                     analyzed_device = future.result()
                     analyzed_devices.append(analyzed_device)
                 except Exception as e:
-                    print(f"Thread hatası {device['ip']}: {e}")
+                    print(f"Thread error {device['ip']}: {e}")
                     analyzed_devices.append(device)
         
         # Çevrimdışı cihazları da ekle
@@ -1996,7 +1996,7 @@ class LANScanner:
         self.save_to_json()
         
         if progress_callback:
-            progress_callback(f"✅ Paralel detaylı analiz tamamlandı! {total_devices} cihaz {max_workers} thread ile analiz edildi.")
+            progress_callback(f"✅ Parallel detailed analysis completed! {total_devices} devices analyzed with {max_workers} threads.")
     
     def enhance_device_with_analysis_results(self, device):
         """Analiz sonuçlarını cihaz bilgilerine ekler"""
@@ -2090,7 +2090,7 @@ class LANScanner:
     def perform_single_device_detailed_analysis(self, ip_address, progress_callback=None):
         """Tek bir cihaz için detaylı analiz yapar"""
         if progress_callback:
-            progress_callback(f"Detaylı Cihaz Analizii başlatılıyor: {ip_address}")
+            progress_callback(f"Starting detailed device analysis: {ip_address}")
         
         # Cihazı listede bul
         target_device = None
@@ -2103,7 +2103,7 @@ class LANScanner:
         
         if not target_device:
             if progress_callback:
-                progress_callback(f"Cihaz bulunamadı: {ip_address}")
+                progress_callback(f"Device not found: {ip_address}")
             return
         
         # Mevcut cihaz bilgilerini korumak için yükle
@@ -2122,7 +2122,7 @@ class LANScanner:
                                 'manual_ports': [p for p in device.get('open_ports', []) if p.get('manual', False)]
                             }
             except Exception as e:
-                print(f"Mevcut cihaz bilgileri yükleme hatası: {e}")
+                print(f"Error loading existing device information: {e}")
         
         try:
             # Detaylı analiz yap
@@ -2145,10 +2145,10 @@ class LANScanner:
             self.save_to_json()
             
             if progress_callback:
-                progress_callback(f"Detaylı analiz tamamlandı: {ip_address}")
-                
+                progress_callback(f"Detailed analysis completed: {ip_address}")
+
         except Exception as e:
-            error_msg = f"Detaylı analiz hatası {ip_address}: {e}"
+            error_msg = f"Detailed analysis error {ip_address}: {e}"
             print(error_msg)
             if progress_callback:
                 progress_callback(error_msg)
@@ -2156,18 +2156,18 @@ class LANScanner:
 if __name__ == "__main__":
     # Test amaçlı
     scanner = LANScanner()
-    print("LAN taraması başlıyor...")
+    print("LAN scan starting...")
     devices = scanner.scan_network()
     
-    print(f"\n{len(devices)} cihaz bulundu:")
+    print(f"\n{len(devices)} devices found:")
     for device in devices:
         print(f"IP: {device['ip']}, MAC: {device['mac']}, "
               f"Hostname: {device['hostname']}, Vendor: {device['vendor']}, "
-              f"Tip: {device['device_type']}")
+              f"Type: {device['device_type']}")
         if device['open_ports']:
             ports = ', '.join([f"{p['port']}/{p['service']}" for p in device['open_ports']])
-            print(f"  Açık portlar: {ports}")
-    
+            print(f"  Open ports: {ports}")
+
     # JSON'a kaydet
     scanner.save_to_json()
-    print("\nBilgiler lan_devices.json dosyasına kaydedildi.")
+    print("\nInformation saved to lan_devices.json.")

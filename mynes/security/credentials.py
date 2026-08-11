@@ -46,7 +46,7 @@ class CredentialManager:
             # Salt dosyası var mı kontrol et
             if not os.path.exists(self.salt_file):
                 # İlk kez çalışıyor, yeni salt oluştur
-                print(f"📁 Yeni salt dosyası oluşturuluyor: {self.salt_file}")
+                print(f"📁 Creating new salt file: {self.salt_file}")
                 self._create_new_salt()
             
             # Salt'ı yükle
@@ -55,10 +55,10 @@ class CredentialManager:
             
             # Master password al
             if not self.master_password:
-                print("🔐 Master password alınıyor...")
+                print("🔐 Getting master password...")
                 self.master_password = self._get_master_password()
             else:
-                print("✅ Master password config'den alındı")
+                print("✅ Master password loaded from config")
             
             # Key'i derive et
             kdf = PBKDF2HMAC(
@@ -73,10 +73,10 @@ class CredentialManager:
             # Key info dosyasını güncelle
             self._update_key_info()
             
-            print("✅ Encryption başarıyla başlatıldı")
+            print("✅ Encryption initialized successfully")
             
         except Exception as e:
-            print(f"❌ Encryption initialization hatası: {e}")
+            print(f"❌ Encryption initialization error: {e}")
             raise
     
     def _create_new_salt(self):
@@ -131,7 +131,7 @@ class CredentialManager:
         # Headless/Docker kurulumlarda soru sormadan çalışsın diye rastgele üret.
         generated = secrets.token_urlsafe(32)
         self._store_master_password(generated)
-        print(f"🔐 Master password üretildi ve {self.password_file} içine kaydedildi.")
+        print(f"🔐 Master password generated and saved to {self.password_file}.")
         return generated
 
     def _store_master_password(self, password):
@@ -142,7 +142,7 @@ class CredentialManager:
             if os.name == 'posix':
                 os.chmod(self.password_file, 0o600)
         except OSError as e:
-            print(f"Master password kaydedilemedi: {e}")
+            print(f"Failed to save master password: {e}")
 
 
     def _get_password_from_config(self):
@@ -155,7 +155,7 @@ class CredentialManager:
                 security_settings = config.get('security_settings', {})
                 return security_settings.get('master_password')
         except Exception as e:
-            print(f"Config dosyasından password okuma hatası: {e}")
+            print(f"Error reading password from config file: {e}")
         return None
     
     def _get_master_password(self):
@@ -163,9 +163,9 @@ class CredentialManager:
         # İlk kez mi çalışıyor kontrol et - salt file varsa eskiden kurulmuş
         if not os.path.exists(self.salt_file):
             print("🔐 LAN Scanner Credential Manager")
-            print("İlk kez çalıştırıyorsunuz. Lütfen bir master password belirleyin.")
-            print("Bu password tüm cihaz erişim bilgilerinizi koruyacak.")
-            print("İpucu: Password'ü config.json'da 'security_settings.master_password' olarak saklayabilirsiniz.")
+            print("Running for the first time. Please set a master password.")
+            print("This password will protect all your device access credentials.")
+            print("Tip: You can store the password in config.json as 'security_settings.master_password'.")
             
             while True:
                 password1 = getpass.getpass("Master Password: ")
@@ -173,18 +173,18 @@ class CredentialManager:
                 
                 if password1 == password2:
                     if len(password1) < 8:
-                        print("❌ Password en az 8 karakter olmalıdır!")
+                        print("❌ Password must be at least 8 characters!")
                         continue
                     
                     # Config.json'a kaydetme seçeneği sun
                     save_to_config = input("\nBu password'ü config.json'a kaydetmek ister misiniz? (y/n): ").lower() == 'y'
                     if save_to_config:
                         self._save_password_to_config(password1)
-                        print("✅ Password config.json'a kaydedildi.")
-                    
+                        print("✅ Password saved to config.json.")
+
                     return password1
                 else:
-                    print("❌ Password'ler eşleşmiyor!")
+                    print("❌ Passwords do not match!")
         else:
             # Mevcut dosya var, password iste
             return getpass.getpass("Master Password: ")
@@ -206,7 +206,7 @@ class CredentialManager:
                 json.dump(config, f, ensure_ascii=False, indent=2)
                 
         except Exception as e:
-            print(f"Config'e password kaydetme hatası: {e}")
+            print(f"Error saving password to config: {e}")
     
     def save_device_credentials(self, ip, access_type, username=None, password=None, port=None, additional_info=None):
         """Cihaz credential'larını lan_devices.json'a şifreli olarak kaydeder"""
@@ -222,7 +222,7 @@ class CredentialManager:
                     break
             
             if device_index is None:
-                print(f"⚠️ Cihaz bulunamadı: {ip}")
+                print(f"⚠️ Device not found: {ip}")
                 return False
             
             # Encrypted credentials alanını oluştur
@@ -250,13 +250,13 @@ class CredentialManager:
             # Dosyaya kaydet
             self._save_devices(devices)
             
-            print(f"✅ Credential kaydedildi: {ip} -> {access_type} ({username})")
+            print(f"✅ Credential saved: {ip} -> {access_type} ({username})")
             return True
             
         except Exception as e:
-            print(f"❌ Credential kaydetme hatası: {e}")
+            print(f"❌ Credential save error: {e}")
             return False
-    
+
     def get_device_credentials(self, ip, access_type=None):
         """Cihaz credential'larını lan_devices.json'dan yükler ve decrypt eder"""
         try:
@@ -276,13 +276,13 @@ class CredentialManager:
             
             # Eski string formatı kontrol et ve düzelt
             if isinstance(encrypted_creds, str):
-                print(f"⚠️ {ip} - Eski credential formatı tespit edildi, temizleniyor...")
+                print(f"⚠️ {ip} - Old credential format detected, cleaning up...")
                 self._remove_corrupted_credential(ip, None)
                 return None
             
             # Dict değilse hata
             if not isinstance(encrypted_creds, dict):
-                print(f"⚠️ {ip} - Beklenmeyen credential formatı: {type(encrypted_creds)}")
+                print(f"⚠️ {ip} - Unexpected credential format: {type(encrypted_creds)}")
                 return None
             
             if access_type:
@@ -296,13 +296,13 @@ class CredentialManager:
                             decrypted_data = self.fernet.decrypt(encrypted_data.encode()).decode()
                             return json.loads(decrypted_data)
                         except Exception as decrypt_error:
-                            print(f"❌ {ip} {access_type} decrypt hatası: {decrypt_error}")
-                            print(f"⚠️ Bozuk şifreli veri, temizleniyor...")
+                            print(f"❌ {ip} {access_type} decrypt error: {decrypt_error}")
+                            print(f"⚠️ Corrupted encrypted data, cleaning up...")
                             # Bozuk credential'ı sil
                             self._remove_corrupted_credential(ip, access_type)
                             return None
                     else:
-                        print(f"⚠️ {ip} {access_type} - Beklenmeyen veri tipi: {type(encrypted_data)}")
+                        print(f"⚠️ {ip} {access_type} - Unexpected data type: {type(encrypted_data)}")
                         self._remove_corrupted_credential(ip, access_type)
                         return None
                     
@@ -322,16 +322,16 @@ class CredentialManager:
                                 result[acc_type] = credential_obj
                                 result[acc_type]['has_password'] = bool(credential_obj.get('password'))
                             except Exception as decrypt_error:
-                                print(f"❌ {ip} {acc_type} decrypt hatası: {decrypt_error}")
-                                print(f"⚠️ Bozuk şifreli veri, temizleniyor...")
+                                print(f"❌ {ip} {acc_type} decrypt error: {decrypt_error}")
+                                print(f"⚠️ Corrupted encrypted data, cleaning up...")
                                 corrupted_keys.append(acc_type)
                                 continue
                         else:
-                            print(f"⚠️ {ip} {acc_type} - Beklenmeyen veri tipi: {type(encrypted_data)}")
+                            print(f"⚠️ {ip} {acc_type} - Unexpected data type: {type(encrypted_data)}")
                             corrupted_keys.append(acc_type)
                             continue
                     except Exception as e:
-                        print(f"⚠️ {ip} {acc_type} genel hata: {e}")
+                        print(f"⚠️ {ip} {acc_type} general error: {e}")
                         corrupted_keys.append(acc_type)
                         continue
                 
@@ -342,9 +342,9 @@ class CredentialManager:
                 return result
             
         except Exception as e:
-            print(f"❌ Credential yükleme hatası: {e}")
+            print(f"❌ Credential load error: {e}")
             return None
-    
+
     def _load_devices(self):
         """lan_devices.json dosyasını yükler"""
         try:
@@ -353,7 +353,7 @@ class CredentialManager:
                     return json.load(f)
             return []
         except Exception as e:
-            print(f"❌ Devices dosyası yükleme hatası: {e}")
+            print(f"❌ Devices file load error: {e}")
             return []
     
     def _save_devices(self, devices):
@@ -363,7 +363,7 @@ class CredentialManager:
                 json.dump(devices, f, indent=2, ensure_ascii=False)
             return True
         except Exception as e:
-            print(f"❌ Devices dosyası kaydetme hatası: {e}")
+            print(f"❌ Devices file save error: {e}")
             return False
             return None
     
@@ -372,7 +372,7 @@ class CredentialManager:
         try:
             return self._load_credentials()
         except Exception as e:
-            print(f"❌ Tüm credential'ları yükleme hatası: {e}")
+            print(f"❌ Error loading all credentials: {e}")
             return {}
     
     def delete_device_credentials(self, ip, access_type=None):
@@ -384,10 +384,10 @@ class CredentialManager:
                 if access_type:
                     if access_type in credentials[ip]:
                         del credentials[ip][access_type]
-                        print(f"✅ Credential silindi: {ip} -> {access_type}")
+                        print(f"✅ Credential deleted: {ip} -> {access_type}")
                 else:
                     del credentials[ip]
-                    print(f"✅ Tüm credential'lar silindi: {ip}")
+                    print(f"✅ All credentials deleted: {ip}")
                 
                 self._save_credentials(credentials)
                 return True
@@ -395,13 +395,13 @@ class CredentialManager:
             return False
             
         except Exception as e:
-            print(f"❌ Credential silme hatası: {e}")
+            print(f"❌ Credential delete error: {e}")
             return False
     
     def _load_credentials(self):
         """ESKİ METOD - Artık kullanılmıyor, lan_devices.json kullanıyoruz"""
         if not os.path.exists(self.credentials_file):
-            print(f"📝 Credential dosyası bulunamadı, yeni oluşturulacak: {self.credentials_file}")
+            print(f"📝 Credential file not found, a new one will be created: {self.credentials_file}")
             return {}
         
         try:
@@ -409,34 +409,34 @@ class CredentialManager:
                 encrypted_data = f.read()
             
             if not encrypted_data:
-                print("⚠️ Credential dosyası boş")
+                print("⚠️ Credential file is empty")
                 return {}
             
             # Şifreyi çöz
             decrypted_data = self.fernet.decrypt(encrypted_data)
             credentials = json.loads(decrypted_data.decode())
             
-            print(f"✅ Credential dosyası başarıyla yüklendi: {len(credentials)} cihaz")
+            print(f"✅ Credential file loaded successfully: {len(credentials)} devices")
             return credentials
             
         except Exception as e:
-            print(f"❌ Credential dosyası yükleme hatası: {e}")
-            print(f"❌ Dosya boyutu: {os.path.getsize(self.credentials_file) if os.path.exists(self.credentials_file) else 'N/A'} bytes")
+            print(f"❌ Credential file load error: {e}")
+            print(f"❌ File size: {os.path.getsize(self.credentials_file) if os.path.exists(self.credentials_file) else 'N/A'} bytes")
             
             # Corrupted dosya varsa backup oluştur
             if os.path.exists(self.credentials_file):
                 backup_file = f"{self.credentials_file}.backup.{int(datetime.now().timestamp())}"
                 try:
                     os.rename(self.credentials_file, backup_file)
-                    print(f"⚠️ Bozuk credential dosyası yedeklendi: {backup_file}")
+                    print(f"⚠️ Corrupted credential file backed up: {backup_file}")
                 except Exception as backup_error:
-                    print(f"❌ Backup oluşturma hatası: {backup_error}")
+                    print(f"❌ Backup creation error: {backup_error}")
                     # Backup başarısız olursa dosyayı sil
                     try:
                         os.remove(self.credentials_file)
-                        print("🗑️ Bozuk dosya silindi")
+                        print("🗑️ Corrupted file deleted")
                     except Exception as delete_error:
-                        print(f"❌ Dosya silme hatası: {delete_error}")
+                        print(f"❌ File delete error: {delete_error}")
             
             return {}
     
@@ -444,7 +444,7 @@ class CredentialManager:
         """Credential'ları şifreli olarak kaydeder"""
         try:
             if not self.fernet:
-                print("❌ Fernet instance yok, encryption başlatılıyor...")
+                print("❌ No Fernet instance, initializing encryption...")
                 self._initialize_encryption()
             
             # JSON olarak serialize et
@@ -468,10 +468,10 @@ class CredentialManager:
             if os.name == 'posix':
                 os.chmod(self.credentials_file, 0o600)
             
-            print(f"✅ Credential dosyası kaydedildi: {len(credentials)} cihaz, {len(encrypted_data)} bytes")
+            print(f"✅ Credential file saved: {len(credentials)} devices, {len(encrypted_data)} bytes")
             
         except Exception as e:
-            print(f"❌ Credential dosyası kaydetme hatası: {e}")
+            print(f"❌ Credential file save error: {e}")
             # Temp dosyayı temizle
             temp_file = self.credentials_file + '.tmp'
             if os.path.exists(temp_file):
@@ -963,13 +963,13 @@ class CredentialManager:
             return all_creds
             
         except Exception as e:
-            print(f"Get all device credentials hatası: {e}")
+            print(f"Get all device credentials error: {e}")
             return {}
     
     def change_master_password(self):
         """Master password'ü değiştirir"""
         try:
-            print("🔐 Master Password Değiştirme")
+            print("🔐 Change Master Password")
             
             # Mevcut credential'ları yükle (lan_devices.json'dan)
             devices = self._load_devices()
@@ -981,11 +981,11 @@ class CredentialManager:
                 
                 if new_password1 == new_password2:
                     if len(new_password1) < 8:
-                        print("❌ Password en az 8 karakter olmalıdır!")
+                        print("❌ Password must be at least 8 characters!")
                         continue
                     break
                 else:
-                    print("❌ Password'ler eşleşmiyor!")
+                    print("❌ Passwords do not match!")
             
             # Yeni salt oluştur
             self._create_new_salt()
@@ -1005,7 +1005,7 @@ class CredentialManager:
                             decrypted_data = self.fernet.decrypt(encrypted_data.encode()).decode()
                             temp_creds[access_type] = json.loads(decrypted_data)
                         except Exception as e:
-                            print(f"⚠️ {device['ip']} {access_type} decrypt hatası: {e}")
+                            print(f"⚠️ {device['ip']} {access_type} decrypt error: {e}")
                     
                     # Yeni key ile encrypt et
                     device['encrypted_credentials'] = {}
@@ -1017,11 +1017,11 @@ class CredentialManager:
             # Güncellenmiş devices'i kaydet
             self._save_devices(devices)
             
-            print("✅ Master password başarıyla değiştirildi!")
+            print("✅ Master password changed successfully!")
             return True
             
         except Exception as e:
-            print(f"❌ Master password değiştirme hatası: {e}")
+            print(f"❌ Master password change error: {e}")
             return False
     
     def _remove_corrupted_credential(self, ip, access_type):
@@ -1041,15 +1041,15 @@ class CredentialManager:
                     # Tüm credential'ları temizle
                     devices[device_index]['encrypted_credentials'] = {}
                     self._save_devices(devices)
-                    print(f"🗑️ Tüm bozuk credential'lar temizlendi: {ip}")
+                    print(f"🗑️ All corrupted credentials cleaned up: {ip}")
                 elif access_type in devices[device_index]['encrypted_credentials']:
                     # Belirli access_type'ı temizle
                     del devices[device_index]['encrypted_credentials'][access_type]
                     self._save_devices(devices)
-                    print(f"🗑️ Bozuk credential temizlendi: {ip} -> {access_type}")
+                    print(f"🗑️ Corrupted credential cleaned up: {ip} -> {access_type}")
                     
         except Exception as e:
-            print(f"❌ Bozuk credential temizleme hatası: {e}")
+            print(f"❌ Corrupted credential cleanup error: {e}")
     
     def export_credentials(self, export_file, include_passwords=False):
         """Credential'ları export eder"""
@@ -1066,11 +1066,11 @@ class CredentialManager:
             with open(export_file, 'w') as f:
                 json.dump(credentials, f, indent=2)
             
-            print(f"✅ Credential'lar export edildi: {export_file}")
+            print(f"✅ Credentials exported: {export_file}")
             return True
             
         except Exception as e:
-            print(f"❌ Export hatası: {e}")
+            print(f"❌ Export error: {e}")
             return False
     
     def get_statistics(self):
@@ -1095,7 +1095,7 @@ class CredentialManager:
             }
             
         except Exception as e:
-            print(f"❌ İstatistik hatası: {e}")
+            print(f"❌ Statistics error: {e}")
             return {}
 
 
@@ -1110,17 +1110,17 @@ def get_credential_manager():
     if credential_manager is None and not _initialization_lock:
         _initialization_lock = True
         try:
-            print("🔧 CredentialManager instance oluşturuluyor...")
+            print("🔧 Creating CredentialManager instance...")
             credential_manager = CredentialManager()
-            print("✅ CredentialManager instance hazır")
+            print("✅ CredentialManager instance ready")
         except Exception as e:
-            print(f"❌ CredentialManager oluşturma hatası: {e}")
+            print(f"❌ CredentialManager creation error: {e}")
             _initialization_lock = False
             raise
         finally:
             _initialization_lock = False
     elif _initialization_lock:
-        print("⏳ CredentialManager zaten oluşturuluyor, bekleniyor...")
+        print("⏳ CredentialManager is already being created, waiting...")
         import time
         while _initialization_lock:
             time.sleep(0.1)
@@ -1143,8 +1143,8 @@ if __name__ == "__main__":
     
     # Test credential'ı oku
     creds = cm.get_device_credentials('192.168.1.100', 'ssh')
-    print(f"Yüklenen credential: {creds}")
+    print(f"Loaded credential: {creds}")
     
     # İstatistikleri göster
     stats = cm.get_statistics()
-    print(f"İstatistikler: {stats}")
+    print(f"Statistics: {stats}")

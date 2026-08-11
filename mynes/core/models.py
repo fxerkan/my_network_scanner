@@ -101,7 +101,7 @@ class UnifiedDeviceModel:
         
         # MAC+IP kombinasyonu aynı olmalı merge için
         if existing_mac != new_mac or existing_ip != new_ip:
-            print(f"⚠️ MAC+IP mismatch: {existing_mac}@{existing_ip} != {new_mac}@{new_ip} - farklı cihazlar, merge edilmiyor")
+            print(f"⚠️ MAC+IP mismatch: {existing_mac}@{existing_ip} != {new_mac}@{new_ip} - different devices, not merging")
             return new_device
         
         print(f"🔄 MAC+IP match: {existing_mac}@{existing_ip} - merging data")

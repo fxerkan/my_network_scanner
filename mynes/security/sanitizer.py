@@ -234,7 +234,7 @@ class DataSanitizer:
             return True
             
         except Exception as e:
-            print(f"Dosya temizleme hatası: {e}")
+            print(f"File sanitization error: {e}")
             return False
     
     def get_sanitization_stats(self, original_devices: List[Dict], sanitized_devices: List[Dict]) -> Dict:
@@ -263,16 +263,16 @@ def main():
     import shutil
     try:
         shutil.copy2(input_file, backup_file)
-        print(f"Backup oluşturuldu: {backup_file}")
+        print(f"Backup created: {backup_file}")
         
         # Dosyayı temizle
         if sanitizer.sanitize_file(input_file):
-            print(f"Dosya temizlendi: {input_file}")
+            print(f"File sanitized: {input_file}")
         else:
-            print("Dosya temizleme başarısız!")
+            print("File sanitization failed!")
             
     except Exception as e:
-        print(f"Hata: {e}")
+        print(f"Error: {e}")
 
 if __name__ == "__main__":
     main()

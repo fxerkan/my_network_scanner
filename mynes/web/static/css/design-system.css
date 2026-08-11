@@ -404,24 +404,19 @@ hr { border: 0; border-top: 1px solid var(--border-subtle); margin: var(--space-
 }
 @media (min-width: 768px) { .ds-header__inner { gap: var(--space-4); } }
 
-/* Tablets and small laptops run the full top nav plus the 230px Scan button
-   next to the brand. Something has to give, and a truncated wordmark ("M…")
-   crashing into the Scan button reads as broken - the logo alone does not.
-   The wordmark only earns its space back once the row genuinely fits it. */
-@media (min-width: 768px) and (max-width: 1279px) {
-  .ds-brand > span { display: none; }
-}
-
 .ds-brand {
   display: inline-flex; align-items: center; gap: var(--space-2);
   color: var(--text-primary); letter-spacing: -0.01em; white-space: nowrap;
-  min-width: 0; overflow: hidden;
+  flex: 0 0 auto;   /* never shrink: the "MyNeS" wordmark stays whole and never clips */
 }
-.ds-brand__text { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
+.ds-brand__text { display: flex; flex-direction: column; line-height: 1.15; }
 .ds-brand__name { font-size: var(--text-md); font-weight: var(--weight-bold); }
 .ds-brand:hover { text-decoration: none; }
 .ds-brand__logo { width: 28px; height: 28px; flex: none; }
-.ds-brand__sub { font-weight: var(--weight-normal); color: var(--text-tertiary); font-size: var(--text-xs); }
+/* The long tagline is the only optional part of the brand: hidden by default,
+   it earns its space back only once the row genuinely fits it (>=1280px). */
+.ds-brand__sub { display: none; font-weight: var(--weight-normal); color: var(--text-tertiary); font-size: var(--text-xs); }
+@media (min-width: 1280px) { .ds-brand__sub { display: block; } }
 
 .ds-nav { display: flex; align-items: center; gap: var(--space-1); }
 
@@ -437,12 +432,11 @@ hr { border: 0; border-top: 1px solid var(--border-subtle); margin: var(--space-
 .ds-nav__link[aria-current="page"] { background: var(--accent-bg-subtle); color: var(--accent-text); }
 .ds-nav__link .ds-icon { flex: none; }
 
-/* Phones: five top-level destinations do not fit next to a brand in a 360px
-   bar, so the same <nav> becomes a bottom tab bar. Thumb-reachable, labelled,
-   and nothing is ever pushed off-screen. */
-@media (max-width: 767px) {
-  .ds-brand__sub { display: none; }
-
+/* Six top-level destinations plus the 230px Scan button and the brand only fit
+   on a genuinely wide row (~1150px+). Below that the same <nav> becomes a bottom
+   tab bar: thumb-reachable, labelled, and nothing is ever pushed off-screen or
+   crammed. The horizontal top nav returns at >=1200px where it comfortably fits. */
+@media (max-width: 1199px) {
   /* backdrop-filter makes an element a containing block for its fixed-position
      descendants, which would pin the tab bar to the header instead of the
      viewport. Solid header on phones; the blur stays on the tab bar itself. */

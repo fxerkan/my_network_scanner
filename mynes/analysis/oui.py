@@ -484,7 +484,7 @@ class OUIManager:
     
     def update_oui_database_with_device_types(self):
         """Mevcut OUI database'i device type bilgileriyle günceller"""
-        print("🔄 OUI database'e device type bilgileri ekleniyor...")
+        print("🔄 Adding device type information to OUI database...")
         
         updated_count = 0
         enhanced_database = {}
@@ -507,13 +507,13 @@ class OUIManager:
             with open(enhanced_file, 'w', encoding='utf-8') as f:
                 json.dump(enhanced_database, f, indent=2, ensure_ascii=False)
             
-            print(f"✅ Enhanced OUI database kaydedildi: {enhanced_file}")
-            print(f"📊 {updated_count}/{len(self.oui_database)} entry'de device type bilgisi eklendi")
+            print(f"✅ Enhanced OUI database saved: {enhanced_file}")
+            print(f"📊 device type information added to {updated_count}/{len(self.oui_database)} entries")
             
             return enhanced_file
             
         except Exception as e:
-            print(f"❌ Enhanced database kaydetme hatası: {e}")
+            print(f"❌ Enhanced database save error: {e}")
             return None
 
 # Test functionality

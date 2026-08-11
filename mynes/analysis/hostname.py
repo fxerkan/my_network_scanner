@@ -75,7 +75,7 @@ class AdvancedHostnameResolver:
                 for future in future_to_method:
                     if not future.done():
                         future.cancel()
-                print(f"Gelişmiş hostname çözümleme hatası {ip_address_str}: futures timeout")
+                print(f"Advanced hostname resolution error {ip_address_str}: futures timeout")
         
         # En iyi hostname'i seç
         hostname_info['primary_hostname'] = self._select_best_hostname(hostname_info)

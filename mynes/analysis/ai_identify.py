@@ -92,6 +92,16 @@ Work like a careful human researcher, step by step:
    "an air-conditioner Wi-Fi adapter") but not the exact brand, say so and set a
    lower confidence - never invent a specific model the sources do not support.
    It is far better to be correctly vague than confidently wrong.
+6. Do NOT commit to a specific hardware GENERATION or revision that the evidence
+   cannot distinguish. Many product lines share one OUI and identical network
+   signatures across generations - e.g. every Raspberry Pi board (Pi 3 / 4 / 5
+   and their variants) uses the same "Raspberry Pi Trading Ltd" OUI, and the OS
+   (a Debian/Raspbian SSH banner) is the same across generations. Unless a banner,
+   mDNS/UPnP string, or served page states the exact model, give the product LINE
+   with the generation as a RANGE ("Raspberry Pi 4 or 5") or leave "model" as the
+   family, and set confidence no higher than ~0.6 for the specific generation.
+   Naming one generation with high confidence off the OUI alone is exactly the
+   "confidently wrong" failure this rule prevents.
 
 Only scan/identify devices on a network the user owns; this is a defensive,
 inventory task on the user's own LAN.
@@ -114,13 +124,16 @@ markdown code fence) with exactly these keys:
   "security_notes": "any exposure worth flagging (open portal, default creds), or \\"\\"",
   "identified_via": ["which concrete signals led you here"],
   "confidence": 0.0,
+  "alternatives": [{"product_type": "other plausible type the evidence also fits", "confidence": 0.0}],
   "sources": [{"title": "page title", "url": "https://..."}],
   "reasoning": "2-4 sentences justifying the identification and its confidence"
 }
 
 Rules for the JSON: use "" or [] when you do not know a field - never guess to
-fill it. "confidence" is 0.0-1.0. Include every source URL you actually relied
-on. Output the JSON and nothing else."""
+fill it. "confidence" is 0.0-1.0. "alternatives" lists other device types the
+same evidence could plausibly support, each with its own confidence, worst-case
+first is fine - leave it [] when the identification is unambiguous. Include every
+source URL you actually relied on. Output the JSON and nothing else."""
 
 
 # ---------------------------------------------------------------------------
