@@ -1956,15 +1956,23 @@
 .details-header-actions .btn-ai-run:last-child { margin-left: auto; }
 .btn-ai-run:disabled { opacity: 0.45; cursor: not-allowed; filter: grayscale(0.6); }
 
-/* Confidence: what the % means, shown large */
+/* Confidence: a KPI card + explanation of what the % means */
 .ai-conf { display: flex; align-items: center; gap: var(--space-4); margin-top: var(--space-3); }
-.ai-conf-big {
-    font-size: 2.4rem; font-weight: 800; line-height: 1;
-    font-variant-numeric: tabular-nums; flex: none;
+.ai-conf-kpi {
+    flex: none; text-align: center; min-width: 96px;
+    padding: var(--space-3) var(--space-4);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle); border-left-width: 4px;
+    border-radius: var(--radius-lg);
 }
-.ai-conf-big.probability-high { color: var(--severity-ok-fg, #28a745); }
-.ai-conf-big.probability-medium { color: var(--severity-warning-fg, #d98a00); }
-.ai-conf-big.probability-low { color: var(--severity-critical-fg, #d64545); }
+.ai-conf-big { font-size: 2.2rem; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.ai-conf-kpi-label { font-size: 0.7rem; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px; }
+.ai-conf-high { border-left-color: var(--severity-ok-fg, #28a745); }
+.ai-conf-high .ai-conf-big { color: var(--severity-ok-fg, #28a745); }
+.ai-conf-medium { border-left-color: var(--severity-warning-fg, #d98a00); }
+.ai-conf-medium .ai-conf-big { color: var(--severity-warning-fg, #d98a00); }
+.ai-conf-low { border-left-color: var(--severity-critical-fg, #d64545); }
+.ai-conf-low .ai-conf-big { color: var(--severity-critical-fg, #d64545); }
 .ai-conf-text { flex: 1 1 auto; min-width: 0; }
 .ai-conf-line { color: var(--text-secondary); margin-bottom: var(--space-2); }
 .ai-conf-line b { color: var(--text-primary); }

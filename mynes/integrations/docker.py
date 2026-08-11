@@ -175,10 +175,11 @@ class DockerManager:
             
             # IPAM bilgilerinden subnet'leri çıkar
             subnets = []
-            if 'IPAM' in network_data and 'Config' in network_data['IPAM']:
-                for config in network_data['IPAM']['Config']:
-                    if 'Subnet' in config:
-                        subnets.append(config['Subnet'])
+            # Docker returns "Config": null for networks with no IPAM config,
+            # so guard the value, not just the key.
+            for config in (network_data.get('IPAM') or {}).get('Config') or []:
+                if 'Subnet' in config:
+                    subnets.append(config['Subnet'])
             
             # Container'ları al
             containers = []
@@ -223,10 +224,11 @@ class DockerManager:
             
             # IPAM bilgilerinden subnet'leri çıkar
             subnets = []
-            if 'IPAM' in network_data and 'Config' in network_data['IPAM']:
-                for config in network_data['IPAM']['Config']:
-                    if 'Subnet' in config:
-                        subnets.append(config['Subnet'])
+            # Docker returns "Config": null for networks with no IPAM config,
+            # so guard the value, not just the key.
+            for config in (network_data.get('IPAM') or {}).get('Config') or []:
+                if 'Subnet' in config:
+                    subnets.append(config['Subnet'])
             
             # Container'ları al
             containers = []
@@ -261,10 +263,9 @@ class DockerManager:
     def _extract_gateway(self, network_data):
         """Network'ün gateway IP'sini çıkar"""
         try:
-            if 'IPAM' in network_data and 'Config' in network_data['IPAM']:
-                for config in network_data['IPAM']['Config']:
-                    if 'Gateway' in config:
-                        return config['Gateway']
+            for config in (network_data.get('IPAM') or {}).get('Config') or []:
+                if 'Gateway' in config:
+                    return config['Gateway']
         except Exception:
             pass
         return None

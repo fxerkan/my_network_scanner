@@ -28,18 +28,17 @@ function openEnhancedDetailsModal(device) {
     // Modal'ı göster
     document.getElementById('enhancedDetailsModal').style.display = 'block';
 
-    // Save / Identify butonları popup'ın en üstünde, her tab'da görünür.
-    renderDetailsHeaderActions();
-
-    // İlk tab'ı aktif et
+    // İlk tab'ı aktif et (header eylem çubuğu switchDetailsTab içinde ayarlanır).
     switchDetailsTab('overview');
 }
 
-// Popup üst eylem çubuğu: "Cihaza Kaydet" ve "AI ile Tanımla". Zaten AI
-// tanımlaması yapılmış bir cihazda Identify butonu gri/disabled olur.
+// Üst eylem çubuğu ("Cihaza Kaydet" / "AI ile Tanımla") yalnızca AI sekmesinde
+// görünür. Zaten AI tanımlaması yapılmışsa Identify butonu gri/disabled olur.
 function renderDetailsHeaderActions() {
     const bar = document.getElementById('detailsHeaderActions');
     if (!bar || !currentDevice) return;
+    if (currentTab !== 'ai') { bar.style.display = 'none'; bar.innerHTML = ''; return; }
+    bar.style.display = 'flex';
     const ip = currentDevice.ip || '';
     const ai = getAiIdentification(currentDevice, null);
     const hasAi = !!ai;
@@ -81,6 +80,9 @@ function switchDetailsTab(tabName) {
     event?.target?.classList.add('active') || 
     document.querySelector(`[onclick="switchDetailsTab('${tabName}')"]`)?.classList.add('active');
     
+    // Save/Identify butonları sadece AI sekmesinde.
+    renderDetailsHeaderActions();
+
     // İçeriği yükle
     loadTabContent(tabName);
 }
@@ -426,6 +428,7 @@ function generateAIContent(device, enhancedInfo) {
 
     const conf = Math.round((Number(ai.confidence) || 0) * 100);
     const confClass = conf >= 75 ? 'probability-high' : conf >= 45 ? 'probability-medium' : 'probability-low';
+    const confLvl = conf >= 75 ? 'ai-conf-high' : conf >= 45 ? 'ai-conf-medium' : 'ai-conf-low';
     const what = ai.product_type || ai.category || t('det_unknown_device');
     const title = [ai.brand || ai.manufacturer, ai.model].filter(Boolean).join(' ') || what;
     const chips = (arr, cls) => (arr || []).map(x => `<span class="ai-chip ${cls || ''}">${escSec(x)}</span>`).join('');
@@ -459,7 +462,10 @@ function generateAIContent(device, enhancedInfo) {
                 </div>
                 ${ai.what_it_is ? `<p class="ai-lead">${escSec(ai.what_it_is)}</p>` : ''}
                 <div class="ai-conf">
-                    <div class="ai-conf-big ${confClass}">${conf}%</div>
+                    <div class="ai-conf-kpi ${confLvl}">
+                        <div class="ai-conf-big">${conf}%</div>
+                        <div class="ai-conf-kpi-label">${t('ai_conf_label') === 'ai_conf_label' ? 'confidence' : t('ai_conf_label')}</div>
+                    </div>
                     <div class="ai-conf-text">
                         <div class="ai-conf-line">${t('ai_conf_is') === 'ai_conf_is' ? 'confident this is a' : t('ai_conf_is')} <b>${escSec(what)}</b></div>
                         <div class="probability-bar"><div class="probability-fill ${confClass}" style="width:${conf}%"></div></div>

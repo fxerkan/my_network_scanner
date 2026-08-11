@@ -388,6 +388,7 @@
   "ai_save_hint": "Run AI identify first",
   "ai_already": "Already identified by AI",
   "ai_conf_is": "confident this is a",
+  "ai_conf_label": "confidence",
   "ai_conf_caption": "AI's confidence in the identification above",
   "ai_candidates": "Possible device types — pick one to apply",
   "ai_use_this": "Use this",

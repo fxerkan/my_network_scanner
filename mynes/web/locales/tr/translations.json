@@ -500,6 +500,7 @@
   "ai_save_hint": "Önce AI ile tanımlayın",
   "ai_already": "Bu cihaz zaten AI ile tanımlandı",
   "ai_conf_is": "olasılıkla bu bir",
+  "ai_conf_label": "güven",
   "ai_conf_caption": "AI'nın yukarıdaki tanımlamaya olan güveni",
   "ai_candidates": "Olası cihaz tipleri — uygulamak için birini seçin",
   "ai_use_this": "Bunu uygula",
