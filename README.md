@@ -22,6 +22,9 @@ Modern ve kullanıcı dostu web arayüzü ile ağ yönetimini kolaylaştırır. 
 - **🐳 Docker Entegrasyonu**: Container ve virtual network tespiti
 - **🔐 Multi-Protocol Analiz**: SSH, FTP, HTTP, SNMP desteği
 - **📝 Cihaz Yönetini**: Cihaz bilgilerini elle değiştirebilme, yeni bilgiler ekleyebilme
+- **🤖 AI ile Cihaz Tanıma**: Anthropic / OpenAI / OpenRouter ile "Identify with AI"
+- **🛡️ Güven Seviyeleri & Wake-on-LAN**: Known/Unknown/Trusted etiketi, filtre ve WoL
+- **🗒️ Kalıcı Loglar**: Yeniden başlatmayı atlatan, gün seçicili günlük döner loglar
 - **🎛️ Yedekleme ve Aktarım**: JSON tabanalı basit ve kolay cihaz bilgilerini yedekleme ve geri yükleme
 - **📊 Geçmiş Tarama Analizi**: Geçmiş tarama sonuçlarını ve istatistiklerini takip edebilme
 - 🌍 **Çoklu Dil Desteği** - Türkçe ve İngilizce dil desteği
@@ -111,21 +114,48 @@ alır ve 320px genişlikten TV'ye kadar uyum sağlar.
 
 ### 🎯 AI Destekli Akıllı Cihaz Tanıma
 
-Uygulama aşağıdaki bilgileri kullanarak cihaz tipini otomatik olarak belirler:
+Uygulama, topladığı bilgileri kullanarak cihaz tipini otomatik olarak tahmin
+eder: hostname pattern'leri, vendor/OUI, açık port ve servis imzaları, bilinen
+cihaz imzaları ile güven skorları, otomatik alias/isimlendirme ve IoT/Sunucu/
+Router gibi kategori sınıflandırması.
 
-- **Hostname Analizi**: Cihaz isimlerinden pattern tanıma
-- **Üretici Firma Bilgisi**: Vendor tabanlı sınıflandırma
-- **Açık Port Analizi**: Servis tabanlı tespit
-- **Bilinen Cihaz İmzaları**: Makine öğrenmesi ile güven skorları
-- **Akıllı İsimlendirme**: Otomatik alias ve isim üretimi
-- **Kategori Sınıflandırması**: IoT, Sunucu, Router vb. kategoriler
+#### 🤖 "Identify with AI" — Yapay Zeka ile Tanıma
 
-### 🔐 Güvenlik Özellikleri
+Bir cihazın ne olduğundan hâlâ emin değil misiniz? Cihaz Detay penceresindeki
+**Identify with AI** düğmesi, MyNeS'in zaten topladığı sinyalleri (vendor, OUI,
+hostname, açık portlar, banner'lar) bir LLM'e gönderir ve en olası cihaz tipini
+döndürür:
 
-- **Şifreli Credential Depolama**: Fernet simetrik şifreleme
-- **Çok Protokol Desteği**: SSH, FTP, HTTP, SNMP credential'ları
-- **Güvenli Dosya İzinleri**: Gizli dosyalar için kısıtlı erişim
-- **Hassas Veri Temizleme**: Export sırasında otomatik temizleme
+- **Sağlayıcı seçilebilir**: Anthropic, OpenAI veya OpenRouter — anahtar
+  Ayarlar'dan girilir; anahtar yoksa düğme hiç gösterilmez (isteğe bağlı özellik).
+- **Güven skoru (KPI)** ve seçilebilir aday cihaz tipleri; her aday geçerli bir
+  MyNeS Cihaz Tipi'ne eşlenir, tek bir tahmine körü körüne bağlanmaz, alternatif
+  sunar.
+- **Canlı çalışma durumu**: dönen ikon + geçen saniye sayacı; sonuç cihaza kaydedilir.
+
+![Identify with AI — cihaz detay penceresi](assets/screenshots/detailed-scan-results.png)
+
+### 🔐 Güvenlik ve Zafiyet Analizi
+
+Tüm ağın saldırı yüzeyini ve bilinen CVE riskini tek ekranda, en riskliden
+başlayarak gösterir (küratörlü çevrimdışı eşleme, canlı besleme değil):
+
+- **Filo risk skoru** ve şiddet dağılımı (Critical / High / Medium / Low)
+- **Önce neyi düzeltmeli**: açık Telnet, SMB/NetBIOS (EternalBlue), VNC gibi
+  maruziyetler, etkilenen cihaz sayısıyla
+- **Cihaz bazında detay**: tara, acknowledge, watch & alert, export
+- **Şifreli Credential Depolama** (Fernet), çok protokol desteği (SSH, FTP,
+  HTTP, SNMP), kısıtlı dosya izinleri ve export sırasında hassas veri temizleme
+
+![Güvenlik — saldırı yüzeyi ve CVE maruziyeti](assets/screenshots/secuirty.png)
+
+### 🔌 Entegrasyonlar ve REST API
+
+Ayarlar → Integrations altında InfluxDB 2 (Grafana push), Prometheus (Grafana
+scrape) ve uygulamanın canlı okunan tam **REST API kataloğu** yer alır;
+OpenAPI (swagger.json) olarak indirilebilir.
+
+![Entegrasyonlar ve REST API kataloğu](assets/screenshots/integrations-rest-api.png)
 
 ### 🐳 Docker Entegrasyonu
 

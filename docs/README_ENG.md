@@ -56,12 +56,43 @@ The application automatically determines device type using the following informa
 - **Known Device Signatures**: Confidence scores with machine learning
 - **Smart Naming**: Automatic alias and name generation
 
-### 🔐 Enhanced Security Features
+#### 🤖 "Identify with AI"
+
+The **Identify with AI** button on the device Details modal sends the signals
+MyNeS already gathered (vendor, OUI, hostname, open ports, banners) to a hosted
+LLM and returns the most likely device type:
+
+- **Pick a provider** — Anthropic, OpenAI or OpenRouter; the key is set in
+  Settings. Without a key the button simply isn't offered (optional feature).
+- **Confidence KPI** and selectable candidate types, each mapping to a valid
+  MyNeS Device Type, with alternatives instead of over-committing to one guess.
+- **Live working state** (spinner + elapsed seconds); the result is saved onto
+  the device.
+
+![Identify with AI — device Details modal](../assets/screenshots/detailed-scan-results.png)
+
+### 🔐 Security & Vulnerability Analysis
+
+The Security page shows the whole fleet's attack surface and known-CVE exposure,
+worst first (curated offline match, not a live feed): a weighted fleet risk
+score, severity distribution, a "what to fix first" list (open Telnet, SMB/
+NetBIOS/EternalBlue, VNC…) and per-device detail with scan / acknowledge /
+watch & alert / export.
 
 - **Encrypted Credential Storage**: Military-grade Fernet symmetric encryption
 - **Multi-Protocol Access**: SSH, FTP, HTTP, SNMP credential management
 - **Data Sanitization**: Security-focused data cleaning for export
 - **Secure File Permissions**: Hidden key files with restrictive permissions (600)
+
+![Security — attack surface and CVE exposure](../assets/screenshots/secuirty.png)
+
+### 🔌 Integrations & REST API
+
+Settings → Integrations offers InfluxDB 2 (Grafana push), Prometheus (Grafana
+scrape) and the app's full **REST API catalog**, read live and downloadable as
+OpenAPI (swagger.json).
+
+![Integrations & REST API catalog](../assets/screenshots/integrations-rest-api.png)
 
 ### 🐳 Docker & Virtualization
 

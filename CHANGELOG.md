@@ -6,6 +6,72 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.5.0] — 2026-08-11
+
+### Added
+
+- **Identify any device with AI.** A new **Identify with AI** action on the
+  device Details modal asks a hosted LLM (Anthropic / OpenAI / OpenRouter,
+  provider + key set in Settings) what a device most likely is from the signals
+  MyNeS already gathered — vendor, OUI, hostname, open ports, banners — and
+  returns a device type with a **confidence KPI**, selectable candidate types
+  that always map to a valid MyNeS Device Type, and alternatives instead of
+  over-committing to one guess. The run shows a live working state (spinner +
+  elapsed seconds) and its result is saved onto the device. `analysis/ai_identify.py`
+  is self-contained and optional; without a key the button simply isn't offered.
+- **Table view for the device list** (`table-view.js`): sortable columns, a
+  column picker, row selection with an accent bar, and bulk actions (change
+  type / trust / location) alongside the existing card and grouped views.
+- **Device trust levels, location and Wake-on-LAN.** The edit modal gains a
+  trust level (Known / Unknown / Trusted) with its own filter and a card badge,
+  a free-text Location/room shown on the card, a Delete Device button, and a
+  Wake-on-LAN sender in the Tools tab (stdlib magic packet, no new dependency).
+- **Persistent, daily-rotated logs with a day picker.** Logs now survive a
+  restart (`TimedRotatingFileHandler`, midnight rotation, 30-day retention):
+  today streams from the live ring, past days are read back from disk. Records
+  carry a source location (`module.func:line`) and exceptions their traceback,
+  both surfaced in the Settings → Logs viewer.
+- **Searchable dropdowns app-wide.** Every `<select>` auto-enhances into the
+  app's searchable dropdown (opt out with `data-native`), a MutationObserver
+  catches dynamically-rendered ones, and `data-allow-custom` lets a typed value
+  become a new option — so Location and similar fields accept free text.
+- **Richer device Details modal.** Overview / Network Services / Ports / System /
+  Hardware / Security / Discovery tabs are now derived from the normal-scan and
+  AI data, so they aren't empty without a full deep scan; Raw Data is
+  syntax-highlighted with a download button.
+
+![Identify with AI — device Details modal](assets/screenshots/detailed-scan-results.png)
+
+### Changed
+
+- **One button drives the scan** — the header **Scan** becomes a red **Stop
+  Scan** mid-run and blocks a second scan. Progress steps now carry structured
+  stage / ip / scanned / total, so the frontend renders them in the selected
+  language instead of hardcoded Turkish. Scan Settings gains a **network
+  interface selector** bound to the raw-ARP sweep (multi-homed hosts pick Wi-Fi
+  vs Ethernet).
+- **SNMP migrated to pysnmp 7.x** (async-only API), wrapped in a small sync
+  `snmp_get()` helper; the `analysis` extra now requires `pysnmp>=7.0`.
+- **All console / log output is English-only**, matching the repo's
+  English-comments convention (UI strings via `_()` are untouched).
+- **Web-services cards surface captured HTTP headers**, with a shield mark on
+  security headers, so a reachable service is never rendered blank.
+
+### Fixed
+
+- **Graph view honours uplink parents.** A device behind a switch (e.g. a Google
+  TV off a TP-Link switch) no longer looks directly attached to the router —
+  `buildGraphModel` reads each device's uplink parent from `/api/topology`,
+  matching the topology diagram. The topology stage also fills the viewport
+  height instead of a capped aspect-ratio box.
+- **Security assessment no longer leaks exceptions to the client** — it logs the
+  traceback server-side and returns a generic error. Null `Docker IPAM.Config`
+  is guarded so container-network detection can't crash a scan.
+- An AC Wi-Fi adapter in setup mode is now classified from its captive-portal
+  banner, which the module OUI alone never reveals.
+
+![Security — attack surface and CVE exposure](assets/screenshots/secuirty.png)
+
 ## [1.4.4] — 2026-08-11
 
 ### Fixed
