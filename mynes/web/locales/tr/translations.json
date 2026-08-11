@@ -384,6 +384,7 @@
   "det_remote_access": "Uzaktan Erişim",
   "det_snmp_other": "SNMP ve Diğer Servisler",
   "det_no_web": "Erişilebilir web servisi yok",
+  "det_http_headers": "HTTP Başlıkları",
   "det_no_ssh": "SSH servisi yok",
   "det_no_netsvc": "Ağ servisi bilgisi yok",
   "det_port_analysis": "Detaylı Port Analizi",
@@ -1029,11 +1030,7 @@
   "change_type": "Tipi değiştir",
   "bulk_delete_confirm": "Seçili {count} cihaz silinsin mi?",
   "no_ip_skipped": "IP'si olmayan {count} cihaz atlandı",
-  "hostname": "Ana bilgisayar adı",
-  "status": "Durum",
-  "auto_detected": "Otomatik (algılanan)",
   "change_location": "Konum değiştir",
   "change_trust": "Güven değiştir",
-  "close": "Kapat",
   "done": "Tamam"
 }

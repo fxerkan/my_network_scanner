@@ -266,11 +266,15 @@
         document.querySelectorAll('.ds-multi__btn').forEach(b => b.setAttribute('aria-expanded', 'false'));
     });
 
-    // Any <select data-searchable> becomes a searchable single-select automatically.
-    function autoEnhance() {
-        document.querySelectorAll('select[data-searchable]').forEach(s => { try { enhanceSelect(s); } catch (_) { /* skip */ } });
+    // Every <select> becomes the app's searchable dropdown - native browser
+    // dropdowns are the exception, not the rule. Opt a select out with
+    // `data-native` (e.g. a compact width:auto control the popover would stretch),
+    // and skip multi-selects (this component is single-select only).
+    function autoEnhance(root = document) {
+        root.querySelectorAll('select:not([data-native]):not([multiple])')
+            .forEach(s => { try { enhanceSelect(s); } catch (_) { /* skip */ } });
     }
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', autoEnhance);
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => autoEnhance());
     else autoEnhance();
 
     function _selftest() {
@@ -291,6 +295,6 @@
     window.MynesFilters = {
         match, apply, get, set, reset, activeCount,
         isContainer, isNoIp, isBluetooth, vendorOf,
-        mountMulti, enhanceSelect, bindToggle, _selftest,
+        mountMulti, enhanceSelect, autoEnhance, bindToggle, _selftest,
     };
 })();

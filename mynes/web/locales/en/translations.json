@@ -1030,11 +1030,7 @@
   "change_type": "Change type",
   "bulk_delete_confirm": "Delete {count} selected devices?",
   "no_ip_skipped": "{count} device(s) without an IP were skipped",
-  "hostname": "Hostname",
-  "status": "Status",
-  "auto_detected": "Auto (detected)",
   "change_location": "Change location",
   "change_trust": "Change trust",
-  "close": "Close",
   "done": "Done"
 }
