@@ -282,15 +282,6 @@ config/*.key
 # Runtime data & auto-downloaded IEEE registries (regenerated on demand).
 data/*.json
 !data/lan_devices_sample.json
-config/oui.csv
-config/mam.csv
-config/oui36.csv
-config/iab.csv
-config/cid.csv
-config/enhanced_oui_database.json
-# Downloaded CVE pattern overlay - refreshable data, never committed. The
-# built-in CVE_PATTERNS in mynes/security/cve.py is the seed/fallback.
-config/cve_patterns.json
 
 # Python
 .venv/

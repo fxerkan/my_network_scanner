@@ -1,0 +1,42 @@
+{
+  "source": "circl",
+  "fetched_at": "2026-08-10T17:20:58.433246+00:00",
+  "count": 3,
+  "patterns": [
+    {
+      "id": "CVE-2011-2523",
+      "title": "vsftpd 2.3.4 backdoor",
+      "severity": "critical",
+      "match": {
+        "ftp": "vsftpd\\s*2\\.3\\.4"
+      },
+      "description": "vsftpd 2.3.4 downloaded between 20110630 and 20110703 contains a backdoor which opens a shell on port 6200/tcp.",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2011-2523"
+    },
+    {
+      "id": "CVE-2017-7921",
+      "title": "Hikvision camera authentication bypass",
+      "severity": "critical",
+      "match": {
+        "http": "hikvision",
+        "rtsp": "hikvision"
+      },
+      "match_any": true,
+      "description": "An Improper Authentication issue was discovered in Hikvision DS-2CD2xx2F-I Series V5.2.0 build 140721 to V5.4.0 build 160530, DS-2CD2xx0F-I Series V5.2.0 build 140721 to V5.4.0 Build 160401, DS-2CD2xx2FWD Series V5.3.1 build 150410 to V5.4.4 Build 161125, DS-2CD4x2xFWD Series V5.2.0 build 140721 to V5.4.0 Build 160414, DS-2CD4xx5 Series V5.2.0 build 140721 to V5.4.0 Build 160421, DS-2DFx Series V5.2.0 build 140805 to V5.4.5 Build 160928, and DS-2CD63xx Series V5.0.9 build 140305 to V5.3.5 Build 160106 devices. The improper authentication vulnerability occurs when an application does not adequately or correctly authenticate users. This may allow a malicious user to escalate his or her privileges on the system and gain access to sensitive information.",
+      "reference": "https://ics-cert.us-cert.gov/advisories/ICSA-17-124-01",
+      "cvss": 9.8
+    },
+    {
+      "id": "CVE-2018-9995",
+      "title": "Generic TBK-derived DVR/NVR credential disclosure",
+      "severity": "high",
+      "match": {},
+      "ports": [
+        34567,
+        37777
+      ],
+      "description": "TBK DVR4104 and DVR4216 devices, as well as Novo, CeNova, QSee, Pulnix, XVR 5 in 1, Securus, Night OWL, DVR Login, HVR Login, and MDVR Login, which run re-branded versions of the original TBK DVR4104 and DVR4216 series, allow remote attackers to bypass authentication via a \"Cookie: uid=admin\" header, as demonstrated by a device.rsp?opt=user&cmd=list request that provides credentials within JSON data in a response.",
+      "reference": "https://www.bleepingcomputer.com/news/security/new-hacking-tool-lets-users-access-a-bunch-of-dvrs-and-their-video-feeds/"
+    }
+  ]
+}
