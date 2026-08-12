@@ -355,6 +355,11 @@
       $('monVoltage').value = th.voltage_min != null ? th.voltage_min : 4.7;
       $('monBattery').value = th.battery_percent != null ? th.battery_percent : 20;
       $('monLatency').value = th.latency_ms != null ? th.latency_ms : 500;
+      // These <select>s are enhanced into searchable dropdowns whose label only
+      // tracks `change` events - a programmatic .value assignment leaves the
+      // widget showing the first option. Refresh it so it reflects the load.
+      syncSearchable($('monInterval'));
+      syncSearchable($('monOfflineScans'));
       renderChannels();
       renderMutes();
     });
