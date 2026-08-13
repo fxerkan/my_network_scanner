@@ -198,7 +198,8 @@
 
 .filter-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
+    /* Two rows of five on desktop; media queries below collapse to 2-up / 1-up. */
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: var(--space-3);
 }
 

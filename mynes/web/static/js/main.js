@@ -227,6 +227,7 @@ async function loadDevices(updateFiltersFlag = false) {
         // filterDevices() (not displayDevices()) so any persisted shared filter
         // - e.g. "hide containers" set in Settings - applies on first paint too.
         filterDevices();
+        refreshUplinkMap();     // "Connected via" options come from the topology
 
         if (shouldUpdateFilters) {
             updateFilters();
@@ -565,6 +566,10 @@ function filterDevices() {
     const aliasFilter = (document.getElementById('aliasFilter') || {}).value || '';
     const portFilter = (document.getElementById('portFilter') || {}).value || '';
     const trustFilter = (document.getElementById('trustFilter') || {}).value || '';
+    const locationFilter = (document.getElementById('locationFilter') || {}).value || '';
+    const connectionFilter = (document.getElementById('connectionFilter') || {}).value || '';
+    const networkTypeFilter = (document.getElementById('networkTypeFilter') || {}).value || '';
+    const networkFilter = (document.getElementById('networkFilter') || {}).value || '';
 
     const filteredDevices = devices.filter(device => {
         // Type/vendor/status/text/visibility all live in the shared store.
@@ -573,27 +578,39 @@ function filterDevices() {
         // Unset trust reads as "unknown" so that filter still catches legacy devices.
         if (trustFilter && (device.trust_status || 'unknown') !== trustFilter) return false;
 
-        // Alias + port stay page-local (single-select, rarely reused elsewhere).
+        // Alias + port + location/connection/network stay page-local (single-select).
         const matchesAlias = !aliasFilter || device.alias === aliasFilter;
         const matchesPort = !portFilter || (device.open_ports &&
             device.open_ports.some(port => {
                 const portNumber = typeof port === 'object' ? port.port : port;
                 return portNumber.toString() === portFilter;
             }));
-        return matchesAlias && matchesPort;
+        const matchesLocation = !locationFilter || device.location === locationFilter;
+        const matchesConnection = !connectionFilter || deviceConnectedVia(device) === connectionFilter;
+        const matchesNetworkType = !networkTypeFilter || deviceConnectionMedium(device) === networkTypeFilter;
+        const matchesNetwork = !networkFilter || deviceNetwork(device) === networkFilter;
+        return matchesAlias && matchesPort && matchesLocation && matchesConnection && matchesNetworkType && matchesNetwork;
     });
 
-    // Geçici olarak filtrelenmiş cihazları göster
+    // Show the filtered subset by briefly swapping the global the renderers
+    // read. try/finally is load-bearing: without it a throw inside
+    // displayDevices() (one bad device row) left `devices` pinned to the
+    // filtered subset forever, so the next render showed nothing and it looked
+    // like "any filter wipes the list". Restore it no matter what.
     const originalDevices = devices;
     devices = filteredDevices;
-    displayDevices();
-    updateStats();
-    devices = originalDevices;
+    try {
+        displayDevices();
+        updateStats();
+    } finally {
+        devices = originalDevices;
+    }
 
     // Reflect the active-filter count on the panel badge.
     const badge = document.getElementById('activeFilterCount');
     if (badge && window.MynesFilters) {
-        const n = MynesFilters.activeCount() + (aliasFilter ? 1 : 0) + (portFilter ? 1 : 0) + (trustFilter ? 1 : 0);
+        const n = MynesFilters.activeCount() + (aliasFilter ? 1 : 0) + (portFilter ? 1 : 0) + (trustFilter ? 1 : 0)
+            + (locationFilter ? 1 : 0) + (connectionFilter ? 1 : 0) + (networkTypeFilter ? 1 : 0) + (networkFilter ? 1 : 0);
         badge.textContent = n;
         badge.hidden = n === 0;
     }
@@ -721,11 +738,70 @@ function performFiltersUpdate() {
     }).join('');
     
     portFilter.innerHTML = `<option value="">${t('all')}</option>` + portOptions;
-    
+
     // Seçili değeri geri yükle (sadece hala mevcut ise)
     if (Array.from(allPorts).includes(currentPort) || currentPort === '') {
         portFilter.value = currentPort;
     }
+
+    // Location / Connected via / Network - same searchable single-select as
+    // Alias/Port, populated from the current device set. Values are derived by
+    // the same helpers filterDevices() matches against, so options and matching
+    // never drift apart.
+    populateDerivedSelect('locationFilter', d => d.location);
+    populateDerivedSelect('connectionFilter', deviceConnectedVia);
+    populateDerivedSelect('networkTypeFilter', deviceConnectionMedium);
+    populateDerivedSelect('networkFilter', deviceNetwork);
+}
+
+// connection_medium is either a string or {medium, confidence, reasons}; pull
+// the medium either way. Empty/"unknown" -> '' so it drops out of the filter.
+// This is the physical link (WiFi/Wired/Radio) - the "Network Type" filter.
+function deviceConnectionMedium(d) {
+    const cm = d && d.connection_medium;
+    const m = (cm && typeof cm === 'object') ? cm.medium : cm;
+    return m && m !== 'unknown' ? String(m) : '';
+}
+
+// "Connected via" is the manual/topology uplink: the parent device this one
+// hangs off (a bridged switch/AP that is invisible at layer 3). _uplinkMap maps
+// a device IP to its parent's display name; refreshUplinkMap() fills it from
+// /api/topology after devices load.
+let _uplinkMap = {};
+function deviceConnectedVia(d) { return (d && d.ip && _uplinkMap[d.ip]) || ''; }
+async function refreshUplinkMap() {
+    try {
+        const topo = await (await fetch('/api/topology')).json();
+        const nameByIp = {};
+        devices.forEach(d => { if (d.ip) nameByIp[d.ip] = d.alias || d.hostname || d.ip; });
+        const map = {};
+        Object.entries(topo.uplinks || {}).forEach(([ip, parentIp]) => {
+            if (parentIp) map[ip] = nameByIp[parentIp] || parentIp;
+        });
+        _uplinkMap = map;
+        populateDerivedSelect('connectionFilter', deviceConnectedVia);
+    } catch (_) { /* topology optional - leave the filter empty */ }
+}
+
+// No per-device interface is stored, so group by the device's own /24 - the
+// same fallback core/subnets.py uses. IPv6 / no-IP devices drop out.
+function deviceNetwork(d) {
+    const ip = d && d.ip;
+    const m = ip && String(ip).match(/^(\d+\.\d+\.\d+)\.\d+$/);
+    return m ? `${m[1]}.0/24` : '';
+}
+
+// Fill a searchable <select> with the distinct, sorted values a getter returns
+// over the current devices, preserving the current selection if still present.
+function populateDerivedSelect(id, getter) {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const cur = sel.value || '';
+    const vals = [...new Set(devices.map(getter).filter(v => v && String(v).trim()))].sort();
+    sel.innerHTML = `<option value="">${t('all')}</option>` +
+        vals.map(v => `<option value="${escHtml(v)}">${escHtml(v)}</option>`).join('');
+    sel.value = (vals.includes(cur) || cur === '') ? cur : '';
+    if (sel._ds) sel._ds.refresh();
 }
 
 // Vendor isimlerini normalize eden fonksiyon

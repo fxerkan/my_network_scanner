@@ -209,7 +209,7 @@ class ConfigManager:
             'Tablet': {'icon': '📃', 'category': 'mobile'},
             'Laptop': {'icon': '💻', 'category': 'computer'},
             'Desktop': {'icon': '🖥️', 'category': 'computer'},
-            'Server': {'icon': '🖧', 'category': 'computer'},
+            'Server': {'icon': '🖥️', 'category': 'computer'},
             'Printer': {'icon': '🖨️', 'category': 'peripheral'},
             'Scanner': {'icon': '📷', 'category': 'peripheral'},
             'IP Camera': {'icon': '📹', 'category': 'security'},
@@ -252,7 +252,18 @@ class ConfigManager:
             # the parenthesised qualifier before looking an icon up.
             'Local Machine': {'icon': '🖲️', 'category': 'computer'},
             'Desktop/Laptop': {'icon': '💻', 'category': 'computer'},
+            # Docker: bridge gateways and containers surfaced by the docker
+            # integration. Without these they fell back to "Server"/"Unknown"
+            # and rendered with the ❓/mono-glyph fallback in a container install.
+            'Docker Container': {'icon': '🐳', 'category': 'computer'},
+            'Docker Network': {'icon': '🐳', 'category': 'network'},
+            'Container': {'icon': '🐳', 'category': 'computer'},
         }
+        # Built-in icons this app owns: any stored copy carrying one of these
+        # legacy glyphs (mono symbols with no colour emoji, so they render as
+        # bars/boxes) is repaired to the current default on load. Not a general
+        # override - only these exact bad glyphs are touched.
+        self.legacy_icon_fixes = {'🖧': '🖥️', '🖨': '🖨️', '🖲': '🖲️'}
         
         self.default_oui_database = {
             # Apple
@@ -387,14 +398,28 @@ class ConfigManager:
             print(f"OUI database save error: {e}")
     
     def load_device_types(self):
-        """Cihaz tiplerini yükle"""
+        """Load device types, merging in any new/repaired built-ins.
+
+        A container install bind-mounts config/, so an old device_types.json on
+        the host shadows the newer one baked into every image - new built-in
+        types (Single Board Computer, Docker Container) never appeared and
+        legacy mono-glyph icons (Server 🖧) never got fixed. So on every load we
+        add missing built-ins and repair known-bad icons, keeping the user's own
+        types and edits, and persist the result once.
+        """
         try:
+            stored = {}
             if os.path.exists(self.device_types_file):
                 with open(self.device_types_file, 'r', encoding='utf-8') as f:
-                    return json.load(f)
-            else:
-                self.save_device_types(self.default_device_types)
-                return self.default_device_types.copy()
+                    stored = json.load(f) or {}
+            merged = {**self.default_device_types, **stored}  # user edits win
+            for info in merged.values():
+                fixed = self.legacy_icon_fixes.get(info.get('icon'))
+                if fixed:
+                    info['icon'] = fixed
+            if merged != stored:
+                self.save_device_types(merged)
+            return merged
         except Exception as e:
             print(f"Device types load error: {e}")
             return self.default_device_types.copy()

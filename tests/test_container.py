@@ -104,8 +104,34 @@ def test_every_docker_bridge_used_to_get_the_same_label():
         for name in ("br-aaa", "br-bbb", "docker0")
     }
     assert len(labelled) == 3, "docker bridges must not collapse to one name"
-    assert "docker: mynes_default" in labelled
+    assert "Docker: mynes_default" in labelled
     assert "br-bbb" in labelled          # unknown network falls back to the iface
+
+
+def test_legacy_docker_labels_are_cleaned_and_typed():
+    from mynes.core.scanner import LANScanner
+    m = LANScanner._migrate_legacy_docker_labels
+
+    # Bridge gateway: host-wrapped label -> clean, type normalised.
+    d = {"hostname": "mynes (docker: jellystat)", "alias": "mynes (docker: jellystat)",
+         "device_type": "Local Machine (Docker)"}
+    m(d)
+    assert d["alias"] == "Docker: jellystat" and d["device_type"] == "Docker Network"
+
+    # Container instance: 02:42 MAC + Unknown -> Docker Container, vendor Docker.
+    c = {"mac": "02:42:ac:11:00:02", "device_type": "Unknown", "vendor": "Unknown"}
+    m(c)
+    assert c["device_type"] == "Docker Container" and c["vendor"] == "Docker"
+
+    # Bridge gateway that scanned as "Server" but carries a docker-network label.
+    g = {"mac": "02:42:49:d7:e7:7f", "alias": "mynes (docker: 1panel-network)", "device_type": "Server"}
+    m(g)
+    assert g["alias"] == "Docker: 1panel-network" and g["device_type"] == "Docker Network"
+
+    # A user's own alias with parentheses is never rewritten.
+    u = {"alias": "My iPhone (12 Pro)", "alias_source": "user", "device_type": "Smartphone"}
+    m(u)
+    assert u["alias"] == "My iPhone (12 Pro)" and u["device_type"] == "Smartphone"
 
 
 def test_non_docker_interfaces_keep_their_type():

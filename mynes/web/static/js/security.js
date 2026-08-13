@@ -29,6 +29,15 @@
   // Link CVEs to CVE.org (the authoritative record). NVD detail pages have
   // been flaky (502 Bad Gateway); cve.org is the primary source anyway.
   function cveUrl(id) { return 'https://www.cve.org/CVERecord?id=' + encodeURIComponent(id); }
+  // Turn any CVE id mentioned in an already-escaped description into a link to
+  // CVE.org, so an exposure that names "EternalBlue (CVE-2017-0144)" in prose is
+  // actually clickable. Input must already be esc()'d; CVE ids are [A-Z0-9-] so
+  // this never re-introduces markup.
+  function linkifyCves(escaped) {
+    return String(escaped).replace(/\bCVE-\d{4}-\d{4,7}\b/gi, function (m) {
+      return '<a class="sec-cve" href="' + cveUrl(m) + '" target="_blank" rel="noopener noreferrer">' + m + '</a>';
+    });
+  }
 
   function esc(v) {
     var d = document.createElement('div');
@@ -179,7 +188,11 @@
     $('secActionsEmpty').hidden = items.length > 0;
     $('secActions').innerHTML = items.map(function (it, i) {
       var affected = tr('security_affected', '{n} device(s)').replace('{n}', it.ips.length);
-      var cveBadge = (it.cve_id && CVE_RE.test(it.cve_id)) ? ' <code>' + esc(it.cve_id) + '</code>' : '';
+      var cveBadge = (it.cve_id && CVE_RE.test(it.cve_id))
+        ? ' <a class="sec-cve" href="' + esc(cveUrl(it.cve_id)) + '" target="_blank" rel="noopener noreferrer"' +
+          ' title="' + esc(tr('security_view_cve', 'View {id} on CVE.org').replace('{id}', it.cve_id)) + '"' +
+          ' onclick="event.stopPropagation();"><code>' + esc(it.cve_id) + '</code></a>'
+        : '';
       // The whole item is a button that filters the per-device table down to
       // just the hosts this finding affects (see focusAction).
       return '<li class="sec-action sec-action--' + esc(it.severity) + '">' +
@@ -191,7 +204,7 @@
                 esc(sevLabel(it.severity).toUpperCase()) + '</span> ' +
               esc(it.title) + cveBadge +
             '</div>' +
-            (it.description ? '<div class="sec-action__desc">' + esc(it.description) + '</div>' : '') +
+            (it.description ? '<div class="sec-action__desc">' + linkifyCves(esc(it.description)) + '</div>' : '') +
             '<div class="sec-action__meta">' +
               '<span class="sec-action__count">' + esc(affected) + '</span>' +
               '<svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-filter"/></svg>' +
@@ -302,7 +315,7 @@
           (item.description ?
             '<div class="sec-detail__desc">' +
               '<span class="sec-detail__label">' + esc(tr('security_suggested_action', 'Suggested action')) + '</span> ' +
-              esc(item.description) +
+              linkifyCves(esc(item.description)) +
             '</div>' : '') +
         '</div>' +
       '</li>';
@@ -562,12 +575,18 @@
   }
 
   function runScan() {
-    if (scanPoll) return;                       // already running
+    // A security assessment is derived entirely from data a normal scan already
+    // collected (see security/cve.py) - it does NO network I/O of its own. It
+    // used to call /scan, which hijacked the shared network scan and made the
+    // Devices page look like it was scanning. Now it just re-assesses the
+    // current inventory, so it is independent of - and runs in parallel with -
+    // a network scan. Run a fresh network scan from the Devices page to refresh
+    // the fingerprints this assessment reads.
+    if (scanPoll) return;
     setScanning(true);
-    $('secScanMsg').textContent = tr('security_scan_running', 'Scanning the network…');
+    $('secScanMsg').textContent = tr('security_reassessing', 'Re-assessing attack surface…');
     $('secScanCount').textContent = '';
-    // Start the scan; a 400 "already scanning" is fine - we just watch it.
-    api('/scan').catch(function () { /* may already be running */ }).then(pollScan);
+    finishScan('completed');
   }
 
   function pollScan() {

@@ -1565,7 +1565,10 @@ async function downloadIEEEDatabase() {
         const result = await response.json();
         
         if (result.success) {
-            showAlert(t('ieee_updated', { count: result.processed_count }));
+            // Server message now reports real new/changed counts (idempotent),
+            // so a second click reads "already up to date" instead of a
+            // misleading full-count every time.
+            showAlert(result.message || t('ieee_updated', { count: result.processed_count }));
             loadAllSettings();
         } else {
             showAlert(t('ieee_download_error') + result.error, 'error');
@@ -1670,7 +1673,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     ['dockerSearch', 'dockerStackFilter', 'dockerNetworkFilter'].forEach(id => {
         const node = document.getElementById(id);
-        if (node) node.addEventListener('input', renderDocker);
+        // 'change' too: the enhanced <select> dropdowns fire change, not input.
+        if (node) { node.addEventListener('input', renderDocker); node.addEventListener('change', renderDocker); }
     });
 });
 
@@ -1691,75 +1695,73 @@ async function loadDockerInfo() {
 }
 
 async function loadDockerStatus() {
+    const el = document.getElementById('dockerStatus');
+    if (!el) return;
     try {
-        const response = await fetch('/api/docker/stats');
-        const data = await response.json();
-        
-        const statusContainer = document.getElementById('dockerStatus');
-        if (!statusContainer) return;
-        
-        let statusHtml = '';
-        
-        if (data.available) {
-            statusHtml = `
-                <div class="docker-status-item" style="background: #d4edda; color: #155724; padding: 15px; border-radius: 6px; margin-bottom: 10px;">
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <span style="font-size: 1.5em;">✅</span>
-                        <div>
-                            <strong>${t('docker_active')}</strong>
-                            <div style="font-size: 0.9em; opacity: 0.8;">
-                                ${data.networks_count} ${t('docker_networks')}, ${data.containers_count} ${t('docker_containers')}, ${data.scan_ranges_count} ${t('scan_ranges')}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
-                    <div class="stat-item">
-                        <div class="stat-number">${data.networks_count}</div>
-                        <div class="stat-label">${t('docker_networks')}</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-number">${data.containers_count}</div>
-                        <div class="stat-label">${t('active_containers')}</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-number">${data.scan_ranges_count}</div>
-                        <div class="stat-label">${t('scan_ranges')}</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-number">${data.socket_available ? '✅' : '❌'}</div>
-                        <div class="stat-label">${t('socket_access')}</div>
-                    </div>
-                </div>
-            `;
-        } else {
-            statusHtml = `
-                <div class="docker-status-item" style="background: #f8d7da; color: #721c24; padding: 15px; border-radius: 6px;">
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <span style="font-size: 1.5em;">❌</span>
-                        <div>
-                            <strong>${t('docker_unavailable')}</strong>
-                            <div style="font-size: 0.9em; opacity: 0.8;">
-                                ${t('docker_unavailable_detail')}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
+        const data = await (await fetch('/api/docker/stats')).json();
+        if (!data.available) {
+            el.innerHTML = `<div class="docker-status-strip__row">
+                <span class="ds-badge ds-badge--critical">${t('docker_unavailable')}</span>
+                <span class="docker-status-strip__hint">${dockerEsc(t('docker_unavailable_detail'))}</span></div>`;
+            return;
         }
-        
-        statusContainer.innerHTML = statusHtml;
-        
+        const stat = (n, label) => `<span class="docker-status-strip__stat"><b>${n}</b> ${dockerEsc(label)}</span>`;
+        el.innerHTML = `<div class="docker-status-strip__row">
+            <span class="ds-badge ds-badge--success">${t('docker_active')}</span>
+            ${stat(data.networks_count, t('docker_networks'))}
+            ${stat(data.containers_count, t('active_containers'))}
+            ${stat(data.scan_ranges_count, t('scan_ranges'))}
+            <span class="ds-badge ${data.socket_available ? 'ds-badge--success' : 'ds-badge--warning'}">${t('socket_access')}: ${data.socket_available ? '✓' : '✗'}</span>
+        </div>`;
     } catch (error) {
-        const statusContainer = document.getElementById('dockerStatus');
-        if (statusContainer) {
-            statusContainer.innerHTML = `
-                <div style="background: #f8d7da; color: #721c24; padding: 15px; border-radius: 6px;">
-                    ❌ Docker durumu kontrol edilemedi: ${error.message}
-                </div>
-            `;
-        }
+        el.innerHTML = `<div class="docker-status-strip__row"><span class="ds-badge ds-badge--critical">Docker</span>
+            <span class="docker-status-strip__hint">${dockerEsc(error.message)}</span></div>`;
     }
+}
+
+/* Sub-tabs within the Docker tab, scoped to #docker so they never disturb the
+   Databases sub-tabs (same .subtab classes, different section). */
+function switchDockerTab(name) {
+    const root = document.getElementById('docker');
+    if (!root) return;
+    root.querySelectorAll('.subtab').forEach(el => el.classList.remove('active'));
+    const btn = root.querySelector(`[onclick="switchDockerTab('${name}')"]`);
+    if (btn) btn.classList.add('active');
+    root.querySelectorAll('.subtab-content').forEach(el => el.classList.remove('active'));
+    const panel = document.getElementById(
+        name === 'containers' ? 'dockerContainersPanel' :
+        name === 'ranges' ? 'dockerRangesPanel' : 'dockerNetworksPanel');
+    if (panel) panel.classList.add('active');
+}
+
+async function refreshDocker() {
+    await loadDockerInfo();
+    showAlert(t('docker_refreshed') || 'Docker refreshed');
+}
+
+/* One sortable table for all three Docker lists. columns: {key,label,get,cell}.
+   Click a header to sort; a second click flips direction. Sort state per list. */
+function dockerSort(list, col) {
+    const st = dockerState.sort[list] || (dockerState.sort[list] = { col, dir: 1 });
+    if (st.col === col) st.dir *= -1; else { st.col = col; st.dir = 1; }
+    renderDocker();
+}
+function dockerTable(host, list, columns, rows, emptyMsg) {
+    if (!host) return;
+    if (!rows.length) { host.innerHTML = `<div class="pattern-empty">${dockerEsc(emptyMsg)}</div>`; return; }
+    const st = dockerState.sort[list] || (dockerState.sort[list] = { col: columns[0].key, dir: 1 });
+    const col = columns.find(c => c.key === st.col) || columns[0];
+    const sorted = rows.slice().sort((a, b) => {
+        const av = col.get(a), bv = col.get(b);
+        if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * st.dir;
+        return String(av).localeCompare(String(bv), undefined, { numeric: true }) * st.dir;
+    });
+    const head = columns.map(c => {
+        const arrow = c.key === st.col ? (st.dir > 0 ? ' ▲' : ' ▼') : '';
+        return `<th class="ds-th-sort" onclick="dockerSort('${list}','${c.key}')">${dockerEsc(c.label)}${arrow}</th>`;
+    }).join('');
+    const body = sorted.map(r => `<tr>${columns.map(c => `<td>${c.cell(r)}</td>`).join('')}</tr>`).join('');
+    host.innerHTML = `<div class="ds-table-wrap"><table class="ds-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
 }
 
 /*
@@ -1770,7 +1772,7 @@ async function loadDockerStatus() {
  * network, because "which containers are in the telegram stack" was a question
  * you could only answer by scrolling.
  */
-const dockerState = { networks: [], containers: [] };
+const dockerState = { networks: [], containers: [], scanRanges: [], sort: {} };
 
 function dockerEsc(value) {
     return String(value ?? '').replace(/[&<>"']/g, c =>
@@ -1830,82 +1832,69 @@ function refreshDockerFilterOptions() {
 
 function renderDockerNetworks() {
     const host = document.getElementById('dockerNetworksList');
-    if (!host) return;
     const shown = dockerState.networks.filter(n => networkMatches(n, dockerFilters()));
-    if (!shown.length) {
-        host.innerHTML = `<div class="pattern-empty">${t('no_docker_networks')}</div>`;
-        return;
-    }
-    host.innerHTML = shown.map(n => {
-        const count = (n.containers || []).length;
-        const subnets = (n.subnets || []).length ? n.subnets.join(', ') : '—';
-        return `
-            <article class="docker-card">
-                <header class="docker-card__head">
-                    <span class="docker-card__name mono">${dockerEsc(n.name)}</span>
-                    <span class="network-type">${dockerEsc(n.driver)}</span>
-                    ${n.internal ? `<span class="ds-badge ds-badge--critical">${t('internal')}</span>` : ''}
-                </header>
-                <dl class="docker-card__facts">
-                    <div><dt>ID</dt><dd class="mono">${dockerEsc(n.id)}</dd></div>
-                    <div><dt>${t('subnet')}</dt><dd class="mono">${dockerEsc(subnets)}</dd></div>
-                    ${n.gateway ? `<div><dt>Gateway</dt><dd class="mono">${dockerEsc(n.gateway)}</dd></div>` : ''}
-                    <div><dt>${t('docker_containers')}</dt><dd>${count}</dd></div>
-                </dl>
-            </article>`;
-    }).join('');
+    dockerTable(host, 'networks', [
+        { key: 'name', label: t('docker_network'), get: n => n.name || '',
+          cell: n => `<span class="mono">${dockerEsc(n.name)}</span>${n.internal ? ` <span class="ds-badge ds-badge--critical">${t('internal')}</span>` : ''}` },
+        { key: 'driver', label: t('driver') || 'Driver', get: n => n.driver || '',
+          cell: n => `<span class="network-type">${dockerEsc(n.driver)}</span>` },
+        { key: 'subnet', label: t('subnet'), get: n => (n.subnets || [])[0] || '',
+          cell: n => `<span class="mono">${dockerEsc((n.subnets || []).join(', ') || '—')}</span>` },
+        { key: 'gateway', label: 'Gateway', get: n => n.gateway || '',
+          cell: n => `<span class="mono">${dockerEsc(n.gateway || '—')}</span>` },
+        { key: 'count', label: t('docker_containers'), get: n => (n.containers || []).length,
+          cell: n => (n.containers || []).length },
+    ], shown, t('no_docker_networks'));
 }
 
 function renderDockerContainers() {
     const host = document.getElementById('dockerContainersList');
-    if (!host) return;
     const shown = dockerState.containers.filter(c => containerMatches(c, dockerFilters()));
-    if (!shown.length) {
-        host.innerHTML = `<div class="pattern-empty">${t('no_docker_containers')}</div>`;
-        return;
-    }
+    dockerTable(host, 'containers', [
+        { key: 'name', label: t('name') || 'Name', get: c => c.name || '',
+          cell: c => `<span class="mono">${dockerEsc(c.name)}</span>` },
+        { key: 'stack', label: t('docker_stack'), get: c => c.stack || '',
+          cell: c => dockerEsc(c.stack || t('no_stack')) },
+        { key: 'image', label: t('docker_image'), get: c => c.image || '',
+          cell: c => dockerEsc(c.image || '—') },
+        { key: 'networks', label: t('docker_network'), get: c => (c.networks || [])[0] || '',
+          cell: c => `<span class="mono">${dockerEsc((c.networks || []).join(', ') || '—')}</span>` },
+        { key: 'ip', label: 'IP', get: c => (c.ip_addresses || []).map(a => a.ipv4).filter(Boolean)[0] || '',
+          cell: c => `<span class="mono">${dockerEsc((c.ip_addresses || []).map(a => a.ipv4).filter(Boolean).join(', ') || '—')}</span>` },
+        { key: 'status', label: t('status'), get: c => c.status || '',
+          cell: c => `<span class="ds-badge ds-badge--success">${dockerEsc(c.status || t('running'))}</span>` },
+    ], shown, t('no_docker_containers'));
+}
 
-    // Grouped by stack: a compose project is the unit people think in, and
-    // loose `docker run` containers collect under one "no stack" heading.
-    const byStack = new Map();
-    shown.forEach(c => {
-        const key = c.stack || '';
-        if (!byStack.has(key)) byStack.set(key, []);
-        byStack.get(key).push(c);
+function renderDockerScanRanges() {
+    const host = document.getElementById('dockerScanRangesList');
+    // Reuse the same text/network/stack filter as the other two lists.
+    const f = dockerFilters();
+    const shown = dockerState.scanRanges.filter(r => {
+        if (f.network && r.network_name !== f.network) return false;
+        if (!f.text) return true;
+        return [r.network_name, r.subnet, r.scan_range, r.gateway].join(' ').toLowerCase().includes(f.text);
     });
-    const ordered = [...byStack.entries()].sort((a, b) =>
-        (a[0] ? 0 : 1) - (b[0] ? 0 : 1) || a[0].localeCompare(b[0]));
-
-    host.innerHTML = ordered.map(([stack, list]) => `
-        <section class="net-group">
-            <header class="net-group__head">
-                <div>
-                    <span class="net-group__range">${dockerEsc(stack || t('no_stack'))}</span>
-                    <span class="net-group__count">${list.length}</span>
-                </div>
-            </header>
-            <div class="net-group__body">
-                ${list.map(c => `
-                    <article class="docker-card">
-                        <header class="docker-card__head">
-                            <span class="docker-card__name mono">${dockerEsc(c.name)}</span>
-                            <span class="ds-badge ds-badge--success">${t('running')}</span>
-                        </header>
-                        <dl class="docker-card__facts">
-                            <div><dt>${t('docker_image')}</dt><dd>${dockerEsc(c.image)}</dd></div>
-                            ${c.service ? `<div><dt>${t('service')}</dt><dd>${dockerEsc(c.service)}</dd></div>` : ''}
-                            <div><dt>${t('docker_network')}</dt><dd class="mono">${dockerEsc((c.networks || []).join(', ') || '—')}</dd></div>
-                            <div><dt>IP</dt><dd class="mono">${dockerEsc((c.ip_addresses || []).map(a => a.ipv4).filter(Boolean).join(', ') || '—')}</dd></div>
-                            <div><dt>${t('status')}</dt><dd>${dockerEsc(c.status)}</dd></div>
-                        </dl>
-                    </article>`).join('')}
-            </div>
-        </section>`).join('');
+    dockerTable(host, 'ranges', [
+        { key: 'network_name', label: t('docker_network'), get: r => r.network_name || '',
+          cell: r => `<span class="mono">${dockerEsc(r.network_name)}</span>` },
+        { key: 'driver', label: t('driver') || 'Driver', get: r => r.driver || '',
+          cell: r => `<span class="network-type">${dockerEsc(r.driver)}</span>` },
+        { key: 'subnet', label: t('subnet'), get: r => r.subnet || '',
+          cell: r => `<span class="mono">${dockerEsc(r.subnet || '—')}</span>` },
+        { key: 'scan_range', label: t('scan_ranges'), get: r => r.scan_range || '',
+          cell: r => `<code>${dockerEsc(r.scan_range || '—')}</code>` },
+        { key: 'container_count', label: t('docker_containers'), get: r => r.container_count || 0,
+          cell: r => r.container_count || 0 },
+        { key: 'action', label: '', get: () => '',
+          cell: r => `<button class="btn btn-small" onclick="addToScanRange('${dockerEsc(r.scan_range)}','${dockerEsc(r.network_name)}')"><svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-plus"/></svg> ${t('add_to_scan_range')}</button>` },
+    ], shown, t('no_docker_ranges'));
 }
 
 function renderDocker() {
     renderDockerNetworks();
     renderDockerContainers();
+    renderDockerScanRanges();
 }
 
 async function loadDockerNetworks() {
@@ -1933,56 +1922,13 @@ async function loadDockerContainers() {
 }
 
 async function loadDockerScanRanges() {
+    const host = document.getElementById('dockerScanRangesList');
     try {
-        const response = await fetch('/api/docker/scan_ranges');
-        const data = await response.json();
-        
-        const scanRangesContainer = document.getElementById('dockerScanRangesList');
-        if (!scanRangesContainer) return;
-        
-        if (!data.success || !data.scan_ranges || data.scan_ranges.length === 0) {
-            scanRangesContainer.innerHTML = `<div class="pattern-empty">${t('no_docker_ranges')}</div>`;
-            return;
-        }
-        
-        let scanRangesHtml = '';
-        data.scan_ranges.forEach(range => {
-            scanRangesHtml += `
-                <div style="background: var(--bg-surface-sunken); padding: 15px; border-radius: 6px; margin-bottom: 10px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div style="flex: 1;">
-                            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                                <strong style="color: #0066cc;">${range.network_name}</strong>
-                                <span style="background: #17a2b8; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.8em;">${range.driver}</span>
-                            </div>
-                            <div style="font-size: 0.9em; color: var(--text-tertiary); margin-bottom: 5px;">
-                                <strong>Subnet:</strong> ${range.subnet}
-                            </div>
-                            <div style="font-size: 0.9em; color: var(--text-tertiary); margin-bottom: 5px;">
-                                <strong>Scan Range:</strong> <code style="background: #e9ecef; padding: 2px 6px; border-radius: 4px;">${range.scan_range}</code>
-                            </div>
-                            ${range.gateway ? `<div style="font-size: 0.9em; color: var(--text-tertiary); margin-bottom: 5px;"><strong>Gateway:</strong> ${range.gateway}</div>` : ''}
-                            <div style="font-size: 0.9em; color: var(--text-tertiary);">
-                                <strong>${t('docker_containers')}:</strong> ${range.container_count} ${t('unit_count')}
-                            </div>
-                        </div>
-                        <div>
-                            <button class="btn btn-small" onclick="addToScanRange('${range.scan_range}', '${range.network_name}')" style="background: #28a745; color: white;">
-                                ➕ ${t('add_to_scan_range')}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
-        });
-        
-        scanRangesContainer.innerHTML = scanRangesHtml;
-        
+        const data = await (await fetch('/api/docker/scan_ranges')).json();
+        dockerState.scanRanges = (data.success && data.scan_ranges) || [];
+        renderDockerScanRanges();
     } catch (error) {
-        const scanRangesContainer = document.getElementById('dockerScanRangesList');
-        if (scanRangesContainer) {
-            scanRangesContainer.innerHTML = `<div class="pattern-empty">Docker scan ranges: ${error.message}</div>`;
-        }
+        if (host) host.innerHTML = `<div class="pattern-empty">Docker scan ranges: ${dockerEsc(error.message)}</div>`;
     }
 }
 

@@ -1032,5 +1032,13 @@
   "no_ip_skipped": "IP'si olmayan {count} cihaz atlandı",
   "change_location": "Konum değiştir",
   "change_trust": "Güven değiştir",
-  "done": "Tamam"
+  "done": "Tamam",
+  "driver": "Sürücü",
+  "name": "Ad",
+  "docker": "Docker",
+  "docker_refreshed": "Docker yenilendi",
+  "network_type": "Ağ Türü",
+  "random_mac": "Rastgele MAC",
+  "show_random_mac": "Rastgele MAC",
+  "uptime_page_of": "Sayfa {page} / {pages} · {total} cihaz"
 }

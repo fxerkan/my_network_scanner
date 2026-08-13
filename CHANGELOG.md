@@ -6,6 +6,67 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+Container-install parity: the same install run as a Docker container (Raspberry
+Pi / CasaOS) now identifies, labels, filters and secures devices exactly like
+the local Python run, and the two long settings pages that grew unwieldy are now
+compact, searchable tables.
+
+### Added
+
+- **Config self-seeds into mounted volumes.** A container bind-mounts `config/`,
+  which shadows the files baked into every image, so anything added after a
+  host's config dir was first created never arrived — an empty emoji picker, a
+  stale `device_types.json`. `paths.seed_config_defaults()` now copies any
+  *missing* reference file from a never-mounted `/app/config_defaults` on
+  startup: copy-if-missing only, never overwriting user data, never seeding
+  per-install secrets, so a container update can no longer wipe anything.
+- **Four new device-list filters** — **Location**, **Connected via** (the
+  topology uplink parent, so you can group everything behind one switch/AP),
+  **Network Type** (WiFi / Wired / Radio), and **Network** (subnet) — as the
+  same searchable dropdowns, laid out as two rows of five.
+- **Random-MAC show/hide filter.** Rotating privacy MACs (locally-administered
+  addresses) each look like a brand-new one-hit-wonder device; a shared toggle
+  hides them.
+- **Docker settings page, rebuilt.** Renamed to **Docker** with a container
+  icon, a compact status strip, and **Networks / Containers / Scan Ranges** as
+  searchable, sortable tables behind sub-tabs — instead of one long scroll of
+  cards.
+- **History → Device availability** gains a Device Type filter, **sort by
+  availability %**, and **pagination** (60/page), so a network full of BLE and
+  rotating-MAC devices no longer renders hundreds of rows.
+- New device types: **Single Board Computer**, **Docker Container**, **Docker
+  Network**, **Container**.
+
+![Devices — docker-aware identification and the two-row filter panel](assets/screenshots/home-view.png)
+
+### Changed
+
+- **Device-type icons self-heal.** Built-in types are merged from defaults on
+  every load and legacy mono glyphs are repaired (Server `🖧` → `🖥️`), so a
+  stale mounted `device_types.json` catches up instead of rendering `?`.
+- **Docker devices read cleanly.** Bridge gateways are labelled `Docker: <network>`
+  (type **Docker Network**) instead of `<host> (docker: …)`, and containers in
+  Docker's `02:42:` MAC range are identified as **Docker Container** (vendor
+  Docker) rather than Unknown. A one-time migration fixes existing records.
+- **Security is now independent of the network scan.** The Security page
+  re-assesses in place (no `/scan`), so it no longer hijacks the Devices page,
+  and docker-internal addresses are excluded from the attack surface — no more
+  the host's SMB/VNC reported once per bridge. CVE ids in the advice link to
+  CVE.org.
+- **OUI download is idempotent** and reports the real new/changed counts instead
+  of "39923 entries processed" on every click.
+
+### Fixed
+
+- Selecting any filter no longer wipes the whole device list (a render error
+  used to leave it pinned to an empty subset).
+- Unchecking **Containers** now hides container instances too, not just bridges.
+- Every filter dropdown shows a distinct **All** / clear row.
+- The redundant IP filter on History availability was removed (the No-IP toggle
+  already does it).
+- The image no longer bakes per-install secrets from `config/` (added a
+  `.dockerignore`).
+
 ## [1.5.0] — 2026-08-11
 
 ### Added

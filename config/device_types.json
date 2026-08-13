@@ -1,27 +1,151 @@
 {
+  "Unknown": {
+    "category": "unknown",
+    "icon": "❓"
+  },
+  "Router": {
+    "category": "network",
+    "icon": "🌐"
+  },
+  "Switch": {
+    "category": "network",
+    "icon": "🔀"
+  },
   "Access Point": {
     "category": "network",
     "icon": "📡"
+  },
+  "Modem": {
+    "category": "network",
+    "icon": "📶"
+  },
+  "Smartphone": {
+    "category": "mobile",
+    "icon": "📱"
+  },
+  "Tablet": {
+    "category": "mobile",
+    "icon": "📟"
+  },
+  "Laptop": {
+    "category": "computer",
+    "icon": "💻"
+  },
+  "Desktop": {
+    "category": "computer",
+    "icon": "🖥️"
+  },
+  "Server": {
+    "category": "computer",
+    "icon": "🖥️"
+  },
+  "Printer": {
+    "category": "peripheral",
+    "icon": "🖨️"
+  },
+  "Scanner": {
+    "category": "peripheral",
+    "icon": "📷"
+  },
+  "IP Camera": {
+    "category": "security",
+    "icon": "📹"
+  },
+  "Security System": {
+    "category": "security",
+    "icon": "🔒"
+  },
+  "Smart TV": {
+    "category": "entertainment",
+    "icon": "📺"
+  },
+  "Streaming Device": {
+    "category": "entertainment",
+    "icon": "📡"
+  },
+  "Gaming Console": {
+    "category": "entertainment",
+    "icon": "🎮"
+  },
+  "Smart Speaker": {
+    "category": "entertainment",
+    "icon": "🔊"
+  },
+  "Smart Light": {
+    "category": "smart",
+    "icon": "💡"
+  },
+  "Smart Thermostat": {
+    "category": "smart",
+    "icon": "🌡️"
+  },
+  "Smart Lock": {
+    "category": "smart",
+    "icon": "🔐"
   },
   "Air Conditioner": {
     "category": "appliance",
     "icon": "❄️"
   },
-  "Air Purifier": {
-    "category": "smart",
-    "icon": "💨"
+  "Washing Machine": {
+    "category": "appliance",
+    "icon": "🧺"
   },
-  "Apple AirTag": {
-    "category": "iot",
-    "icon": "📍"
+  "Refrigerator": {
+    "category": "appliance",
+    "icon": "🧊"
+  },
+  "Dishwasher": {
+    "category": "appliance",
+    "icon": "🍽️"
+  },
+  "Vacuum Cleaner": {
+    "category": "appliance",
+    "icon": "🧹"
+  },
+  "Pet Feeder": {
+    "category": "smart",
+    "icon": "🐯"
+  },
+  "Pet Water Fountain": {
+    "category": "smart",
+    "icon": "💧"
   },
   "Apple Device": {
     "category": "mobile",
     "icon": "🍎"
   },
-  "Beacon": {
+  "Game Console": {
+    "category": "entertainment",
+    "icon": "🕹️"
+  },
+  "Pet Camera": {
+    "category": "smart",
+    "icon": "🐕"
+  },
+  "Pet Tracker": {
+    "category": "smart",
+    "icon": "🐾"
+  },
+  "NAS": {
+    "category": "storage",
+    "icon": "💾"
+  },
+  "IoT Device": {
     "category": "iot",
-    "icon": "🔆"
+    "icon": "🔗"
+  },
+  "Smart Home": {
+    "category": "smart",
+    "icon": "🏠"
+  },
+  "Smart Watch": {
+    "category": "mobile",
+    "icon": "⌚"
+  },
+  "Single Board Computer": {
+    "icon": "🍓",
+    "category": "computer"
   },
   "Bluetooth Device": {
     "category": "iot",
@@ -31,181 +155,69 @@
     "category": "iot",
     "icon": "🏷️"
   },
-  "Desktop": {
-    "category": "computer",
-    "icon": "🖥️"
-  },
-  "Desktop/Laptop": {
-    "category": "computer",
-    "icon": "💻"
-  },
-  "Dishwasher": {
-    "category": "appliance",
-    "icon": "🍽️"
-  },
-  "Docker Container": {
-    "category": "iot",
-    "icon": "🐳"
-  },
-  "Game Console": {
-    "category": "entertainment",
-    "icon": "🕹️"
-  },
-  "Gaming Console": {
-    "category": "entertainment",
-    "icon": "🎮"
-  },
   "Headphones": {
     "category": "peripheral",
     "icon": "🎧"
   },
-  "IP Camera": {
-    "category": "security",
-    "icon": "📹"
-  },
-  "IoT Device": {
-    "category": "iot",
-    "icon": "🔗"
-  },
-  "Laptop": {
-    "category": "computer",
-    "icon": "💻"
-  },
-  "Local Machine": {
-    "category": "computer",
-    "icon": "🖲️"
-  },
-  "Modem": {
-    "category": "network",
-    "icon": "📶"
-  },
-  "NAS": {
-    "category": "storage",
-    "icon": "💾"
-  },
-  "Non-Smartphone": {
-    "category": "peripheral",
-    "icon": "☎️"
-  },
-  "Pet Camera": {
-    "category": "smart",
-    "icon": "🐕"
-  },
-  "Pet Feeder": {
-    "category": "smart",
-    "icon": "🐯"
-  },
-  "Pet Toilet": {
-    "category": "smart",
-    "icon": "💩"
-  },
-  "Pet Tracker": {
-    "category": "smart",
-    "icon": "🐾"
-  },
-  "Pet Water Fountain": {
-    "category": "smart",
-    "icon": "💧"
-  },
-  "Printer": {
-    "category": "peripheral",
-    "icon": "🖨️"
-  },
-  "Raspberry Pi Server": {
-    "category": "computer",
-    "icon": "🍇"
-  },
-  "Refrigerator": {
-    "category": "appliance",
-    "icon": "🧊"
-  },
-  "Router": {
-    "category": "network",
-    "icon": "🌐"
-  },
-  "Scanner": {
-    "category": "peripheral",
-    "icon": "📷"
-  },
-  "Security System": {
-    "category": "security",
-    "icon": "🔒"
+  "Wearable": {
+    "category": "mobile",
+    "icon": "⌚"
   },
   "Sensor": {
     "category": "iot",
     "icon": "🌡️"
   },
-  "Server": {
+  "Beacon": {
+    "category": "iot",
+    "icon": "🔆"
+  },
+  "Local Machine": {
     "category": "computer",
-    "icon": "🖥️"
+    "icon": "🖲️"
   },
-  "Smart Home": {
+  "Desktop/Laptop": {
+    "category": "computer",
+    "icon": "💻"
+  },
+  "Docker Container": {
+    "category": "iot",
+    "icon": "🐳"
+  },
+  "Docker Network": {
+    "icon": "🐳",
+    "category": "network"
+  },
+  "Container": {
+    "icon": "🐳",
+    "category": "computer"
+  },
+  "Air Purifier": {
     "category": "smart",
-    "icon": "🏠"
+    "icon": "💨"
   },
-  "Smart Light": {
+  "Apple AirTag": {
+    "category": "iot",
+    "icon": "📍"
+  },
+  "Non-Smartphone": {
+    "category": "peripheral",
+    "icon": "☎️"
+  },
+  "Pet Toilet": {
     "category": "smart",
-    "icon": "💡"
+    "icon": "💩"
   },
-  "Smart Lock": {
-    "category": "smart",
-    "icon": "🔐"
-  },
-  "Smart Speaker": {
-    "category": "entertainment",
-    "icon": "🔊"
-  },
-  "Smart TV": {
-    "category": "entertainment",
-    "icon": "📺"
-  },
-  "Smart Thermostat": {
-    "category": "smart",
-    "icon": "🌡️"
-  },
-  "Smart Watch": {
-    "category": "mobile",
-    "icon": "⌚"
+  "Raspberry Pi Server": {
+    "category": "computer",
+    "icon": "🍇"
   },
   "SmartTag": {
     "category": "iot",
     "icon": "🔖"
   },
-  "Smartphone": {
-    "category": "mobile",
-    "icon": "📱"
-  },
-  "Streaming Device": {
-    "category": "entertainment",
-    "icon": "📡"
-  },
-  "Switch": {
-    "category": "network",
-    "icon": "🔀"
-  },
-  "Tablet": {
-    "category": "mobile",
-    "icon": "📟"
-  },
   "Tile Tracker": {
     "category": "iot",
     "icon": "🔲"
-  },
-  "Unknown": {
-    "category": "unknown",
-    "icon": "❓"
-  },
-  "Vacuum Cleaner": {
-    "category": "appliance",
-    "icon": "🧹"
-  },
-  "Washing Machine": {
-    "category": "appliance",
-    "icon": "🧺"
-  },
-  "Wearable": {
-    "category": "mobile",
-    "icon": "⌚"
   },
   "Z-Wave Device": {
     "category": "smart",

@@ -38,6 +38,12 @@ RUN pip install --no-cache-dir -r requirements-docker.txt
 COPY pyproject.toml README.md LICENSE ./
 COPY mynes ./mynes
 COPY config ./config
+# A second, never-mounted copy: /app/config is bind-mounted in every real
+# deploy, which shadows the files baked above, so a host config dir created by
+# an older version never receives files added later (emojis.csv, refreshed
+# device_types.json). paths.seed_config_defaults() copies missing files from
+# here into the mounted dir on startup. See MYNES_CONFIG_DEFAULTS below.
+COPY config ./config_defaults
 
 # Not editable: an editable install needs pip's machinery to stay behind, and
 # pip/setuptools/wheel are 5 more CVEs for something nothing runs at runtime.
@@ -46,6 +52,7 @@ RUN pip install --no-cache-dir --no-deps . && mkdir -p /app/data \
 
 ENV PYTHONUNBUFFERED=1 \
     MYNES_HOME=/app \
+    MYNES_CONFIG_DEFAULTS=/app/config_defaults \
     MYNES_PORT=5883
 
 RUN useradd -m -u 1000 scanner && chown -R scanner:scanner /app

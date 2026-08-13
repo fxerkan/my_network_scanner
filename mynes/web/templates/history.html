@@ -76,22 +76,25 @@
                         </select>
                     </label>
                     <label class="uptime-filters__field">
-                        <span>IP</span>
-                        <select id="uptimeIpFilter" data-searchable>
-                            <option value="all">{{ _('all') }}</option>
-                            <option value="with_ip">{{ _('with_ip') }}</option>
-                            <option value="no_ip">{{ _('no_ip') }}</option>
-                        </select>
+                        <span>{{ _('device_type') }}</span>
+                        <!-- Same shared searchable multi-select as the Devices page;
+                             binds to the shared 'types' filter (filters.js). -->
+                        <div id="uptimeTypeMulti"></div>
                     </label>
                     <!-- Shared visibility toggles (filters.js), consistent with
-                         the Devices page and set-once in Settings. -->
+                         the Devices page and set-once in Settings. The IP select
+                         used to live here but it duplicated the No-IP toggle, so
+                         it was dropped. Random MAC hides rotating-MAC devices that
+                         show up once and never again. -->
                     <div class="filter-toggles">
                         <label class="filter-toggle"><input type="checkbox" id="toggleContainers"> {{ _('show_containers') }}</label>
                         <label class="filter-toggle"><input type="checkbox" id="toggleNoIp"> {{ _('show_no_ip') }}</label>
                         <label class="filter-toggle"><input type="checkbox" id="toggleBluetooth"> {{ _('show_bluetooth') }}</label>
+                        <label class="filter-toggle"><input type="checkbox" id="toggleRandomMac"> {{ _('show_random_mac') if _('show_random_mac') != 'show_random_mac' else 'Random MAC' }}</label>
                     </div>
                 </div>
                 <div id="uptimeList" class="uptime-list"></div>
+                <div id="uptimePager" class="uptime-pager"></div>
                 <div class="view-legend uptime-legend">
                     <span class="view-legend__item"><i class="uptime-cell uptime-cell--up"></i>{{ _('uptime_up') }}</span>
                     <span class="view-legend__item"><i class="uptime-cell uptime-cell--warn"></i>{{ _('uptime_warn') }}</span>

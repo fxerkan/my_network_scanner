@@ -545,9 +545,24 @@ def risk_level(score: int, findings: list | None = None, exposures: list | None 
     return 'none'
 
 
+def _is_docker_internal(device: dict) -> bool:
+    """Docker bridge gateways and containers are internal to the host, not LAN
+    attack surface. Every br-* gateway is just the host under another IP, so
+    scanning them flagged the host's SMB/VNC once per bridge - a dozen identical
+    'VNC is open' rows on addresses nothing on the LAN can even reach. Their MAC
+    always sits in Docker's 02:42:xx range; the type carries 'docker' too."""
+    mac = (device.get('mac') or '').lower().replace('-', ':')
+    if mac.startswith('02:42:'):
+        return True
+    return 'docker' in (device.get('device_type') or '').lower()
+
+
 def assess_device(device: dict) -> dict:
     """Everything the Security tab needs for one device, built entirely
     from data a normal scan already collected - no new network I/O."""
+    if _is_docker_internal(device):
+        return {'ip': device.get('ip'), 'risk_score': 0, 'risk_level': 'none',
+                'findings': [], 'exposures': [], 'docker_internal': True}
     fp = device.get('fingerprint') or {}
     signals = {
         'ssh': fp.get('ssh'), 'ftp': fp.get('ftp'), 'http': fp.get('http') or [],

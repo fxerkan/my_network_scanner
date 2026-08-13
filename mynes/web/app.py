@@ -1102,12 +1102,17 @@ def download_ieee_oui():
                 f.write(response.text)
             
             # CSV'yi işle
-            processed_count = process_ieee_csv(config_file('oui_ieee.csv'))
-            
+            stats = process_ieee_csv(config_file('oui_ieee.csv'))
+            added, updated, total = stats['added'], stats['updated'], stats['total']
+            if added or updated:
+                msg = f"IEEE OUI database updated — {added} new, {updated} changed ({total} total)."
+            else:
+                msg = f"IEEE OUI database already up to date — {total} entries, nothing changed."
             return jsonify({
                 "success": True,
-                "message": f"IEEE OUI database güncellendi. {processed_count} kayıt işlendi.",
-                "processed_count": processed_count
+                "message": msg,
+                "processed_count": added + updated,
+                "added": added, "updated": updated, "total": total,
             })
         else:
             return jsonify({
@@ -1122,34 +1127,44 @@ def download_ieee_oui():
         })
 
 def process_ieee_csv(csv_file):
-    """Process the IEEE CSV file and add it to the OUI database"""
+    """Merge the IEEE CSV into the OUI database, reporting real changes.
+
+    Returns {added, updated, total}. The old code counted every row it read and
+    called that "processed", so a second identical run still reported ~40k -
+    it looked like the whole DB was rebuilt each click. Now we only count
+    prefixes that are actually new or whose org name changed, and skip the disk
+    write entirely when nothing did (idempotent).
+    """
     try:
         config_manager = scanner.get_config_manager()
         oui_db = config_manager.load_oui_database()
-        
-        processed_count = 0
-        
+
+        added = updated = 0
         with open(csv_file, 'r', encoding='utf-8') as f:
-            csv_reader = csv.DictReader(f)
-            for row in csv_reader:
-                registry = row.get('Registry')
+            for row in csv.DictReader(f):
                 assignment = row.get('Assignment')
-                organization_name = row.get('Organization Name')
-                
-                if registry and assignment and organization_name:
-                    # MAC prefix'i normalize et
-                    mac_prefix = assignment.replace('-', '').upper()
-                    if len(mac_prefix) == 6:  # 3-byte OUI
-                        oui_db[mac_prefix] = organization_name.strip()
-                        processed_count += 1
-        
-        # Güncellenmiş database'i kaydet
-        config_manager.save_oui_database(oui_db)
-        return processed_count
-        
+                org = row.get('Organization Name')
+                if not (row.get('Registry') and assignment and org):
+                    continue
+                mac_prefix = assignment.replace('-', '').upper()
+                if len(mac_prefix) != 6:
+                    continue
+                org = org.strip()
+                if mac_prefix not in oui_db:
+                    added += 1
+                elif oui_db[mac_prefix] != org:
+                    updated += 1
+                else:
+                    continue
+                oui_db[mac_prefix] = org
+
+        if added or updated:
+            config_manager.save_oui_database(oui_db)
+        return {'added': added, 'updated': updated, 'total': len(oui_db)}
+
     except Exception as e:
         print(f"CSV processing error: {e}")
-        return 0
+        return {'added': 0, 'updated': 0, 'total': 0}
         
 
 @app.route('/api/clear_history', methods=['POST'])
@@ -1168,7 +1183,7 @@ def clear_scan_history():
 def get_emojis():
     """Get emoji data from the CSV file"""
     try:
-        emojis_file = os.path.join('config', 'emojis.csv')
+        emojis_file = config_file('emojis.csv')
         emojis_data = []
         categories = set()
         
@@ -1196,7 +1211,7 @@ def get_emojis():
 def get_emoji_categories():
     """Get emoji categories"""
     try:
-        emojis_file = os.path.join('config', 'emojis.csv')
+        emojis_file = config_file('emojis.csv')
         categories = set()
         
         if os.path.exists(emojis_file):
@@ -1216,7 +1231,7 @@ def search_emojis():
         query = request.args.get('q', '').lower()
         category = request.args.get('category', '')
         
-        emojis_file = os.path.join('config', 'emojis.csv')
+        emojis_file = config_file('emojis.csv')
         results = []
         
         if os.path.exists(emojis_file):
@@ -1262,7 +1277,7 @@ def add_emoji():
         if not all([emoji, category, description, keywords]):
             return jsonify({"error": "Tüm alanlar gereklidir"}), 400
         
-        emojis_file = os.path.join('config', 'emojis.csv')
+        emojis_file = config_file('emojis.csv')
         
         # Mevcut emojileri kontrol et
         existing_emojis = set()

@@ -371,8 +371,12 @@ class LANScanner:
 
         if interface_type in ('Docker', 'Docker Network', 'Bridge') and interface_name:
             network = self._docker_bridge_names().get(interface_name)
-            return f"docker: {network}" if network else interface_name
+            return f"Docker: {network}" if network else interface_name
         return interface_type
+
+    @staticmethod
+    def _is_docker_interface(interface_info):
+        return (interface_info or {}).get('interface_type') in ('Docker', 'Docker Network', 'Bridge')
 
     def _docker_bridge_names(self):
         """bridge interface -> docker network name, resolved once per scan."""
@@ -907,10 +911,15 @@ class LANScanner:
 
         # Yerel makine için özel hostname belirleme
         if local_interface_info:
-            hostname = self.get_local_machine_hostname()
-            # Yerel makine hostname'ini interface tipi ile zenginleştir
-            if local_interface_info.get('interface_type'):
-                hostname = f"{hostname} ({self.local_interface_label(local_interface_info)})"
+            # Docker bridges are the host's own interfaces, but wrapping each in
+            # the host name ("mynes (docker: jellystat)") just repeats the host a
+            # dozen times and reads as noise. Show the clean network label alone.
+            if self._is_docker_interface(local_interface_info):
+                hostname = self.local_interface_label(local_interface_info)
+            else:
+                hostname = self.get_local_machine_hostname()
+                if local_interface_info.get('interface_type'):
+                    hostname = f"{hostname} ({self.local_interface_label(local_interface_info)})"
             log_operation("🔍 Hostname Resolution", "local machine", hostname)
         elif existing_hostname and not detailed_analysis:
             # Hızlı taramada mevcut hostname'i koru
@@ -1016,6 +1025,8 @@ class LANScanner:
                 device_type = 'Desktop/Laptop (Ethernet)'
             elif interface_type == 'WiFi':
                 device_type = 'Desktop/Laptop (WiFi)'
+            elif self._is_docker_interface(local_interface_info):
+                device_type = 'Docker Network'
             else:
                 device_type = f'Local Machine ({interface_type})'
             identification_result = {'device_type': device_type, 'confidence': 1.0, 'local_machine': True}
@@ -1061,6 +1072,20 @@ class LANScanner:
                 identification_result = {'device_type': device_type, 'confidence': 0.5}
                 log_operation("🔍 Basic Device Identification", "completed", device_type)
         
+        # Docker containers scan as bare "Unknown" over a bridge - no hostname,
+        # no OUI vendor - so nothing above ever types them. Their MAC always
+        # sits in Docker's locally-administered 02:42:xx range, which is a
+        # certain-enough signal to name them without a guess. User picks and
+        # real identifications above still win; this only fills the Unknowns.
+        if (mac or '').lower().replace('-', ':').startswith('02:42:') \
+                and not local_interface_info \
+                and not (identification_result or {}).get('user_defined'):
+            if device_type in ('Unknown', 'unknown', '', None):
+                device_type = 'Docker Container'
+                identification_result = {'device_type': device_type, 'confidence': 0.9, 'docker': True}
+            if not vendor or vendor in ('Unknown', 'Bilinmeyen'):
+                vendor = 'Docker'
+
         # Cihaz tipine özgü detaylı port taraması (sadece detaylı analizde)
         if detailed_analysis and device_type != 'Unknown':
             log_operation("🎯 Device-Specific Port Scan", "starting", f"for {device_type}")
@@ -1234,7 +1259,10 @@ class LANScanner:
             interface_name = local_interface_info.get('interface_name', 'unknown')
             interface_type = local_interface_info.get('interface_type', 'Other')
             local_hostname = hostname.split(' (')[0]  # Parantez kısmını çıkar
-            device_info['alias'] = f"{local_hostname} - {self.local_interface_label(local_interface_info)}"
+            if self._is_docker_interface(local_interface_info):
+                device_info['alias'] = self.local_interface_label(local_interface_info)
+            else:
+                device_info['alias'] = f"{local_hostname} - {self.local_interface_label(local_interface_info)}"
             print(f"Local machine alias generated: {device_info['alias']} ({ip})")
         elif device_info['alias']:
             print(f"User-defined alias preserved: {device_info['alias']} ({ip})")
@@ -1665,6 +1693,39 @@ class LANScanner:
         """Cihazları kaydet - save_to_json'a yönlendirme"""
         return self.save_to_json(filename)
     
+    @staticmethod
+    def _migrate_legacy_docker_labels(device):
+        """Rewrite the old auto docker labels in place: 'mynes (docker: X)' and
+        'mynes - docker: X' were the host name repeated in front of the network
+        name. Only touch auto-generated fields, never a user-set alias, and only
+        the 'docker:' shape so a real hostname with parentheses is left alone.
+        """
+        import re
+        legacy = re.compile(r'^.+?\s*[-(]\s*docker:\s*(?P<net>[^)]+?)\)?$', re.I)
+        for field in ('hostname', 'alias'):
+            val = device.get(field)
+            if field == 'alias' and device.get('alias_source') == 'user':
+                continue
+            m = val and legacy.match(str(val))
+            if m:
+                device[field] = f"Docker: {m.group('net').strip()}"
+        auto = device.get('device_type_source') != 'user'
+        soft = device.get('device_type') in ('Local Machine (Docker)', 'Server', 'Unknown', 'unknown', '', None)
+        # A cleaned "Docker: <net>" label means this is a bridge gateway, whatever
+        # weak type it happened to scan as (Server, Local Machine, Unknown).
+        is_gateway = any(str(device.get(f, '')).startswith('Docker: ') for f in ('alias', 'hostname'))
+        mac = (device.get('mac') or '').lower().replace('-', ':')
+        if auto and soft and (device.get('device_type') == 'Local Machine (Docker)' or (mac.startswith('02:42:') and is_gateway)):
+            device['device_type'] = 'Docker Network'
+        # Container instances scan as bare "Unknown" over a docker bridge and
+        # keep that type while offline (never rediscovered to re-run the
+        # scan-time heuristic). Their MAC is always in Docker's 02:42:xx range,
+        # so type them here too - but only the Unknowns, never a real pick.
+        elif auto and mac.startswith('02:42:') and device.get('device_type') in ('Unknown', 'unknown', '', None):
+            device['device_type'] = 'Docker Container'
+            if not device.get('vendor') or device.get('vendor') in ('Unknown', 'Bilinmeyen'):
+                device['vendor'] = 'Docker'
+
     def load_from_json(self, filename=data_file('lan_devices.json')):
         """JSON dosyasından cihaz bilgilerini yükler (encrypted credential'ları decode eder)"""
         try:
@@ -1692,6 +1753,8 @@ class LANScanner:
                         # Encrypted credential'ları device'da koru (silme!)
                         # del device['encrypted_credentials']  # Bu satırı yorum yaptık
                 
+                for device in loaded_devices:
+                    self._migrate_legacy_docker_labels(device)
                 self.devices = loaded_devices
                 return True
             else:
@@ -1884,6 +1947,8 @@ class LANScanner:
             if not str(d.get('ip', '')).startswith(('127.', '169.254.')) and d.get('ip') != '::1'
         ]
         self.devices = self._dedupe_by_mac_ip(self.devices)
+        for d in self.devices:
+            self._migrate_legacy_docker_labels(d)
         return self.devices
     
     def get_config_manager(self):

@@ -1032,5 +1032,13 @@
   "no_ip_skipped": "{count} device(s) without an IP were skipped",
   "change_location": "Change location",
   "change_trust": "Change trust",
-  "done": "Done"
+  "done": "Done",
+  "driver": "Driver",
+  "name": "Name",
+  "docker": "Docker",
+  "docker_refreshed": "Docker refreshed",
+  "network_type": "Network Type",
+  "random_mac": "Random MAC",
+  "show_random_mac": "Random MAC",
+  "uptime_page_of": "Page {page} of {pages} · {total} devices"
 }

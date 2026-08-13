@@ -16,7 +16,7 @@
                 <button class="tab" onclick="switchTab('databases')"><svg class="ds-icon" aria-hidden="true"><use href="#i-router"/></svg>{{ _('databases') }}</button>
                 <button class="tab" onclick="switchTab('detection')"><svg class="ds-icon" aria-hidden="true"><use href="#i-search"/></svg>{{ _('detection_rules') }}</button>
                 <button class="tab" onclick="switchTab('networks')"><svg class="ds-icon" aria-hidden="true"><use href="#i-globe"/></svg>{{ _('network_interfaces') }}</button>
-                <button class="tab" onclick="switchTab('docker')"><svg class="ds-icon" aria-hidden="true"><use href="#i-plug"/></svg>{{ _('docker_network') }}</button>
+                <button class="tab" onclick="switchTab('docker')"><svg class="ds-icon" aria-hidden="true"><use href="#i-container"/></svg>{{ _('docker') if _('docker') != 'docker' else 'Docker' }}</button>
                 <button class="tab" onclick="switchTab('filters')"><svg class="ds-icon" aria-hidden="true"><use href="#i-filter"/></svg>{{ _('default_filters') }}</button>
                 <button class="tab" onclick="switchTab('integrations')"><svg class="ds-icon" aria-hidden="true"><use href="#i-plug"/></svg>{{ _('integrations') }}</button>
                 <button class="tab" onclick="switchTab('logs')"><svg class="ds-icon" aria-hidden="true"><use href="#i-history"/></svg>{{ _('logs') }}</button>
@@ -390,62 +390,37 @@
                 </div>
             </div>
 
-            <!-- Docker Network -->
+            <!-- Docker: one compact status strip + a shared filter bar, then the
+                 three lists (Networks / Containers / Scan Ranges) as searchable,
+                 sortable tables behind sub-tabs - instead of one long scroll. -->
             <div id="docker" class="tab-content">
-                <!-- One filter bar over both lists below: networks and containers
-                     answer the same question and are filtered together. -->
                 <div class="card" style="margin-bottom: var(--space-4);">
-                    <h3 class="card-title"><svg class="ds-icon" aria-hidden="true"><use href="#i-search"/></svg>{{ _('docker_filter') }}</h3>
-                    <div class="docker-filters">
+                    <div id="dockerStatus" class="docker-status-strip">
+                        <div class="loading">{{ _('loading_docker_info') }}</div>
+                    </div>
+                    <div class="docker-filters" style="margin-top: var(--space-3);">
                         <input type="search" class="form-input" id="dockerSearch"
                                placeholder="{{ _('docker_search_placeholder') }}" aria-label="{{ _('search') }}">
                         <select class="form-select" id="dockerStackFilter" aria-label="{{ _('docker_stack') }}"></select>
                         <select class="form-select" id="dockerNetworkFilter" aria-label="{{ _('docker_network') }}"></select>
+                        <button class="btn btn-small" onclick="refreshDocker()"><svg class="ds-icon" aria-hidden="true"><use href="#i-refresh"/></svg>{{ _('refresh') if _('refresh') != 'refresh' else 'Refresh' }}</button>
                     </div>
                 </div>
 
-                <div class="grid">
-                    <div class="card">
-                        <h3 class="card-title"><svg class="ds-icon" aria-hidden="true"><use href="#i-plug"/></svg>{{ _('docker_status') }}</h3>
-                        <div id="dockerStatus">
-                            <div class="loading">{{ _('loading_docker_info') }}</div>
-                        </div>
-                    </div>
-                    
-                    <div class="card">
-                        <h3 class="card-title"><svg class="ds-icon" aria-hidden="true"><use href="#i-globe"/></svg>{{ _('docker_networks') }}</h3>
-                        <p style="margin-bottom: 15px; color: var(--text-secondary);">
-                            {{ _('docker_networks_desc') }}
-                        </p>
-                        <div id="dockerNetworksList">
-                            <div class="loading">{{ _('loading_network_info') }}</div>
-                        </div>
-                        <button class="btn" onclick="refreshDockerNetworks()" style="margin-top: 15px;"><svg class="ds-icon" aria-hidden="true"><use href="#i-refresh"/></svg>{{ _('refresh_docker_networks') }}</button>
-                    </div>
+                <div class="subtabs">
+                    <button class="subtab active" onclick="switchDockerTab('networks')"><svg class="ds-icon" aria-hidden="true"><use href="#i-globe"/></svg>{{ _('docker_networks') }}</button>
+                    <button class="subtab" onclick="switchDockerTab('containers')"><svg class="ds-icon" aria-hidden="true"><use href="#i-container"/></svg>{{ _('docker_containers') }}</button>
+                    <button class="subtab" onclick="switchDockerTab('ranges')"><svg class="ds-icon" aria-hidden="true"><use href="#i-shield"/></svg>{{ _('scan_ranges') }}</button>
                 </div>
 
-                <div class="grid" style="margin-top: 20px;">
-                    <div class="card">
-                        <h3 class="card-title"><svg class="ds-icon" aria-hidden="true"><use href="#i-download"/></svg>{{ _('docker_containers') }}</h3>
-                        <p style="margin-bottom: 15px; color: var(--text-secondary);">
-                            {{ _('running_containers_desc') }}
-                        </p>
-                        <div id="dockerContainersList">
-                            <div class="loading">{{ _('loading_container_info') }}</div>
-                        </div>
-                        <button class="btn" onclick="refreshDockerContainers()" style="margin-top: 15px;"><svg class="ds-icon" aria-hidden="true"><use href="#i-refresh"/></svg>{{ _('refresh_containers') }}</button>
-                    </div>
-                    
-                    <div class="card">
-                        <h3 class="card-title"><svg class="ds-icon" aria-hidden="true"><use href="#i-shield"/></svg>{{ _('scan_ranges') }}</h3>
-                        <p style="margin-bottom: 15px; color: var(--text-secondary);">
-                            {{ _('docker_scan_ranges_desc') }}
-                        </p>
-                        <div id="dockerScanRangesList">
-                            <div class="loading">{{ _('loading_scan_ranges') }}</div>
-                        </div>
-                        <button class="btn" onclick="refreshDockerScanRanges()" style="margin-top: 15px;"><svg class="ds-icon" aria-hidden="true"><use href="#i-refresh"/></svg>{{ _('refresh_scan_ranges') }}</button>
-                    </div>
+                <div id="dockerNetworksPanel" class="subtab-content active">
+                    <div id="dockerNetworksList"><div class="loading">{{ _('loading_network_info') }}</div></div>
+                </div>
+                <div id="dockerContainersPanel" class="subtab-content">
+                    <div id="dockerContainersList"><div class="loading">{{ _('loading_container_info') }}</div></div>
+                </div>
+                <div id="dockerRangesPanel" class="subtab-content">
+                    <div id="dockerScanRangesList"><div class="loading">{{ _('loading_scan_ranges') }}</div></div>
                 </div>
             </div>
 

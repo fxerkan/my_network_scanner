@@ -721,9 +721,11 @@ async function loadUptime() {
         to: last ? new Date(last).toLocaleString(pageLocale()) : '—'
     });
 
-    // Sort primarily by IP (numeric), then name for the IP-less radio devices.
+    // Sort by availability %, highest first (the always-on devices at the top,
+    // the one-hit-wonder rotating-MAC noise at the bottom), then IP as tie-break.
     const ipParts = ip => (ip || '').split('.').map(n => parseInt(n, 10) || 0);
     const sorted = data.devices.slice().sort(function (a, b) {
+        if ((b.uptime || 0) !== (a.uptime || 0)) return (b.uptime || 0) - (a.uptime || 0);
         if (!a.ip || !b.ip) {
             if (Boolean(a.ip) !== Boolean(b.ip)) return a.ip ? -1 : 1;
             return String(a.name || '').localeCompare(String(b.name || ''));
@@ -736,14 +738,14 @@ async function loadUptime() {
     // Last non-null cell = the device's most recent known reachability.
     const lastState = d => [...d.cells].reverse().find(s => s) || null;
 
+    const PAGE_SIZE = 60;   // rotating-MAC devices can push this into the hundreds
+    let page = 0;
+
     const render = function () {
         const statusF = (document.getElementById('uptimeStatusFilter') || {}).value || 'all';
-        const ipF = (document.getElementById('uptimeIpFilter') || {}).value || 'all';
         const F = window.MynesFilters;
         const s = F ? F.get() : null;
         const rows = sorted.filter(function (d) {
-            if (ipF === 'with_ip' && !d.ip) return false;
-            if (ipF === 'no_ip' && d.ip) return false;
             if (statusF === 'active' && lastState(d) !== 'up') return false;
             if (statusF === 'passive' && lastState(d) === 'up') return false;
             // Shared filters. Uptime rows carry device_type/ip/name but no
@@ -752,6 +754,7 @@ async function loadUptime() {
                 if (!s.showContainers && F.isContainer(d)) return false;
                 if (!s.showNoIp && F.isNoIp(d)) return false;
                 if (!s.showBluetooth && F.isBluetooth(d)) return false;
+                if (!s.showRandomMac && F.isRandomMac(d) && !F.isContainer(d)) return false;
                 if (s.types.length && !s.types.includes(d.device_type)) return false;
                 if (s.q) {
                     const hay = [d.name, d.ip, d.device_type].filter(Boolean).join(' ').toLowerCase();
@@ -760,7 +763,10 @@ async function loadUptime() {
             }
             return true;
         });
-        document.getElementById('uptimeList').innerHTML = rows.map(function (d) {
+        const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+        if (page >= pageCount) page = pageCount - 1;
+        const pageRows = rows.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+        document.getElementById('uptimeList').innerHTML = pageRows.map(function (d) {
             const cells = d.cells.map(function (state, i) {
                 const stamp = data.checks[i] ? new Date(data.checks[i]).toLocaleString(pageLocale()) : '';
                 const label = state ? t('uptime_' + state) : t('uptime_unknown');
@@ -785,11 +791,29 @@ async function loadUptime() {
                 '<div class="uptime-row__pct' + pctClass + '">' + d.uptime + '%</div>' +
             '</div>';
         }).join('');
+        renderPager(rows.length, pageCount);
     };
 
-    ['uptimeStatusFilter', 'uptimeIpFilter'].forEach(function (id) {
+    // Prev / "page X of Y (N devices)" / Next. Only shown when it overflows one
+    // page - a handful of devices needs no pager.
+    function renderPager(total, pageCount) {
+        const host = document.getElementById('uptimePager');
+        if (!host) return;
+        if (pageCount <= 1) { host.innerHTML = ''; return; }
+        const info = t('uptime_page_of', { page: page + 1, pages: pageCount, total: total }) ||
+            ((page + 1) + ' / ' + pageCount + ' (' + total + ')');
+        host.innerHTML =
+            '<button class="btn btn-small" id="uptimePrev"' + (page === 0 ? ' disabled' : '') + '>‹</button>' +
+            '<span class="uptime-pager__info">' + esc(info) + '</span>' +
+            '<button class="btn btn-small" id="uptimeNext"' + (page >= pageCount - 1 ? ' disabled' : '') + '>›</button>';
+        const prev = document.getElementById('uptimePrev'), next = document.getElementById('uptimeNext');
+        if (prev) prev.onclick = function () { if (page > 0) { page--; render(); } };
+        if (next) next.onclick = function () { page++; render(); };
+    }
+
+    ['uptimeStatusFilter'].forEach(function (id) {
         const el = document.getElementById(id);
-        if (el && !el.dataset.wired) { el.dataset.wired = '1'; el.addEventListener('change', render); }
+        if (el && !el.dataset.wired) { el.dataset.wired = '1'; el.addEventListener('change', function () { page = 0; render(); }); }
     });
     // Shared visibility toggles + re-render when any shared filter changes.
     if (window.MynesFilters && !card.dataset.filtersWired) {
@@ -797,7 +821,19 @@ async function loadUptime() {
         MynesFilters.bindToggle(document.getElementById('toggleContainers'), 'showContainers');
         MynesFilters.bindToggle(document.getElementById('toggleNoIp'), 'showNoIp');
         MynesFilters.bindToggle(document.getElementById('toggleBluetooth'), 'showBluetooth');
-        document.addEventListener('mynes:filters', render);
+        MynesFilters.bindToggle(document.getElementById('toggleRandomMac'), 'showRandomMac');
+        // Same searchable Device Type multi-select as the Devices page, bound to
+        // the shared 'types' filter the render above already honours. Options are
+        // the types actually present in the uptime data.
+        var typeEl = document.getElementById('uptimeTypeMulti');
+        if (typeEl) MynesFilters.mountMulti(typeEl, {
+            key: 'types', label: t('device_type'),
+            options: function () {
+                return [...new Set(data.devices.map(function (d) { return d.device_type; }).filter(Boolean))]
+                    .sort().map(function (v) { return { value: v, label: v }; });
+            }
+        });
+        document.addEventListener('mynes:filters', function () { page = 0; render(); });
     }
     render();
 }

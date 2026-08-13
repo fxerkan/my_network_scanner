@@ -131,6 +131,30 @@
                             <option value="631">Printer (631)</option>
                         </select>
                     </div>
+                    <div class="filter-group">
+                        <label class="filter-label" for="locationFilter">{{ _('location') }}</label>
+                        <select id="locationFilter" class="filter-select" data-searchable onchange="filterDevices()">
+                            <option value="">{{ _('all') }}</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label" for="connectionFilter">{{ _('connected_via') }}</label>
+                        <select id="connectionFilter" class="filter-select" data-searchable onchange="filterDevices()">
+                            <option value="">{{ _('all') }}</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label" for="networkTypeFilter">{{ _('network_type') if _('network_type') != 'network_type' else 'Network Type' }}</label>
+                        <select id="networkTypeFilter" class="filter-select" data-searchable onchange="filterDevices()">
+                            <option value="">{{ _('all') }}</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label" for="networkFilter">{{ _('network_interface') if _('network_interface') != 'network_interface' else 'Network' }}</label>
+                        <select id="networkFilter" class="filter-select" data-searchable onchange="filterDevices()">
+                            <option value="">{{ _('all') }}</option>
+                        </select>
+                    </div>
                 </div>
             </div>
         </details>

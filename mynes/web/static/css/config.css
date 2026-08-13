@@ -312,12 +312,21 @@
 
 .docker-filters {
     display: grid;
-    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) auto;
     gap: var(--space-2);
+    align-items: center;
 }
 @media (max-width: 700px) {
     .docker-filters { grid-template-columns: minmax(0, 1fr); }
 }
+/* Compact Docker status: one row of badges + counts instead of a stat wall. */
+.docker-status-strip__row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-4); }
+.docker-status-strip__stat { color: var(--text-secondary); font-size: var(--text-sm); }
+.docker-status-strip__stat b { color: var(--text-primary); font-size: var(--text-md); }
+.docker-status-strip__hint { color: var(--text-tertiary); font-size: var(--text-sm); }
+/* Sortable table headers. */
+.ds-th-sort { cursor: pointer; user-select: none; white-space: nowrap; }
+.ds-th-sort:hover { color: var(--accent-text); }
 .docker-card {
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-sm);

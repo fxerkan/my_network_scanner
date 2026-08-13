@@ -25,6 +25,38 @@ for _d in (CONFIG_DIR, DATA_DIR):
     _d.mkdir(parents=True, exist_ok=True)
 
 
+def seed_config_defaults():
+    """Copy any *missing* static config file from the image's baked defaults
+    into the (possibly bind-mounted) config dir.
+
+    A container bind-mounts config/, so files added to the app after the host's
+    config dir was first created never arrive - that is why emojis.csv was
+    missing (empty emoji picker) and device_types.json went stale on rpifx.
+    Copy-if-missing only: user edits and existing data are never touched, and
+    nothing is ever deleted, so a container update cannot wipe anything.
+    Dotfiles are skipped so per-install secrets (.master_password, .salt, …)
+    are never seeded from the image. No-op when MYNES_CONFIG_DEFAULTS is unset
+    (every non-container install already has its own populated config/).
+    """
+    import shutil
+
+    src = os.environ.get("MYNES_CONFIG_DEFAULTS")
+    if not src or not os.path.isdir(src) or os.path.realpath(src) == os.path.realpath(CONFIG_DIR):
+        return
+    for name in os.listdir(src):
+        if name.startswith("."):
+            continue
+        s, d = os.path.join(src, name), CONFIG_DIR / name
+        if os.path.isfile(s) and not d.exists():
+            try:
+                shutil.copy2(s, d)
+            except OSError as e:
+                print(f"config seed skipped {name}: {e}")
+
+
+seed_config_defaults()
+
+
 def config_file(name: str) -> str:
     return str(CONFIG_DIR / name)
 

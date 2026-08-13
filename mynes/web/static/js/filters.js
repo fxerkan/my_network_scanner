@@ -19,7 +19,7 @@
     const DEFAULTS = {
         q: '',
         types: [], vendors: [], statuses: [],
-        showContainers: true, showNoIp: true, showBluetooth: true,
+        showContainers: true, showNoIp: true, showBluetooth: true, showRandomMac: true,
     };
 
     function load() {
@@ -30,9 +30,26 @@
 
     // -- device classification (tiny + pure so match() stays testable) --------
     function isContainer(d) {
-        return !!(d && (d.docker_info || /\(docker\)/i.test(d.device_type || '')));
+        if (!d) return false;
+        // Docker hands every container/bridge a MAC in the 02:42:xx range and a
+        // 172.x/192.168.x gateway; the actual container rows carry neither
+        // docker_info nor a "(docker)" type (they scan as plain "Unknown"), so
+        // matching only those two let them leak past an unchecked "Containers".
+        if (d.docker_info) return true;
+        if (/docker/i.test(d.device_type || '')) return true;
+        if (/^02:42:/i.test(d.mac || '')) return true;
+        return false;
     }
     function isNoIp(d) { return !(d && d.ip); }
+    // A randomized/private MAC has the locally-administered bit (0x02) set in its
+    // first octet - this is what phones/watches use for MAC rotation, so each
+    // rotation looks like a brand-new one-hit-wonder device. Docker's 02:42 range
+    // is locally-administered too, but those are caught by isContainer first.
+    function isRandomMac(d) {
+        const mac = d && (d.mac || '');
+        const m = /^([0-9a-f]{2})[:-]/i.exec(mac);
+        return !!m && (parseInt(m[1], 16) & 0x02) !== 0;
+    }
     function isBluetooth(d) {
         const src = (d && d.discovery && d.discovery.sources) || [];
         return src.includes('ble') || (d && d.device_type === 'Bluetooth Device');
@@ -52,6 +69,9 @@
         if (!s.showContainers && isContainer(d)) return false;
         if (!s.showNoIp && isNoIp(d)) return false;
         if (!s.showBluetooth && isBluetooth(d)) return false;
+        // Docker MACs are locally-administered too, so only treat non-container
+        // random MACs as "random" here (containers have their own toggle).
+        if (!s.showRandomMac && isRandomMac(d) && !isContainer(d)) return false;
         if (s.types.length && !s.types.includes(d.device_type)) return false;
         if (s.vendors.length && !s.vendors.includes(vendorOf(d))) return false;
         if (s.statuses.length && !s.statuses.includes(d.status)) return false;
@@ -77,7 +97,7 @@
     /** How many filters narrow the view - drives the little badge on the panel. */
     function activeCount() {
         let n = state.types.length + state.vendors.length + state.statuses.length;
-        for (const k of ['showContainers', 'showNoIp', 'showBluetooth']) if (!state[k]) n++;
+        for (const k of ['showContainers', 'showNoIp', 'showBluetooth', 'showRandomMac']) if (!state[k]) n++;
         if (state.q) n++;
         return n;
     }
@@ -130,10 +150,13 @@
         function paint(q) {
             const sel = new Set(state[key] || []);
             const needle = (q || '').toLowerCase();
-            box.innerHTML = optionList()
+            // A visible "All" row: clearing this one filter without hunting for
+            // the panel-wide Reset, and a clear "nothing selected == All" cue.
+            const allRow = `<button type="button" class="ds-multi__opt ds-multi__opt--all${sel.size ? '' : ' is-selected'}" data-all="1">${esc(tr('all', 'All'))}</button>`;
+            box.innerHTML = allRow + optionList()
                 .filter(o => !needle || String(o.label).toLowerCase().includes(needle))
                 .map(o => `<label class="ds-multi__opt"><input type="checkbox" value="${esc(o.value)}" ${sel.has(o.value) ? 'checked' : ''}><span>${o.icon ? esc(o.icon) + ' ' : ''}${esc(o.label)}</span></label>`)
-                .join('') || `<div class="ds-multi__empty">${esc(tr('no_results', '—'))}</div>`;
+                .join('');
         }
         function open() {
             document.querySelectorAll('.ds-multi__pop').forEach(p => { if (p !== pop) p.setAttribute('hidden', ''); });
@@ -152,6 +175,10 @@
             const sel = new Set(state[key] || []);
             e.target.checked ? sel.add(e.target.value) : sel.delete(e.target.value);
             set({ [key]: [...sel] });      // fires mynes:filters -> pages re-render
+        });
+        // The "All" row clears just this filter (empty selection == show all).
+        box.addEventListener('click', e => {
+            if (e.target.closest('[data-all]')) set({ [key]: [] });
         });
 
         // React to changes from elsewhere (Settings, reset) without stealing focus.
@@ -209,7 +236,9 @@
             const optHtml = node => {
                 const text = node.textContent;
                 if (needle && !text.toLowerCase().includes(needle)) return '';
-                return `<button type="button" role="option" class="ds-multi__opt${node.value === sel.value ? ' is-selected' : ''}" data-value="${esc(node.value)}">${esc(text)}</button>`;
+                // value="" is the "All" / clear entry - set it apart from real values.
+                const extra = (node.value === '' ? ' ds-multi__opt--all' : '') + (node.value === sel.value ? ' is-selected' : '');
+                return `<button type="button" role="option" class="ds-multi__opt${extra}" data-value="${esc(node.value)}">${esc(text)}</button>`;
             };
             let html = '';
             for (const node of sel.children) {
@@ -323,7 +352,7 @@
 
     window.MynesFilters = {
         match, apply, get, set, reset, activeCount,
-        isContainer, isNoIp, isBluetooth, vendorOf,
+        isContainer, isNoIp, isBluetooth, isRandomMac, vendorOf,
         mountMulti, enhanceSelect, autoEnhance, bindToggle, _selftest,
     };
 })();
