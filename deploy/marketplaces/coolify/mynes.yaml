@@ -10,7 +10,7 @@
 # Every environment variable below is optional and can also be set in the app's own settings.
 services:
   mynes:
-    image: fxerkan/my_network_scanner:1.5.0
+    image: fxerkan/my_network_scanner:1.6.0
     network_mode: host
     cap_add:
       - NET_ADMIN

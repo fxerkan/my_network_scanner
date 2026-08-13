@@ -1,5 +1,5 @@
 name: My Network Scanner (MyNeS)
-version: "1.5.0"
+version: "1.6.0"
 slug: mynes
 description: >-
   Discover, identify and monitor every device on your network - including the Zigbee, Z-Wave,

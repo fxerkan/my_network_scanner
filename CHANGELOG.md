@@ -6,6 +6,8 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.6.0] — 2026-08-13
+
 Container-install parity: the same install run as a Docker container (Raspberry
 Pi / CasaOS) now identifies, labels, filters and secures devices exactly like
 the local Python run, and the two long settings pages that grew unwieldy are now
