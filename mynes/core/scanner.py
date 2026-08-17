@@ -31,6 +31,9 @@ import socket
 import re
 import subprocess
 import os
+import shutil
+import glob
+import time
 from datetime import datetime
 # Scapy import'unu sessizce yap
 import sys
@@ -521,9 +524,22 @@ class LANScanner:
         return local_interfaces
     
     def get_local_machine_hostname(self):
-        """Yerel makinenin hostname'ini al"""
+        """Yerel makinenin hostname'ini al.
+
+        In a container gethostname() is the CONTAINER name (compose `hostname:`
+        or the container id), not the host. With host networking MyNeS scans the
+        HOST's LAN, so naming the host device after the container ("mynes") is
+        wrong - it stamped "mynes (Ethernet)" onto the host and overwrote the
+        user's alias every scan. Prefer the real host name from the docker
+        socket; if unknown, return "" so vendor/smart-naming picks the name and
+        the user can set their own (which now sticks)."""
+        if is_docker_environment():
+            try:
+                host = docker_manager.get_host_name()
+            except Exception:
+                host = ""
+            return host or ""
         try:
-            import socket
             return socket.gethostname()
         except Exception:
             return "LocalMachine"
@@ -1247,12 +1263,18 @@ class LANScanner:
             # Yerel makine için özel alias oluşturma
             interface_name = local_interface_info.get('interface_name', 'unknown')
             interface_type = local_interface_info.get('interface_type', 'Other')
-            local_hostname = hostname.split(' (')[0]  # Parantez kısmını çıkar
+            local_hostname = hostname.split(' (')[0].strip()  # Parantez kısmını çıkar
+            label = self.local_interface_label(local_interface_info)
             if self._is_docker_interface(local_interface_info):
-                device_info['alias'] = self.local_interface_label(local_interface_info)
+                device_info['alias'] = label
+            elif local_hostname:
+                device_info['alias'] = f"{local_hostname} - {label}"
             else:
-                device_info['alias'] = f"{local_hostname} - {self.local_interface_label(local_interface_info)}"
-            print(f"Local machine alias generated: {device_info['alias']} ({ip})")
+                # No real host name (container gethostname() is the container
+                # name, deliberately dropped) - leave the alias empty so
+                # vendor/smart-naming fills it and the user's own name sticks.
+                device_info['alias'] = ""
+            print(f"Local machine alias generated: {device_info['alias'] or '(left blank)'} ({ip})")
         elif device_info['alias']:
             print(f"User-defined alias preserved: {device_info['alias']} ({ip})")
         
@@ -1664,13 +1686,55 @@ class LANScanner:
             self.save_to_json()
             return target
 
+    @staticmethod
+    def _rotate_backup(filename, new_count, keep=48):
+        """Snapshot lan_devices.json before it is overwritten. A scan that lost
+        devices (bad load, degraded ARP) used to clobber the store permanently -
+        29 devices reported as 2, a whole day of user aliases gone. Keep the last
+        `keep` copies so any loss is one copy-back away. Deduped to one per hour
+        to avoid churn, but ALWAYS taken when the write would shrink the store -
+        that copy is the exact good state right before a loss.
+        ponytail: recovery over prevention; a refuse-to-shrink path risks a
+        different freeze. If shrink-loss becomes common, add an explicit reset flag.
+        """
+        try:
+            if not os.path.exists(filename) or os.path.getsize(filename) < 3:
+                return
+            try:
+                on_disk = json.load(open(filename, encoding='utf-8'))
+                disk_count = len(on_disk) if isinstance(on_disk, list) else 0
+            except Exception:
+                disk_count = -1  # unreadable/corrupt -> definitely preserve it
+            shrinking = disk_count < 0 or new_count < disk_count
+            bdir = os.path.join(os.path.dirname(filename), 'backups')
+            os.makedirs(bdir, exist_ok=True)
+            base = os.path.basename(filename)
+            baks = sorted(glob.glob(os.path.join(bdir, base + '.*.bak')))
+            newest_age = (time.time() - os.path.getmtime(baks[-1])) if baks else 1e9
+            if newest_age < 3600 and not shrinking:
+                return  # a recent hourly snapshot exists and we are not losing devices
+            if shrinking and disk_count >= 0:
+                print(f"⚠️ device store shrinking on save: {disk_count} -> {new_count} "
+                      f"(backup kept in {bdir})")
+            ts = datetime.now().strftime('%Y%m%d-%H%M%S')
+            shutil.copy2(filename, os.path.join(bdir, f"{base}.{ts}.bak"))
+            for old in sorted(glob.glob(os.path.join(bdir, base + '.*.bak')))[:-keep]:
+                try:
+                    os.remove(old)
+                except OSError:
+                    pass
+        except Exception as e:
+            print(f"backup rotate skipped: {e}")
+
     def save_to_json(self, filename=data_file('lan_devices.json')):
         """Cihaz bilgilerini JSON dosyasına kaydeder (credential'ları encrypted olarak)"""
         try:
           with self._io_lock:
             # Dizin yoksa oluştur
             os.makedirs(os.path.dirname(filename), exist_ok=True)
-            
+            # Snapshot the previous file before we overwrite it (see _rotate_backup).
+            self._rotate_backup(filename, len(self.devices))
+
             # Cihaz verilerini kopyala ve credential'ları encrypt et
             devices_to_save = []
             for device in self.devices:

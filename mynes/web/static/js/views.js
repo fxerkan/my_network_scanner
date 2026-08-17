@@ -433,9 +433,38 @@
             });
         });
 
-        // Hubs form a ring so separate subnets read as one network, not islands.
-        for (let i = 1; i < hubIndexes.length; i++) links.push([hubIndexes[i - 1], hubIndexes[i]]);
-        if (hubIndexes.length > 2) links.push([hubIndexes[hubIndexes.length - 1], hubIndexes[0]]);
+        // A Docker bridge network is not a peer LAN - it lives ON the host that
+        // runs it. Nest each Docker-network hub under that host instead of
+        // chaining every hub in one ring, which drew a dozen unrelated bridges
+        // as if they connected to each other and to the real LAN.
+        const isDockerNetSeg = seg => {
+            const g = seg.gateway;
+            if (!g) return false;
+            const a = (g.alias || g.hostname || '').toLowerCase();
+            return a.startsWith('docker:')
+                || (g.device_type || '').toLowerCase().includes('docker')
+                || (g.mac || '').toLowerCase().startsWith('02:42');
+        };
+        // The host = the machine that runs the containers (largest by count).
+        let hostIdx;
+        let best = -1;
+        hosted.forEach((kids, hostIp) => {
+            const idx = nodeIndexByIp.get(hostIp);
+            if (idx !== undefined && kids.length > best) { best = kids.length; hostIdx = idx; }
+        });
+
+        const ringHubs = [];
+        hubIndexes.forEach((hubIdx, i) => {
+            if (hostIdx !== undefined && hubIdx !== hostIdx && isDockerNetSeg(segments[i])) {
+                links.push([hostIdx, hubIdx]);          // this bridge lives on the host
+            } else {
+                ringHubs.push(hubIdx);
+            }
+        });
+        // The remaining (real) subnets still ring together so they read as one
+        // network rather than floating islands.
+        for (let i = 1; i < ringHubs.length; i++) links.push([ringHubs[i - 1], ringHubs[i]]);
+        if (ringHubs.length > 2) links.push([ringHubs[ringHubs.length - 1], ringHubs[0]]);
 
         return { nodes, links };
     }

@@ -119,6 +119,23 @@ class DockerManager:
             print(f"Docker socket API error: {e}")
             return None
     
+    def get_host_name(self):
+        """The Docker host's own hostname (docker info -> Name). In a container
+        with host networking this is the real host ("rpifx"), unlike
+        socket.gethostname() which returns the container name ("mynes"). Cached:
+        the host name does not change between scans. Returns "" when unknown."""
+        if getattr(self, "_host_name_cache", None) is not None:
+            return self._host_name_cache
+        name = ""
+        try:
+            if self.docker_available and self._check_docker_socket():
+                info = self._use_docker_socket_api("info")
+                name = (info or {}).get("Name", "") or ""
+        except Exception:
+            name = ""
+        self._host_name_cache = name
+        return name
+
     def get_docker_networks(self):
         """Docker network'lerini listele"""
         if not self.docker_available:
