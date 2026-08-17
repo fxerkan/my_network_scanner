@@ -6,6 +6,46 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.7.0] — 2026-08-17
+
+The graph view is rebuilt on [vis-network](https://visjs.github.io/vis-network/)
+— an interactive, physics-driven canvas that replaces the old hand-drawn SVG
+where nodes and their labels piled on top of one another. You can now drag nodes
+wherever you want, switch between force / hierarchy / radial layouts, choose how
+many levels deep the tree branches, and colour every device by its type. Click a
+device to trace its full path to the router (and light up everything hanging off
+it); double-click to open its edit sheet. The library is vendored locally, so it
+still works on a LAN with no internet.
+
+![The redesigned graph — force/hierarchy/radial layouts, colour-by-type nodes, drag, and a selection that traces a device's path to the router](assets/screenshots/interactive-graph.png)
+
+### Added
+
+- **Interactive network graph.** The graph view now runs on vis-network:
+  animated force layout that spreads nodes out (no more overlapping dots and
+  labels), draggable nodes with a **physics freeze** toggle so a hand-arranged
+  layout stays put, and three layouts — **Force**, **Hierarchy** and **Radial**
+  — chosen from the toolbar and remembered per browser.
+- **Branch-depth control.** A **Levels** picker (1–4 or All) limits how many
+  hops out from the routers the graph draws, for reading a large LAN one tier at
+  a time.
+- **Path highlighting.** Selecting a node keeps it, its direct neighbours and
+  its whole uplink chain to the router in full colour — e.g. an access point →
+  its switch → the gateway — while everything else dims but stays legible.
+  Selecting an edge highlights the same for its endpoints.
+- **Hover detail card and double-click to edit.** Hovering a node shows the same
+  IP / MAC / type / vendor / Docker card the topology view uses; double-clicking
+  opens the device edit sheet.
+
+### Fixed
+
+- **Graph nodes and labels no longer collide.** The old fixed-tick SVG layout
+  let dots and captions stack unreadably on a busy network; the physics layout
+  keeps them apart.
+- **Dark-theme graph labels are readable.** Label halos matched the wrong
+  surface colour and drew a bright rim around every caption in dark mode; they
+  now blend into the canvas background in both themes.
+
 ## [1.6.2] — 2026-08-17
 
 Editing a device while a scan was running silently failed — Location, Trust
