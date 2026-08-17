@@ -496,13 +496,60 @@
         };
     }
 
-    async function renderGraph(container, list) {
-        if (!list.length) return emptyState(container);
+    // The heavy lifting now lives in vis-network (vendored as a static asset,
+    // no CDN - the app runs on a LAN with no internet). We keep
+    // buildGraphModel() - it already resolves subnet hubs, uplink parents,
+    // Docker hosts and radio devices - and hand its nodes/links to vis for the
+    // physics, dragging, layout switching and neighbour highlighting the old
+    // hand-rolled SVG could not do. layoutForce() stays only for _internals.
 
-        // Legend goes at the TOP now, and it can mute whole categories.
+    // Persisted controls, same pattern as topoOrientation.
+    let graphLayout = localStorage.getItem('mynes.graphLayout') || 'force';
+    let graphDepth = localStorage.getItem('mynes.graphDepth') || 'all';
+    let graphPhysics = localStorage.getItem('mynes.graphPhysics') !== 'off';
+    let graphNet = null;   // live vis.Network, destroyed before each rebuild
+
+    /** Resolve a CSS colour expression (token or literal) to a concrete rgb()
+        vis can paint on its canvas - CSS vars don't survive into <canvas>. */
+    function cssColor(expr, fallback) {
+        const probe = document.createElement('span');
+        probe.style.cssText = 'display:none;color:' + expr;
+        document.body.appendChild(probe);
+        const c = getComputedStyle(probe).color;
+        probe.remove();
+        return c || fallback || '#8a94a8';
+    }
+
+    /** BFS from the subnet hubs: the distance is the node's level (a device on a
+        switch that hangs off the gateway reads as level 2), and the BFS parent
+        is its next hop toward the hub - walking parents traces the full uplink
+        path a selection highlights. Feeds the depth filter, the hierarchical
+        layout and the "show the whole path to the router" highlight. */
+    function graphLevels(nodes, links) {
+        const adj = nodes.map(() => []);
+        links.forEach(([a, b]) => { adj[a].push(b); adj[b].push(a); });
+        const level = nodes.map(() => Infinity);
+        const parent = nodes.map(() => -1);
+        const q = [];
+        nodes.forEach((n, i) => { if (n.hub) { level[i] = 0; q.push(i); } });
+        if (!q.length) { level[0] = 0; q.push(0); }   // no hub (all radio): root the first
+        for (let h = 0; h < q.length; h++) {
+            const u = q[h];
+            adj[u].forEach(v => { if (level[v] > level[u] + 1) { level[v] = level[u] + 1; parent[v] = u; q.push(v); } });
+        }
+        return { level: level.map(l => (l === Infinity ? 0 : l)), parent };
+    }
+
+    async function renderGraph(container, list) {
+        if (!list.length) { if (graphNet) { graphNet.destroy(); graphNet = null; } return emptyState(container); }
+        if (typeof vis === 'undefined' || !vis.Network) {
+            container.innerHTML = `<div class="view-empty__hint" style="padding:var(--space-6)">${tr('graph_lib_missing', 'Graph library failed to load.')}</div>`;
+            return;
+        }
+
         container.innerHTML = '';
-        const legendEl = legend();
-        container.appendChild(legendEl);
+        container.appendChild(graphToolbar(container, list));
+        container.appendChild(legend());
 
         const shown = applyCatFilter(list);
         if (!shown.length) {
@@ -514,88 +561,263 @@
             return;
         }
 
-        // Uplinks come from topology; cached after the first fetch so this is
-        // only a real await once per session.
         const topo = await fetchTopology();
         const { nodes, links } = buildGraphModel(shown, topo);
-        layoutForce(nodes, links, 900, 700);
+        const { level: levels, parent: bfsParent } = graphLevels(nodes, links);
+        const maxDepth = graphDepth === 'all' ? Infinity : parseInt(graphDepth, 10);
 
-        const pad = 60;
-        const xs = nodes.map(n => n.x), ys = nodes.map(n => n.y);
-        const box = {
-            x: Math.min(...xs) - pad,
-            y: Math.min(...ys) - pad,
-            w: Math.max(...xs) - Math.min(...xs) + pad * 2,
-            h: Math.max(...ys) - Math.min(...ys) + pad * 2,
+        const palette = {
+            edge: cssColor('var(--border-strong)', '#9aa'),
+            accent: cssColor('var(--focus-ring)', '#4a86e8'),
+            text: cssColor('var(--text-secondary)', '#556'),
+            textStrong: cssColor('var(--text-primary)', '#222'),
+            // The label halo must match the canvas background (the sunken
+            // surface), not --bg-surface, or it shows as a white/dark rim that
+            // fights the text in dark mode.
+            halo: cssColor('var(--bg-surface-sunken)', '#eef'),
+            border: cssColor('var(--bg-surface)', '#fff'),
+            // Dimmed nodes stay legible: a mid grey dot with muted-but-readable
+            // labels, never the near-invisible --border-subtle.
+            dim: cssColor('var(--border-strong)', '#9aa'),
+            dimText: cssColor('var(--text-tertiary)', '#889'),
         };
+        const catColor = {};
+        ['net', 'infra', 'personal', 'media', 'iot', 'other'].forEach(c => { catColor[c] = cssColor('var(--cat-' + c + ')'); });
+
+        // Keep only nodes within the chosen depth; an edge survives only if both
+        // ends do, so nothing dangles.
+        const keep = new Set();
+        nodes.forEach((n, i) => { if (levels[i] <= maxDepth) keep.add(i); });
+
+        const visNodes = [];
+        nodes.forEach((n, i) => {
+            if (!keep.has(i)) return;
+            const base = catColor[n.cls] || catColor.other;
+            visNodes.push({
+                id: i, level: levels[i], device: n.device || null, cls: n.cls,
+                label: n.hub ? n.name : clip(n.name, 22),
+                title: undefined,          // native tooltip off; we use our own card
+                value: n.hub ? 26 : (n.container ? 9 : 14),
+                shape: n.hub ? 'hexagon' : (n.container ? 'diamond' : 'dot'),
+                borderWidth: n.hub ? 3 : 2,
+                opacity: n.offline ? 0.45 : 1,
+                baseColor: {
+                    background: base, border: palette.border,
+                    highlight: { background: base, border: palette.accent },
+                    hover: { background: base, border: palette.accent },
+                },
+                color: {
+                    background: base, border: palette.border,
+                    highlight: { background: base, border: palette.accent },
+                    hover: { background: base, border: palette.accent },
+                },
+                font: { color: n.hub ? palette.textStrong : palette.text, size: n.hub ? 16 : 13, strokeWidth: 2, strokeColor: palette.halo },
+            });
+        });
+        const visEdges = links
+            .filter(([a, b]) => keep.has(a) && keep.has(b))
+            .map(([a, b], i) => ({ id: 'e' + i, from: a, to: b }));
+
+        const nodesDS = new vis.DataSet(visNodes);
+        const edgesDS = new vis.DataSet(visEdges);
 
         const stage = document.createElement('div');
-        stage.className = 'topo-stage graph-stage';
+        stage.className = 'graph-net';
         container.appendChild(stage);
 
-        const svg = el('svg', {
-            class: 'graph-svg',
-            viewBox: `${box.x} ${box.y} ${box.w} ${box.h}`,
-            preserveAspectRatio: 'xMidYMid meet',
-            role: 'img',
-            'aria-label': tr('graph_view', 'Network graph'),
-        }, stage);
+        if (graphNet) { graphNet.destroy(); graphNet = null; }
+        graphNet = new vis.Network(stage, { nodes: nodesDS, edges: edgesDS }, graphOptions(palette));
 
-        const edgeLayer = el('g', { class: 'graph-edges' }, svg);
-        links.forEach(([ai, bi]) => {
-            const a = nodes[ai], b = nodes[bi];
-            el('line', { x1: a.x, y1: a.y, x2: b.x, y2: b.y }, edgeLayer);
-        });
+        if (graphLayout === 'radial') { positionRadial(nodesDS, visNodes); graphNet.fit({ animation: false }); }
 
+        // The tooltip must be attached AFTER the network is built: vis-network
+        // takes over the container and clears anything already inside it.
         const tip = attachTooltip(stage);
-        const nodeLayer = el('g', {}, svg);
-        nodes.forEach(n => {
-            const g = el('g', {
-                class: `graph-node graph-node--${n.cls}`
-                    + (n.hub ? ' is-hub' : '')
-                    + (n.container ? ' is-container' : '')
-                    + (n.offline ? ' is-offline' : ''),
-                tabindex: '0', role: 'button',
-            }, nodeLayer);
-            el('circle', { cx: n.x, cy: n.y, r: n.r }, g);
-            const text = el('text', { x: n.x, y: n.y + n.r + 14, 'text-anchor': 'middle' }, g);
-            text.textContent = n.hub ? n.name : clip(n.name, 16);
 
-            const html = deviceTooltipHTML(n.device, n.name);
-            g.setAttribute('aria-label', `${n.name} ${n.sub}`);
-            g.addEventListener('pointerenter', e => tip.show(html, e));
-            g.addEventListener('pointermove', tip.move);
-            g.addEventListener('pointerleave', tip.hide);
-            g.addEventListener('focus', () => {
-                const r = g.getBoundingClientRect();
-                tip.show(html, { clientX: r.left + r.width / 2, clientY: r.bottom });
+        // vis owns the canvas pointer events and stops them bubbling, so the
+        // tooltip tracks the cursor from the CAPTURE phase (fires before vis
+        // can swallow it) - otherwise the hover card was stranded at (0,0).
+        let lastPointer = { clientX: 0, clientY: 0 };
+        stage.addEventListener('pointermove', e => { lastPointer = { clientX: e.clientX, clientY: e.clientY }; tip.move(e); }, true);
+
+        // Selection highlight: the node, its direct neighbours (downstream
+        // children) AND its whole uplink path to the router (walk BFS parents).
+        // Everything else dims but stays readable, never vanishes.
+        const nodeById = new Map(visNodes.map(n => [n.id, n]));
+        function focusNode(id) {
+            const near = new Set(graphNet.getConnectedNodes(id));
+            near.add(id);
+            for (let p = bfsParent[id]; p >= 0; p = bfsParent[p]) near.add(p);   // path to the hub
+            const offline = n => n.device && n.device.status && n.device.status !== 'online';
+            nodesDS.update(visNodes.map(n => {
+                const on = near.has(n.id);
+                const f = nodeById.get(n.id).font;
+                return {
+                    id: n.id,
+                    color: on ? n.baseColor : { background: palette.dim, border: palette.halo, highlight: { background: palette.dim, border: palette.accent } },
+                    font: { color: on ? f.color : palette.dimText, size: f.size, strokeWidth: 2, strokeColor: palette.halo },
+                    opacity: on ? (offline(n) ? 0.45 : 1) : 0.55,
+                };
+            }));
+            // An edge lights up when both ends are in the highlighted set - that
+            // is exactly the selection's neighbours plus every hop up the path.
+            edgesDS.update(visEdges.map(e => {
+                const on = near.has(e.from) && near.has(e.to);
+                return { id: e.id, color: on ? palette.accent : palette.dim, width: on ? 2.5 : 0.6 };
+            }));
+        }
+        function clearFocus() {
+            nodesDS.update(visNodes.map(n => ({ id: n.id, color: n.baseColor, font: nodeById.get(n.id).font, opacity: n.device && n.device.status && n.device.status !== 'online' ? 0.45 : 1 })));
+            edgesDS.update(visEdges.map(e => ({ id: e.id, color: palette.edge, width: 1 })));
+        }
+
+        graphNet.on('selectNode', p => focusNode(p.nodes[0]));
+        graphNet.on('selectEdge', p => {
+            if (p.nodes.length) return;      // node select already fired
+            const e = edgesDS.get(p.edges[0]);
+            if (e) focusNode(e.from);
+        });
+        graphNet.on('deselectNode', clearFocus);
+        graphNet.on('deselectEdge', p => { if (!p.nodes.length) clearFocus(); });
+
+        // Double-click a device opens its edit sheet; single click stays a
+        // selection so the highlight is usable.
+        graphNet.on('doubleClick', p => {
+            const n = p.nodes.length && nodeById.get(p.nodes[0]);
+            if (n && n.device) { tip.hide(); openDeviceDetails(n.device); }
+        });
+
+        // Hover card, reused from the topology view.
+        graphNet.on('hoverNode', p => {
+            const n = nodeById.get(p.node);
+            if (n) tip.show(deviceTooltipHTML(n.device, n.label), lastPointer);
+        });
+        graphNet.on('blurNode', tip.hide);
+
+        addNetExportControl(stage, graphNet, 'mynes-graph');
+
+        // Subnet count pills, same source as before.
+        const panel = subnetPanel(topo.subnets);
+        if (panel) container.insertAdjacentHTML('beforeend', panel);
+    }
+
+    /** vis-network options for the current layout/physics choice. */
+    function graphOptions(palette) {
+        const opts = {
+            autoResize: true,
+            nodes: {
+                shape: 'dot',
+                scaling: { min: 10, max: 46, label: { enabled: true, min: 12, max: 20 } },
+                font: { face: 'inherit', color: palette.text, size: 13, strokeWidth: 2, strokeColor: palette.halo },
+                borderWidth: 2, shadow: false,
+            },
+            edges: {
+                color: { color: palette.edge, highlight: palette.accent, hover: palette.accent, opacity: 0.65 },
+                width: 1, selectionWidth: 1.5, hoverWidth: 0.5,
+                smooth: { enabled: true, type: 'continuous', roundness: 0.4 },
+            },
+            interaction: {
+                hover: true, dragNodes: true, dragView: true, zoomView: true,
+                multiselect: true, navigationButtons: false, keyboard: false, tooltipDelay: 999999,
+            },
+            physics: { enabled: false },
+            layout: { improvedLayout: true, randomSeed: 7 },
+        };
+        if (graphLayout === 'hierarchical') {
+            opts.layout.hierarchical = {
+                enabled: true, direction: 'UD', sortMethod: 'directed',
+                levelSeparation: 140, nodeSpacing: 130, treeSpacing: 220, blockShifting: true, edgeMinimization: true,
+            };
+            opts.edges.smooth = { enabled: true, type: 'cubicBezier', forceDirection: 'vertical', roundness: 0.5 };
+        } else if (graphLayout === 'force') {
+            opts.physics = {
+                enabled: graphPhysics, solver: 'barnesHut',
+                barnesHut: { gravitationalConstant: -14000, centralGravity: 0.25, springLength: 130, springConstant: 0.045, damping: 0.35, avoidOverlap: 0.7 },
+                stabilization: { enabled: true, iterations: 300, updateInterval: 25 },
+            };
+        }
+        return opts;
+    }
+
+    /** Concentric rings by BFS level - a tidy radial layout with physics off,
+        so nodes stay exactly where the user drags them. */
+    function positionRadial(nodesDS, visNodes) {
+        const byLevel = new Map();
+        visNodes.forEach(n => { if (!byLevel.has(n.level)) byLevel.set(n.level, []); byLevel.get(n.level).push(n); });
+        const upd = [];
+        byLevel.forEach((group, lvl) => {
+            const R = lvl * 240;
+            group.forEach((n, i) => {
+                const a = (i / group.length) * Math.PI * 2;
+                upd.push({ id: n.id, x: Math.round(Math.cos(a) * R), y: Math.round(Math.sin(a) * R), fixed: false });
             });
-            g.addEventListener('blur', tip.hide);
-
-            if (n.device) {
-                const open = () => { tip.hide(); openDeviceDetails(n.device); };
-                g.addEventListener('click', open);
-                g.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
-            }
         });
+        nodesDS.update(upd);
+    }
 
-        stage.style.setProperty('--topo-ratio', `${box.w} / ${box.h}`);
-        attachZoomPan(stage, svg, box);
-        addExportControl(stage, svg, 'mynes-graph');
+    /** Layout / depth / physics controls, above the legend. */
+    function graphToolbar(container, list) {
+        const bar = document.createElement('div');
+        bar.className = 'topo-toolbar';
+        const layoutBtn = (val, key, fallback) =>
+            `<button type="button" class="ds-segmented__btn" data-layout="${val}" aria-pressed="${graphLayout === val}">${esc(tr(key, fallback))}</button>`;
+        bar.innerHTML = `
+            <div class="ds-segmented" role="group" aria-label="${esc(tr('graph_layout', 'Layout'))}">
+                ${layoutBtn('force', 'layout_force', 'Force')}
+                ${layoutBtn('hierarchical', 'layout_hierarchical', 'Hierarchy')}
+                ${layoutBtn('radial', 'layout_radial', 'Radial')}
+            </div>
+            <label class="graph-ctl">${esc(tr('graph_depth', 'Levels'))}
+                <select class="filter-select" id="graphDepthSel">
+                    <option value="all"${graphDepth === 'all' ? ' selected' : ''}>${esc(tr('depth_all', 'All'))}</option>
+                    <option value="1"${graphDepth === '1' ? ' selected' : ''}>1</option>
+                    <option value="2"${graphDepth === '2' ? ' selected' : ''}>2</option>
+                    <option value="3"${graphDepth === '3' ? ' selected' : ''}>3</option>
+                    <option value="4"${graphDepth === '4' ? ' selected' : ''}>4</option>
+                </select>
+            </label>
+            <button type="button" class="ds-btn ds-btn--secondary ds-btn--sm" id="graphPhysicsBtn" aria-pressed="${graphPhysics}"
+                    title="${esc(tr('graph_physics_hint', 'Freeze to arrange nodes by hand'))}">
+                <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-radar"/></svg>
+                <span>${esc(graphPhysics ? tr('graph_physics_on', 'Physics: on') : tr('graph_physics_off', 'Physics: off'))}</span>
+            </button>
+            <span class="topo-hint">${esc(tr('graph_hint', 'Drag nodes to arrange. Click a node to highlight what it connects to; double-click to edit it.'))}</span>`;
 
-        // Subnet boundaries need the server's real interface/Docker CIDRs
-        // (core/subnets.py) - not knowable from the device list alone - so
-        // they are drawn as a follow-up once /api/topology answers, instead
-        // of blocking the graph's normal instant paint on that fetch.
-        fetchTopology().then(topo => {
-            const byIp = new Map((topo.nodes || []).filter(n => n.ip).map(n => [n.ip, n.subnet]));
-            const entries = nodes
-                .filter(n => n.device && n.device.ip && byIp.has(n.device.ip))
-                .map(n => ({ x: n.x, y: n.y, r: n.r, ...byIp.get(n.device.ip) }));
-            drawSubnetOverlay(svg, subnetBoundingBoxes(entries));
-            const panel = subnetPanel(topo.subnets);
-            if (panel) container.insertAdjacentHTML('beforeend', panel);
+        bar.querySelectorAll('[data-layout]').forEach(btn => btn.addEventListener('click', () => {
+            graphLayout = btn.dataset.layout;
+            try { localStorage.setItem('mynes.graphLayout', graphLayout); } catch (_) { /* private mode */ }
+            renderGraph(container, list);
+        }));
+        bar.querySelector('#graphDepthSel').addEventListener('change', e => {
+            graphDepth = e.target.value;
+            try { localStorage.setItem('mynes.graphDepth', graphDepth); } catch (_) { /* private mode */ }
+            renderGraph(container, list);
         });
+        // Physics only matters for the force layout; the other two are static.
+        const pBtn = bar.querySelector('#graphPhysicsBtn');
+        pBtn.disabled = graphLayout !== 'force';
+        pBtn.addEventListener('click', () => {
+            graphPhysics = !graphPhysics;
+            try { localStorage.setItem('mynes.graphPhysics', graphPhysics ? 'on' : 'off'); } catch (_) { /* private mode */ }
+            if (graphNet) graphNet.setOptions({ physics: { enabled: graphPhysics } });
+            pBtn.setAttribute('aria-pressed', graphPhysics);
+            pBtn.querySelector('span').textContent = graphPhysics ? tr('graph_physics_on', 'Physics: on') : tr('graph_physics_off', 'Physics: off');
+        });
+        return bar;
+    }
+
+    /** PNG export straight off vis's canvas (SVG export needs the old vector
+        path, which vis-network does not keep). */
+    function addNetExportControl(stage, net, baseName) {
+        const box = document.createElement('div');
+        box.className = 'view-export';
+        box.innerHTML = `<button type="button" class="view-export__btn" data-fmt="png">PNG</button>`;
+        box.querySelector('button').addEventListener('click', () => {
+            const canvas = stage.querySelector('canvas');
+            if (!canvas) return;
+            canvas.toBlob(b => downloadBlob(b, baseName + '.png'), 'image/png');
+        });
+        stage.appendChild(box);
     }
 
     // --------------------------------------------------------- topology view

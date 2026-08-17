@@ -128,46 +128,29 @@
   color: var(--text-tertiary);
 }
 
-/* ---------- graph ---------- */
-.graph-svg {
+/* ---------- graph (vis-network canvas) ---------- */
+.graph-net {
+  position: relative;
   width: 100%;
-  height: clamp(420px, 68vh, 780px);
-  display: block;
-  touch-action: none;
+  height: clamp(460px, 74vh, 900px);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface-sunken);
+  overflow: hidden;
+  touch-action: none;   /* vis owns the pan/zoom/drag gestures */
 }
-.graph-edges line {
-  stroke: var(--border-strong);
-  stroke-width: 1;
-  opacity: 0.55;
-}
-.graph-node { cursor: pointer; }
-.graph-node circle {
-  stroke: var(--bg-surface);
-  stroke-width: 2;
-  transition: r 120ms ease;
-}
-.graph-node text {
-  font-size: 11px;
-  fill: var(--text-secondary);
-  pointer-events: none;
-}
-.graph-node.is-hub text { font-size: 13px; font-weight: 600; fill: var(--text-primary); }
-.graph-node.is-offline circle { opacity: 0.4; }
-.graph-node:hover circle,
-.graph-node:focus-visible circle { stroke: var(--focus-ring); stroke-width: 3; }
-.graph-node:focus { outline: none; }
+.graph-net canvas { outline: none; }
 
-/* Containers read as satellites of their host: hollow, and no caption unless
-   hovered, or a dense stack buries the machine it runs on under its own labels. */
-.graph-node.is-container circle { fill-opacity: 0.35; stroke: var(--cat-infra); stroke-width: 2; }
-.graph-node.is-container text { font-size: 9px; opacity: 0.75; }
-
-.graph-node--net circle      { fill: var(--cat-net); }
-.graph-node--infra circle    { fill: var(--cat-infra); }
-.graph-node--personal circle { fill: var(--cat-personal); }
-.graph-node--media circle    { fill: var(--cat-media); }
-.graph-node--iot circle      { fill: var(--cat-iot); }
-.graph-node--other circle    { fill: var(--cat-other); }
+/* Depth picker in the graph toolbar sits inline with the segmented control. */
+.graph-ctl {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+.graph-ctl .filter-select { width: auto; min-width: 76px; }
+#graphPhysicsBtn[aria-pressed="false"] { opacity: 0.65; }
+#graphPhysicsBtn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 /* ---------- topology ---------- */
 .topo-toolbar {
