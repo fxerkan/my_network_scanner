@@ -34,7 +34,7 @@
   "services": {
     "{ServiceName}": {
       "container_name": "{ServiceName}",
-      "image": "fxerkan/my_network_scanner:1.8.0",
+      "image": "fxerkan/my_network_scanner:1.8.1",
       "restart": "unless-stopped",
       "network_mode": "host",
       "capabilities": [

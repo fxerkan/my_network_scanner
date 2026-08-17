@@ -3,7 +3,7 @@
 name: mynes
 services:
   mynes:
-    image: fxerkan/my_network_scanner:1.8.0
+    image: fxerkan/my_network_scanner:1.8.1
     container_name: mynes
     # ARP / mDNS / SSDP discovery only sees the LAN from the host network namespace.
     network_mode: host
@@ -113,7 +113,7 @@ services:
             tr_TR: İsteğe bağlı. Ana makinenin BlueZ servisi üzerinden Bluetooth LE keşfini etkinleştirir - takip cihazları, sensörler, saatler ve BLE akıllı ev cihazlarının IP adresi yoktur ve başka türlü bulunamaz. BLE'yi devre dışı bırakmak için kaldırabilirsiniz.
 x-casaos:
   id: io.github.fxerkan.mynes
-  version: "1.8.0"
+  version: "1.8.1"
   update_at: "2026-08-04"
   release_notes:
     en_US: |-

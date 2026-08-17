@@ -2,7 +2,7 @@ manifestVersion: 1.1
 id: mynes
 category: networking
 name: MyNeS
-version: "1.8.0"
+version: "1.8.1"
 tagline: See every device on your network, including the ones an IP scan cannot find
 description: >-
   MyNeS discovers, identifies and monitors every device on your home network.
@@ -57,4 +57,4 @@ releaseNotes: >-
   regex identification patterns, and a settings pass.
 
 
-  https://github.com/fxerkan/my_network_scanner/releases/tag/v1.8.0
+  https://github.com/fxerkan/my_network_scanner/releases/tag/v1.8.1

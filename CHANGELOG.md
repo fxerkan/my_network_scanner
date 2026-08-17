@@ -6,6 +6,40 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.8.1] — 2026-08-17
+
+Three data-integrity fixes after a live install lost a day of device edits. The
+device store (`lan_devices.json`) could be silently shrunk to a handful of
+devices by a degraded scan or a bad load, taking every alias, note and custom
+type with it — and nothing kept a copy. Now **every save snapshots the previous
+store first** (rotating backups, always taken right before the store shrinks),
+so a bad scan is one file-copy away from undone instead of gone. The scanner
+also stops stamping its **own container name onto the host** it runs on, and the
+graph view no longer draws a host's **Docker bridge networks as peer LANs**
+chained to each other.
+
+![The graph groups a host's Docker networks under the host that runs them, not as separate interconnected LANs](assets/screenshots/graph-view.png)
+
+### Fixed
+
+- **The device store can no longer be silently wiped.** `save_to_json()` now
+  rotates a backup of `lan_devices.json` into `data/backups/` before every
+  overwrite — deduped to one an hour, but **always** taken when the write would
+  drop devices, and it logs the shrink loudly. A degraded scan (lost ARP
+  privilege, a failed load) used to overwrite 29 devices with 2 and there was no
+  way back; the pre-shrink copy is now always on disk.
+- **The host is no longer renamed after the container.** Under host networking
+  `socket.gethostname()` returns the *container* name (`mynes`), which was
+  stamped onto the host device as `mynes (Ethernet)` and overwrote the user's
+  alias every scan. MyNeS now reads the real host name from the Docker socket
+  (`docker info` → `Name`) and, failing that, leaves the name blank for
+  vendor/smart-naming — so the name you set sticks.
+- **Docker bridge networks group under their host in the graph.** Each of a
+  host's Docker networks was drawn as a separate top-level subnet, and all
+  subnet hubs were ring-linked so unrelated bridges looked connected to each
+  other and to the LAN. Docker-network hubs now hang off the machine that runs
+  them; only real subnets still ring together.
+
 ## [1.8.0] — 2026-08-17
 
 MyNeS now reads Apple's **Find My** advertisements — the ones Apple keeps closed

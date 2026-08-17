@@ -2,7 +2,7 @@
 # Portainer must pull the published image, not try to build it.
 services:
   mynes:
-    image: fxerkan/my_network_scanner:1.8.0
+    image: fxerkan/my_network_scanner:1.8.1
     container_name: mynes
     # Host networking is what makes ARP/mDNS/SSDP discovery see the LAN at all.
     network_mode: host
