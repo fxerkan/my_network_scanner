@@ -617,6 +617,7 @@
   "no_results": "No matches",
   "reset_filters": "Reset",
   "default_filters": "Default filters",
+  "default_filters_saved": "Default filters saved",
   "default_filters_hint": "These apply on every page until you change them here or inline.",
   "all_categories_hidden": "All categories hidden — tap a legend chip to show them.",
   "export_failed": "Export failed",

@@ -684,26 +684,4 @@
 <script src="/static/js/views.js"></script>
 <script src="/static/js/device-access.js"></script>
 <script src="/static/js/enhanced-details.js"></script>
-<script>
-  // Filters: a drawer on a phone, always-open panel from 1024px up. <details>
-  // owns the state, so this is the whole implementation.
-  (function () {
-    var panel = document.getElementById('filterPanel');
-    var wide = window.matchMedia('(min-width: 1024px)');
-    var apply = function (m) { if (m.matches) panel.open = true; };
-    apply(wide);
-    wide.addEventListener('change', apply);
-
-    // Badge the summary with how many filters are actually narrowing the list,
-    // so a collapsed panel never hides the reason a device is missing.
-    var selects = panel.querySelectorAll('select');
-    var badge = document.getElementById('activeFilterCount');
-    panel.addEventListener('change', function () {
-      var n = 0;
-      selects.forEach(function (s) { if (s.value) n++; });
-      badge.textContent = n;
-      badge.hidden = n === 0;
-    });
-  })();
-</script>
 {% endblock %}

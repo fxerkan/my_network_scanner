@@ -502,6 +502,15 @@ async function setupConfigFilters() {
         key: 'statuses', label: t('status'),
         options: () => [{ value: 'online', label: t('online') }, { value: 'offline', label: t('offline') }],
     });
+
+    // Edits above already persist live (shared store); Save pins the current
+    // selection as the defaults every page resets to, with explicit feedback.
+    const saveBtn = document.getElementById('cfgFiltersSave');
+    if (saveBtn) saveBtn.addEventListener('click', () => {
+        F.saveAsDefaults();
+        const msg = t('default_filters_saved');
+        showAlert(msg && msg !== 'default_filters_saved' ? msg : 'Default filters saved', 'success');
+    });
 }
 
 /*

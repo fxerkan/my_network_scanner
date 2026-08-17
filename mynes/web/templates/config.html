@@ -450,8 +450,9 @@
                             <div id="cfgVendorFilterMulti"></div>
                         </div>
                     </div>
-                    <div style="margin-top: var(--space-4);">
-                        <button class="btn btn-small" onclick="MynesFilters.reset()">{{ _('reset_filters') }}</button>
+                    <div style="margin-top: var(--space-4); display:flex; gap: var(--space-2);">
+                        <button type="button" class="btn btn-primary btn-small" id="cfgFiltersSave">{{ _('save') if _('save') != 'save' else 'Save' }}</button>
+                        <button type="button" class="btn btn-small" onclick="MynesFilters.reset()">{{ _('reset_filters') }}</button>
                     </div>
                 </div>
             </div>

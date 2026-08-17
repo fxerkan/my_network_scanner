@@ -612,7 +612,7 @@ function filterDevices() {
         const n = MynesFilters.activeCount() + (aliasFilter ? 1 : 0) + (portFilter ? 1 : 0) + (trustFilter ? 1 : 0)
             + (locationFilter ? 1 : 0) + (connectionFilter ? 1 : 0) + (networkTypeFilter ? 1 : 0) + (networkFilter ? 1 : 0);
         badge.textContent = n;
-        badge.hidden = n === 0;
+        badge.hidden = false;   // always show the count - a reset (0 filters) shouldn't make the badge vanish
     }
 }
 

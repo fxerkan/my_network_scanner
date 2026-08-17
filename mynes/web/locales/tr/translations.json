@@ -287,6 +287,7 @@
   "no_results": "Eşleşme yok",
   "reset_filters": "Sıfırla",
   "default_filters": "Varsayılan filtreler",
+  "default_filters_saved": "Varsayılan filtreler kaydedildi",
   "default_filters_hint": "Buradan ya da sayfa içinden değiştirene kadar her sayfada geçerli olur.",
   "all_categories_hidden": "Tüm kategoriler gizli — göstermek için bir açıklama etiketine dokunun.",
   "export_failed": "Dışa aktarma başarısız",

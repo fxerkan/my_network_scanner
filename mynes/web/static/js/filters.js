@@ -16,15 +16,25 @@
     'use strict';
 
     const KEY = 'mynes.filters';
+    const DKEY = 'mynes.filters.defaults';   // user-saved defaults (Settings > Default filters)
     const DEFAULTS = {
         q: '',
         types: [], vendors: [], statuses: [],
         showContainers: true, showNoIp: true, showBluetooth: true, showRandomMac: true,
     };
 
-    function load() {
-        try { return { ...DEFAULTS, ...(JSON.parse(localStorage.getItem(KEY)) || {}) }; }
+    // The user's saved defaults, layered over the built-ins. reset() returns to
+    // these and a first-ever visit (no session filters yet) starts from them -
+    // that is what "Default filters" in Settings actually means.
+    function loadDefaults() {
+        try { return { ...DEFAULTS, ...(JSON.parse(localStorage.getItem(DKEY)) || {}) }; }
         catch (_) { return { ...DEFAULTS }; }
+    }
+    function load() {
+        try {
+            const stored = JSON.parse(localStorage.getItem(KEY));
+            return stored ? { ...DEFAULTS, ...stored } : { ...loadDefaults(), q: '' };
+        } catch (_) { return { ...DEFAULTS }; }
     }
     let state = load();
 
@@ -92,11 +102,25 @@
     }
     function set(patch) { state = { ...state, ...patch }; save(); }
     function get() { return { ...state }; }
-    function reset() { state = { ...DEFAULTS }; save(); }
+    // Reset returns to the user's saved defaults (or the built-ins), never a
+    // blank slate the "Default filters" setting couldn't influence.
+    function reset() { state = { ...loadDefaults(), q: '' }; save(); }
+    // Persist the current selection as the saved defaults (Settings > Save).
+    function saveAsDefaults() {
+        const d = {};
+        for (const k of ['types', 'vendors', 'statuses', 'showContainers', 'showNoIp', 'showBluetooth', 'showRandomMac'])
+            d[k] = state[k];
+        try { localStorage.setItem(DKEY, JSON.stringify(d)); } catch (_) { /* private mode */ }
+        return d;
+    }
 
-    /** How many filters narrow the view - drives the little badge on the panel. */
+    /** How many filters narrow the view - ONE per active filter, not per value
+     *  (Device Type with 3 picks is a single active filter). Drives the badge. */
     function activeCount() {
-        let n = state.types.length + state.vendors.length + state.statuses.length;
+        let n = 0;
+        if (state.types.length) n++;
+        if (state.vendors.length) n++;
+        if (state.statuses.length) n++;
         for (const k of ['showContainers', 'showNoIp', 'showBluetooth', 'showRandomMac']) if (!state[k]) n++;
         if (state.q) n++;
         return n;
@@ -110,6 +134,31 @@
     function tr(key, fallback) {
         const s = (typeof window.t === 'function') ? window.t(key) : key;
         return (s === key || s == null) ? fallback : s;
+    }
+
+    /* Position an open popover with position:fixed anchored to its button, so it
+     * escapes any ancestor overflow/clip - a short card or the History uptime
+     * section used to slice the options off (they rendered inside the section
+     * instead of floating above it). Flips above the button when it would spill
+     * past the viewport bottom. Recomputed on each open; on scroll/resize the
+     * popovers simply close (see the global listeners below). */
+    function placePop(btn, pop) {
+        const r = btn.getBoundingClientRect();
+        pop.style.position = 'fixed';
+        pop.style.zIndex = '1200';
+        pop.style.left = r.left + 'px';
+        pop.style.minWidth = r.width + 'px';
+        pop.style.top = (r.bottom + 4) + 'px';
+        pop.style.bottom = 'auto';
+        const h = pop.offsetHeight;                       // measured while visible
+        if (r.bottom + 4 + h > window.innerHeight && r.top - 4 - h > 0) {
+            pop.style.top = 'auto';
+            pop.style.bottom = (window.innerHeight - r.top + 4) + 'px';
+        }
+    }
+    function closeAllPops() {
+        document.querySelectorAll('.ds-multi__pop').forEach(p => p.setAttribute('hidden', ''));
+        document.querySelectorAll('.ds-multi__btn').forEach(b => b.setAttribute('aria-expanded', 'false'));
     }
 
     /*
@@ -127,9 +176,8 @@
 
         el.classList.add('ds-multi');
         el.innerHTML = `
-            <button type="button" class="ds-multi__btn" aria-expanded="false">
-                <span class="ds-multi__label">${esc(opts.label)}</span>
-                <span class="ds-multi__count"></span>
+            <button type="button" class="ds-multi__btn" aria-expanded="false" aria-label="${esc(opts.label)}">
+                <span class="ds-multi__label"></span>
                 <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-chevron-down"/></svg>
             </button>
             <div class="ds-multi__pop" hidden>
@@ -144,7 +192,9 @@
 
         function syncCount() {
             const n = (state[key] || []).length;
-            el.querySelector('.ds-multi__count').textContent = n ? `(${n})` : tr('all', 'All');
+            // Show "All" (or a count) like the native filter selects do - the
+            // filter's name already sits in the label above the box.
+            el.querySelector('.ds-multi__label').textContent = n ? `(${n})` : tr('all', 'All');
             btn.classList.toggle('is-active', n > 0);
         }
         function paint(q) {
@@ -164,6 +214,7 @@
             btn.setAttribute('aria-expanded', 'true');
             search.value = '';
             paint('');
+            placePop(btn, pop);
             search.focus();
         }
         function close() { pop.setAttribute('hidden', ''); btn.setAttribute('aria-expanded', 'false'); }
@@ -261,7 +312,7 @@
         function open() {
             document.querySelectorAll('.ds-multi__pop').forEach(p => { if (p !== pop) p.setAttribute('hidden', ''); });
             pop.removeAttribute('hidden'); btn.setAttribute('aria-expanded', 'true');
-            search.value = ''; paint(''); search.focus();
+            search.value = ''; paint(''); placePop(btn, pop); search.focus();
         }
         function close() { pop.setAttribute('hidden', ''); btn.setAttribute('aria-expanded', 'false'); }
 
@@ -305,9 +356,12 @@
     // Close any open popover on an outside click.
     document.addEventListener('click', e => {
         if (e.target.closest('.ds-multi')) return;
-        document.querySelectorAll('.ds-multi__pop').forEach(p => p.setAttribute('hidden', ''));
-        document.querySelectorAll('.ds-multi__btn').forEach(b => b.setAttribute('aria-expanded', 'false'));
+        closeAllPops();
     });
+    // A fixed-positioned popover doesn't move with the page, so its anchor would
+    // drift on scroll/resize - close it instead of leaving it stranded.
+    window.addEventListener('scroll', closeAllPops, true);   // capture: catch scrolls in any container
+    window.addEventListener('resize', closeAllPops);
 
     // Every <select> becomes the app's searchable dropdown - native browser
     // dropdowns are the exception, not the rule. Opt a select out with
@@ -351,7 +405,7 @@
     }
 
     window.MynesFilters = {
-        match, apply, get, set, reset, activeCount,
+        match, apply, get, set, reset, saveAsDefaults, activeCount,
         isContainer, isNoIp, isBluetooth, isRandomMac, vendorOf,
         mountMulti, enhanceSelect, autoEnhance, bindToggle, _selftest,
     };
