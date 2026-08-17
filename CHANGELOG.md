@@ -6,6 +6,39 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+MyNeS now reads Apple's **Find My** advertisements — the ones Apple keeps closed
+to other apps — so AirTags, AirPods and nearby iPhones/iPads/Macs finally show
+up with the right name and type instead of a nameless "Bluetooth Device". A BLE
+scan already caught some of these, but mislabelled every Find My blip as an
+"AirTag"; now the advertisement's status byte is decoded properly to tell an
+AirTag from AirPods, from a licensed third-party tracker, from a plain Apple
+device — along with its battery level and whether it is with its owner or
+separated. It is all read passively from the public advertisement: no Apple ID,
+no cloud, nothing leaves the LAN.
+
+![Discovery — an AirTag, AirPods and nearby Apple devices decoded from their Find My advertisements](assets/screenshots/findmy.png)
+
+### Added
+
+- **Apple Find My device detection.** BLE discovery now decodes Apple's
+  offline-finding (`0x12`) advertisement: AirTag / AirPods / third-party Find My
+  accessory / generic Apple device from the status byte, plus a **battery
+  bucket** (Full → Very Low) and **separated-vs-nearby** state, surfaced as a
+  `Find My` service and `find_my` / `battery` attributes.
+- **AirPods & Beats models.** The `0x07` proximity-pairing advertisement is
+  parsed for a model name — AirPods Pro, AirPods Max, Powerbeats Pro, Beats Fit
+  Pro and more — used as the device name when it advertises none.
+- **Nearby Apple devices.** Continuity advertisements (`0x10` and friends) from
+  iPhones, iPads, Macs and Watches are now labelled **Apple Device** instead of
+  a generic Bluetooth blip.
+
+### Fixed
+
+- BLE discovery no longer calls **every** Apple Find My advertisement an
+  "AirTag" — a generic Find My device with an unset class now reads as an Apple
+  device, and iPhones/iPads seen over Continuity are no longer dropped to
+  "Bluetooth Device".
+
 ## [1.7.0] — 2026-08-17
 
 The graph view is rebuilt on [vis-network](https://visjs.github.io/vis-network/)

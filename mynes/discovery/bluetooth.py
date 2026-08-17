@@ -50,22 +50,114 @@ TRACKER_SERVICE_UUIDS = ("0000fd5a", "0000fd59", "0000fd6f")
 # Names item-trackers advertise, or that owners commonly give them.
 TRACKER_NAME_HINTS = ("airtag", "smarttag", "smart tag", "tile", "chipolo", "galaxy smarttag")
 
+# --- Apple "Find My" / Continuity advertisement decode -----------------------
+# Apple's BLE manufacturer-data (company 0x004C) is a run of TLVs:
+# [type][len][value...]. The type byte says which message it is. We decode:
+#   0x12 Offline Finding (Find My network) - AirTags & Find My accessories, the
+#        one Apple keeps closed to other vendors and the reason this exists.
+#   0x07 Proximity Pairing - AirPods/Beats, carries a 2-byte model id.
+#   0x10/0x0C/... Continuity - an iPhone/iPad/Mac/Watch is nearby (no model).
+# All of this is read from the public advert alone: no Apple ID, no cloud - the
+# same passive data anyone in BLE range already sees. (Locating your *own* tags
+# would need Apple-account auth + report decryption, which is out of scope.)
+APPLE_CID = 0x004C
+
+# Find My status byte: bits 4-5 = device class, bits 6-7 = battery bucket.
+# Bit layout from malmeloo/FindMy.py (scanner.py OfflineFindingDevice), cross-
+# checked against live AirTag / iPhone / iPad captures.
+_FINDMY_TYPE = {
+    0b00: "Apple Device",       # generic / status not exposing a class
+    0b01: "Apple AirTag",
+    0b10: "Bluetooth Tracker",  # licensed 3rd-party Find My accessory
+    0b11: "Headphones",         # AirPods advertising via Find My
+}
+_FINDMY_BATTERY = {0b00: "Full", 0b01: "Medium", 0b10: "Low", 0b11: "Very Low"}
+
+# AirPods/Beats model ids from the 0x07 Proximity Pairing message (2 bytes).
+# Community-sourced (furiousMAC/continuity); matched in both byte orders.
+# ponytail: partial table, add rows as new models appear - unknowns fall back
+# to a plain "AirPods".
+_AIRPODS_MODELS = {
+    0x0220: "AirPods", 0x0F20: "AirPods (2nd gen)", 0x1320: "AirPods (3rd gen)",
+    0x1920: "AirPods (4th gen)", 0x1B20: "AirPods (4th gen, ANC)",
+    0x0E20: "AirPods Pro", 0x1420: "AirPods Pro (2nd gen)",
+    0x2420: "AirPods Pro (2nd gen, USB-C)",
+    0x0A20: "AirPods Max", 0x1F20: "AirPods Max (USB-C)",
+    0x0320: "Powerbeats 3", 0x0B20: "Powerbeats Pro", 0x0C20: "Beats Solo 3",
+    0x1120: "Beats Studio 3", 0x0520: "BeatsX", 0x1020: "Beats Flex",
+    0x0620: "Beats Solo Pro", 0x1720: "Beats Studio Buds",
+    0x1D20: "Beats Studio Buds+", 0x1E20: "Beats Fit Pro",
+}
+
+
+def _apple_tlvs(blob):
+    """Walk Apple's [type][len][value] run, yielding (type, value) pairs."""
+    i, n = 0, len(blob)
+    while i + 2 <= n:
+        t, ln = blob[i], blob[i + 1]
+        val = blob[i + 2:i + 2 + ln]
+        if len(val) < ln:  # truncated advert, stop rather than misread
+            break
+        yield t, val
+        i += 2 + ln
+
+
+def identify_apple_ble(manufacturer_data):
+    """Classify an Apple BLE advert, or None if it is not one we decode.
+
+    Returns {device_type, name, find_my, battery, state}. `name` is a model
+    string only when the advert carries one (AirPods). Everything is derived
+    from the advertisement alone - no account, no network call.
+    """
+    blob = (manufacturer_data or {}).get(APPLE_CID)
+    if not blob:
+        return None
+    msgs = dict(_apple_tlvs(blob))
+
+    # Find My (offline finding) wins - it is the whole point of this feature.
+    of = msgs.get(0x12)
+    if of:
+        status = of[0]
+        return {
+            "device_type": _FINDMY_TYPE[(status >> 4) & 0b11],
+            "name": None,
+            "find_my": True,
+            "battery": _FINDMY_BATTERY[(status >> 6) & 0b11],
+            # 25-byte body = separated from owner (full key), 2-byte = nearby.
+            "state": "separated" if len(of) >= 0x19 else "nearby",
+        }
+
+    # AirPods/Beats advertising their model (case open / pairing).
+    pp = msgs.get(0x07)
+    if pp and len(pp) >= 3:
+        model = _AIRPODS_MODELS.get(int.from_bytes(pp[1:3], "big")) or \
+            _AIRPODS_MODELS.get(int.from_bytes(pp[1:3], "little"))
+        return {"device_type": "Headphones", "name": model or "AirPods",
+                "find_my": False, "battery": None, "state": None}
+
+    # Continuity (Nearby Info / Handoff / AirDrop / AirPlay): an Apple phone,
+    # tablet, Mac or watch is here, but the payload carries no model. Honest
+    # generic label - better than the "Bluetooth Device" it used to get.
+    if msgs.keys() & {0x10, 0x0C, 0x05, 0x0F, 0x09, 0x0A}:
+        return {"device_type": "Apple Device", "name": None,
+                "find_my": False, "battery": None, "state": None}
+    return None
+
 
 def classify_ble(name, vendor, manufacturer_data, service_uuids, fallback):
     """Best-effort device_type from a BLE advertisement.
 
-    Trackers are the point here: an AirTag separated from its owner broadcasts
-    Apple's Find My "offline finding" payload (manufacturer type byte 0x12), and
-    a Galaxy SmartTag advertises a SmartThings service UUID. Both are otherwise
-    just "Apple"/"Samsung" BLE blips. Everything else falls back to the caller's
-    service-hint guess, then a name sniff for headphones/watches.
-    ponytail: near-owner AirTags advertise 0x10, not 0x12, and go unclassified -
-    upgrade with the full Find My status-byte table if that matters.
+    Trackers are the point here: Apple Find My devices (AirTag / AirPods /
+    licensed accessories) are decoded from the 0x12 offline-finding status byte
+    via identify_apple_ble(); a Galaxy SmartTag advertises a SmartThings service
+    UUID. Everything else falls back to the caller's service-hint guess, then a
+    name sniff, then a generic Apple label for plain Continuity devices.
     """
     low = (name or "").lower()
-    apple = (manufacturer_data or {}).get(0x004C)
-    if apple and apple[:1] == b"\x12":
-        return "Apple AirTag"
+    apple = identify_apple_ble(manufacturer_data)
+    # A specific Apple type (AirTag/AirPods/tracker) beats every other signal.
+    if apple and apple["device_type"] != "Apple Device":
+        return apple["device_type"]
     uuids = [str(u)[:8].lower() for u in (service_uuids or [])]
     if any(u in TRACKER_SERVICE_UUIDS for u in uuids):
         return "Samsung SmartTag"
@@ -81,6 +173,8 @@ def classify_ble(name, vendor, manufacturer_data, service_uuids, fallback):
         return "Headphones"
     if any(k in low for k in ("watch", "band", "fit", "amazfit")):
         return "Wearable"
+    if apple:  # plain Continuity iPhone/iPad/Mac - after name sniffs, before generic
+        return apple["device_type"]
     return fallback or "Bluetooth Device"
 
 
@@ -193,10 +287,27 @@ class BluetoothBackend(DiscoveryBackend):
                     services.append(label)
                 dtype = dtype or hint
 
+            apple = identify_apple_ble(adv.manufacturer_data)
             name = adv.local_name or ble_device.name
+            if not name and apple and apple.get("name"):
+                name = apple["name"]  # AirPods etc. rarely advertise a name
             device_type = classify_ble(
                 name, vendor, adv.manufacturer_data, adv.service_uuids, dtype
             )
+
+            attributes = {
+                "bluetooth": True,
+                "rssi": adv.rssi,
+                "tx_power": adv.tx_power,
+                "service_uuids": list(adv.service_uuids or []),
+                "manufacturer_ids": [hex(c) for c in (adv.manufacturer_data or {})],
+            }
+            if apple and apple["find_my"]:
+                services.append("Find My")
+                attributes["find_my"] = True
+                attributes["find_my_state"] = apple["state"]
+                if apple["battery"]:
+                    attributes["battery"] = apple["battery"]
 
             devices.append(
                 DiscoveredDevice(
@@ -206,13 +317,7 @@ class BluetoothBackend(DiscoveryBackend):
                     vendor=vendor,
                     device_type=device_type,
                     services=services or ["BLE"],
-                    attributes={
-                        "bluetooth": True,
-                        "rssi": adv.rssi,
-                        "tx_power": adv.tx_power,
-                        "service_uuids": list(adv.service_uuids or []),
-                        "manufacturer_ids": [hex(c) for c in (adv.manufacturer_data or {})],
-                    },
+                    attributes=attributes,
                 )
             )
         return devices
@@ -223,14 +328,29 @@ def discover(timeout: float = 8.0) -> list[DiscoveredDevice]:
 
 
 def demo():
-    # AirTag separated from owner: Apple Find My offline-finding payload.
-    assert classify_ble("Müezza", "Apple", {0x004C: b"\x12\x19\x00"}, [], None) == "Apple AirTag"
-    # Galaxy SmartTag via SmartThings Find service UUID.
+    md = lambda h: {0x004C: bytes.fromhex(h)}
+    # Real captures from a live room, validated against the FindMy.py decode:
+    # AirTag in nearby state (status 0xd0 -> class 01, battery Very Low). The
+    # owner named it "Laptop Çantası" - the AirTag lives in a laptop bag.
+    assert classify_ble("Laptop Çantası", "Apple", md("1202d003"), [], None) == "Apple AirTag"
+    air = identify_apple_ble(md("1202d003"))
+    assert air["find_my"] and air["battery"] == "Very Low" and air["state"] == "nearby", air
+    # Find My device with status byte 0 -> generic Apple, NOT an AirTag (the old
+    # code called every 0x12 an AirTag; this is the bug the goal called out).
+    assert classify_ble(None, "Apple", md("12020001"), [], None) == "Apple Device"
+    # Continuity Nearby Info: an iPhone / iPad. No model in the payload, so an
+    # honest generic label instead of "Bluetooth Device".
+    assert classify_ble("iPhonErkan", "Apple", md("10073e1fe813760a38"), [], None) == "Apple Device"
+    assert classify_ble("FX iPad Mini", "Apple", md("10050c1c960dc6"), [], None) == "Apple Device"
+    # AirPods Pro advertising its model on the 0x07 proximity-pairing message.
+    pods = identify_apple_ble({0x004C: b"\x07\x19\x01\x0e\x20" + b"\x00" * 22})
+    assert pods["device_type"] == "Headphones" and pods["name"] == "AirPods Pro", pods
+    # Separated AirTag: full 25-byte offline-finding frame, status class 01.
+    sep = identify_apple_ble({0x004C: b"\x12\x19" + b"\x10" + b"\x00" * 24})
+    assert sep["device_type"] == "Apple AirTag" and sep["state"] == "separated", sep
+    # Non-Apple trackers unchanged.
     assert classify_ble("Tag", "Samsung", {}, ["0000fd5a-0000-1000-8000-00805f9b34fb"], None) == "Samsung SmartTag"
-    # Tile by name.
     assert classify_ble("Tile Slim", None, {}, [], None) == "Tile Tracker"
-    # A plain Apple beacon is not a tracker.
-    assert classify_ble("iPhone", "Apple", {0x004C: b"\x10\x05"}, [], None) == "Bluetooth Device"
     assert classify_ble("FX AirPods Pro", "Apple", {}, [], None) == "Headphones"
     assert classify_ble("Galaxy Watch", "Samsung", {}, [], None) == "Wearable"
     assert classify_ble("FX Scooter Ninebot", None, {}, [], None) == "Bluetooth Device"
