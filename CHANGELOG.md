@@ -6,6 +6,47 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.6.1] — 2026-08-17
+
+Mobile pass: every page was opened at a phone viewport (390px, touch) and each
+tab, text box, dropdown and button exercised. Several pages that rendered fine on
+a desktop were unusable on a phone — the Logs viewer wrapped one character per
+line, the alert-history filters ran off the right edge — and are now fixed.
+Editing a device that has no MAC (an iPhone with a private address) no longer
+errors out.
+
+![Devices at a phone width — full MACs, wrapping details, thumb-reachable tab bar](assets/screenshots/mobile-responsive.png)
+
+### Fixed
+
+- **Editing an iPhone (or any MAC-less device) no longer fails** with
+  `'NoneType' object has no attribute 'lower'`. The device edit form sends
+  `mac: null`; the update path now guards it and, as a bonus, refuses to let a
+  blank IP/MAC in the payload wipe the real one.
+- **Logs tab is readable on a phone.** The fixed time/level/logger columns left
+  the message almost no width, so it wrapped one character per line; the message
+  now takes its own full-width row below the metadata.
+- **Alert-history filters stay on-screen.** The header packed a search box, two
+  filter dropdowns and two buttons into one non-wrapping row, pushing a dropdown
+  entirely off the right edge; control-heavy card headers now wrap on mobile.
+- **Detection-rule patterns are legible.** The device-type dropdown squeezed the
+  pattern text to a few pixels; the pattern now gets its own full-width line.
+- **Discovery → System setup rows** no longer wrap one word per line — the
+  description takes a full row and the status badge/action move below it.
+- **Header language switcher** no longer spills ~7px past the viewport on the
+  crowded Devices header (its decorative caret is dropped at phone width).
+
+### Changed
+
+- **Port scanning no longer depends on nmap.** `scan_ports_enhanced` uses the
+  same stdlib connect-scan as the fast path, so SMB/NetBIOS, VNC, Telnet and
+  RTSP are always probed (the Security page's exposures now show up) and a
+  missing nmap can no longer silently return zero ports.
+- **Hostnames resolve via the LAN gateway.** A PTR query is sent straight at the
+  router, which serves a name for every DHCP lease — naming devices even where
+  the system resolver can't (a Docker container, a macOS host not pointed at the
+  router).
+
 ## [1.6.0] — 2026-08-13
 
 Container-install parity: the same install run as a Docker container (Raspberry
