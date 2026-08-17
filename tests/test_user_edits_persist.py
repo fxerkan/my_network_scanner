@@ -69,8 +69,29 @@ def test_update_device_null_mac_does_not_crash():
     assert s.devices[0]["mac"] == "f6:43:1c:f3:9d:6a"
 
 
+def test_update_device_needs_a_populated_list():
+    """The bug: scan_network cleared self.devices at the start of a sweep and
+    only rebuilt it at the end, so any edit *during* a scan hit an empty list
+    and returned "device not found" (404) - the edit was lost. scan_network now
+    builds into a local list and publishes atomically, keeping self.devices
+    populated throughout. This test pins the failure mode the fix removes: on an
+    empty list the match fails, on a populated one it succeeds.
+    """
+    from mynes.core.scanner import LANScanner
+
+    s = LANScanner.__new__(LANScanner)
+    s.devices = []
+    assert s.update_device("192.168.1.126", {"trust_status": "trusted"}) is False
+
+    s.devices = [{"ip": "192.168.1.126", "mac": "3c:64:cf:5e:42:a0"}]
+    assert s.update_device("192.168.1.126", {"trust_status": "trusted"}) is True
+    assert s.devices[0]["trust_status"] == "trusted"
+    assert s.devices[0]["user_modified"]["trust_status"] == "trusted"
+
+
 if __name__ == "__main__":
     test_user_edits_win_over_scan()
     test_migrate_restores_non_whitelisted_user_field()
     test_update_device_null_mac_does_not_crash()
+    test_update_device_needs_a_populated_list()
     print("ok")

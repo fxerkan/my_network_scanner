@@ -1308,7 +1308,11 @@ class LANScanner:
             except Exception as e:
                 print(f"Error loading existing device information: {e}")
         
-        self.devices = []
+        # ponytail: build into a local list and publish to self.devices only at
+        # the end. Emptying self.devices here made every /update_device during a
+        # scan fail with "device not found" (the list was empty for the whole
+        # sweep) - the previous complete list now stays live and editable.
+        scanned = []
         start_time = datetime.now()
         
         # Config'den ayarları al
@@ -1415,17 +1419,17 @@ class LANScanner:
                 if existing_device:
                     # Mevcut cihaz - unified model ile merge et
                     merged_device = unified_model.merge_device_data(existing_device, new_device_info, "normal_scan")
-                    self.devices.append(merged_device)
+                    scanned.append(merged_device)
                     print(f"🔄 Unified merge: {current_ip} (MAC: {current_mac}) - {merged_device.get('alias', 'N/A')}")
                 else:
                     # Yeni cihaz - unified format'a dönüştür
                     unified_device = unified_model.migrate_legacy_data(new_device_info)
-                    self.devices.append(unified_device)
+                    scanned.append(unified_device)
                     print(f"🆕 New unified device: {current_ip} (MAC: {current_mac}) - {unified_device.get('alias', 'N/A')}")
-                
+
                 # Statistics - son eklenen cihazı kullan
                 online_count += 1
-                current_device = self.devices[-1]  # Son eklenen cihaz
+                current_device = scanned[-1]  # Son eklenen cihaz
                 device_type = current_device['device_type']
                 vendor = current_device['vendor']
                 
@@ -1437,11 +1441,11 @@ class LANScanner:
         
         # ALWAYS korumak için eski cihazları kontrol et (include_offline ayarına bakılmaksızın)
         # Kullanıcı tanımlı bilgileri olan tüm cihazları koru
-        current_macs = {device['mac'].lower() for device in self.devices}
-        
+        current_macs = {device['mac'].lower() for device in scanned}
+
         # Existing devices'tan çevrimdışı olan ama önemli bilgileri olan cihazları ekle
         preserved_count = 0
-        current_device_keys = {f"{device['mac'].lower()}@{device['ip']}" for device in self.devices}
+        current_device_keys = {f"{device['mac'].lower()}@{device['ip']}" for device in scanned}
         
         for device_key, unified_device in existing_devices.items():
             # Bu cihaz şu anki taramada bulunamadı ama değerli bilgileri var
@@ -1468,7 +1472,7 @@ class LANScanner:
                     if not unified_device.get('discovery_only'):
                         unified_device['status'] = 'offline'
                     unified_device['last_seen'] = unified_device.get('last_seen', datetime.now().isoformat())
-                    self.devices.append(unified_device)
+                    scanned.append(unified_device)
                     preserved_count += 1
                     print(f"📴 Offline device preserved: {unified_device.get('ip', 'N/A')} (MAC: {unified_device.get('mac', 'N/A')}) - {unified_device.get('alias', 'N/A')}")
 
@@ -1485,7 +1489,7 @@ class LANScanner:
             mac = (ud.get('mac') or '').lower()
             if enh and mac:
                 enhanced_by_mac[mac] = ud
-        for dev in self.devices:
+        for dev in scanned:
             mac = (dev.get('mac') or '').lower()
             src = enhanced_by_mac.get(mac)
             if src and not (dev.get('enhanced_comprehensive_info') or dev.get('advanced_scan_summary')):
@@ -1503,20 +1507,34 @@ class LANScanner:
         unique_devices = []
         seen_device_keys = set()
         
-        for device in self.devices:
+        for device in scanned:
             mac = device.get('mac', '').lower()
             ip = device.get('ip', '')
             device_key = f"{mac}@{ip}"
-            
+
             if device_key in seen_device_keys:
                 print(f"⚠️ Duplicate MAC+IP detected: {device_key} - skipping")
                 continue
-            
+
             seen_device_keys.add(device_key)
             unique_devices.append(device)
-        
-        if len(unique_devices) != len(self.devices):
-            self.devices = unique_devices
+
+        # An edit that landed mid-sweep updated the outgoing list (and disk), but
+        # this fresh list merged user_modified from a disk snapshot taken before
+        # it - overlay the outgoing user_modified so the edit isn't reverted.
+        prior = {f"{(d.get('mac') or '').lower()}@{d.get('ip')}": d for d in self.devices}
+        for d in unique_devices:
+            um = (prior.get(f"{(d.get('mac') or '').lower()}@{d.get('ip')}") or {}).get('user_modified')
+            if um:
+                d['user_modified'] = {**(d.get('user_modified') or {}), **um}
+                for field, value in um.items():
+                    d[field] = value
+
+        # Publish atomically: self.devices held the previous complete list for the
+        # whole sweep (so edits kept working), now swap in the fresh one at once.
+        removed = len(scanned) - len(unique_devices)
+        self.devices = unique_devices
+        if removed:
             print(f"🧹 {len(self.devices)} unique devices remain (MAC+IP duplicates removed)")
         else:
             print(f"✅ All devices unique - {len(self.devices)} devices (by MAC+IP)")

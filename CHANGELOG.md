@@ -6,6 +6,24 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+Editing a device while a scan was running silently failed — Location, Trust
+Level and "Connected via" changes never saved, the device card never refreshed,
+and the topology diagram showed every device hanging off the main router instead
+of its assigned switch/access point. The scan had emptied the in-memory device
+list for its whole duration, so the edit landed on nothing.
+
+![Editing a device mid-scan returned "device not found" — every attribute change was lost](assets/screenshots/device-edit-during-scan.png)
+
+### Fixed
+
+- **Device edits no longer fail during a scan.** `scan_network` cleared the
+  device list at the start of a sweep and only rebuilt it at the end; any
+  `/update_device` in that window returned "device not found" (404), so the
+  edit — and the "Connected via" uplink save nested behind it — was dropped.
+  The scan now builds into a local list and publishes it atomically, keeping
+  the previous complete list live and editable throughout. An edit that lands
+  mid-scan is carried over so the finishing scan can't revert it.
+
 ## [1.6.1] — 2026-08-17
 
 Mobile pass: every page was opened at a phone viewport (390px, touch) and each
