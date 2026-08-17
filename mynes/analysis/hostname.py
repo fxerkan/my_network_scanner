@@ -19,7 +19,22 @@ class AdvancedHostnameResolver:
         self.max_threads = max_threads
         self.cache = {}
         self.cache_timeout = 3600  # 1 saat cache
-        
+        self._gateway = None
+        self._gateway_looked_up = False
+
+    def _get_gateway(self):
+        """Default gateway IP, looked up once. The router answers PTR queries
+        with the DHCP lease hostname - the single biggest naming win, and the
+        only source the mobile app has that this one lacked."""
+        if not self._gateway_looked_up:
+            self._gateway_looked_up = True
+            try:
+                from mynes.core.network import get_default_gateway
+                self._gateway = get_default_gateway()
+            except Exception:
+                self._gateway = None
+        return self._gateway
+
     def resolve_hostname_comprehensive(self, ip_address_str):
         """Kapsamlı hostname çözümleme"""
         
@@ -42,6 +57,7 @@ class AdvancedHostnameResolver:
         
         # Çeşitli yöntemlerle hostname çözümleme
         methods = [
+            ('gateway_ptr', self._resolve_gateway_ptr),
             ('standard_dns', self._resolve_standard_dns),
             ('reverse_dns', self._resolve_reverse_dns),
             ('netbios', self._resolve_netbios),
@@ -85,6 +101,34 @@ class AdvancedHostnameResolver:
         
         return hostname_info
     
+    def _resolve_gateway_ptr(self, ip_address_str):
+        """PTR query sent straight at the LAN gateway (not the system resolver).
+
+        Home routers serve a hostname for every DHCP lease, so this names almost
+        every device reliably - and works where the system resolver can't: a
+        Docker container (whose DNS is Docker's internal 127.0.0.11) or a macOS
+        host whose resolv.conf doesn't point at the router. Mirrors the mobile
+        app's reverseDns(ip, gateway). dnspython is already a dependency."""
+        gateway = self._get_gateway()
+        if not gateway:
+            return None
+        try:
+            import dns.resolver
+            import dns.reversename
+            resolver = dns.resolver.Resolver(configure=False)
+            resolver.nameservers = [gateway]
+            resolver.timeout = self.timeout
+            resolver.lifetime = self.timeout
+            answer = resolver.resolve(dns.reversename.from_address(ip_address_str), 'PTR')
+            hostname = str(answer[0]).rstrip('.')
+            # Drop the router's local-domain suffix (.local/.lan/.home/.hgw…).
+            hostname = re.sub(r'(\.(local|lan|home|hgw|localdomain|internal))+$', '', hostname, flags=re.I)
+            if hostname and not re.fullmatch(r'[\d.]+', hostname):
+                return {'hostname': hostname, 'method': 'gateway_ptr', 'confidence': 0.92}
+        except Exception:
+            pass
+        return None
+
     def _resolve_standard_dns(self, ip_address_str):
         """Standart DNS çözümleme"""
         try:

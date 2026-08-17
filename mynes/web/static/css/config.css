@@ -676,6 +676,12 @@
     .combined-rule-add { grid-template-columns: minmax(0, 1fr); }
     .pattern-item__and { display: none; }
 }
+/* On a phone the type dropdown ate the row, squeezing the pattern to a few px.
+   Give the pattern its own full-width line above the type + delete controls. */
+@media (max-width: 640px) {
+    .pattern-item { grid-template-columns: minmax(0, 1fr) auto; }
+    .pattern-item__pattern { grid-column: 1 / -1; }
+}
 
 .icon-btn {
     display: inline-flex;
@@ -823,3 +829,10 @@
 .log-loc { color: var(--text-tertiary); flex: 0 0 auto; font-style: italic; }
 .log-code { color: var(--severity-critical-fg, #dc2626); font-weight: 700; flex: 0 0 auto; }
 .log-msg mark { background: var(--severity-warn-bg, #fde68a); color: inherit; border-radius: 2px; }
+/* On a phone the fixed time/level/logger columns leave the message ~0px, so it
+   wrapped one character per line. Let the line wrap and give the message its own
+   full-width row below the meta. */
+@media (max-width: 640px) {
+    .log-line { flex-wrap: wrap; }
+    .log-msg { flex: 1 1 100%; }
+}

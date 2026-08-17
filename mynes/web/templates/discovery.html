@@ -1,6 +1,20 @@
 {% extends "base.html" %}
 {% block title %}{{ _('discovery') if _('discovery') != 'discovery' else 'Discovery' }} · MyNeS{% endblock %}
 
+{% block styles %}
+<style>
+/* On a phone the badge/button in each System-setup row kept the text column
+   from shrinking gracefully, so the description wrapped one word per line.
+   Let the text take a full row and push the status badge + action below it. */
+@media (max-width: 640px) {
+  #systemBody .ds-row { flex-wrap: wrap; }
+  /* Inline `flex:1` sets flex-basis:0, which beats an external rule on
+     specificity - only !important can force the text onto its own full row. */
+  #systemBody .ds-row > div[style*="flex:1"] { flex: 1 1 100% !important; }
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="ds-stack">
 

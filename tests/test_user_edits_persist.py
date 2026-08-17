@@ -49,7 +49,28 @@ def test_migrate_restores_non_whitelisted_user_field():
     assert unified["user_modified"]["description"] == "Kids' room tablet"
 
 
+def test_update_device_null_mac_does_not_crash():
+    """Editing a device whose update payload carries a null MAC (iPhones with a
+    private/absent MAC send `mac: null` from the edit form) must not raise
+    'NoneType' object has no attribute 'lower', and must not wipe the real MAC.
+    """
+    from mynes.core.scanner import LANScanner
+
+    s = LANScanner.__new__(LANScanner)  # skip full init - update_device is self-contained
+    s.devices = [{"ip": "192.168.1.90", "mac": "f6:43:1c:f3:9d:6a", "hostname": ""}]
+
+    ok = s.update_device("192.168.1.90",
+                         {"mac": None, "ip": "192.168.1.90",
+                          "device_type": "Akıllı Telefon", "vendor": "Apple"})
+    assert ok is True
+    assert s.devices[0]["device_type"] == "Akıllı Telefon"
+    assert s.devices[0]["vendor"] == "Apple"
+    # A blank/None identity field in the payload must never erase the real one.
+    assert s.devices[0]["mac"] == "f6:43:1c:f3:9d:6a"
+
+
 if __name__ == "__main__":
     test_user_edits_win_over_scan()
     test_migrate_restores_non_whitelisted_user_field()
+    test_update_device_null_mac_does_not_crash()
     print("ok")

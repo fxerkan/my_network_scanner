@@ -684,39 +684,28 @@ class LANScanner:
                  'state': 'open'} for port in ports]
 
     def scan_ports_enhanced(self, ip, device_type=None):
-        """Gelişmiş port taraması - cihaz tipine özgü"""
+        """Gelişmiş port taraması - cihaz tipine özgü.
+
+        Uses the stdlib connect-scan (fingerprint.scan_tcp), not nmap: the same
+        code path the mobile app and the fast scan use. This guarantees the
+        SMB/NetBIOS (445/139), VNC (5900), Telnet (23) and RTSP (554) ports are
+        ALWAYS probed - which is what makes the Security page's exposures show
+        up - and drops the hard nmap dependency (a missing/failed nmap used to
+        silently return zero ports, i.e. no security findings and no port-based
+        type). The port set unions the configured defaults, the device-specific
+        list, and fingerprint.SCAN_PORTS so coverage can only widen.
+        """
         try:
-            # Default portları al
-            default_ports = self.port_settings.get('default_ports', [21, 22, 23, 25, 53, 80, 110, 443, 993, 995, 8080, 8443])
-            
-            # Cihaz tipine özgü portları ekle
+            default_ports = self.port_settings.get('default_ports', list(fingerprint.SCAN_PORTS))
             device_specific_ports = self.port_settings.get('device_specific_ports', {})
+            ports = set(default_ports) | set(fingerprint.SCAN_PORTS)
             if device_type and device_type in device_specific_ports:
-                scan_ports = list(set(default_ports + device_specific_ports[device_type]))
-            else:
-                scan_ports = default_ports
-            
-            # Port range string'i oluştur
-            port_range = ','.join(map(str, scan_ports))
-            
-            nm = nmap.PortScanner()
-            result = nm.scan(ip, port_range, arguments='-sT -T4 --max-retries 1 --host-timeout 30s')
-            
-            open_ports = []
-            if ip in result['scan']:
-                if 'tcp' in result['scan'][ip]:
-                    for port, info in result['scan'][ip]['tcp'].items():
-                        if info['state'] == 'open':
-                            service = info.get('name', 'unknown')
-                            version = info.get('version', '')
-                            open_ports.append({
-                                'port': port,
-                                'service': service,
-                                'version': version,
-                                'state': info['state']
-                            })
-            
-            return open_ports
+                ports |= set(device_specific_ports[device_type])
+
+            open_ports = fingerprint.scan_tcp(ip, ports=tuple(sorted(ports)))
+            return [{'port': port,
+                     'service': fingerprint.service_name(port),
+                     'state': 'open'} for port in open_ports]
         except Exception as e:
             print(f"Port scan error {ip}: {e}")
             return []
@@ -1821,13 +1810,19 @@ class LANScanner:
         for i, device in enumerate(self.devices):
             if device['ip'] == ip or (
                     not device.get('ip') and (device.get('mac') or '').lower() == key):
+                # ponytail: a blank ip/mac from a form must not wipe the real one -
+                # drop empty identity fields so device.update() keeps existing values.
+                for idf in ('ip', 'mac'):
+                    if idf in updates and not (updates[idf] or '').strip():
+                        updates.pop(idf)
                 # IP ve MAC değişikliği kontrolü
                 new_ip = updates.get('ip', device['ip'])
                 new_mac = updates.get('mac', device['mac'])
                 
                 # IP veya MAC değişiyorsa, yeni device key oluştur
-                old_device_key = f"{device['mac'].lower()}@{device['ip']}"
-                new_device_key = f"{new_mac.lower()}@{new_ip}"
+                # ponytail: MAC can be None (iPhones with private/no MAC) - guard the .lower()
+                old_device_key = f"{(device['mac'] or '').lower()}@{device['ip']}"
+                new_device_key = f"{(new_mac or '').lower()}@{new_ip}"
                 
                 if old_device_key != new_device_key:
                     print(f"📍 Device key change: {old_device_key} -> {new_device_key}")
@@ -1835,7 +1830,7 @@ class LANScanner:
                     # Yeni device key'in çakışıp çakışmadığını kontrol et
                     for other_device in self.devices:
                         if other_device != device:
-                            other_key = f"{other_device['mac'].lower()}@{other_device['ip']}"
+                            other_key = f"{(other_device['mac'] or '').lower()}@{other_device['ip']}"
                             if other_key == new_device_key:
                                 print(f"❌ Device key conflict: {new_device_key} already exists")
                                 return False

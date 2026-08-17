@@ -623,6 +623,14 @@ hr { border: 0; border-top: 1px solid var(--border-subtle); margin: var(--space-
   border-bottom: 1px solid var(--border-subtle);
 }
 .ds-card__title { margin: 0; font-size: var(--text-md); font-weight: var(--weight-semibold); }
+/* On a phone a control-heavy header (alert history: search + 2 filters + 2
+   buttons) overflowed the row off-screen. Wrap it, and stop any single enhanced
+   dropdown from exceeding the viewport. */
+@media (max-width: 640px) {
+  .ds-card__header { flex-wrap: wrap; }
+  .ds-card__header .ds-input,
+  .ds-card__header .ds-multi { max-width: 100%; }
+}
 .ds-card__body { padding: var(--space-5); }
 .ds-card__footer { padding: var(--space-3) var(--space-5); border-top: 1px solid var(--border-subtle); background: var(--bg-surface-sunken); }
 
@@ -1013,6 +1021,12 @@ select[data-compact] + .ds-multi { width: auto; min-width: 120px; max-width: 200
    header, so anchor the menu to the button's right edge or it overflows off-screen. */
 #languageSelect + .ds-multi .ds-multi__search { display: none; }
 #languageSelect + .ds-multi .ds-multi__pop { left: auto; right: 0; }
+/* On a phone the Scan button crowds the header row, shrinking this switcher until
+   its dropdown caret spilled ~7px past the viewport. Drop the decorative caret at
+   phone width - the flag + code in a bordered pill still reads as a control. */
+@media (max-width: 480px) {
+  #languageSelect + .ds-multi .ds-multi__btn > svg { display: none; }
+}
 
 /* Two-column form layout (edit modal): fields no longer stretch the whole
    modal; a full-width group (notes) opts out with .form-group--full. */
