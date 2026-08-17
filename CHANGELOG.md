@@ -6,6 +6,8 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.8.0] — 2026-08-17
+
 MyNeS now reads Apple's **Find My** advertisements — the ones Apple keeps closed
 to other apps — so AirTags, AirPods and nearby iPhones/iPads/Macs finally show
 up with the right name and type instead of a nameless "Bluetooth Device". A BLE
