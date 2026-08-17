@@ -6,6 +6,8 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.6.2] — 2026-08-17
+
 Editing a device while a scan was running silently failed — Location, Trust
 Level and "Connected via" changes never saved, the device card never refreshed,
 and the topology diagram showed every device hanging off the main router instead
