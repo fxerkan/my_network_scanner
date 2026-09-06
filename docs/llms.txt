@@ -1,0 +1,21 @@
+# MyNeS — My Network Scanner
+
+> MyNeS (My Network Scanner) is a self-hosted, open-source application that discovers every device on your local network and manages them through a modern web interface. It combines ARP scanning, port scanning and multi-protocol discovery (mDNS/Bonjour, Matter, SSDP/UPnP, Bluetooth LE, Zigbee/Z-Wave over MQTT) with AI-assisted device identification, security/CVE analysis and Home Assistant integration. Built with Python/Flask, distributed via Docker Hub and GitHub releases. Free and MIT-licensed. Only scan networks you own.
+
+## Docs
+
+- [Landing page](https://fxerkan.github.io/my_network_scanner/): Overview, features, screenshots and Docker quick start
+- [README (English)](https://github.com/fxerkan/my_network_scanner/blob/main/docs/README_ENG.md): Full feature list, install and configuration
+- [README (Türkçe)](https://github.com/fxerkan/my_network_scanner/blob/main/README.md): Turkish documentation
+- [Changelog](https://github.com/fxerkan/my_network_scanner/blob/main/CHANGELOG.md): Per-release detail
+- [Security policy](https://github.com/fxerkan/my_network_scanner/blob/main/SECURITY.md): Reporting and security notes
+
+## Install
+
+- [Docker Hub](https://hub.docker.com/r/fxerkan/my_network_scanner): Official container image (linux/amd64, linux/arm64)
+- [Releases](https://github.com/fxerkan/my_network_scanner/releases): Tagged releases and downloads
+
+## Source
+
+- [GitHub repository](https://github.com/fxerkan/my_network_scanner): Source code, issues and discussions
+- [Issues](https://github.com/fxerkan/my_network_scanner/issues): Bug reports and feature requests

@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MyNeS — Self-Hosted Network Scanner for Your Home LAN</title>
+  <meta name="description" content="MyNeS is a self-hosted, open-source network scanner. Discover every device on your LAN via ARP, mDNS, SSDP, BLE and MQTT from a modern web UI. Free MIT, Docker.">
+  <link rel="canonical" href="https://fxerkan.github.io/my_network_scanner/">
+  <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+  <link rel="apple-touch-icon" href="assets/icon.png">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="MyNeS — My Network Scanner">
+  <meta property="og:title" content="MyNeS — Self-Hosted Network Scanner for Your Home LAN">
+  <meta property="og:description" content="Self-hosted, open-source network scanner. Discover every device on your LAN with ARP, mDNS, SSDP, BLE and MQTT, plus a modern web UI. Free MIT, runs via Docker.">
+  <meta property="og:url" content="https://fxerkan.github.io/my_network_scanner/">
+  <meta property="og:image" content="https://fxerkan.github.io/my_network_scanner/assets/mynes.png">
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="MyNeS — Self-Hosted Network Scanner for Your Home LAN">
+  <meta name="twitter:description" content="Self-hosted, open-source network scanner. Discover every device on your LAN with ARP, mDNS, SSDP, BLE and MQTT, plus a modern web UI. Free MIT, runs via Docker.">
+  <meta name="twitter:image" content="https://fxerkan.github.io/my_network_scanner/assets/mynes.png">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "MyNeS — My Network Scanner",
+    "description": "A self-hosted, open-source network scanner that discovers every device on your local network using ARP, mDNS/Bonjour, Matter, SSDP/UPnP, Bluetooth LE and MQTT, and manages them through a modern web interface with AI-assisted device identification, security and CVE analysis, and Home Assistant integration.",
+    "applicationCategory": "NetworkingApplication",
+    "operatingSystem": "Linux, macOS, Windows, Docker",
+    "softwareVersion": "1.8.1",
+    "license": "https://opensource.org/licenses/MIT",
+    "downloadUrl": "https://github.com/fxerkan/my_network_scanner/releases",
+    "url": "https://fxerkan.github.io/my_network_scanner/",
+    "image": "https://fxerkan.github.io/my_network_scanner/assets/mynes.png",
+    "author": {
+      "@type": "Person",
+      "name": "FXerkan",
+      "url": "https://fxerkan.com"
+    },
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    }
+  }
+  </script>
+
+  <style>
+    :root {
+      --brand: #2049e0;
+      --bg: #0d1117;
+      --surface: #161b22;
+      --border: #263040;
+      --text: #e6edf3;
+      --muted: #9aa7b4;
+      --radius: 12px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      color: var(--text);
+      background: var(--bg);
+    }
+    a { color: #6ea0ff; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .wrap { max-width: 960px; margin: 0 auto; padding: 0 20px; }
+    header.site {
+      position: sticky; top: 0; z-index: 10;
+      background: rgba(13,17,23,.85); backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+    }
+    header.site .wrap { display: flex; align-items: center; gap: 12px; padding: 12px 20px; }
+    header.site img { width: 32px; height: 32px; }
+    header.site .name { font-weight: 700; font-size: 1.1rem; }
+    header.site nav { margin-left: auto; display: flex; gap: 18px; font-size: .95rem; }
+    header.site nav a { color: var(--muted); }
+    .hero { text-align: center; padding: 64px 0 40px; }
+    .hero img.logo { width: 88px; height: 88px; }
+    .hero h1 { font-size: 2.3rem; margin: 18px 0 6px; }
+    .hero .tag { color: var(--muted); font-size: 1.15rem; margin: 0 auto 8px; max-width: 640px; }
+    .hero .lead { color: var(--text); max-width: 680px; margin: 16px auto 24px; }
+    .btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 8px; }
+    .btn {
+      display: inline-block; padding: 11px 20px; border-radius: var(--radius);
+      font-weight: 600; border: 1px solid var(--border);
+    }
+    .btn.primary { background: var(--brand); color: #fff; border-color: var(--brand); }
+    .btn.primary:hover { background: #1a3cc0; text-decoration: none; }
+    .btn.ghost { background: var(--surface); color: var(--text); }
+    .btn.ghost:hover { border-color: #3a4757; text-decoration: none; }
+    .shot { width: 100%; height: auto; border-radius: var(--radius); border: 1px solid var(--border); display: block; }
+    figure { margin: 20px 0; }
+    figure figcaption { color: var(--muted); font-size: .9rem; text-align: center; margin-top: 8px; }
+    section { padding: 40px 0; border-top: 1px solid var(--border); }
+    h2 { font-size: 1.6rem; margin-top: 0; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; }
+    .card h3 { margin: 0 0 6px; font-size: 1.05rem; }
+    .card p { margin: 0; color: var(--muted); font-size: .95rem; }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: .95rem; }
+    th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); font-weight: 600; }
+    code { background: var(--surface); padding: 2px 6px; border-radius: 6px; font-size: .9em; }
+    pre {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 16px; overflow-x: auto; font-size: .9rem;
+    }
+    pre code { background: none; padding: 0; }
+    .mobile-shots { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
+    .mobile-shots img { width: 46%; max-width: 300px; height: auto; border-radius: var(--radius); border: 1px solid var(--border); }
+    .note { color: var(--muted); font-size: .95rem; }
+    footer.site { border-top: 1px solid var(--border); padding: 32px 0; color: var(--muted); font-size: .9rem; text-align: center; }
+    footer.site a { color: var(--muted); }
+    @media (max-width: 600px) {
+      .hero h1 { font-size: 1.8rem; }
+      header.site nav { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site">
+    <div class="wrap">
+      <img src="assets/logo.svg" alt="MyNeS logo">
+      <span class="name">MyNeS</span>
+      <nav>
+        <a href="#features">Features</a>
+        <a href="#quickstart">Quick start</a>
+        <a href="https://github.com/fxerkan/my_network_scanner">GitHub</a>
+        <a href="https://hub.docker.com/r/fxerkan/my_network_scanner">Docker Hub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="wrap">
+      <div class="hero">
+        <img class="logo" src="assets/logo.svg" alt="My Network Scanner logo">
+        <h1>My Network Scanner (MyNeS)</h1>
+        <p class="tag">Your family's user-friendly network scanner</p>
+        <p class="lead">
+          A self-hosted, open-source application that scans every device on your local network —
+          routers, laptops, phones, IP cameras, consoles, smart-home appliances — and lets you
+          manage them from a modern, user-friendly web interface. Advanced scanning, AI-powered
+          device identification, and security analysis included.
+        </p>
+        <div class="btns">
+          <a class="btn primary" href="https://github.com/fxerkan/my_network_scanner">View on GitHub</a>
+          <a class="btn ghost" href="#quickstart">Docker quick start</a>
+          <a class="btn ghost" href="https://hub.docker.com/r/fxerkan/my_network_scanner">Docker Hub</a>
+        </div>
+      </div>
+
+      <figure>
+        <img class="shot" src="assets/mynes.png" alt="MyNeS web interface showing discovered network devices" loading="lazy">
+      </figure>
+    </div>
+
+    <section id="features">
+      <div class="wrap">
+        <h2>Features</h2>
+        <div class="grid">
+          <div class="card"><h3>Web-based interface</h3><p>A modern, responsive, user-friendly web UI for managing your network.</p></div>
+          <div class="card"><h3>Automatic network discovery</h3><p>Determines your local network range automatically.</p></div>
+          <div class="card"><h3>ARP scanning</h3><p>Uses the ARP protocol for fast device discovery.</p></div>
+          <div class="card"><h3>Advanced port scanning</h3><p>Comprehensive service detection across 1000+ ports.</p></div>
+          <div class="card"><h3>Device type detection</h3><p>Automatically detects routers, computers, phones, cameras and more.</p></div>
+          <div class="card"><h3>Docker integration</h3><p>Detects running containers and virtual network interfaces.</p></div>
+          <div class="card"><h3>Multi-protocol analysis</h3><p>SSH, FTP, HTTP and SNMP support for deeper detection.</p></div>
+          <div class="card"><h3>Device management</h3><p>Edit device info, add custom attributes and manual ports.</p></div>
+          <div class="card"><h3>AI-powered identification</h3><p>"Identify with AI" via Anthropic, OpenAI or OpenRouter (optional, bring your own key).</p></div>
+          <div class="card"><h3>OUI / vendor database</h3><p>IEEE OUI database with 37,000+ vendor records and online API fallback.</p></div>
+          <div class="card"><h3>Multi-language</h3><p>Turkish and English language support.</p></div>
+          <div class="card"><h3>PWA</h3><p>Installable to the home screen, light/dark theme, 320px up to a TV.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="discovery">
+      <div class="wrap">
+        <h2>Multi-protocol discovery</h2>
+        <p class="note">
+          An IP scan misses half a home network. MyNeS listens to everything that announces itself:
+          mDNS/Bonjour (printers, NAS, Chromecast, HomeKit), Matter, SSDP/UPnP (routers, smart TVs,
+          cameras, consoles), Bluetooth LE (devices with no IP at all) and Zigbee/Z-Wave over MQTT.
+        </p>
+        <figure>
+          <img class="shot" src="assets/screenshots/discovery.png" alt="MyNeS multi-protocol discovery screen" loading="lazy">
+        </figure>
+      </div>
+    </section>
+
+    <section id="views">
+      <div class="wrap">
+        <h2>Five views</h2>
+        <p class="note">The device list can be read five ways, switched from the toolbar.</p>
+        <table>
+          <thead><tr><th>View</th><th>What it is for</th></tr></thead>
+          <tbody>
+            <tr><td>Cards / Table</td><td>Detail and bulk editing</td></tr>
+            <tr><td>Graph</td><td>The whole network at a glance; subnet gateways as hubs</td></tr>
+            <tr><td>Topology</td><td>What is plugged into what: Internet → router → switch/AP → group → device</td></tr>
+            <tr><td>Home plan</td><td>Drag devices onto a plan of your home</td></tr>
+          </tbody>
+        </table>
+        <figure>
+          <img class="shot" src="assets/screenshots/graph-view.png" alt="MyNeS graph view of the network" loading="lazy">
+          <figcaption>Graph view</figcaption>
+        </figure>
+        <figure>
+          <img class="shot" src="assets/screenshots/topology-view.png" alt="MyNeS network topology diagram" loading="lazy">
+          <figcaption>Topology diagram</figcaption>
+        </figure>
+        <figure>
+          <img class="shot" src="assets/screenshots/home-view.png" alt="MyNeS home plan view" loading="lazy">
+          <figcaption>Home plan view</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section id="monitoring">
+      <div class="wrap">
+        <h2>Monitoring, alerts and notifications</h2>
+        <p class="note">
+          Scans on a schedule, diffs consecutive scans and reports what matters: new device,
+          device offline, IP change, MAC change (ARP spoofing), newly opened port, under-voltage,
+          low battery, high latency, weak signal. Delivery via MyNeS's own Web Push, a Home
+          Assistant notify service, ntfy, Telegram, webhook, Slack, Discord and email.
+        </p>
+        <figure>
+          <img class="shot" src="assets/screenshots/monitoring-alerts.png" alt="MyNeS monitoring and alerts screen" loading="lazy">
+        </figure>
+      </div>
+    </section>
+
+    <section id="security">
+      <div class="wrap">
+        <h2>Security &amp; vulnerability analysis</h2>
+        <p class="note">
+          The Security page shows the whole fleet's attack surface and known-CVE exposure, worst
+          first (curated offline match, not a live feed): a weighted fleet risk score, severity
+          distribution, a "what to fix first" list and per-device detail. Credentials are stored
+          with Fernet symmetric encryption and sanitized on export.
+        </p>
+        <figure>
+          <img class="shot" src="assets/screenshots/secuirty.png" alt="MyNeS security attack surface and CVE exposure" loading="lazy">
+        </figure>
+      </div>
+    </section>
+
+    <section id="integrations">
+      <div class="wrap">
+        <h2>Integrations &amp; REST API</h2>
+        <p class="note">
+          Settings → Integrations offers InfluxDB 2 (Grafana push), Prometheus (Grafana scrape)
+          and the app's full REST API catalog, read live and downloadable as OpenAPI (swagger.json).
+          Home Assistant integration works via MQTT Discovery (push) and REST/WebSocket (pull).
+        </p>
+        <figure>
+          <img class="shot" src="assets/screenshots/integrations-rest-api.png" alt="MyNeS integrations and REST API catalog" loading="lazy">
+        </figure>
+      </div>
+    </section>
+
+    <section id="mobile">
+      <div class="wrap">
+        <h2>On a phone</h2>
+        <p class="note">
+          MyNeS is a PWA: installable to the home screen, follows the OS light/dark preference,
+          and lays out from a 320px phone up to a TV.
+        </p>
+        <div class="mobile-shots">
+          <img src="assets/screenshots/mobile-1.png" alt="MyNeS mobile device list" loading="lazy">
+          <img src="assets/screenshots/mobile-2.png" alt="MyNeS mobile device detail" loading="lazy">
+        </div>
+      </div>
+    </section>
+
+    <section id="quickstart">
+      <div class="wrap">
+        <h2>Quick start — Docker</h2>
+        <p class="note">
+          The image is published for <code>linux/amd64</code> and <code>linux/arm64</code>, so it
+          runs on a Raspberry Pi or Orange Pi as-is.
+        </p>
+
+        <h3>Docker Compose (recommended)</h3>
+        <pre><code>services:
+  mynes:
+    image: fxerkan/my_network_scanner:latest
+    container_name: mynes
+    # Host networking is what lets it actually see the LAN.
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./data:/app/data
+      - ./config:/app/config
+    environment:
+      MYNES_PORT: 5883
+      MYNES_PASSWORD: ""
+    restart: unless-stopped</code></pre>
+        <pre><code>docker compose up -d</code></pre>
+
+        <h3>Docker Run</h3>
+        <pre><code>docker run -d \
+  --name mynes \
+  --network host \
+  --cap-add=NET_ADMIN \
+  --cap-add=NET_RAW \
+  -v "$(pwd)/data:/app/data" \
+  -v "$(pwd)/config:/app/config" \
+  -e MYNES_PORT=5883 \
+  --restart unless-stopped \
+  fxerkan/my_network_scanner:latest</code></pre>
+        <p class="note">
+          Web UI: <code>http://&lt;your-server-ip&gt;:5883</code>. Host networking and NET_RAW /
+          NET_ADMIN are required because MyNeS sends raw ARP frames and listens for mDNS/SSDP
+          multicast. It does not run as root and is not privileged. Only scan networks you own.
+        </p>
+
+        <h3>From source</h3>
+        <pre><code>git clone https://github.com/fxerkan/my_network_scanner.git
+cd my_network_scanner
+python scripts/run.py</code></pre>
+        <p class="note">
+          Requires Python 3.9+ and Nmap. <code>scripts/run.py</code> creates the virtual
+          environment, installs dependencies, checks for nmap and starts the app.
+        </p>
+      </div>
+    </section>
+
+    <section id="links">
+      <div class="wrap">
+        <h2>Links</h2>
+        <ul>
+          <li><a href="https://github.com/fxerkan/my_network_scanner">GitHub repository</a></li>
+          <li><a href="https://github.com/fxerkan/my_network_scanner/releases">Releases</a></li>
+          <li><a href="https://hub.docker.com/r/fxerkan/my_network_scanner">Docker Hub</a></li>
+          <li><a href="https://github.com/fxerkan/my_network_scanner/blob/main/CHANGELOG.md">Changelog</a></li>
+          <li><a href="https://github.com/fxerkan/my_network_scanner/blob/main/README.md">README (Türkçe)</a></li>
+          <li><a href="https://github.com/fxerkan/my_network_scanner/blob/main/docs/README_ENG.md">README (English)</a></li>
+          <li><a href="https://github.com/fxerkan/my_network_scanner/issues">Issues</a></li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site">
+    <div class="wrap">
+      <p>Open source under the MIT License. Made with care by <a href="https://fxerkan.com">FXerkan</a>.</p>
+      <p>This tool should be used only on networks you own. Scanning other people's networks without permission is illegal.</p>
+    </div>
+  </footer>
+</body>
+</html>
