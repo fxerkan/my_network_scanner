@@ -49,253 +49,612 @@
   }
   </script>
 
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Chivo:wght@600;700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
   <style>
     :root {
-      --brand: #2049e0;
-      --bg: #0d1117;
-      --surface: #161b22;
-      --border: #263040;
-      --text: #e6edf3;
-      --muted: #9aa7b4;
-      --radius: 12px;
+      --brand: #2f6bff;
+      --brand-bright: #5b8cff;
+      --brand-soft: rgba(47,107,255,.14);
+      --accent: #33e0c4;      /* signal / online */
+      --accent-2: #ffb547;    /* alert / attention */
+      --bg: #070b12;
+      --bg-2: #0b111c;
+      --surface: #0f1725;
+      --surface-2: #131d2e;
+      --border: #1e2a3e;
+      --border-bright: #2c3d58;
+      --text: #eaf1fb;
+      --muted: #93a4bd;
+      --muted-dim: #6a7d98;
+      --radius: 16px;
+      --radius-sm: 10px;
+      --ease: cubic-bezier(.16,1,.3,1);
+      --maxw: 1120px;
+      --font-body: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-display: "Chivo", var(--font-body);
+      --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
     }
     * { box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
+    html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+
+    ::selection { background: var(--brand); color: #fff; }
+    ::-moz-selection { background: var(--brand); color: #fff; }
+
     body {
       margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      line-height: 1.6;
+      font-family: var(--font-body);
+      line-height: 1.65;
       color: var(--text);
       background: var(--bg);
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
     }
-    a { color: #6ea0ff; text-decoration: none; }
-    a:hover { text-decoration: underline; }
-    .wrap { max-width: 960px; margin: 0 auto; padding: 0 20px; }
+    body::before {
+      content: "";
+      position: fixed; inset: 0; z-index: -2;
+      background:
+        radial-gradient(900px 600px at 78% -8%, rgba(47,107,255,.16), transparent 60%),
+        radial-gradient(760px 520px at 12% 4%, rgba(51,224,196,.09), transparent 55%);
+      pointer-events: none;
+    }
+    /* faint grid: the "network fabric" behind everything */
+    body::after {
+      content: "";
+      position: fixed; inset: 0; z-index: -1; pointer-events: none;
+      background-image:
+        linear-gradient(rgba(148,180,255,.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(148,180,255,.035) 1px, transparent 1px);
+      background-size: 46px 46px;
+      mask-image: radial-gradient(1200px 800px at 50% -5%, #000 30%, transparent 85%);
+      -webkit-mask-image: radial-gradient(1200px 800px at 50% -5%, #000 30%, transparent 85%);
+    }
+
+    a { color: var(--brand-bright); text-decoration: none; }
+    a:hover { color: #86a9ff; }
+    a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
+      outline: 2px solid var(--brand-bright);
+      outline-offset: 3px;
+      border-radius: 6px;
+    }
+    img { max-width: 100%; }
+
+    .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+
+    /* ---------- Header ---------- */
     header.site {
-      position: sticky; top: 0; z-index: 10;
-      background: rgba(13,17,23,.85); backdrop-filter: blur(8px);
+      position: sticky; top: 0; z-index: 40;
+      background: rgba(7,11,18,.72);
+      backdrop-filter: saturate(140%) blur(14px);
+      -webkit-backdrop-filter: saturate(140%) blur(14px);
       border-bottom: 1px solid var(--border);
     }
-    header.site .wrap { display: flex; align-items: center; gap: 12px; padding: 12px 20px; }
-    header.site img { width: 32px; height: 32px; }
-    header.site .name { font-weight: 700; font-size: 1.1rem; }
-    header.site nav { margin-left: auto; display: flex; gap: 18px; font-size: .95rem; }
-    header.site nav a { color: var(--muted); }
-    .hero { text-align: center; padding: 64px 0 40px; }
-    .hero img.logo { width: 88px; height: 88px; }
-    .hero h1 { font-size: 2.3rem; margin: 18px 0 6px; }
-    .hero .tag { color: var(--muted); font-size: 1.15rem; margin: 0 auto 8px; max-width: 640px; }
-    .hero .lead { color: var(--text); max-width: 680px; margin: 16px auto 24px; }
-    .btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 8px; }
+    header.site .bar { display: flex; align-items: center; gap: 14px; padding: 14px 24px; max-width: var(--maxw); margin: 0 auto; }
+    header.site .logo-lockup { display: flex; align-items: center; gap: 11px; }
+    header.site img { width: 30px; height: 30px; border-radius: 8px; }
+    header.site .name { font-family: var(--font-display); font-weight: 700; font-size: 1.12rem; letter-spacing: -.02em; }
+    header.site nav { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+    header.site nav a { color: var(--muted); font-size: .93rem; font-weight: 500; padding: 8px 12px; border-radius: 8px; transition: color .2s, background .2s; }
+    header.site nav a:hover { color: var(--text); background: var(--surface); }
+    header.site nav a.gh { color: var(--text); border: 1px solid var(--border-bright); }
+    header.site nav a.gh:hover { border-color: var(--brand); background: var(--brand-soft); }
+
+    /* ---------- Hero ---------- */
+    .hero { position: relative; padding: clamp(56px, 9vw, 108px) 0 clamp(40px, 6vw, 72px); }
+    .hero-grid { display: grid; grid-template-columns: 1.05fr .95fr; gap: clamp(28px, 4vw, 56px); align-items: center; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: .82rem; font-weight: 500; color: var(--muted);
+      background: var(--surface); border: 1px solid var(--border);
+      padding: 6px 13px 6px 11px; border-radius: 999px; margin-bottom: 22px;
+    }
+    .badge .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 0 rgba(51,224,196,.55); animation: ping 2.4s var(--ease) infinite; }
+    @keyframes ping { 0% { box-shadow: 0 0 0 0 rgba(51,224,196,.5); } 70%,100% { box-shadow: 0 0 0 9px rgba(51,224,196,0); } }
+    .hero h1 {
+      font-family: var(--font-display); font-weight: 700;
+      font-weight: 900;
+      font-size: clamp(2.3rem, 5.4vw, 3.9rem); line-height: 1.02;
+      letter-spacing: -.04em; margin: 0 0 18px;
+    }
+    .hero h1 .sub { display: block; color: var(--muted); font-size: clamp(1rem, 2vw, 1.35rem); font-weight: 500; letter-spacing: -.01em; margin-top: 12px; }
+    .hero .lead { color: var(--muted); font-size: 1.08rem; max-width: 56ch; margin: 0 0 30px; }
+    .btns { display: flex; gap: 13px; flex-wrap: wrap; }
     .btn {
-      display: inline-block; padding: 11px 20px; border-radius: var(--radius);
-      font-weight: 600; border: 1px solid var(--border);
+      display: inline-flex; align-items: center; gap: 9px;
+      padding: 13px 22px; border-radius: 12px;
+      font-weight: 600; font-size: .98rem; border: 1px solid transparent;
+      transition: transform .25s var(--ease), background .25s, border-color .25s, box-shadow .25s;
     }
-    .btn.primary { background: var(--brand); color: #fff; border-color: var(--brand); }
-    .btn.primary:hover { background: #1a3cc0; text-decoration: none; }
-    .btn.ghost { background: var(--surface); color: var(--text); }
-    .btn.ghost:hover { border-color: #3a4757; text-decoration: none; }
-    .shot { width: 100%; height: auto; border-radius: var(--radius); border: 1px solid var(--border); display: block; }
-    figure { margin: 20px 0; }
-    figure figcaption { color: var(--muted); font-size: .9rem; text-align: center; margin-top: 8px; }
-    section { padding: 40px 0; border-top: 1px solid var(--border); }
-    h2 { font-size: 1.6rem; margin-top: 0; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
-    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; }
-    .card h3 { margin: 0 0 6px; font-size: 1.05rem; }
-    .card p { margin: 0; color: var(--muted); font-size: .95rem; }
-    table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: .95rem; }
-    th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border); }
-    th { color: var(--muted); font-weight: 600; }
-    code { background: var(--surface); padding: 2px 6px; border-radius: 6px; font-size: .9em; }
-    pre {
-      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-      padding: 16px; overflow-x: auto; font-size: .9rem;
+    .btn svg { width: 18px; height: 18px; }
+    .btn.primary { background: var(--brand); color: #fff; box-shadow: 0 12px 26px -14px rgba(0,0,0,.9), inset 0 1px 0 rgba(255,255,255,.18); }
+    .btn.primary:hover { background: var(--brand-bright); transform: translateY(-2px); box-shadow: 0 18px 34px -14px rgba(0,0,0,.95), inset 0 1px 0 rgba(255,255,255,.22); }
+    .btn.ghost { background: var(--surface); color: var(--text); border-color: var(--border-bright); }
+    .btn.ghost:hover { border-color: var(--brand); background: var(--surface-2); transform: translateY(-2px); }
+
+    .hero-meta { display: flex; gap: 22px; flex-wrap: wrap; margin-top: 30px; color: var(--muted-dim); font-size: .88rem; }
+    .hero-meta span { display: inline-flex; align-items: center; gap: 7px; }
+    .hero-meta svg { width: 15px; height: 15px; color: var(--accent); }
+
+    /* ---------- Hero topology canvas ---------- */
+    .topo {
+      position: relative; aspect-ratio: 1 / 1; max-width: 480px; margin-inline: auto; width: 100%;
+      border: 1px solid var(--border); border-radius: 24px;
+      background:
+        radial-gradient(120% 120% at 50% 0%, rgba(47,107,255,.10), transparent 60%),
+        var(--bg-2);
+      overflow: hidden;
+      box-shadow: 0 40px 80px -40px rgba(0,0,0,.8), inset 0 1px 0 rgba(255,255,255,.03);
     }
-    pre code { background: none; padding: 0; }
-    .mobile-shots { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
-    .mobile-shots img { width: 46%; max-width: 300px; height: auto; border-radius: var(--radius); border: 1px solid var(--border); }
-    .note { color: var(--muted); font-size: .95rem; }
-    footer.site { border-top: 1px solid var(--border); padding: 32px 0; color: var(--muted); font-size: .9rem; text-align: center; }
+    .topo svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+    .topo .scanline {
+      position: absolute; inset: 0; border-radius: 24px; pointer-events: none;
+      background: conic-gradient(from 0deg at 50% 50%, transparent 0deg, rgba(51,224,196,.16) 22deg, transparent 44deg);
+      animation: sweep 5s linear infinite;
+      mix-blend-mode: screen;
+    }
+    @keyframes sweep { to { transform: rotate(360deg); } }
+    .topo .cap {
+      position: absolute; left: 16px; bottom: 14px; z-index: 3;
+      font-family: var(--font-mono); font-size: .74rem; color: var(--muted-dim);
+      letter-spacing: .02em;
+    }
+    .topo .cap b { color: var(--accent); font-weight: 500; }
+    /* graph elements */
+    .edge { stroke: var(--border-bright); stroke-width: 1.4; fill: none; }
+    .pulse { stroke: var(--accent); stroke-width: 2; fill: none; stroke-linecap: round;
+      stroke-dasharray: 6 220; stroke-dashoffset: 0; opacity: .9;
+      animation: flow 2.6s linear infinite; }
+    @keyframes flow { to { stroke-dashoffset: -226; } }
+    .node circle.core { fill: var(--surface-2); stroke: var(--border-bright); stroke-width: 1.4; transition: stroke .3s, fill .3s; }
+    .node circle.ring { fill: none; stroke: var(--brand); stroke-width: 1.2; opacity: 0; transform-box: fill-box; transform-origin: center; }
+    .node.on circle.core { stroke: var(--brand-bright); fill: #16223a; }
+    .node.on circle.ring { animation: nodering 1.4s var(--ease) forwards; }
+    @keyframes nodering { 0% { opacity: .7; r: 10; } 100% { opacity: 0; r: 26; } }
+    .node text { fill: var(--muted); font-size: 9px; font-family: var(--font-mono); text-anchor: middle; }
+    .node .glyph { stroke: var(--brand-bright); stroke-width: 1.6; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .root circle.core { fill: #14224a; stroke: var(--brand); }
+
+    /* ---------- Sections ---------- */
+    section { padding: clamp(56px, 8vw, 96px) 0; position: relative; }
+    .section-head { max-width: 62ch; margin-bottom: 40px; }
+    .section-head .k {
+      font-family: var(--font-mono); font-size: .78rem; letter-spacing: .16em;
+      text-transform: uppercase; color: var(--brand-bright); display: block; margin-bottom: 12px;
+    }
+    h2 { font-family: var(--font-display); font-weight: 700; font-size: clamp(1.7rem, 3.4vw, 2.5rem); letter-spacing: -.03em; margin: 0 0 12px; line-height: 1.1; }
+    .section-head p { color: var(--muted); font-size: 1.05rem; margin: 0; }
+
+    /* reveal on scroll */
+    .reveal { opacity: 0; transform: translateY(22px); transition: opacity .7s var(--ease), transform .7s var(--ease); }
+    .reveal.in { opacity: 1; transform: none; }
+
+    /* ---------- Feature cards ---------- */
+    .features { display: grid; grid-template-columns: repeat(auto-fill, minmax(258px, 1fr)); gap: 16px; }
+    .feat {
+      position: relative; background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 22px 20px; overflow: hidden;
+      transition: transform .3s var(--ease), border-color .3s, background .3s;
+    }
+    .feat::before {
+      content: ""; position: absolute; inset: 0; opacity: 0; transition: opacity .35s;
+      background: radial-gradient(340px 200px at var(--mx,50%) var(--my,0%), var(--brand-soft), transparent 70%);
+      pointer-events: none;
+    }
+    .feat:hover { transform: translateY(-4px); border-color: var(--border-bright); background: var(--surface-2); }
+    .feat:hover::before { opacity: 1; }
+    .feat .ic { width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center;
+      background: var(--brand-soft); border: 1px solid rgba(47,107,255,.28); margin-bottom: 14px; color: var(--brand-bright); }
+    .feat .ic svg { width: 21px; height: 21px; }
+    .feat h3 { font-family: var(--font-display); font-weight: 600; margin: 0 0 6px; font-size: 1.06rem; letter-spacing: -.01em; }
+    .feat p { margin: 0; color: var(--muted); font-size: .93rem; line-height: 1.55; }
+
+    /* ---------- Protocol chips ---------- */
+    .protos { display: flex; flex-wrap: wrap; gap: 10px; margin: 24px 0 8px; }
+    .chip {
+      font-family: var(--font-mono); font-size: .82rem; color: var(--muted);
+      background: var(--surface); border: 1px solid var(--border); border-radius: 999px;
+      padding: 8px 15px; display: inline-flex; align-items: center; gap: 8px;
+      transition: color .25s, border-color .25s, background .25s, transform .25s var(--ease);
+    }
+    .chip .led { width: 7px; height: 7px; border-radius: 50%; background: var(--muted-dim); transition: background .25s, box-shadow .25s; }
+    .chip:hover { color: var(--text); border-color: var(--brand); background: var(--surface-2); transform: translateY(-2px); }
+    .chip:hover .led { background: var(--accent); box-shadow: 0 0 6px 0 rgba(51,224,196,.7); }
+
+    .split { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(28px, 4vw, 52px); align-items: center; }
+    .shot { width: 100%; height: auto; border-radius: var(--radius); border: 1px solid var(--border); display: block;
+      box-shadow: 0 30px 60px -30px rgba(0,0,0,.75); }
+    figure { margin: 0; }
+    figure figcaption { color: var(--muted-dim); font-size: .86rem; text-align: center; margin-top: 10px; font-family: var(--font-mono); }
+    .frame { position: relative; border-radius: calc(var(--radius) + 6px); padding: 8px;
+      background: linear-gradient(180deg, var(--surface), var(--bg-2)); border: 1px solid var(--border); }
+    .frame .dots { display: flex; gap: 6px; padding: 4px 6px 10px; }
+    .frame .dots i { width: 9px; height: 9px; border-radius: 50%; background: var(--border-bright); }
+
+    /* ---------- Views tabs ---------- */
+    .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 22px; border: 1px solid var(--border); background: var(--surface); padding: 6px; border-radius: 14px; width: max-content; max-width: 100%; }
+    .tab {
+      appearance: none; cursor: pointer; border: 0; background: transparent; color: var(--muted);
+      font-family: var(--font-body); font-weight: 600; font-size: .92rem; padding: 9px 16px; border-radius: 9px;
+      transition: color .2s, background .2s; display: inline-flex; align-items: center; gap: 8px;
+    }
+    .tab:hover { color: var(--text); }
+    .tab[aria-selected="true"] { background: var(--brand); color: #fff; box-shadow: 0 6px 16px -10px rgba(0,0,0,.85), inset 0 1px 0 rgba(255,255,255,.16); }
+    .tab svg { width: 16px; height: 16px; }
+    .panel { display: grid; grid-template-columns: 1fr 1.35fr; gap: 30px; align-items: center; }
+    .panel[hidden] { display: none; }
+    .panel .desc h3 { font-family: var(--font-display); font-weight: 600; font-size: 1.35rem; letter-spacing: -.02em; margin: 0 0 10px; }
+    .panel .desc p { color: var(--muted); margin: 0; }
+    .panel .desc .tag { font-family: var(--font-mono); color: var(--brand-bright); font-size: .8rem; letter-spacing: .1em; text-transform: uppercase; display: block; margin-bottom: 10px; }
+
+    /* ---------- Alerts ticker ---------- */
+    .alert-strip { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+    .alert-strip .a {
+      font-size: .85rem; color: var(--muted); background: var(--surface); border: 1px solid var(--border);
+      border-radius: 999px; padding: 7px 14px 7px 11px; display: inline-flex; align-items: center; gap: 8px;
+    }
+    .alert-strip .a b { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+
+    /* ---------- Mobile shots ---------- */
+    .mobile-shots { display: flex; gap: 22px; flex-wrap: wrap; justify-content: center; align-items: flex-start; }
+    .mobile-shots figure { flex: 0 1 260px; }
+    .mobile-shots img { width: 100%; height: auto; border-radius: 22px; border: 1px solid var(--border);
+      box-shadow: 0 30px 60px -28px rgba(0,0,0,.8); }
+
+    /* ---------- Code / quick start ---------- */
+    .qs-tabs { display: flex; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px 12px 0 0; border-bottom: 0; padding: 6px 6px 0; }
+    .qs-tab { appearance: none; cursor: pointer; border: 0; background: transparent; color: var(--muted);
+      font-family: var(--font-mono); font-size: .84rem; padding: 9px 15px; border-radius: 8px 8px 0 0; transition: color .2s, background .2s; }
+    .qs-tab:hover { color: var(--text); }
+    .qs-tab[aria-selected="true"] { color: var(--text); background: var(--bg-2); }
+    .codeblock { position: relative; background: var(--bg-2); border: 1px solid var(--border); border-radius: 0 0 12px 12px; }
+    .codeblock[hidden] { display: none; }
+    pre { margin: 0; padding: 20px 18px; overflow-x: auto; }
+    code { font-family: var(--font-mono); font-size: .86rem; }
+    pre code { color: #cfe0f5; line-height: 1.7; }
+    .cmt { color: var(--muted-dim); }
+    .kw { color: var(--brand-bright); }
+    .str { color: var(--accent); }
+    .copy {
+      position: absolute; top: 12px; right: 12px; z-index: 2;
+      appearance: none; cursor: pointer; border: 1px solid var(--border-bright); background: var(--surface);
+      color: var(--muted); font-family: var(--font-mono); font-size: .74rem; padding: 6px 11px; border-radius: 8px;
+      transition: color .2s, border-color .2s, background .2s;
+    }
+    .copy:hover { color: var(--text); border-color: var(--brand); }
+    .copy.done { color: var(--accent); border-color: var(--accent); }
+    .inline-code { font-family: var(--font-mono); background: var(--surface); border: 1px solid var(--border); padding: 2px 7px; border-radius: 6px; font-size: .86em; color: #cfe0f5; }
+
+    .note { color: var(--muted); font-size: .98rem; }
+    .note code { font-family: var(--font-mono); background: var(--surface); border: 1px solid var(--border); padding: 2px 7px; border-radius: 6px; font-size: .86em; color: #cfe0f5; }
+
+    /* ---------- Links list ---------- */
+    .linklist { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+    .linklist a { display: flex; align-items: center; gap: 10px; padding: 14px 16px; background: var(--surface);
+      border: 1px solid var(--border); border-radius: 12px; color: var(--text); font-weight: 500; transition: border-color .25s, background .25s, transform .25s var(--ease); }
+    .linklist a:hover { border-color: var(--brand); background: var(--surface-2); transform: translateY(-2px); }
+    .linklist a svg { width: 16px; height: 16px; color: var(--muted); flex: 0 0 auto; }
+    .linklist a .arr { margin-left: auto; color: var(--muted-dim); transition: transform .25s var(--ease); }
+    .linklist a:hover .arr { transform: translateX(3px); color: var(--brand-bright); }
+
+    /* CTA */
+    .cta { text-align: center; border: 1px solid var(--border); border-radius: 24px; padding: clamp(40px,6vw,64px) 24px;
+      background: radial-gradient(120% 140% at 50% 0%, rgba(47,107,255,.14), transparent 60%), var(--surface); }
+    .cta h2 { margin-bottom: 12px; }
+    .cta p { color: var(--muted); max-width: 52ch; margin: 0 auto 26px; }
+
+    footer.site { border-top: 1px solid var(--border); padding: 40px 0; color: var(--muted); font-size: .9rem; text-align: center; }
     footer.site a { color: var(--muted); }
-    @media (max-width: 600px) {
-      .hero h1 { font-size: 1.8rem; }
-      header.site nav { display: none; }
+    footer.site a:hover { color: var(--text); }
+    footer.site .warn { color: var(--muted-dim); font-size: .84rem; margin-top: 8px; }
+
+    /* ---------- Responsive ---------- */
+    @media (max-width: 900px) {
+      .hero-grid { grid-template-columns: 1fr; }
+      .topo { order: -1; max-width: 380px; }
+      .split, .panel { grid-template-columns: 1fr; }
+      .panel .desc { order: 2; }
+    }
+    @media (max-width: 620px) {
+      header.site nav a:not(.gh) { display: none; }
+      .features { grid-template-columns: 1fr; }
+      .tabs { width: 100%; }
+      .hero-meta { gap: 14px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+      .topo .scanline, .badge .dot { display: none; }
+      .reveal { opacity: 1; transform: none; }
+      .pulse { display: none; }
     }
   </style>
 </head>
 <body>
+  <a class="skip" href="#main" style="position:absolute;left:-999px;top:0;background:var(--brand);color:#fff;padding:10px 16px;border-radius:8px;z-index:100;" onfocus="this.style.left='12px';this.style.top='12px';" onblur="this.style.left='-999px';">Skip to content</a>
+
   <header class="site">
-    <div class="wrap">
-      <img src="assets/logo.svg" alt="MyNeS logo">
-      <span class="name">MyNeS</span>
-      <nav>
+    <div class="bar">
+      <a class="logo-lockup" href="#top" aria-label="MyNeS home">
+        <img src="assets/logo.svg" alt="MyNeS logo" width="30" height="30">
+        <span class="name">MyNeS</span>
+      </a>
+      <nav aria-label="Primary">
         <a href="#features">Features</a>
+        <a href="#views">Views</a>
+        <a href="#security">Security</a>
         <a href="#quickstart">Quick start</a>
-        <a href="https://github.com/fxerkan/my_network_scanner">GitHub</a>
-        <a href="https://hub.docker.com/r/fxerkan/my_network_scanner">Docker Hub</a>
+        <a class="gh" href="https://github.com/fxerkan/my_network_scanner">GitHub</a>
       </nav>
     </div>
   </header>
 
-  <main>
-    <div class="wrap">
-      <div class="hero">
-        <img class="logo" src="assets/logo.svg" alt="My Network Scanner logo">
-        <h1>My Network Scanner (MyNeS)</h1>
-        <p class="tag">Your family's user-friendly network scanner</p>
-        <p class="lead">
-          A self-hosted, open-source application that scans every device on your local network —
-          routers, laptops, phones, IP cameras, consoles, smart-home appliances — and lets you
-          manage them from a modern, user-friendly web interface. Advanced scanning, AI-powered
-          device identification, and security analysis included.
-        </p>
-        <div class="btns">
-          <a class="btn primary" href="https://github.com/fxerkan/my_network_scanner">View on GitHub</a>
-          <a class="btn ghost" href="#quickstart">Docker quick start</a>
-          <a class="btn ghost" href="https://hub.docker.com/r/fxerkan/my_network_scanner">Docker Hub</a>
+  <main id="main">
+    <span id="top"></span>
+
+    <!-- ============ HERO ============ -->
+    <section class="hero">
+      <div class="wrap">
+        <div class="hero-grid">
+          <div class="hero-copy">
+            <span class="badge"><span class="dot" aria-hidden="true"></span> Self-hosted · Open source · MIT</span>
+            <h1>See every device on your network.
+              <span class="sub">My Network Scanner: your family's user-friendly network scanner.</span>
+            </h1>
+            <p class="lead">
+              A self-hosted, open-source application that scans every device on your local network —
+              routers, laptops, phones, IP cameras, consoles, smart-home appliances — and lets you
+              manage them from a modern, user-friendly web interface. Advanced scanning, AI-powered
+              device identification, and security analysis included.
+            </p>
+            <div class="btns">
+              <a class="btn primary" href="https://github.com/fxerkan/my_network_scanner">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.2.8-.5v-2c-3.2.7-3.9-1.4-3.9-1.4-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.8 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.3 1.2a11.4 11.4 0 0 1 6 0C17.3 4.7 18.3 5 18.3 5c.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.5-2.7 5.5-5.3 5.8.4.4.8 1.1.8 2.2v3.3c0 .3.2.6.8.5 4.6-1.5 7.9-5.8 7.9-10.9C23.5 5.7 18.3.5 12 .5z"/></svg>
+                View on GitHub
+              </a>
+              <a class="btn ghost" href="#quickstart">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M13.5 3H4.5A1.5 1.5 0 0 0 3 4.5v9M20.5 10.5V19.5A1.5 1.5 0 0 1 19 21h-9M7 21H4.5A1.5 1.5 0 0 1 3 19.5V17M21 7V4.5A1.5 1.5 0 0 0 19.5 3H17" stroke-linecap="round"/></svg>
+                Docker quick start
+              </a>
+            </div>
+            <div class="hero-meta">
+              <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 6 9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg> ARP · mDNS · SSDP · BLE · MQTT</span>
+              <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 6 9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg> Runs on a Raspberry Pi</span>
+              <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 6 9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg> No cloud, no telemetry</span>
+            </div>
+          </div>
+
+          <!-- Interactive topology -->
+          <div class="topo" role="img" aria-label="Animated diagram of a home network: a router discovering laptops, phones, cameras and smart-home devices across several subnets.">
+            <div class="scanline" aria-hidden="true"></div>
+            <svg viewBox="0 0 400 400" aria-hidden="true" id="topoSvg">
+              <g id="edges" stroke-linecap="round"></g>
+              <g id="pulses"></g>
+              <g id="nodes"></g>
+            </svg>
+            <div class="cap">discovered <b id="devCount">0</b> devices · scanning…</div>
+          </div>
         </div>
       </div>
+    </section>
 
-      <figure>
-        <img class="shot" src="assets/mynes.png" alt="MyNeS web interface showing discovered network devices" loading="lazy">
-      </figure>
-    </div>
-
+    <!-- ============ FEATURES ============ -->
     <section id="features">
       <div class="wrap">
-        <h2>Features</h2>
-        <div class="grid">
-          <div class="card"><h3>Web-based interface</h3><p>A modern, responsive, user-friendly web UI for managing your network.</p></div>
-          <div class="card"><h3>Automatic network discovery</h3><p>Determines your local network range automatically.</p></div>
-          <div class="card"><h3>ARP scanning</h3><p>Uses the ARP protocol for fast device discovery.</p></div>
-          <div class="card"><h3>Advanced port scanning</h3><p>Comprehensive service detection across 1000+ ports.</p></div>
-          <div class="card"><h3>Device type detection</h3><p>Automatically detects routers, computers, phones, cameras and more.</p></div>
-          <div class="card"><h3>Docker integration</h3><p>Detects running containers and virtual network interfaces.</p></div>
-          <div class="card"><h3>Multi-protocol analysis</h3><p>SSH, FTP, HTTP and SNMP support for deeper detection.</p></div>
-          <div class="card"><h3>Device management</h3><p>Edit device info, add custom attributes and manual ports.</p></div>
-          <div class="card"><h3>AI-powered identification</h3><p>"Identify with AI" via Anthropic, OpenAI or OpenRouter (optional, bring your own key).</p></div>
-          <div class="card"><h3>OUI / vendor database</h3><p>IEEE OUI database with 37,000+ vendor records and online API fallback.</p></div>
-          <div class="card"><h3>Multi-language</h3><p>Turkish and English language support.</p></div>
-          <div class="card"><h3>PWA</h3><p>Installable to the home screen, light/dark theme, 320px up to a TV.</p></div>
+        <div class="section-head reveal">
+          <span class="k">Capabilities</span>
+          <h2>Everything you need to map a home network</h2>
+          <p>From a fast ARP sweep to AI-assisted identification, MyNeS turns a wall of IP addresses into an inventory you can actually read.</p>
+        </div>
+        <div class="features" id="featGrid">
+          <!-- feature cards injected below in markup for no-JS resilience -->
+          <article class="feat reveal"><div class="ic">%WEB%</div><h3>Web-based interface</h3><p>A modern, responsive, user-friendly web UI for managing your network.</p></article>
+          <article class="feat reveal"><div class="ic">%DISCOVER%</div><h3>Automatic network discovery</h3><p>Determines your local network range automatically.</p></article>
+          <article class="feat reveal"><div class="ic">%ARP%</div><h3>ARP scanning</h3><p>Uses the ARP protocol for fast device discovery.</p></article>
+          <article class="feat reveal"><div class="ic">%PORT%</div><h3>Advanced port scanning</h3><p>Comprehensive service detection across 1000+ ports.</p></article>
+          <article class="feat reveal"><div class="ic">%TYPE%</div><h3>Device type detection</h3><p>Automatically detects routers, computers, phones, cameras and more.</p></article>
+          <article class="feat reveal"><div class="ic">%DOCKER%</div><h3>Docker integration</h3><p>Detects running containers and virtual network interfaces.</p></article>
+          <article class="feat reveal"><div class="ic">%PROTO%</div><h3>Multi-protocol analysis</h3><p>SSH, FTP, HTTP and SNMP support for deeper detection.</p></article>
+          <article class="feat reveal"><div class="ic">%MANAGE%</div><h3>Device management</h3><p>Edit device info, add custom attributes and manual ports.</p></article>
+          <article class="feat reveal"><div class="ic">%AI%</div><h3>AI-powered identification</h3><p>“Identify with AI” via Anthropic, OpenAI or OpenRouter (optional, bring your own key).</p></article>
+          <article class="feat reveal"><div class="ic">%OUI%</div><h3>OUI / vendor database</h3><p>IEEE OUI database with 37,000+ vendor records and online API fallback.</p></article>
+          <article class="feat reveal"><div class="ic">%LANG%</div><h3>Multi-language</h3><p>Turkish and English language support.</p></article>
+          <article class="feat reveal"><div class="ic">%PWA%</div><h3>PWA</h3><p>Installable to the home screen, light/dark theme, 320px up to a TV.</p></article>
         </div>
       </div>
     </section>
 
+    <!-- ============ MULTI-PROTOCOL DISCOVERY ============ -->
     <section id="discovery">
       <div class="wrap">
-        <h2>Multi-protocol discovery</h2>
-        <p class="note">
-          An IP scan misses half a home network. MyNeS listens to everything that announces itself:
-          mDNS/Bonjour (printers, NAS, Chromecast, HomeKit), Matter, SSDP/UPnP (routers, smart TVs,
-          cameras, consoles), Bluetooth LE (devices with no IP at all) and Zigbee/Z-Wave over MQTT.
-        </p>
-        <figure>
-          <img class="shot" src="assets/screenshots/discovery.png" alt="MyNeS multi-protocol discovery screen" loading="lazy">
-        </figure>
-      </div>
-    </section>
-
-    <section id="views">
-      <div class="wrap">
-        <h2>Five views</h2>
-        <p class="note">The device list can be read five ways, switched from the toolbar.</p>
-        <table>
-          <thead><tr><th>View</th><th>What it is for</th></tr></thead>
-          <tbody>
-            <tr><td>Cards / Table</td><td>Detail and bulk editing</td></tr>
-            <tr><td>Graph</td><td>The whole network at a glance; subnet gateways as hubs</td></tr>
-            <tr><td>Topology</td><td>What is plugged into what: Internet → router → switch/AP → group → device</td></tr>
-            <tr><td>Home plan</td><td>Drag devices onto a plan of your home</td></tr>
-          </tbody>
-        </table>
-        <figure>
-          <img class="shot" src="assets/screenshots/graph-view.png" alt="MyNeS graph view of the network" loading="lazy">
-          <figcaption>Graph view</figcaption>
-        </figure>
-        <figure>
-          <img class="shot" src="assets/screenshots/topology-view.png" alt="MyNeS network topology diagram" loading="lazy">
-          <figcaption>Topology diagram</figcaption>
-        </figure>
-        <figure>
-          <img class="shot" src="assets/screenshots/home-view.png" alt="MyNeS home plan view" loading="lazy">
-          <figcaption>Home plan view</figcaption>
-        </figure>
-      </div>
-    </section>
-
-    <section id="monitoring">
-      <div class="wrap">
-        <h2>Monitoring, alerts and notifications</h2>
-        <p class="note">
-          Scans on a schedule, diffs consecutive scans and reports what matters: new device,
-          device offline, IP change, MAC change (ARP spoofing), newly opened port, under-voltage,
-          low battery, high latency, weak signal. Delivery via MyNeS's own Web Push, a Home
-          Assistant notify service, ntfy, Telegram, webhook, Slack, Discord and email.
-        </p>
-        <figure>
-          <img class="shot" src="assets/screenshots/monitoring-alerts.png" alt="MyNeS monitoring and alerts screen" loading="lazy">
-        </figure>
-      </div>
-    </section>
-
-    <section id="security">
-      <div class="wrap">
-        <h2>Security &amp; vulnerability analysis</h2>
-        <p class="note">
-          The Security page shows the whole fleet's attack surface and known-CVE exposure, worst
-          first (curated offline match, not a live feed): a weighted fleet risk score, severity
-          distribution, a "what to fix first" list and per-device detail. Credentials are stored
-          with Fernet symmetric encryption and sanitized on export.
-        </p>
-        <figure>
-          <img class="shot" src="assets/screenshots/secuirty.png" alt="MyNeS security attack surface and CVE exposure" loading="lazy">
-        </figure>
-      </div>
-    </section>
-
-    <section id="integrations">
-      <div class="wrap">
-        <h2>Integrations &amp; REST API</h2>
-        <p class="note">
-          Settings → Integrations offers InfluxDB 2 (Grafana push), Prometheus (Grafana scrape)
-          and the app's full REST API catalog, read live and downloadable as OpenAPI (swagger.json).
-          Home Assistant integration works via MQTT Discovery (push) and REST/WebSocket (pull).
-        </p>
-        <figure>
-          <img class="shot" src="assets/screenshots/integrations-rest-api.png" alt="MyNeS integrations and REST API catalog" loading="lazy">
-        </figure>
-      </div>
-    </section>
-
-    <section id="mobile">
-      <div class="wrap">
-        <h2>On a phone</h2>
-        <p class="note">
-          MyNeS is a PWA: installable to the home screen, follows the OS light/dark preference,
-          and lays out from a 320px phone up to a TV.
-        </p>
-        <div class="mobile-shots">
-          <img src="assets/screenshots/mobile-1.png" alt="MyNeS mobile device list" loading="lazy">
-          <img src="assets/screenshots/mobile-2.png" alt="MyNeS mobile device detail" loading="lazy">
+        <div class="split">
+          <div class="reveal">
+            <span class="k" style="font-family:var(--font-mono);font-size:.78rem;letter-spacing:.16em;text-transform:uppercase;color:var(--brand-bright);display:block;margin-bottom:12px;">Discovery</span>
+            <h2>An IP scan misses half a home network</h2>
+            <p class="note">
+              MyNeS listens to everything that announces itself:
+              mDNS/Bonjour (printers, NAS, Chromecast, HomeKit), Matter, SSDP/UPnP (routers, smart TVs,
+              cameras, consoles), Bluetooth LE (devices with no IP at all) and Zigbee/Z-Wave over MQTT.
+            </p>
+            <div class="protos" role="list" aria-label="Discovery protocols">
+              <span class="chip" role="listitem"><span class="led"></span>ARP</span>
+              <span class="chip" role="listitem"><span class="led"></span>mDNS / Bonjour</span>
+              <span class="chip" role="listitem"><span class="led"></span>Matter</span>
+              <span class="chip" role="listitem"><span class="led"></span>SSDP / UPnP</span>
+              <span class="chip" role="listitem"><span class="led"></span>Bluetooth LE</span>
+              <span class="chip" role="listitem"><span class="led"></span>Zigbee / Z-Wave · MQTT</span>
+            </div>
+          </div>
+          <figure class="reveal frame">
+            <div class="dots" aria-hidden="true"><i></i><i></i><i></i></div>
+            <img class="shot" src="assets/screenshots/discovery.png" alt="MyNeS multi-protocol discovery screen listing devices found via mDNS, SSDP, Bluetooth LE and MQTT" loading="lazy" style="box-shadow:none;">
+          </figure>
         </div>
       </div>
     </section>
 
+    <!-- ============ FIVE VIEWS (tabs) ============ -->
+    <section id="views">
+      <div class="wrap">
+        <div class="section-head reveal">
+          <span class="k">One inventory, five lenses</span>
+          <h2>Read your network the way that fits the task</h2>
+          <p>The device list can be read five ways, switched from the toolbar. Pick a view.</p>
+        </div>
+
+        <div class="reveal">
+          <div class="tabs" role="tablist" aria-label="Network views">
+            <button class="tab" role="tab" id="tab-0" aria-controls="view-0" aria-selected="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="4" width="18" height="7" rx="1.5"/><rect x="3" y="14" width="18" height="6" rx="1.5"/></svg>Cards / Table</button>
+            <button class="tab" role="tab" id="tab-1" aria-controls="view-1" aria-selected="false" tabindex="-1">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="7" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M8 7 15.5 8M8 8l3 8M16 9l-3 7" stroke-linecap="round"/></svg>Graph</button>
+            <button class="tab" role="tab" id="tab-2" aria-controls="view-2" aria-selected="false" tabindex="-1">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="9" y="2" width="6" height="5" rx="1"/><rect x="2" y="16" width="6" height="5" rx="1"/><rect x="16" y="16" width="6" height="5" rx="1"/><path d="M12 7v4M5 16v-3h14v3M12 13v3" stroke-linecap="round"/></svg>Topology</button>
+            <button class="tab" role="tab" id="tab-3" aria-controls="view-3" aria-selected="false" tabindex="-1">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 11 12 4l9 7M5 10v9h14v-9" stroke-linecap="round" stroke-linejoin="round"/></svg>Home plan</button>
+          </div>
+
+          <div class="panel" role="tabpanel" id="view-0" aria-labelledby="tab-0">
+            <div class="desc"><span class="tag">Cards / Table</span><h3>Detail and bulk editing</h3><p>The dense view for reading device attributes and editing many at once.</p></div>
+            <figure class="frame"><div class="dots" aria-hidden="true"><i></i><i></i><i></i></div><img class="shot" src="assets/mynes.png" alt="MyNeS web interface showing discovered network devices in a card and table layout" loading="lazy" style="box-shadow:none;"></figure>
+          </div>
+          <div class="panel" role="tabpanel" id="view-1" aria-labelledby="tab-1" hidden>
+            <div class="desc"><span class="tag">Graph</span><h3>The whole network at a glance</h3><p>Subnet gateways sit as hubs; every device hangs off the segment it lives on.</p></div>
+            <figure class="frame"><div class="dots" aria-hidden="true"><i></i><i></i><i></i></div><img class="shot" src="assets/screenshots/graph-view.png" alt="MyNeS graph view of the network with subnet gateways as hubs" loading="lazy" style="box-shadow:none;"></figure>
+          </div>
+          <div class="panel" role="tabpanel" id="view-2" aria-labelledby="tab-2" hidden>
+            <div class="desc"><span class="tag">Topology</span><h3>What is plugged into what</h3><p>Internet → router → switch / AP → group → device, laid out as the physical path.</p></div>
+            <figure class="frame"><div class="dots" aria-hidden="true"><i></i><i></i><i></i></div><img class="shot" src="assets/screenshots/topology-view.png" alt="MyNeS network topology diagram from internet to router to devices" loading="lazy" style="box-shadow:none;"></figure>
+          </div>
+          <div class="panel" role="tabpanel" id="view-3" aria-labelledby="tab-3" hidden>
+            <div class="desc"><span class="tag">Home plan</span><h3>Drag devices onto a plan of your home</h3><p>Place each device in the room where it actually lives.</p></div>
+            <figure class="frame"><div class="dots" aria-hidden="true"><i></i><i></i><i></i></div><img class="shot" src="assets/screenshots/home-view.png" alt="MyNeS home plan view with devices placed on a floor plan" loading="lazy" style="box-shadow:none;"></figure>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ MONITORING ============ -->
+    <section id="monitoring">
+      <div class="wrap">
+        <div class="split">
+          <figure class="reveal frame">
+            <div class="dots" aria-hidden="true"><i></i><i></i><i></i></div>
+            <img class="shot" src="assets/screenshots/monitoring-alerts.png" alt="MyNeS monitoring and alerts screen showing scheduled scans and change notifications" loading="lazy" style="box-shadow:none;">
+          </figure>
+          <div class="reveal">
+            <span class="k" style="font-family:var(--font-mono);font-size:.78rem;letter-spacing:.16em;text-transform:uppercase;color:var(--brand-bright);display:block;margin-bottom:12px;">Monitoring</span>
+            <h2>It watches so you don't have to</h2>
+            <p class="note">
+              Scans on a schedule, diffs consecutive scans and reports what matters. Delivery via MyNeS's own Web Push, a Home
+              Assistant notify service, ntfy, Telegram, webhook, Slack, Discord and email.
+            </p>
+            <div class="alert-strip" aria-label="Types of change MyNeS reports">
+              <span class="a"><b style="background:var(--accent)"></b>New device</span>
+              <span class="a"><b style="background:var(--muted-dim)"></b>Device offline</span>
+              <span class="a"><b style="background:var(--brand-bright)"></b>IP change</span>
+              <span class="a"><b style="background:var(--accent-2)"></b>MAC change (ARP spoofing)</span>
+              <span class="a"><b style="background:var(--accent-2)"></b>Newly opened port</span>
+              <span class="a"><b style="background:var(--accent-2)"></b>Under-voltage</span>
+              <span class="a"><b style="background:var(--accent-2)"></b>Low battery</span>
+              <span class="a"><b style="background:var(--accent-2)"></b>High latency</span>
+              <span class="a"><b style="background:var(--accent-2)"></b>Weak signal</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SECURITY ============ -->
+    <section id="security">
+      <div class="wrap">
+        <div class="split">
+          <div class="reveal">
+            <span class="k" style="font-family:var(--font-mono);font-size:.78rem;letter-spacing:.16em;text-transform:uppercase;color:var(--brand-bright);display:block;margin-bottom:12px;">Security</span>
+            <h2>Your fleet's attack surface, worst first</h2>
+            <p class="note">
+              The Security page shows the whole fleet's attack surface and known-CVE exposure, worst
+              first (curated offline match, not a live feed): a weighted fleet risk score, severity
+              distribution, a “what to fix first” list and per-device detail. Credentials are stored
+              with Fernet symmetric encryption and sanitized on export.
+            </p>
+          </div>
+          <figure class="reveal frame">
+            <div class="dots" aria-hidden="true"><i></i><i></i><i></i></div>
+            <img class="shot" src="assets/screenshots/secuirty.png" alt="MyNeS security page showing attack surface, fleet risk score and CVE exposure" loading="lazy" style="box-shadow:none;">
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ INTEGRATIONS ============ -->
+    <section id="integrations">
+      <div class="wrap">
+        <div class="split">
+          <figure class="reveal frame">
+            <div class="dots" aria-hidden="true"><i></i><i></i><i></i></div>
+            <img class="shot" src="assets/screenshots/integrations-rest-api.png" alt="MyNeS integrations screen with InfluxDB, Prometheus and the REST API catalog" loading="lazy" style="box-shadow:none;">
+          </figure>
+          <div class="reveal">
+            <span class="k" style="font-family:var(--font-mono);font-size:.78rem;letter-spacing:.16em;text-transform:uppercase;color:var(--brand-bright);display:block;margin-bottom:12px;">Integrations &amp; API</span>
+            <h2>Plugs into the stack you already run</h2>
+            <p class="note">
+              Settings → Integrations offers InfluxDB 2 (Grafana push), Prometheus (Grafana scrape)
+              and the app's full REST API catalog, read live and downloadable as OpenAPI (swagger.json).
+              Home Assistant integration works via MQTT Discovery (push) and REST/WebSocket (pull).
+            </p>
+            <div class="protos">
+              <span class="chip"><span class="led"></span>InfluxDB 2</span>
+              <span class="chip"><span class="led"></span>Prometheus</span>
+              <span class="chip"><span class="led"></span>Grafana</span>
+              <span class="chip"><span class="led"></span>Home Assistant</span>
+              <span class="chip"><span class="led"></span>OpenAPI / Swagger</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ MOBILE ============ -->
+    <section id="mobile">
+      <div class="wrap">
+        <div class="section-head reveal" style="text-align:center;margin-inline:auto;">
+          <span class="k">On a phone</span>
+          <h2>A PWA that lays out from 320px to a TV</h2>
+          <p>Installable to the home screen, follows the OS light/dark preference, and adapts across every screen.</p>
+        </div>
+        <div class="mobile-shots reveal">
+          <figure><img src="assets/screenshots/mobile-1.png" alt="MyNeS mobile device list on a phone" loading="lazy"></figure>
+          <figure><img src="assets/screenshots/mobile-2.png" alt="MyNeS mobile device detail on a phone" loading="lazy"></figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ QUICK START ============ -->
     <section id="quickstart">
       <div class="wrap">
-        <h2>Quick start — Docker</h2>
-        <p class="note">
-          The image is published for <code>linux/amd64</code> and <code>linux/arm64</code>, so it
-          runs on a Raspberry Pi or Orange Pi as-is.
-        </p>
+        <div class="section-head reveal">
+          <span class="k">Quick start</span>
+          <h2>Running in one command</h2>
+          <p>The image is published for <code class="inline-code">linux/amd64</code> and <code class="inline-code">linux/arm64</code>, so it runs on a Raspberry Pi or Orange Pi as-is.</p>
+        </div>
 
-        <h3>Docker Compose (recommended)</h3>
-        <pre><code>services:
-  mynes:
+        <div class="reveal">
+          <div class="qs-tabs" role="tablist" aria-label="Install method">
+            <button class="qs-tab" role="tab" id="qtab-0" aria-controls="qs-0" aria-selected="true">docker-compose.yml</button>
+            <button class="qs-tab" role="tab" id="qtab-1" aria-controls="qs-1" aria-selected="false" tabindex="-1">docker run</button>
+            <button class="qs-tab" role="tab" id="qtab-2" aria-controls="qs-2" aria-selected="false" tabindex="-1">from source</button>
+          </div>
+
+          <div class="codeblock" role="tabpanel" id="qs-0" aria-labelledby="qtab-0">
+            <button class="copy" type="button" data-copy="compose">Copy</button>
+<pre><code id="code-compose"><span class="kw">services</span>:
+  <span class="kw">mynes</span>:
     image: fxerkan/my_network_scanner:latest
     container_name: mynes
-    # Host networking is what lets it actually see the LAN.
+    <span class="cmt"># Host networking is what lets it actually see the LAN.</span>
     network_mode: host
     cap_add:
       - NET_ADMIN
@@ -304,50 +663,68 @@
       - ./data:/app/data
       - ./config:/app/config
     environment:
-      MYNES_PORT: 5883
-      MYNES_PASSWORD: ""
+      MYNES_PORT: <span class="str">5883</span>
+      MYNES_PASSWORD: <span class="str">""</span>
     restart: unless-stopped</code></pre>
-        <pre><code>docker compose up -d</code></pre>
+          </div>
 
-        <h3>Docker Run</h3>
-        <pre><code>docker run -d \
+          <div class="codeblock" role="tabpanel" id="qs-1" aria-labelledby="qtab-1" hidden>
+            <button class="copy" type="button" data-copy="run">Copy</button>
+<pre><code id="code-run">docker run -d \
   --name mynes \
   --network host \
   --cap-add=NET_ADMIN \
   --cap-add=NET_RAW \
-  -v "$(pwd)/data:/app/data" \
-  -v "$(pwd)/config:/app/config" \
-  -e MYNES_PORT=5883 \
+  -v <span class="str">"$(pwd)/data:/app/data"</span> \
+  -v <span class="str">"$(pwd)/config:/app/config"</span> \
+  -e MYNES_PORT=<span class="str">5883</span> \
   --restart unless-stopped \
   fxerkan/my_network_scanner:latest</code></pre>
-        <p class="note">
-          Web UI: <code>http://&lt;your-server-ip&gt;:5883</code>. Host networking and NET_RAW /
-          NET_ADMIN are required because MyNeS sends raw ARP frames and listens for mDNS/SSDP
-          multicast. It does not run as root and is not privileged. Only scan networks you own.
-        </p>
+          </div>
 
-        <h3>From source</h3>
-        <pre><code>git clone https://github.com/fxerkan/my_network_scanner.git
+          <div class="codeblock" role="tabpanel" id="qs-2" aria-labelledby="qtab-2" hidden>
+            <button class="copy" type="button" data-copy="src">Copy</button>
+<pre><code id="code-src">git clone https://github.com/fxerkan/my_network_scanner.git
 cd my_network_scanner
 python scripts/run.py</code></pre>
-        <p class="note">
-          Requires Python 3.9+ and Nmap. <code>scripts/run.py</code> creates the virtual
-          environment, installs dependencies, checks for nmap and starts the app.
+          </div>
+        </div>
+
+        <p class="note" style="margin-top:18px;">
+          Then start it with <code class="inline-code">docker compose up -d</code> and open the web UI at
+          <code class="inline-code">http://&lt;your-server-ip&gt;:5883</code>. Host networking and NET_RAW /
+          NET_ADMIN are required because MyNeS sends raw ARP frames and listens for mDNS/SSDP
+          multicast. It does not run as root and is not privileged. From source requires Python 3.9+ and Nmap;
+          <code class="inline-code">scripts/run.py</code> creates the virtual environment, installs dependencies, checks for nmap and starts the app.
+          Only scan networks you own.
         </p>
       </div>
     </section>
 
+    <!-- ============ CTA + LINKS ============ -->
     <section id="links">
       <div class="wrap">
-        <h2>Links</h2>
-        <ul>
-          <li><a href="https://github.com/fxerkan/my_network_scanner">GitHub repository</a></li>
-          <li><a href="https://github.com/fxerkan/my_network_scanner/releases">Releases</a></li>
-          <li><a href="https://hub.docker.com/r/fxerkan/my_network_scanner">Docker Hub</a></li>
-          <li><a href="https://github.com/fxerkan/my_network_scanner/blob/main/CHANGELOG.md">Changelog</a></li>
-          <li><a href="https://github.com/fxerkan/my_network_scanner/blob/main/README.md">README (Türkçe)</a></li>
-          <li><a href="https://github.com/fxerkan/my_network_scanner/blob/main/docs/README_ENG.md">README (English)</a></li>
-          <li><a href="https://github.com/fxerkan/my_network_scanner/issues">Issues</a></li>
+        <div class="cta reveal" style="margin-bottom:44px;">
+          <h2>Take the guesswork out of your LAN</h2>
+          <p>Free, MIT-licensed, and self-hosted. Clone it, or pull the image and be scanning in under a minute.</p>
+          <div class="btns" style="justify-content:center;">
+            <a class="btn primary" href="https://github.com/fxerkan/my_network_scanner">
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.2.8-.5v-2c-3.2.7-3.9-1.4-3.9-1.4-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.8 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.3 1.2a11.4 11.4 0 0 1 6 0C17.3 4.7 18.3 5 18.3 5c.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.5-2.7 5.5-5.3 5.8.4.4.8 1.1.8 2.2v3.3c0 .3.2.6.8.5 4.6-1.5 7.9-5.8 7.9-10.9C23.5 5.7 18.3.5 12 .5z"/></svg>
+              View on GitHub
+            </a>
+            <a class="btn ghost" href="https://hub.docker.com/r/fxerkan/my_network_scanner">Docker Hub</a>
+          </div>
+        </div>
+
+        <h2 class="reveal" style="font-size:1.4rem;margin-bottom:16px;">Links</h2>
+        <ul class="linklist reveal">
+          <li><a href="https://github.com/fxerkan/my_network_scanner"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.2.8-.5v-2c-3.2.7-3.9-1.4-3.9-1.4-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.8 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.3 1.2a11.4 11.4 0 0 1 6 0C17.3 4.7 18.3 5 18.3 5c.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.5-2.7 5.5-5.3 5.8.4.4.8 1.1.8 2.2v3.3c0 .3.2.6.8.5 4.6-1.5 7.9-5.8 7.9-10.9C23.5 5.7 18.3.5 12 .5z"/></svg>GitHub repository<span class="arr">→</span></a></li>
+          <li><a href="https://github.com/fxerkan/my_network_scanner/releases"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke-linecap="round" stroke-linejoin="round"/></svg>Releases<span class="arr">→</span></a></li>
+          <li><a href="https://hub.docker.com/r/fxerkan/my_network_scanner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="10" width="4" height="4"/><rect x="8" y="10" width="4" height="4"/><rect x="13" y="10" width="4" height="4"/><rect x="8" y="5" width="4" height="4"/><path d="M17 12c3 0 4-2 4-2M2 14c0 3 2 5 7 5 6 0 9-4 10-8" stroke-linecap="round"/></svg>Docker Hub<span class="arr">→</span></a></li>
+          <li><a href="https://github.com/fxerkan/my_network_scanner/blob/main/CHANGELOG.md"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6 3h9l3 3v15H6z" stroke-linejoin="round"/><path d="M9 9h6M9 13h6M9 17h4" stroke-linecap="round"/></svg>Changelog<span class="arr">→</span></a></li>
+          <li><a href="https://github.com/fxerkan/my_network_scanner/blob/main/README.md"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 5h16v14H4z"/><path d="M8 9h8M8 13h5" stroke-linecap="round"/></svg>README (Türkçe)<span class="arr">→</span></a></li>
+          <li><a href="https://github.com/fxerkan/my_network_scanner/blob/main/docs/README_ENG.md"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 5h16v14H4z"/><path d="M8 9h8M8 13h5" stroke-linecap="round"/></svg>README (English)<span class="arr">→</span></a></li>
+          <li><a href="https://github.com/fxerkan/my_network_scanner/issues"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01" stroke-linecap="round"/></svg>Issues<span class="arr">→</span></a></li>
         </ul>
       </div>
     </section>
@@ -356,8 +733,189 @@ python scripts/run.py</code></pre>
   <footer class="site">
     <div class="wrap">
       <p>Open source under the MIT License. Made with care by <a href="https://fxerkan.com">FXerkan</a>.</p>
-      <p>This tool should be used only on networks you own. Scanning other people's networks without permission is illegal.</p>
+      <p class="warn">This tool should be used only on networks you own. Scanning other people's networks without permission is illegal.</p>
     </div>
   </footer>
+
+  <script>
+  (function () {
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    /* ---- Feature card icons (drawn SVGs, consistent stroke) ---- */
+    var S = function (p) { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + p + '</svg>'; };
+    var icons = {
+      WEB: S('<rect x="3" y="4" width="18" height="14" rx="2"/><path d="M3 9h18M9 21h6"/>'),
+      DISCOVER: S('<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>'),
+      ARP: S('<path d="M4 12h6l2-5 3 10 2-5h3"/>'),
+      PORT: S('<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h.01M7 12h.01M7 16h.01M11 8h6M11 12h6M11 16h4"/>'),
+      TYPE: S('<rect x="4" y="3" width="16" height="12" rx="2"/><path d="M9 21h6M12 15v6"/>'),
+      DOCKER: S('<rect x="3" y="10" width="4" height="4"/><rect x="8" y="10" width="4" height="4"/><rect x="8" y="5" width="4" height="4"/><path d="M17 12c3 0 4-2 4-2M2 14c0 3 2 5 7 5 6 0 9-4 10-8"/>'),
+      PROTO: S('<path d="M4 7h10M4 7l3-3M4 7l3 3M20 17H10M20 17l-3-3M20 17l-3 3"/>'),
+      MANAGE: S('<path d="M12 3v3M12 18v3M3 12h3M18 12h3M6 6l2 2M16 16l2 2M18 6l-2 2M8 16l-2 2"/><circle cx="12" cy="12" r="3.2"/>'),
+      AI: S('<path d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8z"/><path d="M18 15l.9 2.1L21 18l-2.1.9L18 21l-.9-2.1L15 18l2.1-.9z"/>'),
+      OUI: S('<ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/>'),
+      LANG: S('<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 3.5 6 3.5 9s-1 6.5-3.5 9c-2.5-2.5-3.5-6-3.5-9s1-6.5 3.5-9z"/>'),
+      PWA: S('<rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/>')
+    };
+    document.querySelectorAll('.feat .ic').forEach(function (el) {
+      var key = (el.textContent.match(/%([A-Z]+)%/) || [])[1];
+      el.innerHTML = key && icons[key] ? icons[key] : '';
+    });
+
+    /* ---- Views tablist (roving tabindex + arrow keys) ---- */
+    function wireTabs(listSel, panelPrefix, panelCount, selectedCb) {
+      var list = document.querySelector(listSel);
+      if (!list) return;
+      var tabs = Array.prototype.slice.call(list.querySelectorAll('[role=tab]'));
+      function select(i) {
+        tabs.forEach(function (t, j) {
+          var on = j === i;
+          t.setAttribute('aria-selected', on ? 'true' : 'false');
+          t.tabIndex = on ? 0 : -1;
+          var panel = document.getElementById(t.getAttribute('aria-controls'));
+          if (panel) panel.hidden = !on;
+        });
+        if (selectedCb) selectedCb(i);
+      }
+      tabs.forEach(function (t, i) {
+        t.addEventListener('click', function () { select(i); });
+        t.addEventListener('keydown', function (e) {
+          var n = tabs.length, idx = i;
+          if (e.key === 'ArrowRight' || e.key === 'ArrowDown') idx = (i + 1) % n;
+          else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') idx = (i - 1 + n) % n;
+          else if (e.key === 'Home') idx = 0;
+          else if (e.key === 'End') idx = n - 1;
+          else return;
+          e.preventDefault(); select(idx); tabs[idx].focus();
+        });
+      });
+    }
+    wireTabs('#views .tabs');
+    wireTabs('#quickstart .qs-tabs');
+
+    /* ---- Copy to clipboard ---- */
+    var codeMap = { compose: 'code-compose', run: 'code-run', src: 'code-src' };
+    document.querySelectorAll('.copy').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var el = document.getElementById(codeMap[btn.dataset.copy]);
+        if (!el) return;
+        var text = el.innerText;
+        var done = function () { btn.textContent = 'Copied'; btn.classList.add('done'); setTimeout(function () { btn.textContent = 'Copy'; btn.classList.remove('done'); }, 1600); };
+        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, function(){});
+        else { var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); done(); } catch (e) {} document.body.removeChild(ta); }
+      });
+    });
+
+    /* ---- Scroll reveal ---- */
+    var revs = document.querySelectorAll('.reveal');
+    if (reduce || !('IntersectionObserver' in window)) {
+      revs.forEach(function (r) { r.classList.add('in'); });
+    } else {
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+      }, { threshold: .14, rootMargin: '0px 0px -8% 0px' });
+      revs.forEach(function (r) { io.observe(r); });
+    }
+
+    /* ---- Feature card cursor glow ---- */
+    document.querySelectorAll('.feat').forEach(function (c) {
+      c.addEventListener('pointermove', function (e) {
+        var r = c.getBoundingClientRect();
+        c.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+        c.style.setProperty('--my', (e.clientY - r.top) + 'px');
+      });
+    });
+
+    /* ---- Hero topology graph ---- */
+    var edgesG = document.getElementById('edges');
+    var pulsesG = document.getElementById('pulses');
+    var nodesG = document.getElementById('nodes');
+    if (edgesG && nodesG) {
+      var NS = 'http://www.w3.org/2000/svg';
+      // root router + subnet hubs + leaf devices
+      var root = { x: 200, y: 60, r: 15, root: true, label: 'router' };
+      var hubs = [ { x: 90, y: 190, r: 11 }, { x: 310, y: 190, r: 11 }, { x: 200, y: 230, r: 11 } ];
+      var leaves = [
+        { x: 40, y: 300, hub: 0, g: 'phone' }, { x: 110, y: 330, hub: 0, g: 'laptop' }, { x: 150, y: 275, hub: 0, g: 'cam' },
+        { x: 260, y: 285, hub: 1, g: 'tv' }, { x: 330, y: 320, hub: 1, g: 'cam' }, { x: 370, y: 265, hub: 1, g: 'nas' },
+        { x: 160, y: 350, hub: 2, g: 'bulb' }, { x: 240, y: 350, hub: 2, g: 'sensor' }
+      ];
+      var glyphs = {
+        phone: '<rect x="-4" y="-6" width="8" height="12" rx="1.5"/>',
+        laptop: '<rect x="-6" y="-4" width="12" height="8" rx="1"/><path d="M-8 5h16"/>',
+        cam: '<circle cx="0" cy="0" r="4.5"/><circle cx="0" cy="0" r="1.6"/>',
+        tv: '<rect x="-6" y="-4.5" width="12" height="9" rx="1"/>',
+        nas: '<rect x="-5" y="-6" width="10" height="12" rx="1"/><path d="M-2 -3h.01M-2 0h.01M-2 3h.01"/>',
+        bulb: '<circle cx="0" cy="-1" r="4"/><path d="M-2 5h4"/>',
+        sensor: '<path d="M-5 3a7 7 0 0 1 10 0M-2.5 0.5a3.5 3.5 0 0 1 5 0"/>'
+      };
+      function mk(tag, attrs) { var e = document.createElementNS(NS, tag); for (var k in attrs) e.setAttribute(k, attrs[k]); return e; }
+      function path(a, b) { var my = (a.y + b.y) / 2; return 'M' + a.x + ' ' + a.y + ' C ' + a.x + ' ' + my + ' ' + b.x + ' ' + my + ' ' + b.x + ' ' + b.y; }
+
+      var allNodes = [root].concat(hubs, leaves);
+      // edges: root->hubs, hub->leaves
+      var edgeDefs = [];
+      hubs.forEach(function (h) { edgeDefs.push([root, h]); });
+      leaves.forEach(function (l) { edgeDefs.push([hubs[l.hub], l]); });
+      edgeDefs.forEach(function (pair) {
+        edgesG.appendChild(mk('path', { d: path(pair[0], pair[1]), class: 'edge' }));
+        if (!reduce) {
+          var p = mk('path', { d: path(pair[0], pair[1]), class: 'pulse' });
+          p.style.animationDelay = (Math.random() * -2.6) + 's';
+          pulsesG.appendChild(p);
+        }
+      });
+
+      var nodeEls = [];
+      allNodes.forEach(function (n, i) {
+        var g = mk('g', { class: 'node' + (n.root ? ' root' : ''), transform: 'translate(' + n.x + ',' + n.y + ')' });
+        if (!n.root && i > 3) { g.appendChild(mk('circle', { class: 'ring', r: 10 })); }
+        g.appendChild(mk('circle', { class: 'core', r: n.r || 9 }));
+        var gl = mk('g', { class: 'glyph' });
+        if (n.root) gl.innerHTML = '<path d="M-7 0h14M0 -7v14M-4 -4l8 8M4 -4l-8 8"/>';
+        else if (n.g) gl.innerHTML = glyphs[n.g] || '';
+        else gl.innerHTML = '<circle cx="0" cy="0" r="3"/>';
+        g.appendChild(gl);
+        nodesG.appendChild(g);
+        nodeEls.push(g);
+      });
+
+      // discovery counter + node "light up" cadence
+      var counterEl = document.getElementById('devCount');
+      var total = leaves.length + hubs.length + 1;
+      if (reduce) {
+        if (counterEl) counterEl.textContent = String(total);
+        nodeEls.forEach(function (g) { g.classList.add('on'); });
+      } else {
+        var order = nodeEls.map(function (_, i) { return i; });
+        var found = 0, k = 0;
+        var iv = setInterval(function () {
+          if (k >= order.length) {
+            // brief pause then re-run to keep it alive
+            setTimeout(function () {
+              nodeEls.forEach(function (g) { g.classList.remove('on'); });
+              found = 0; k = 0; if (counterEl) counterEl.textContent = '0';
+            }, 2600);
+            clearInterval(iv);
+            var restart = setInterval(function () { if (k === 0 && found === 0) { clearInterval(restart); light(); } }, 300);
+            return;
+          }
+          nodeEls[order[k]].classList.add('on');
+          found++; k++;
+          if (counterEl) counterEl.textContent = String(found);
+        }, 520);
+        function light() {
+          k = 0; found = 0;
+          var iv2 = setInterval(function () {
+            if (k >= order.length) { clearInterval(iv2); setTimeout(function () {
+              nodeEls.forEach(function (g) { g.classList.remove('on'); }); if (counterEl) counterEl.textContent = '0'; light();
+            }, 2600); return; }
+            nodeEls[order[k]].classList.add('on'); found++; k++; if (counterEl) counterEl.textContent = String(found);
+          }, 520);
+        }
+      }
+    }
+  })();
+  </script>
 </body>
 </html>
