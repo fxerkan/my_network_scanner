@@ -44,6 +44,7 @@ from flask import (
 
 USER_VARS = ("MYNES_AUTH_USERNAME", "MYNES_USERNAME")
 PASS_VARS = ("MYNES_AUTH_PASSWORD", "MYNES_PASSWORD_HASH")
+ENABLED_VARS = ("MYNES_AUTH_ENABLED",)
 
 SESSION_KEY = "mynes_user"
 REMEMBER_DAYS = 30
@@ -184,10 +185,36 @@ def clear_failures() -> None:
 SECURITY_FILE = "security.json"
 
 
+_TRUE = {"1", "true", "yes", "on"}
+_FALSE = {"0", "false", "no", "off"}
+
+
+def auth_enabled_env() -> bool | None:
+    """MYNES_AUTH_ENABLED, if set: True/False, or None when absent/unparseable.
+
+    A store deployment (Cosmos, CasaOS, ...) has no shell to flip the Settings
+    toggle and no .env to edit, so the compose must be able to turn the gate on
+    from the environment. When set, this env wins over the stored flag."""
+    raw = _env(ENABLED_VARS)
+    if raw is None:
+        return None
+    low = raw.strip().lower()
+    if low in _TRUE:
+        return True
+    if low in _FALSE:
+        return False
+    return None
+
+
 def login_required(config_manager) -> bool:
-    """Whether the gate is on. Stored in data/security.json, not in the tracked
-    config.json - whether *your* install is exposed is not a repo default. A
-    value left in config.json is still honoured so upgrades keep working."""
+    """Whether the gate is on. The MYNES_AUTH_ENABLED env wins when set (the
+    only knob a store container has); otherwise stored in data/security.json,
+    not in the tracked config.json - whether *your* install is exposed is not a
+    repo default. A value left in config.json is still honoured so upgrades keep
+    working."""
+    from_env = auth_enabled_env()
+    if from_env is not None:
+        return from_env
     local = load_local(SECURITY_FILE)
     if "login_required" in local:
         return bool(local["login_required"])
@@ -346,6 +373,15 @@ def demo():
     assert _safe_next("https://evil.example") == "/"
     assert _safe_next("//evil.example") == "/"
     assert _safe_next(None) == "/"
+
+    # MYNES_AUTH_ENABLED parsing - stores flip the gate from the environment.
+    for val, want in [("true", True), ("1", True), ("on", True),
+                      ("false", False), ("0", False), ("off", False),
+                      ("maybe", None)]:
+        os.environ["MYNES_AUTH_ENABLED"] = val
+        assert auth_enabled_env() is want, (val, want)
+    os.environ.pop("MYNES_AUTH_ENABLED", None)
+    assert auth_enabled_env() is None
     print("auth demo OK")
 
 

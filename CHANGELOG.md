@@ -6,6 +6,27 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.8.2] — 2026-09-27
+
+Two shipped changes: the login gate can now be turned on straight from the
+environment, and the device list remembers the filters you keep re-applying.
+The first exists because a store install (Cosmos, CasaOS, Portainer, …) has no
+shell to flip the Settings toggle and no `.env` to edit — so an app-store
+compose can now set `MYNES_AUTH_ENABLED=true` alongside the credentials and the
+gate comes up on first boot instead of the LAN device map sitting open.
+
+![The device list with a saved default filter applied](assets/screenshots/home-view.png)
+
+### Added
+
+- **`MYNES_AUTH_ENABLED` environment variable.** When set (`true`/`1`/`on` or
+  `false`/`0`/`off`) it wins over the stored Settings flag, so a container can
+  enable the single-user login gate without a shell. It still refuses to lock
+  you out: the gate only actually engages once credentials are configured
+  (`MYNES_AUTH_USERNAME` / `MYNES_AUTH_PASSWORD`).
+- **Saveable default filters** on the device list, with a filter popover and
+  corrected filter-count badges.
+
 ## [1.8.1] — 2026-08-17
 
 Three data-integrity fixes after a live install lost a day of device edits. The
