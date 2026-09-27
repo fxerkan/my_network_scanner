@@ -12,6 +12,9 @@ services:
     environment:
       - MYNES_PORT=${APP_PORT:-5883}
       - MYNES_PASSWORD=${MYNES_PASSWORD:-}
+      - MYNES_AUTH_ENABLED=${MYNES_AUTH_ENABLED:-false}
+      - MYNES_AUTH_USERNAME=${MYNES_AUTH_USERNAME:-}
+      - MYNES_AUTH_PASSWORD=${MYNES_AUTH_PASSWORD:-}
       - MYNES_MQTT_HOST=${MYNES_MQTT_HOST:-}
       - HA_URL=${HA_URL:-}
       - HA_TOKEN=${HA_TOKEN:-}
@@ -26,6 +29,12 @@ services:
       # runs unprivileged. Harmless if the host has no bluetoothd: MyNeS reports
       # the bus as unreachable instead of failing. Remove to disable BLE.
       - /run/dbus/system_bus_socket:/run/dbus/system_bus_socket
+    healthcheck:
+      test: ["CMD", "python", "-c", "import http.client as h; c=h.HTTPConnection('localhost',5883,timeout=5); c.request('GET','/api/health'); exit(0 if c.getresponse().status < 500 else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     labels:
       traefik.enable: ${APP_EXPOSED}
       traefik.http.middlewares.mynes-web-redirect.redirectscheme.scheme: https

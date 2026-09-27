@@ -19,6 +19,25 @@
   "website": "https://github.com/fxerkan/my_network_scanner",
   "form_fields": [
     {
+      "type": "boolean",
+      "label": "Require sign-in (recommended on an open LAN - also set a username and password below)",
+      "required": false,
+      "default": false,
+      "env_variable": "MYNES_AUTH_ENABLED"
+    },
+    {
+      "type": "text",
+      "label": "Login username (only used when sign-in is required)",
+      "required": false,
+      "env_variable": "MYNES_AUTH_USERNAME"
+    },
+    {
+      "type": "password",
+      "label": "Login password (only used when sign-in is required)",
+      "required": false,
+      "env_variable": "MYNES_AUTH_PASSWORD"
+    },
+    {
       "type": "password",
       "label": "Master password (encrypts stored device credentials, auto-generated if empty)",
       "required": false,

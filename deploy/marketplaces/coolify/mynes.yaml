@@ -18,6 +18,10 @@ services:
     environment:
       - MYNES_PORT=5883
       - MYNES_PASSWORD=${SERVICE_PASSWORD_MYNES}
+      # Login gate: set MYNES_AUTH_ENABLED=true with a username+password to require sign-in.
+      - MYNES_AUTH_ENABLED=${MYNES_AUTH_ENABLED:-false}
+      - MYNES_AUTH_USERNAME=${MYNES_AUTH_USERNAME:-}
+      - MYNES_AUTH_PASSWORD=${MYNES_AUTH_PASSWORD:-}
       - MYNES_MQTT_HOST=${MYNES_MQTT_HOST:-}
       - HA_URL=${HA_URL:-}
       - HA_TOKEN=${HA_TOKEN:-}
