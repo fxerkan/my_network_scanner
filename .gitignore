@@ -200,6 +200,9 @@ config/production_*
 # Screenshots and media (unless specifically needed)
 screenshots/
 !assets/screenshots/
+# The GitHub Pages landing ships its screenshots; keep them tracked.
+!docs/assets/screenshots/
+!docs/assets/screenshots/**
 media/
 assets/temp/
 

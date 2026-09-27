@@ -172,6 +172,8 @@
     .btn.primary:hover { background: var(--brand-bright); transform: translateY(-2px); box-shadow: 0 18px 34px -14px rgba(0,0,0,.95), inset 0 1px 0 rgba(255,255,255,.22); }
     .btn.ghost { background: var(--surface); color: var(--text); border-color: var(--border-bright); }
     .btn.ghost:hover { border-color: var(--brand); background: var(--surface-2); transform: translateY(-2px); }
+    .btn.store[aria-disabled="true"] { opacity: .55; cursor: default; pointer-events: none; }
+    .btn .soon { font-size: .7rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; padding: 2px 6px; border-radius: 6px; background: var(--brand-soft); color: var(--brand-bright); }
 
     .hero-meta { display: flex; gap: 22px; flex-wrap: wrap; margin-top: 30px; color: var(--muted-dim); font-size: .88rem; }
     .hero-meta span { display: inline-flex; align-items: center; gap: 7px; }
@@ -458,7 +460,7 @@
           <article class="feat reveal"><div class="ic">%DOCKER%</div><h3>Docker integration</h3><p>Detects running containers and virtual network interfaces.</p></article>
           <article class="feat reveal"><div class="ic">%PROTO%</div><h3>Multi-protocol analysis</h3><p>SSH, FTP, HTTP and SNMP support for deeper detection.</p></article>
           <article class="feat reveal"><div class="ic">%MANAGE%</div><h3>Device management</h3><p>Edit device info, add custom attributes and manual ports.</p></article>
-          <article class="feat reveal"><div class="ic">%AI%</div><h3>AI-powered identification</h3><p>“Identify with AI” via Anthropic, OpenAI or OpenRouter (optional, bring your own key).</p></article>
+          <article class="feat reveal"><div class="ic">%AI%</div><h3>AI-powered identification</h3><p>“Identify with AI” via Anthropic, OpenAI or OpenRouter (optional, bring your own key). Powered by the optional <strong>MyNeS&nbsp;AI</strong> service that turns raw fingerprints — MAC, open ports, banners, mDNS/SSDP records — into a confident device name, type and OS guess.</p></article>
           <article class="feat reveal"><div class="ic">%OUI%</div><h3>OUI / vendor database</h3><p>IEEE OUI database with 37,000+ vendor records and online API fallback.</p></article>
           <article class="feat reveal"><div class="ic">%LANG%</div><h3>Multi-language</h3><p>Turkish and English language support.</p></article>
           <article class="feat reveal"><div class="ic">%PWA%</div><h3>PWA</h3><p>Installable to the home screen, light/dark theme, 320px up to a TV.</p></article>
@@ -603,13 +605,16 @@
             <p class="note">
               Settings → Integrations offers InfluxDB 2 (Grafana push), Prometheus (Grafana scrape)
               and the app's full REST API catalog, read live and downloadable as OpenAPI (swagger.json).
-              Home Assistant integration works via MQTT Discovery (push) and REST/WebSocket (pull).
+              Home Assistant integration works via MQTT Discovery (push) and REST/WebSocket (pull), and there is a
+              dedicated <a href="https://github.com/fxerkan/mynes-addon">Home Assistant add-on</a> that runs MyNeS as a
+              one-click Supervisor add-on — add the repository, install, and it shows up in your sidebar.
             </p>
             <div class="protos">
               <span class="chip"><span class="led"></span>InfluxDB 2</span>
               <span class="chip"><span class="led"></span>Prometheus</span>
               <span class="chip"><span class="led"></span>Grafana</span>
               <span class="chip"><span class="led"></span>Home Assistant</span>
+              <span class="chip"><span class="led"></span>HA Add-on</span>
               <span class="chip"><span class="led"></span>OpenAPI / Swagger</span>
             </div>
           </div>
@@ -628,6 +633,30 @@
         <div class="mobile-shots reveal">
           <figure><img src="assets/screenshots/mobile-1.png" alt="MyNeS mobile device list on a phone" loading="lazy"></figure>
           <figure><img src="assets/screenshots/mobile-2.png" alt="MyNeS mobile device detail on a phone" loading="lazy"></figure>
+        </div>
+
+        <div class="cta reveal" style="margin-top:44px;">
+          <span class="k" style="justify-content:center;">MyNeS Mobile</span>
+          <h2>Or a standalone native app</h2>
+          <p>
+            <a href="https://github.com/fxerkan/mynes-mobile">MyNeS Mobile</a> is a separate on-device
+            scanner for Android and iOS (React Native + Expo). It discovers, identifies and monitors your
+            home-network devices — MAC, vendor, name, type, OS — with no server and no Docker required.
+          </p>
+          <div class="btns" style="justify-content:center;">
+            <a class="btn ghost store" aria-disabled="true" title="App Store — coming soon">
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.4 12.6c0-2 1.6-3 1.7-3-1-1.4-2.4-1.6-2.9-1.6-1.2-.1-2.4.7-3 .7-.6 0-1.6-.7-2.6-.7-1.3 0-2.6.8-3.3 2-1.4 2.5-.4 6.1 1 8.1.7 1 1.4 2.1 2.5 2.1 1 0 1.4-.7 2.6-.7 1.2 0 1.5.7 2.6.6 1.1 0 1.7-1 2.4-2 .7-1.1 1-2.2 1-2.3-.1 0-2.3-.9-2.5-3.2zM14.6 6c.5-.7.9-1.6.8-2.6-.8 0-1.8.5-2.4 1.2-.5.6-1 1.5-.8 2.5.9.1 1.8-.5 2.4-1.1z"/></svg>
+              App Store <span class="soon">soon</span>
+            </a>
+            <a class="btn ghost store" aria-disabled="true" title="Google Play — coming soon">
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3.6 2.3c-.3.3-.5.7-.5 1.3v16.8c0 .6.2 1 .5 1.3l.1.1 9.4-9.4v-.2L3.7 2.2l-.1.1zM17 15.3l-3.1-3.1v-.2L17 8.9l.1.1 3.7 2.1c1.1.6 1.1 1.6 0 2.2l-3.8 2zM16.3 15.9l-3.2-3.2-9.5 9.5c.4.4 1 .4 1.7 0l11-6.3zM4.8 1.6c-.7-.4-1.3-.4-1.7 0l9.5 9.5 3.2-3.2-11-6.3z"/></svg>
+              Google Play <span class="soon">soon</span>
+            </a>
+            <a class="btn primary" href="https://github.com/fxerkan/mynes-mobile">
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.2.8-.5v-2c-3.2.7-3.9-1.4-3.9-1.4-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.8 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.3 1.2a11.4 11.4 0 0 1 6 0C17.3 4.7 18.3 5 18.3 5c.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.5-2.7 5.5-5.3 5.8.4.4.8 1.1.8 2.2v3.3c0 .3.2.6.8.5 4.6-1.5 7.9-5.8 7.9-10.9C23.5 5.7 18.3.5 12 .5z"/></svg>
+              mynes-mobile on GitHub
+            </a>
+          </div>
         </div>
       </div>
     </section>
@@ -721,6 +750,8 @@ python scripts/run.py</code></pre>
           <li><a href="https://github.com/fxerkan/my_network_scanner"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.2.8-.5v-2c-3.2.7-3.9-1.4-3.9-1.4-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.8 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.3 1.2a11.4 11.4 0 0 1 6 0C17.3 4.7 18.3 5 18.3 5c.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.5-2.7 5.5-5.3 5.8.4.4.8 1.1.8 2.2v3.3c0 .3.2.6.8.5 4.6-1.5 7.9-5.8 7.9-10.9C23.5 5.7 18.3.5 12 .5z"/></svg>GitHub repository<span class="arr">→</span></a></li>
           <li><a href="https://github.com/fxerkan/my_network_scanner/releases"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke-linecap="round" stroke-linejoin="round"/></svg>Releases<span class="arr">→</span></a></li>
           <li><a href="https://hub.docker.com/r/fxerkan/my_network_scanner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="10" width="4" height="4"/><rect x="8" y="10" width="4" height="4"/><rect x="13" y="10" width="4" height="4"/><rect x="8" y="5" width="4" height="4"/><path d="M17 12c3 0 4-2 4-2M2 14c0 3 2 5 7 5 6 0 9-4 10-8" stroke-linecap="round"/></svg>Docker Hub<span class="arr">→</span></a></li>
+          <li><a href="https://github.com/fxerkan/mynes-mobile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2" stroke-linecap="round"/></svg>MyNeS Mobile (Android / iOS)<span class="arr">→</span></a></li>
+          <li><a href="https://github.com/fxerkan/mynes-addon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M10 3H5a2 2 0 0 0-2 2v5h3.5a2.5 2.5 0 1 1 0 5H3v4a2 2 0 0 0 2 2h5v-3.5a2.5 2.5 0 1 1 5 0V21h4a2 2 0 0 0 2-2v-5h-3.5a2.5 2.5 0 1 1 0-5H21V5a2 2 0 0 0-2-2h-5" stroke-linecap="round" stroke-linejoin="round"/></svg>Home Assistant add-on<span class="arr">→</span></a></li>
           <li><a href="https://github.com/fxerkan/my_network_scanner/blob/main/CHANGELOG.md"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6 3h9l3 3v15H6z" stroke-linejoin="round"/><path d="M9 9h6M9 13h6M9 17h4" stroke-linecap="round"/></svg>Changelog<span class="arr">→</span></a></li>
           <li><a href="https://github.com/fxerkan/my_network_scanner/blob/main/README.md"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 5h16v14H4z"/><path d="M8 9h8M8 13h5" stroke-linecap="round"/></svg>README (Türkçe)<span class="arr">→</span></a></li>
           <li><a href="https://github.com/fxerkan/my_network_scanner/blob/main/docs/README_ENG.md"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 5h16v14H4z"/><path d="M8 9h8M8 13h5" stroke-linecap="round"/></svg>README (English)<span class="arr">→</span></a></li>
