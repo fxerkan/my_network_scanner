@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MyNeS Mobile — Privacy Policy</title>
+  <meta name="description" content="Privacy policy for the MyNeS Mobile app: no accounts, no analytics, no trackers. The scan runs on your device.">
+  <link rel="canonical" href="https://fxerkan.github.io/my_network_scanner/privacy.html">
+  <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+  <link rel="apple-touch-icon" href="assets/icon.png">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="MyNeS Mobile — Privacy Policy">
+  <meta property="og:url" content="https://fxerkan.github.io/my_network_scanner/privacy.html">
+  <meta property="og:image" content="https://fxerkan.github.io/my_network_scanner/assets/mynes.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chivo:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --brand: #2f6bff;
+      --bg: #070b12;
+      --surface: #0f1725;
+      --border: #1e2a3e;
+      --text: #eaf1fb;
+      --muted: #93a4bd;
+      --muted-dim: #6a7d98;
+      --radius: 16px;
+      --maxw: 800px;
+      --font-body: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-display: "Chivo", var(--font-body);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+    }
+    .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+    header.site { border-bottom: 1px solid var(--border); padding: 20px 0; }
+    header.site a.back { color: var(--muted); text-decoration: none; font-size: .95rem; }
+    header.site a.back:hover { color: var(--text); }
+    main { padding: 48px 0 24px; }
+    h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(1.8rem, 4vw, 2.4rem); letter-spacing: -.03em; margin: 0 0 8px; }
+    h2 { font-family: var(--font-display); font-weight: 700; font-size: 1.35rem; letter-spacing: -.02em; margin: 40px 0 12px; }
+    p, li { color: var(--text); }
+    a { color: var(--brand); }
+    .updated { color: var(--muted-dim); font-size: .9rem; margin: 0 0 32px; }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 1px 6px; font-size: .88em; }
+    ul { padding-left: 22px; }
+    li { margin: 6px 0; }
+    strong { color: #fff; }
+    footer.site { border-top: 1px solid var(--border); padding: 40px 0; color: var(--muted); font-size: .9rem; text-align: center; margin-top: 48px; }
+    footer.site a { color: var(--muted); }
+  </style>
+</head>
+<body>
+  <header class="site">
+    <div class="wrap"><a class="back" href="./">← MyNeS</a></div>
+  </header>
+
+  <main>
+    <div class="wrap">
+      <h1>MyNeS — Privacy Policy</h1>
+      <p class="updated">Last updated: 2026-09-27</p>
+
+      <p>MyNeS is a local network scanner. The scan runs entirely on your device and talks to the devices on your own Wi‑Fi network. <strong>There are no user accounts, no analytics, no ads, and no trackers.</strong> The one exception is the optional <strong>Identify with AI</strong> feature, described below, which sends the technical facts of a scanned device to our hosted service so it can name the device for you.</p>
+
+      <h2>What the app does</h2>
+      <ul>
+        <li>Scans your local network (Wi‑Fi) to list the devices connected to it, using ping, TCP connect, mDNS/Bonjour, SSDP/UPnP, banner grabs and — if you enable it — Bluetooth LE. This all happens on your device.</li>
+        <li>Optionally connects to a Home Assistant instance <strong>you</strong> configure, using a token <strong>you</strong> provide, to compare its device list with the scan.</li>
+        <li>Optionally, when you tap <strong>Identify with AI</strong> (or enable background scanning with identification), sends a scanned device's technical facts to our hosted identification service to get back a manufacturer/model/type guess.</li>
+      </ul>
+
+      <h2>Data we collect</h2>
+      <p>MyNeS has no telemetry and no crash reporting. The only data that leaves your device to reach <strong>us</strong> is what the optional <strong>Identify with AI</strong> feature sends:</p>
+      <ul>
+        <li><strong>Device facts of the scanned network device</strong> — its local IP, MAC address, hardware vendor (from the MAC), hostname, current type guess, open ports and advertised services. This describes a device on your network, not you.</li>
+        <li><strong>A per‑install token</strong> — a random identifier generated once on your device (e.g. <code>dev_ab12…</code>) and sent with each identification request so the service can tell installs apart and apply rate limits. It is <strong>not</strong> your name, email, phone number, advertising ID, or location, and it is not linked to any account.</li>
+      </ul>
+      <p>This data is sent to <code>https://mynes-ai.fxerkan.com</code> only when you use the feature. It is used solely to identify the device and is <strong>not</strong> used for advertising or tracking. The service may pass the device facts to third‑party AI providers to produce the guess. If you never use <strong>Identify with AI</strong>, no data leaves your device except the LAN/Home Assistant traffic described below.</p>
+
+      <h2>Data stored on your device</h2>
+      <p>Scan results, your device names/notes, settings, and any Home Assistant URL/token you enter are stored <strong>only on your device</strong> (local app storage) so the app works across restarts. Uninstalling the app removes them. This data never leaves your device except:</p>
+      <ul>
+        <li>LAN traffic to the devices being scanned (that is the scan itself),</li>
+        <li>requests to the Home Assistant instance you configured, if you configured one, and</li>
+        <li>the <strong>Identify with AI</strong> requests described above, if you use that feature.</li>
+      </ul>
+
+      <h2>Permissions and why</h2>
+      <ul>
+        <li><strong>Local Network / Wi‑Fi state / multicast</strong> — to discover devices on your LAN.</li>
+        <li><strong>Bluetooth (scan/connect)</strong> — only if you enable BLE discovery; used to find nearby Bluetooth devices. The Android <code>BLUETOOTH_SCAN</code> permission is declared <code>neverForLocation</code>; MyNeS does <strong>not</strong> request or use location.</li>
+        <li><strong>Notifications</strong> — only if you enable background scan alerts.</li>
+      </ul>
+
+      <h2>Contact</h2>
+      <p>Questions: <a href="mailto:fxerkan@gmail.com">fxerkan@gmail.com</a> — source: <a href="https://github.com/FXerkan/mynes-mobile">github.com/FXerkan/mynes-mobile</a></p>
+    </div>
+  </main>
+
+  <footer class="site">
+    <div class="wrap">
+      <p>Open source under the MIT License. Made with care by <a href="https://fxerkan.com">FXerkan</a>.</p>
+    </div>
+  </footer>
+</body>
+</html>
