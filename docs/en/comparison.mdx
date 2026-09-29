@@ -48,35 +48,14 @@ Rows where **MyNeS offers something the others don't** are highlighted in bold.
   </tbody>
 </table>
 
-<Info>
-  **Legend** — ✓ built-in · ~ partial, paid, or via add-on · — not available.
-  MyNeS mobile is a standalone native app for Google Play and the App Store.
-</Info>
+> **Legend** — ✓ built-in · ~ partial, paid, or via add-on · — not available. MyNeS mobile is a standalone native app for Google Play and the App Store.
 
 ## What makes MyNeS different
 
-<Steps>
-  <Step title="It sees the devices an IP scan can't">
-    ARP and ping only find things with an IP. MyNeS also listens to mDNS/Bonjour, SSDP/UPnP,
-    **Bluetooth LE** (no IP at all) and **Zigbee/Z-Wave over MQTT** — so smart-home gear that
-    other scanners miss actually shows up. See [Features → Discovery](/features#discovery).
-  </Step>
-  <Step title="It explains what it found">
-    Vendor lookup, OS and connection-medium guessing, active fingerprinting, and optional
-    **AI identification** turn a wall of IPs into named, typed devices. See
-    [Configuration → AI](/configuration#ai-assisted-identification-optional).
-  </Step>
-  <Step title="It watches and warns">
-    Scheduled scans diff over time and alert on new devices, MAC/IP changes, newly opened ports
-    and health signals — across Web Push, Home Assistant, ntfy, Telegram, Slack, Discord, webhook
-    and email. Plus a fleet **security & CVE** view. See [Features → Monitoring](/features#monitoring--alerts).
-  </Step>
-  <Step title="It fits a home lab">
-    Multi-arch Docker (runs on a Raspberry Pi), a one-click **Home Assistant add-on**, Prometheus
-    / InfluxDB / Grafana, a full REST API, and a native **mobile** client — all self-hosted, no
-    cloud, no telemetry.
-  </Step>
-</Steps>
+1. **It sees the devices an IP scan can't.** ARP and ping only find things with an IP. MyNeS also listens to mDNS/Bonjour, SSDP/UPnP, **Bluetooth LE** (no IP at all) and **Zigbee/Z-Wave over MQTT** — so smart-home gear that other scanners miss actually shows up. See [Features → Discovery](/features#discovery).
+2. **It explains what it found.** Vendor lookup, OS and connection-medium guessing, active fingerprinting, and optional **AI identification** turn a wall of IPs into named, typed devices. See [Configuration → AI](/configuration#ai-assisted-identification-optional).
+3. **It watches and warns.** Scheduled scans diff over time and alert on new devices, MAC/IP changes, newly opened ports and health signals — across Web Push, Home Assistant, ntfy, Telegram, Slack, Discord, webhook and email. Plus a fleet **security & CVE** view. See [Features → Monitoring](/features#monitoring--alerts).
+4. **It fits a home lab.** Multi-arch Docker (runs on a Raspberry Pi), a one-click **Home Assistant add-on**, Prometheus / InfluxDB / Grafana, a full REST API, and a native **mobile** client — all self-hosted, no cloud, no telemetry.
 
 ## When another tool is the better fit
 

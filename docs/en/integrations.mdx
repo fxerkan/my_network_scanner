@@ -21,15 +21,8 @@ Set `HA_URL` and `HA_TOKEN` (a long-lived access token) in your [configuration](
 For HA OS / Supervised, run MyNeS as a one-click Supervisor add-on instead of a separate
 container:
 
-<Steps>
-  <Step title="Add the repository">
-    In HA: **Settings → Add-ons → Add-on Store → ⋮ → Repositories**, add
-    `https://github.com/fxerkan/mynes-addon`.
-  </Step>
-  <Step title="Install & start">
-    Find **MyNeS** in the store, install it, start it. It appears in your sidebar.
-  </Step>
-</Steps>
+1. **Add the repository.** In HA: **Settings → Add-ons → Add-on Store → ⋮ → Repositories**, add `https://github.com/fxerkan/mynes-addon`.
+2. **Install & start.** Find **MyNeS** in the store, install it, start it. It appears in your sidebar.
 
 ## Time-series & dashboards
 
@@ -51,10 +44,7 @@ The app's full REST API catalog is readable live in the UI and downloadable as *
 | Security | `/api/security/vulnerabilities[/<ip>]` |
 | Health & capabilities | `/api/health`, `/api/capabilities` |
 
-<Info>
-  `/api/capabilities` is the machine-readable version of the **Capabilities** page: which
-  optional features are active, and why any are not.
-</Info>
+> `/api/capabilities` is the machine-readable version of the **Capabilities** page: which optional features are active, and why any are not.
 
 ## Mobile
 

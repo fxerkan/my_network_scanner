@@ -12,26 +12,11 @@ Neredeyse her zaman **yetkiler**. Ham ARP (`scapy.srp`) yükseltilmiş yetkiler 
 olmadan MyNeS bir ping taraması artı OS ARP önbelleğine geri döner; bu çoğunu bulur ama hepsini
 değil.
 
-<Steps>
-  <Step title="Docker: host ağı + yetkileri ekleyin">
-    Çalıştırmanızın `network_mode: host` ve `cap_add: [NET_ADMIN, NET_RAW]` içerdiğinden emin
-    olun. Host ağı olmadan konteyner LAN'ı hiç göremez. Bkz. [Kurulum](/installation).
-  </Step>
-  <Step title="Kaynaktan: dar yetkiyi verin">
-    Her şeyi root olarak çalıştırmak yerine OS'a özel yardımcıyı kullanın — tam komutu yazdırır
-    ve yalnızca `--apply` ile uygular; böylece OS parola istemi kendi terminalinizde belirir
-    (Linux `setcap`, macOS ChmodBPF, Windows Npcap).
-  </Step>
-  <Step title="Yöntemi doğrulayın">
-    Arayüz hangi ARP yönteminin kullanıldığını ve geri döndüyse bir ipucu bildirir. Bir
-    ping-taraması sonucu yine de yararlıdır — yalnızca sessiz ana makineleri içermez.
-  </Step>
-</Steps>
+1. **Docker: host ağı + yetkileri ekleyin.** Çalıştırmanızın `network_mode: host` ve `cap_add: [NET_ADMIN, NET_RAW]` içerdiğinden emin olun. Host ağı olmadan konteyner LAN'ı hiç göremez. Bkz. [Kurulum](/installation).
+2. **Kaynaktan: dar yetkiyi verin.** Her şeyi root olarak çalıştırmak yerine OS'a özel yardımcıyı kullanın — tam komutu yazdırır ve yalnızca `--apply` ile uygular; böylece OS parola istemi kendi terminalinizde belirir (Linux `setcap`, macOS ChmodBPF, Windows Npcap).
+3. **Yöntemi doğrulayın.** Arayüz hangi ARP yönteminin kullanıldığını ve geri döndüyse bir ipucu bildirir. Bir ping-taraması sonucu yine de yararlıdır — yalnızca sessiz ana makineleri içermez.
 
-<Warning>
-  Ağ girdisini ayrıştıran bir web uygulaması root olarak çalışmamalıdır. MyNeS bir web
-  isteğinden asla yetki yükseltmez — dar, kalıcı yetki bir kez terminalinizden verilir.
-</Warning>
+> **Warning —** Ağ girdisini ayrıştıran bir web uygulaması root olarak çalışmamalıdır. MyNeS bir web isteğinden asla yetki yükseltmez — dar, kalıcı yetki bir kez terminalinizden verilir.
 
 ## Port / servis tespiti boş
 

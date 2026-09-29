@@ -7,43 +7,37 @@ MyNeS is published as a multi-arch Docker image (`linux/amd64` and `linux/arm64`
 on a Raspberry Pi or Orange Pi exactly as it does on an x86 server. The default port is
 **5883**.
 
-<Warning>
-  MyNeS needs **host networking** and the **NET_RAW / NET_ADMIN** capabilities to actually see
-  the LAN — it sends raw ARP frames and listens for mDNS/SSDP multicast. It does **not** run as
-  root and is not privileged.
-</Warning>
+> **Warning —** MyNeS needs **host networking** and the **NET_RAW / NET_ADMIN** capabilities to actually see the LAN — it sends raw ARP frames and listens for mDNS/SSDP multicast. It does **not** run as root and is not privileged.
 
 ## Option 1 — Docker Compose (recommended)
 
-<Steps>
-  <Step title="Create docker-compose.yml">
-    ```yaml
-    services:
-      mynes:
-        image: fxerkan/my_network_scanner:latest
-        container_name: mynes
-        network_mode: host          # lets it actually see the LAN
-        cap_add:
-          - NET_ADMIN
-          - NET_RAW
-        volumes:
-          - ./data:/app/data
-          - ./config:/app/config
-        environment:
-          MYNES_PORT: 5883
-          MYNES_PASSWORD: ""
-        restart: unless-stopped
-    ```
-  </Step>
-  <Step title="Start it">
-    ```bash
-    docker compose up -d
-    ```
-  </Step>
-  <Step title="Open the web UI">
-    Browse to `http://<your-server-ip>:5883`.
-  </Step>
-</Steps>
+**1. Create `docker-compose.yml`:**
+
+```yaml
+services:
+  mynes:
+    image: fxerkan/my_network_scanner:latest
+    container_name: mynes
+    network_mode: host          # lets it actually see the LAN
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./data:/app/data
+      - ./config:/app/config
+    environment:
+      MYNES_PORT: 5883
+      MYNES_PASSWORD: ""
+    restart: unless-stopped
+```
+
+**2. Start it:**
+
+```bash
+docker compose up -d
+```
+
+**3. Open the web UI** at `http://<your-server-ip>:5883`.
 
 ## Option 2 — docker run
 

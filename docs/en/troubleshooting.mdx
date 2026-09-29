@@ -11,26 +11,11 @@ inactive, the exact reason. Most "problems" are a missing tool or a privilege ga
 Almost always **privileges**. Raw ARP (`scapy.srp`) needs elevated capabilities. Without them
 MyNeS falls back to a ping sweep plus the OS ARP cache, which finds most but not all devices.
 
-<Steps>
-  <Step title="Docker: add host networking + capabilities">
-    Ensure your run includes `network_mode: host` and `cap_add: [NET_ADMIN, NET_RAW]`. Without
-    host networking the container can't see the LAN at all. See [Installation](/installation).
-  </Step>
-  <Step title="From source: grant the narrow capability">
-    Use the per-OS helper instead of running everything as root — it prints the exact command
-    and only applies it with `--apply`, so the OS password prompt appears in your own terminal
-    (Linux `setcap`, macOS ChmodBPF, Windows Npcap).
-  </Step>
-  <Step title="Confirm the method">
-    The UI reports which ARP method was used and a hint if it fell back. A ping-sweep result is
-    still useful — it just won't include silent hosts.
-  </Step>
-</Steps>
+1. **Docker: add host networking + capabilities.** Ensure your run includes `network_mode: host` and `cap_add: [NET_ADMIN, NET_RAW]`. Without host networking the container can't see the LAN at all. See [Installation](/installation).
+2. **From source: grant the narrow capability.** Use the per-OS helper instead of running everything as root — it prints the exact command and only applies it with `--apply`, so the OS password prompt appears in your own terminal (Linux `setcap`, macOS ChmodBPF, Windows Npcap).
+3. **Confirm the method.** The UI reports which ARP method was used and a hint if it fell back. A ping-sweep result is still useful — it just won't include silent hosts.
 
-<Warning>
-  A web app parsing network input should not run as root. MyNeS never escalates privileges from
-  a web request — the narrow, permanent capability is granted once from your terminal.
-</Warning>
+> **Warning —** A web app parsing network input should not run as root. MyNeS never escalates privileges from a web request — the narrow, permanent capability is granted once from your terminal.
 
 ## Port / service detection is empty
 

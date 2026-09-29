@@ -35,10 +35,7 @@ Device credentials are encrypted with **Fernet + PBKDF2-HMAC-SHA256** (100k iter
 master password comes from `MYNES_PASSWORD` or from `config/.master_password` (gitignored,
 mode 600), which is **auto-generated if absent**.
 
-<Warning>
-  `config/config.json` is tracked in git. **Secrets must never be written there.** Keep them in
-  `.env`, `MYNES_PASSWORD`, or the gitignored master-password file.
-</Warning>
+> **Warning —** `config/config.json` is tracked in git. **Secrets must never be written there.** Keep them in `.env`, `MYNES_PASSWORD`, or the gitignored master-password file.
 
 ## Authentication
 
@@ -46,10 +43,7 @@ The web login gate is controlled by `MYNES_AUTH_ENABLED`. When set to `true` / `
 MyNeS requires a login; when unset or `false` / `0` / `off`, the UI is open (fine for a
 trusted LAN).
 
-<Info>
-  Running locally for testing and hitting a login wall? Clear the `MYNES_AUTH_*` variables (or
-  set `MYNES_AUTH_ENABLED=off`) to disable the gate.
-</Info>
+> Running locally for testing and hitting a login wall? Clear the `MYNES_AUTH_*` variables (or set `MYNES_AUTH_ENABLED=off`) to disable the gate.
 
 ## Persistence & volumes
 

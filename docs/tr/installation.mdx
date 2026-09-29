@@ -7,43 +7,37 @@ MyNeS, çok mimarili bir Docker imajı olarak yayınlanır (`linux/amd64` ve `li
 yüzden bir Raspberry Pi veya Orange Pi üzerinde tıpkı x86 sunucudaki gibi çalışır. Varsayılan
 port **5883**'tür.
 
-<Warning>
-  MyNeS'in LAN'ı gerçekten görebilmesi için **host ağı** ve **NET_RAW / NET_ADMIN** yetkileri
-  gerekir — ham ARP çerçeveleri gönderir ve mDNS/SSDP çoklu-yayınını dinler. Root olarak
-  çalışmaz ve ayrıcalıklı değildir.
-</Warning>
+> **Warning —** MyNeS'in LAN'ı gerçekten görebilmesi için **host ağı** ve **NET_RAW / NET_ADMIN** yetkileri gerekir — ham ARP çerçeveleri gönderir ve mDNS/SSDP çoklu-yayınını dinler. Root olarak çalışmaz ve ayrıcalıklı değildir.
 
 ## Seçenek 1 — Docker Compose (önerilen)
 
-<Steps>
-  <Step title="docker-compose.yml oluşturun">
-    ```yaml
-    services:
-      mynes:
-        image: fxerkan/my_network_scanner:latest
-        container_name: mynes
-        network_mode: host          # LAN'ı gerçekten görmesini sağlar
-        cap_add:
-          - NET_ADMIN
-          - NET_RAW
-        volumes:
-          - ./data:/app/data
-          - ./config:/app/config
-        environment:
-          MYNES_PORT: 5883
-          MYNES_PASSWORD: ""
-        restart: unless-stopped
-    ```
-  </Step>
-  <Step title="Başlatın">
-    ```bash
-    docker compose up -d
-    ```
-  </Step>
-  <Step title="Web arayüzünü açın">
-    `http://<sunucu-ip>:5883` adresine gidin.
-  </Step>
-</Steps>
+**1. `docker-compose.yml` oluşturun:**
+
+```yaml
+services:
+  mynes:
+    image: fxerkan/my_network_scanner:latest
+    container_name: mynes
+    network_mode: host          # LAN'ı gerçekten görmesini sağlar
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./data:/app/data
+      - ./config:/app/config
+    environment:
+      MYNES_PORT: 5883
+      MYNES_PASSWORD: ""
+    restart: unless-stopped
+```
+
+**2. Başlatın:**
+
+```bash
+docker compose up -d
+```
+
+**3. Web arayüzünü açın:** `http://<sunucu-ip>:5883` adresine gidin.
 
 ## Seçenek 2 — docker run
 

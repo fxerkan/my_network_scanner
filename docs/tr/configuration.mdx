@@ -35,10 +35,7 @@ Cihaz kimlik bilgileri **Fernet + PBKDF2-HMAC-SHA256** (100k yineleme) ile şifr
 parola `MYNES_PASSWORD`'dan veya `config/.master_password` dosyasından (gitignore'da, mod 600)
 gelir; bu dosya **yoksa otomatik oluşturulur**.
 
-<Warning>
-  `config/config.json` git'te izlenir. **Gizli bilgiler oraya asla yazılmamalıdır.** Bunları
-  `.env`, `MYNES_PASSWORD` veya gitignore'daki ana-parola dosyasında tutun.
-</Warning>
+> **Warning —** `config/config.json` git'te izlenir. **Gizli bilgiler oraya asla yazılmamalıdır.** Bunları `.env`, `MYNES_PASSWORD` veya gitignore'daki ana-parola dosyasında tutun.
 
 ## Kimlik doğrulama
 
@@ -46,10 +43,7 @@ Web oturum açma kapısı `MYNES_AUTH_ENABLED` ile kontrol edilir. `true` / `1` 
 ayarlandığında MyNeS oturum açma ister; ayarlanmadığında veya `false` / `0` / `off` olduğunda
 arayüz açıktır (güvenilir bir LAN için uygun).
 
-<Info>
-  Test için yerelde çalıştırıp bir oturum açma duvarına mı takıldınız? `MYNES_AUTH_*`
-  değişkenlerini temizleyin (veya `MYNES_AUTH_ENABLED=off` yapın) ve kapıyı devre dışı bırakın.
-</Info>
+> Test için yerelde çalıştırıp bir oturum açma duvarına mı takıldınız? `MYNES_AUTH_*` değişkenlerini temizleyin (veya `MYNES_AUTH_ENABLED=off` yapın) ve kapıyı devre dışı bırakın.
 
 ## Kalıcılık ve volume'lar
 

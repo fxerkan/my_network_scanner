@@ -48,35 +48,14 @@ görünümü, birinci sınıf Home Assistant desteği ve yerel bir mobil istemci
   </tbody>
 </table>
 
-<Info>
-  **Açıklama** — ✓ yerleşik · ~ kısmi, ücretli veya eklenti ile · — mevcut değil.
-  MyNeS mobil; Google Play ve App Store için bağımsız, yerel bir uygulamadır.
-</Info>
+> **Açıklama** — ✓ yerleşik · ~ kısmi, ücretli veya eklenti ile · — mevcut değil. MyNeS mobil; Google Play ve App Store için bağımsız, yerel bir uygulamadır.
 
 ## MyNeS'i farklı kılan nedir
 
-<Steps>
-  <Step title="Bir IP taramasının göremediği cihazları görür">
-    ARP ve ping yalnızca IP'si olanları bulur. MyNeS ayrıca mDNS/Bonjour, SSDP/UPnP,
-    **Bluetooth LE** (hiç IP'si olmayan) ve **MQTT üzerinden Zigbee/Z-Wave** dinler — böylece diğer
-    tarayıcıların kaçırdığı akıllı ev cihazları gerçekten görünür. Bkz.
-    [Özellikler → Keşif](/features#kesif).
-  </Step>
-  <Step title="Bulduğunu açıklar">
-    Üretici sorgusu, OS ve bağlantı ortamı tahmini, aktif parmak izi ve isteğe bağlı **yapay zekâ
-    ile tanımlama**, bir yığın IP'yi adlandırılmış, türlendirilmiş cihazlara dönüştürür.
-  </Step>
-  <Step title="İzler ve uyarır">
-    Zamanlanmış taramalar zaman içinde karşılaştırılır; yeni cihaz, MAC/IP değişikliği, yeni açılan
-    port ve sağlık sinyalleri hakkında Web Push, Home Assistant, ntfy, Telegram, Slack, Discord,
-    webhook ve e-posta ile uyarır. Ayrıca filo çapında **güvenlik ve CVE** görünümü.
-  </Step>
-  <Step title="Bir ev laboratuvarına uyar">
-    Çok mimarili Docker (Raspberry Pi'de çalışır), tek tıklık **Home Assistant eklentisi**,
-    Prometheus / InfluxDB / Grafana, tam bir REST API ve yerel bir **mobil** istemci — hepsi kendin
-    barındırılan, bulut yok, telemetri yok.
-  </Step>
-</Steps>
+1. **Bir IP taramasının göremediği cihazları görür.** ARP ve ping yalnızca IP'si olanları bulur. MyNeS ayrıca mDNS/Bonjour, SSDP/UPnP, **Bluetooth LE** (hiç IP'si olmayan) ve **MQTT üzerinden Zigbee/Z-Wave** dinler — böylece diğer tarayıcıların kaçırdığı akıllı ev cihazları gerçekten görünür. Bkz. [Özellikler → Keşif](/features).
+2. **Bulduğunu açıklar.** Üretici sorgusu, OS ve bağlantı ortamı tahmini, aktif parmak izi ve isteğe bağlı **yapay zekâ ile tanımlama**, bir yığın IP'yi adlandırılmış, türlendirilmiş cihazlara dönüştürür.
+3. **İzler ve uyarır.** Zamanlanmış taramalar zaman içinde karşılaştırılır; yeni cihaz, MAC/IP değişikliği, yeni açılan port ve sağlık sinyalleri hakkında Web Push, Home Assistant, ntfy, Telegram, Slack, Discord, webhook ve e-posta ile uyarır. Ayrıca ağ çapında **güvenlik ve CVE** görünümü.
+4. **Bir ev laboratuvarına uyar.** Çok mimarili Docker (Raspberry Pi'de çalışır), tek tıklık **Home Assistant eklentisi**, Prometheus / InfluxDB / Grafana, tam bir REST API ve yerel bir **mobil** istemci — hepsi kendi sunucunuzda, bulut yok, telemetri yok.
 
 ## Başka bir aracın daha uygun olduğu durumlar
 
