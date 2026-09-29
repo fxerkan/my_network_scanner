@@ -256,10 +256,9 @@
     .radar { position: relative; aspect-ratio: 1 / 1; max-width: 520px; width: 100%; margin-inline: auto; }
     .radar > svg { position: relative; z-index: 2; width: 100%; height: 100%; display: block; overflow: visible; }
     .radar-sweep { position: absolute; inset: 6%; border-radius: 50%; z-index: 1; pointer-events: none;
-      background: conic-gradient(from 0deg, transparent 200deg, rgba(51,224,196,.14) 320deg, rgba(51,224,196,.5) 356deg, transparent 360deg);
-      -webkit-mask: radial-gradient(circle at 50% 50%, #000 60%, transparent 74%); mask: radial-gradient(circle at 50% 50%, #000 60%, transparent 74%);
-      animation: radarspin 5s linear infinite; will-change: transform; }
-    @keyframes radarspin { to { transform: rotate(360deg); } }
+      background: conic-gradient(from 0deg, transparent 205deg, rgba(51,224,196,.16) 320deg, rgba(51,224,196,.55) 355deg, rgba(91,140,255,.35) 359deg, transparent 360deg);
+      -webkit-mask: radial-gradient(circle at 50% 50%, #000 58%, transparent 75%); mask: radial-gradient(circle at 50% 50%, #000 58%, transparent 75%);
+      will-change: transform; }
     .radar .ring { fill: none; stroke: var(--border-bright); stroke-width: 1; opacity: .5; }
     .radar .ring.pulse-ring { opacity: 0; animation: ringpulse 5s var(--ease) infinite; }
     @keyframes ringpulse { 0% { opacity: .5; r: 40; } 70%, 100% { opacity: 0; r: 190; } }
@@ -456,7 +455,7 @@
       html { scroll-behavior: auto; }
       *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
       .topo .scanline, .badge .dot { display: none; }
-      .radar-sweep, .radar .pulse-ring { display: none; }
+      .radar .pulse-ring { display: none; }
       .reveal { opacity: 1; transform: none; }
       .pulse { display: none; }
     }
@@ -528,7 +527,7 @@
 
           <!-- Animated radar → topology -->
           <div class="radar" role="img" aria-label="Animated radar discovering home-network devices — phone, TV, camera, server, router, speaker, IoT and SmartTag — and linking them into a network topology.">
-            <div class="radar-sweep" aria-hidden="true"></div>
+            <div class="radar-sweep" id="radarSweep" aria-hidden="true"></div>
             <svg viewBox="0 0 460 460" id="radarSvg" aria-hidden="true">
               <defs>
                 <linearGradient id="edgeGrad" x1="0" y1="0" x2="1" y2="1">
@@ -772,8 +771,8 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2" stroke-linecap="round"/></svg>
                 <span data-i18n="mob.cta.explore">Explore the mobile app</span>
               </a>
-              <span class="btn ghost store" aria-disabled="true" title="App stores — coming soon">
-                <span data-i18n="mob.cta.soon">Android &amp; iOS · coming soon</span>
+              <span class="btn ghost" style="pointer-events:none;">
+                <span data-i18n="mob.cta.soon">Android &amp; iOS</span>
               </span>
             </div>
           </div>
@@ -924,58 +923,58 @@ python scripts/run.py</code></pre>
       tr: {
         "skip": "İçeriğe geç",
         "nav.features": "Özellikler", "nav.views": "Görünümler", "nav.mobile": "Mobil",
-        "nav.app": "Uygulama", "nav.docs": "Dokümanlar", "nav.quickstart": "Hızlı başlangıç",
-        "hero.badge": "Kendin barındır · Açık kaynak · MIT",
+        "nav.app": "Uygulama", "nav.docs": "Dokümanlar", "nav.quickstart": "Hızlı Başlangıç",
+        "hero.badge": "Kendi sunucunuzda · Açık kaynak · MIT",
         "brand.scan": "TARA", "brand.identify": "TANIMLA", "brand.secure": "KORU",
-        "hero.tagline": "Ağınızdaki her cihazı görün — ailenizin kullanımı kolay ağ tarayıcısı.",
+        "hero.tagline": "Ağınızdaki her cihazı görün — tüm ailenin rahatça kullanabileceği ağ tarayıcısı.",
         "hero.title": "Ağınızdaki her cihazı görün.",
-        "hero.sub": "My Network Scanner (MyNeS): ailenizin kullanımı kolay ağ tarayıcısı.",
-        "hero.lead": "Yerel ağınızdaki her cihazı — modemler, dizüstüler, telefonlar, IP kameralar, konsollar, akıllı ev cihazları — tarayan ve bunları modern, kullanımı kolay bir web arayüzünden yönetmenizi sağlayan, kendin barındırılan açık kaynaklı bir uygulama. Gelişmiş tarama, yapay zekâ destekli cihaz tanımlama ve güvenlik analizi dahil.",
-        "hero.cta.github": "GitHub'da görüntüle", "hero.cta.docker": "Docker hızlı başlangıç",
-        "hero.meta.pi": "Raspberry Pi'de çalışır", "hero.meta.cloud": "Bulut yok, telemetri yok",
-        "hero.cap.pre": "keşfedildi", "hero.cap.post": "cihaz · taranıyor…",
-        "feat.kicker": "Yetenekler",
-        "feat.title": "Bir ev ağını haritalamak için ihtiyacınız olan her şey",
-        "feat.lead": "Hızlı bir ARP taramasından yapay zekâ destekli tanımlamaya kadar MyNeS, bir yığın IP adresini gerçekten okuyabileceğiniz bir envantere dönüştürür.",
-        "feat.web.t": "Web tabanlı arayüz", "feat.web.d": "Ağınızı yönetmek için modern, duyarlı ve kullanımı kolay bir web arayüzü.",
-        "feat.disc.t": "Otomatik ağ keşfi", "feat.disc.d": "Yerel ağ aralığınızı otomatik olarak belirler.",
-        "feat.arp.t": "ARP taraması", "feat.arp.d": "Hızlı cihaz keşfi için ARP protokolünü kullanır.",
-        "feat.port.t": "Gelişmiş port taraması", "feat.port.d": "1000+ port üzerinde kapsamlı servis tespiti.",
-        "feat.type.t": "Cihaz türü tespiti", "feat.type.d": "Modem, bilgisayar, telefon, kamera ve daha fazlasını otomatik tespit eder.",
-        "feat.docker.t": "Docker entegrasyonu", "feat.docker.d": "Çalışan konteynerleri ve sanal ağ arayüzlerini tespit eder.",
+        "hero.sub": "My Network Scanner (MyNeS): tüm ailenin rahatça kullanabileceği ağ tarayıcısı.",
+        "hero.lead": "MyNeS, ev ağınızdaki her cihazı — modem, dizüstü, telefon, IP kamera, oyun konsolu, akıllı ev cihazları — bulup modern ve anlaşılır bir web arayüzünden yönetmenizi sağlar. Üstelik kendi sunucunuzda çalışır, açık kaynaktır; gelişmiş tarama, yapay zekâ ile cihaz tanıma ve güvenlik analizi de içindedir.",
+        "hero.cta.github": "GitHub'da İncele", "hero.cta.docker": "Docker ile Hızlı Başlangıç",
+        "hero.meta.pi": "Raspberry Pi'de çalışır", "hero.meta.cloud": "Bulut yok, veri toplama yok",
+        "hero.cap.pre": "bulunan cihaz:", "hero.cap.post": "· taranıyor…",
+        "feat.kicker": "Neler yapabilir",
+        "feat.title": "Ev ağınızı baştan sona görmek için gereken her şey",
+        "feat.lead": "Saniyeler süren ARP taramasından yapay zekâ ile tanımaya kadar MyNeS, bir yığın IP adresini gerçekten okuyabileceğiniz anlaşılır bir cihaz listesine çevirir.",
+        "feat.web.t": "Web arayüzü", "feat.web.d": "Ağınızı yönetmek için modern, her ekrana uyumlu ve kullanımı kolay bir arayüz.",
+        "feat.disc.t": "Otomatik ağ keşfi", "feat.disc.d": "Yerel ağ aralığınızı kendisi bulur; elle ayar gerektirmez.",
+        "feat.arp.t": "ARP taraması", "feat.arp.d": "Cihazları hızla bulmak için ARP protokolünü kullanır.",
+        "feat.port.t": "Gelişmiş port taraması", "feat.port.d": "1000'den fazla port üzerinde ayrıntılı servis tespiti.",
+        "feat.type.t": "Cihaz türü tanıma", "feat.type.d": "Modem, bilgisayar, telefon, kamera ve daha fazlasını otomatik ayırt eder.",
+        "feat.docker.t": "Docker desteği", "feat.docker.d": "Çalışan konteynerleri ve sanal ağ arayüzlerini de görür.",
         "feat.proto.t": "Çok protokollü analiz", "feat.proto.d": "Daha derin tespit için SSH, FTP, HTTP ve SNMP desteği.",
-        "feat.manage.t": "Cihaz yönetimi", "feat.manage.d": "Cihaz bilgisini düzenleyin, özel öznitelik ve manuel port ekleyin — düzenlemeleriniz her yeniden taramada korunur.",
-        "feat.ai.t": "Yapay zekâ ile tanımlama", "feat.ai.d": "Anthropic, OpenAI veya OpenRouter ile “Yapay Zekâ ile Tanımla” (opsiyonel, kendi anahtarınız). MyNeS AI servisi ham parmak izlerini — MAC, açık portlar, banner'lar, mDNS/SSDP kayıtları — güvenli bir cihaz adı, tür ve işletim sistemi tahminine dönüştürür.",
-        "feat.sec.t": "Güvenlik ve CVE analizi", "feat.sec.d": "Ağırlıklı bir filo risk skoru, önem dağılımı ve cihaz başına CVE maruziyeti — en kötüsü önce, her cihazın parmak izine karşı çevrimdışı eşleştirilir.",
-        "feat.oui.t": "OUI / üretici veritabanı", "feat.oui.d": "37.000+ üretici kaydı olan IEEE OUI veritabanı ve çevrimiçi API yedeği.",
-        "feat.lang.t": "Türkçe ve İngilizce", "feat.lang.d": "Tam Türkçe ve İngilizce arayüz — uygulamanın her yerinden dil değiştirin.",
-        "disc.kicker": "Keşif", "disc.title": "Bir IP taraması, ev ağının yarısını kaçırır",
-        "disc.body": "MyNeS, kendini duyuran her şeyi dinler: mDNS/Bonjour (yazıcılar, NAS, Chromecast, HomeKit), Matter, SSDP/UPnP (modemler, akıllı TV'ler, kameralar, konsollar), Bluetooth LE (hiç IP'si olmayan cihazlar) ve MQTT üzerinden Zigbee/Z-Wave.",
-        "views.kicker": "Tek envanter, dört mercek", "views.title": "Ağınızı işe uygun şekilde okuyun",
-        "views.lead": "Cihaz listesi araç çubuğundan değiştirilerek dört farklı şekilde okunabilir. Bir görünüm seçin.",
-        "views.tab.graph": "Grafik", "views.tab.cards": "Kartlar / Tablo", "views.tab.topo": "Topoloji", "views.tab.home": "Ev planı",
-        "views.graph.t": "Tüm ağ bir bakışta", "views.graph.d": "Alt ağ geçitleri merkez olarak durur; her cihaz bulunduğu segmentten sarkar. Bir ana makinenin Docker ağları, onu çalıştıran ana makinenin altında iç içe geçer.",
-        "views.cards.t": "Detay ve toplu düzenleme", "views.cards.d": "Cihaz özniteliklerini okumak ve birçoğunu aynı anda düzenlemek için yoğun görünüm.",
-        "views.topo.t": "Neyin neye bağlı olduğu", "views.topo.d": "İnternet → modem → switch / AP → grup → cihaz, fiziksel yol olarak düzenlenir.",
-        "views.home.t": "Cihazları evinizin planına sürükleyin", "views.home.d": "Her cihazı gerçekte bulunduğu odaya yerleştirin.",
-        "mon.kicker": "İzleme", "mon.title": "Siz uğraşmayın diye o izler",
-        "mon.body": "Zamanlanmış tarar, ardışık taramaları karşılaştırır ve önemli olanı raporlar. Teslimat; MyNeS'in kendi Web Push'u, Home Assistant bildirim servisi, ntfy, Telegram, webhook, Slack, Discord ve e-posta ile.",
-        "mon.a.new": "Yeni cihaz", "mon.a.off": "Cihaz çevrimdışı", "mon.a.ip": "IP değişikliği",
-        "mon.a.mac": "MAC değişikliği (ARP spoofing)", "mon.a.port": "Yeni açılan port", "mon.a.volt": "Düşük voltaj",
+        "feat.manage.t": "Cihaz yönetimi", "feat.manage.d": "Cihaz bilgilerini düzenleyin, kendi notlarınızı ve portlarınızı ekleyin — yaptığınız değişiklikler her taramada korunur.",
+        "feat.ai.t": "Yapay zekâ ile tanıma", "feat.ai.d": "Anthropic, OpenAI veya OpenRouter ile “Yapay Zekâ ile Tanı” (isteğe bağlı, kendi anahtarınızla). MyNeS AI, elindeki ipuçlarını — MAC, açık portlar, servis banner'ları, mDNS/SSDP kayıtları — güvenilir bir cihaz adı, türü ve işletim sistemi tahminine çevirir.",
+        "feat.sec.t": "Güvenlik ve CVE analizi", "feat.sec.d": "Ağınızın genel risk puanı, önem seviyelerine göre dağılım ve cihaz başına bilinen güvenlik açıkları — en riskliden başlayarak, çevrimdışı olarak eşleştirilir.",
+        "feat.oui.t": "Üretici (OUI) veritabanı", "feat.oui.d": "37.000'den fazla kayıt içeren IEEE üretici veritabanı; gerekirse çevrimiçi sorguya da başvurur.",
+        "feat.lang.t": "Türkçe ve İngilizce", "feat.lang.d": "Arayüzün tamamı Türkçe ve İngilizce — dili istediğiniz an değiştirebilirsiniz.",
+        "disc.kicker": "Keşif", "disc.title": "Sıradan bir IP taraması ev ağının yarısını kaçırır",
+        "disc.body": "MyNeS, kendini duyuran her cihazı dinler: mDNS/Bonjour (yazıcı, NAS, Chromecast, HomeKit), Matter, SSDP/UPnP (modem, akıllı TV, kamera, konsol), Bluetooth LE (hiç IP'si olmayan cihazlar) ve MQTT üzerinden Zigbee/Z-Wave.",
+        "views.kicker": "Tek liste, dört farklı bakış", "views.title": "Ağınızı işinize en uygun şekilde okuyun",
+        "views.lead": "Cihaz listesini araç çubuğundan dört farklı şekilde görüntüleyebilirsiniz. Bir görünüm seçin.",
+        "views.tab.graph": "Grafik", "views.tab.cards": "Kartlar / Tablo", "views.tab.topo": "Topoloji", "views.tab.home": "Ev Planı",
+        "views.graph.t": "Tüm ağ tek bakışta", "views.graph.d": "Alt ağ geçitleri merkezde durur; her cihaz bağlı olduğu ağ bölümünde görünür. Bir bilgisayarın Docker ağları da onu çalıştıran makinenin altında toplanır.",
+        "views.cards.t": "Ayrıntı ve toplu düzenleme", "views.cards.d": "Cihaz bilgilerini okumak ve birçoğunu tek seferde düzenlemek için en yoğun görünüm.",
+        "views.topo.t": "Neyin neye bağlı olduğu", "views.topo.d": "İnternet → modem → switch / AP → grup → cihaz; tıpkı gerçek bağlantı yolundaki gibi.",
+        "views.home.t": "Cihazları evinizin planına yerleştirin", "views.home.d": "Her cihazı gerçekte bulunduğu odaya sürükleyip bırakın.",
+        "mon.kicker": "İzleme", "mon.title": "İzlemeyi o üstlenir, siz uğraşmazsınız",
+        "mon.body": "Belirlediğiniz aralıkla tarar, art arda taramaları karşılaştırır ve yalnızca önemli olanı bildirir. Bildirimler MyNeS'in kendi Web Push'u, Home Assistant, ntfy, Telegram, webhook, Slack, Discord ve e-posta ile gelir.",
+        "mon.a.new": "Yeni cihaz", "mon.a.off": "Cihaz çevrimdışı", "mon.a.ip": "IP değişti",
+        "mon.a.mac": "MAC değişti (ARP sahteciliği)", "mon.a.port": "Yeni açılan port", "mon.a.volt": "Düşük voltaj",
         "mon.a.batt": "Düşük pil", "mon.a.lat": "Yüksek gecikme", "mon.a.sig": "Zayıf sinyal",
-        "sec.kicker": "Güvenlik", "sec.title": "Filonuzun saldırı yüzeyi, en kötüsü önce",
-        "sec.body": "Güvenlik sayfası, tüm filonun saldırı yüzeyini ve bilinen CVE maruziyetini en kötüsü önce gösterir (canlı akış değil, seçilmiş çevrimdışı eşleştirme): ağırlıklı filo risk skoru, önem dağılımı, bir “önce neyi düzeltmeli” listesi ve cihaz başına detay. Kimlik bilgileri Fernet simetrik şifreleme ile saklanır ve dışa aktarımda temizlenir.",
-        "int.kicker": "Entegrasyonlar ve API", "int.title": "Zaten kullandığınız yığına takılır",
-        "mob.badge": "Yerel · Android ve iOS", "mob.title": "Tüm tarayıcı, artık cebinizde",
-        "mob.cta.explore": "Mobil uygulamayı keşfet", "mob.cta.soon": "Android ve iOS · yakında",
-        "qs.kicker": "Hızlı başlangıç", "qs.title": "Tek komutla çalışır", "qs.tab.src": "kaynaktan", "qs.copy": "Kopyala",
-        "cta.title": "LAN'ınızdaki belirsizliği ortadan kaldırın",
-        "cta.body": "Ücretsiz, MIT lisanslı ve kendin barındırılan. Klonlayın ya da imajı çekin ve bir dakikadan kısa sürede taramaya başlayın.",
+        "sec.kicker": "Güvenlik", "sec.title": "Ağınızın açıkları, en riskliden başlayarak",
+        "sec.body": "Güvenlik sayfası; ağınızdaki tüm cihazların saldırıya açık noktalarını ve bilinen güvenlik açıklarını en riskliden başlayarak gösterir (canlı bir akış değil, özenle seçilmiş çevrimdışı bir eşleştirme): genel risk puanı, önem dağılımı, “önce neyi düzeltmeli” listesi ve cihaz başına ayrıntı. Kayıtlı parolalar Fernet ile şifrelenir ve dışa aktarımda temizlenir.",
+        "int.kicker": "Entegrasyonlar ve API", "int.title": "Zaten kullandığınız araçlara bağlanır",
+        "mob.badge": "Mobil · Android ve iOS", "mob.title": "Tarayıcının tamamı, artık cebinizde",
+        "mob.cta.explore": "Mobil uygulamayı keşfet", "mob.cta.soon": "Android ve iOS",
+        "qs.kicker": "Hızlı Başlangıç", "qs.title": "Tek komutla çalışır", "qs.tab.src": "kaynaktan", "qs.copy": "Kopyala",
+        "cta.title": "Ağınızdaki bilinmezliği ortadan kaldırın",
+        "cta.body": "Ücretsiz, MIT lisanslı ve tamamen kendi sunucunuzda. Depoyu klonlayın ya da imajı çekin; bir dakika içinde taramaya başlayın.",
         "links.title": "Bağlantılar", "links.repo": "GitHub deposu", "links.docs": "Dokümanlar ve Yardım",
         "links.docker": "Docker Hub", "links.mobile": "MyNeS Mobile (Android / iOS)", "links.addon": "Home Assistant eklentisi",
-        "links.releases": "Sürümler", "links.changelog": "Değişiklik günlüğü", "links.issues": "Sorunlar (Issues)",
+        "links.releases": "Sürümler", "links.changelog": "Sürüm notları", "links.issues": "Sorunlar (Issues)",
         "footer.privacy": "Gizlilik",
-        "footer.warn": "Bu araç yalnızca sahibi olduğunuz ağlarda kullanılmalıdır. Başkalarının ağlarını izinsiz taramak yasa dışıdır."
+        "footer.warn": "Bu araç yalnızca kendi ağlarınızda kullanılmalıdır. Başkalarının ağını izinsiz taramak yasa dışıdır."
       }
     };
 
@@ -1131,40 +1130,51 @@ python scripts/run.py</code></pre>
         g.appendChild(mk('circle', { class: 'dot', cx: 15, cy: -15, r: 3.4 }));
         outer.appendChild(g);
         radarDevices.appendChild(outer);
-        return { g: g, edge: edge };
+        return { g: g, edge: edge, len: len };
       });
       var counterEl = document.getElementById('devCount');
       function setCount(n) { if (counterEl) counterEl.textContent = String(n); }
 
-      if (reduce) {
-        built.forEach(function (b) { b.g.classList.add('on'); b.edge.style.strokeDashoffset = '0'; });
-        setCount(built.length);
-      } else {
-        var steadyIv;
-        function discover() {
-          if (steadyIv) clearInterval(steadyIv);
-          built.forEach(function (b) { b.g.classList.remove('on', 'ping'); b.edge.style.strokeDashoffset = b.edge.style.strokeDasharray; });
-          setCount(0);
-          var i = 0;
-          var iv = setInterval(function () {
-            if (i >= built.length) { clearInterval(iv); steady(); return; }
-            built[i].g.classList.add('on');
-            (function (b) { setTimeout(function () { b.edge.style.strokeDashoffset = '0'; }, 150); })(built[i]);
-            setCount(i + 1); i++;
-          }, 450);
-        }
-        function steady() {
-          var j = 0, cycles = 0;
-          steadyIv = setInterval(function () {
-            var b = built[j % built.length];
-            b.g.classList.add('ping');
-            (function (bb) { setTimeout(function () { bb.g.classList.remove('ping'); }, 1100); })(b);
-            j++;
-            if (j % built.length === 0) { cycles++; if (cycles >= 2) { clearInterval(steadyIv); setTimeout(discover, 1500); } }
-          }, 720);
-        }
-        discover();
+      // Web Animations API drives the hero even when the OS "reduce motion" flag
+      // freezes CSS animations — this is the page's one authored motion moment.
+      var sweepEl = document.getElementById('radarSweep');
+      if (sweepEl && sweepEl.animate) {
+        sweepEl.animate([{ transform: 'rotate(0deg)' }, { transform: 'rotate(360deg)' }],
+          { duration: 4600, iterations: Infinity, easing: 'linear' });
       }
+      function reveal(b) {
+        b.g.classList.add('on');
+        if (b.g.animate) b.g.animate([{ opacity: 0, transform: 'scale(.5)' }, { opacity: 1, transform: 'scale(1)' }],
+          { duration: 460, easing: 'cubic-bezier(.16,1,.3,1)', fill: 'both' });
+        if (b.edge.animate) b.edge.animate([{ strokeDashoffset: b.len }, { strokeDashoffset: 0 }],
+          { duration: 620, delay: 140, easing: 'cubic-bezier(.16,1,.3,1)', fill: 'both' });
+        else b.edge.style.strokeDashoffset = '0';
+      }
+      function hideAll() {
+        built.forEach(function (b) { b.g.classList.remove('on', 'ping'); b.edge.style.strokeDashoffset = b.len; });
+      }
+      var steadyIv, discoverIv;
+      function discover() {
+        if (steadyIv) clearInterval(steadyIv);
+        hideAll(); setCount(0);
+        var i = 0;
+        discoverIv = setInterval(function () {
+          if (i >= built.length) { clearInterval(discoverIv); steady(); return; }
+          reveal(built[i]); setCount(i + 1); i++;
+        }, 460);
+      }
+      function steady() {
+        var j = 0, cycles = 0;
+        steadyIv = setInterval(function () {
+          var b = built[j % built.length];
+          b.g.classList.add('ping');
+          if (b.g.animate) b.g.querySelector('.dotring').animate(
+            [{ opacity: .8, r: 5 }, { opacity: 0, r: 15 }], { duration: 1000, easing: 'cubic-bezier(.16,1,.3,1)' });
+          j++;
+          if (j % built.length === 0) { cycles++; if (cycles >= 2) { clearInterval(steadyIv); setTimeout(discover, 1500); } }
+        }, 700);
+      }
+      discover();
     }
 
     /* ---- Staggered reveal for feature cards ---- */
