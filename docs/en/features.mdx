@@ -17,6 +17,8 @@ no IP still show up:
 Each protocol is optional and isolated: a dead protocol yields nothing and logs, it never
 breaks the scan.
 
+![The multi-protocol discovery screen listing devices found via mDNS, SSDP, Bluetooth LE and MQTT](https://mynes.fxerkan.com/assets/screenshots/discovery.png)
+
 ## Identification
 
 - **Port & service scanning** across 1000+ ports (needs Nmap)
@@ -36,6 +38,10 @@ The same inventory, read four ways from the toolbar:
 | **Topology** | The physical path: internet → router → switch/AP → device |
 | **Home plan** | Dragging each device into the room where it actually lives |
 
+![The interactive graph view — subnet gateways as hubs, every device on its segment](https://mynes.fxerkan.com/assets/screenshots/graph-view.png)
+
+![The network topology view — internet to router to switch to device](https://mynes.fxerkan.com/assets/screenshots/topology-view.png)
+
 ## Device management
 
 Edit a device's info, add custom attributes and manual ports. Your edits are stored separately
@@ -53,12 +59,16 @@ MyNeS scans on a schedule, diffs consecutive scans and reports only what matters
 Delivery channels: MyNeS's own **Web Push**, a **Home Assistant** notify service, **ntfy**,
 **Telegram**, **webhook**, **Slack**, **Discord** and **email**.
 
+![The monitoring and alerts screen — scheduled scans and change notifications](https://mynes.fxerkan.com/assets/screenshots/monitoring-alerts.png)
+
 ## Security & CVE analysis
 
 The Security page shows your whole fleet's attack surface and known-CVE exposure, worst first:
 a weighted fleet risk score, severity distribution, a "what to fix first" list and per-device
 detail. It's a curated **offline** match against each device's fingerprint — deliberately not a
 live NVD feed. Credentials are encrypted and sanitized on export.
+
+![The security page — fleet risk score, severity distribution and per-device CVE exposure](https://mynes.fxerkan.com/assets/screenshots/secuirty.png)
 
 ## Integrations & API
 

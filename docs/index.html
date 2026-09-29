@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>MyNeS — My Network Scanner for Your Home LAN</title>
   <meta name="description" content="MyNeS (My Network Scanner) is a self-hosted, open-source network scanner. Discover every device on your LAN via ARP, mDNS, SSDP, BLE and MQTT from a modern web UI. Free MIT, Docker, plus a native mobile app.">
-  <link rel="canonical" href="https://fxerkan.github.io/my_network_scanner/">
+  <link rel="canonical" href="https://mynes.fxerkan.com/">
   <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
   <link rel="apple-touch-icon" href="assets/icon.png">
 
@@ -14,14 +14,14 @@
   <meta property="og:site_name" content="MyNeS — My Network Scanner">
   <meta property="og:title" content="MyNeS — My Network Scanner for Your Home LAN">
   <meta property="og:description" content="Self-hosted, open-source network scanner. Discover every device on your LAN with ARP, mDNS, SSDP, BLE and MQTT, plus a modern web UI and a native mobile app. Free MIT, runs via Docker.">
-  <meta property="og:url" content="https://fxerkan.github.io/my_network_scanner/">
-  <meta property="og:image" content="https://fxerkan.github.io/my_network_scanner/assets/feature-graphic.png">
+  <meta property="og:url" content="https://mynes.fxerkan.com/">
+  <meta property="og:image" content="https://mynes.fxerkan.com/assets/feature-graphic.png">
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="MyNeS — My Network Scanner for Your Home LAN">
   <meta name="twitter:description" content="Self-hosted, open-source network scanner. Discover every device on your LAN with ARP, mDNS, SSDP, BLE and MQTT, plus a modern web UI and a native mobile app. Free MIT, runs via Docker.">
-  <meta name="twitter:image" content="https://fxerkan.github.io/my_network_scanner/assets/feature-graphic.png">
+  <meta name="twitter:image" content="https://mynes.fxerkan.com/assets/feature-graphic.png">
 
   <script type="application/ld+json">
   {
@@ -34,8 +34,8 @@
     "softwareVersion": "1.8.2",
     "license": "https://opensource.org/licenses/MIT",
     "downloadUrl": "https://github.com/fxerkan/my_network_scanner/releases",
-    "url": "https://fxerkan.github.io/my_network_scanner/",
-    "image": "https://fxerkan.github.io/my_network_scanner/assets/feature-graphic.png",
+    "url": "https://mynes.fxerkan.com/",
+    "image": "https://mynes.fxerkan.com/assets/feature-graphic.png",
     "author": {
       "@type": "Person",
       "name": "FXerkan",
@@ -240,6 +240,45 @@
     .node .glyph { stroke: var(--brand-bright); stroke-width: 1.6; fill: none; stroke-linecap: round; stroke-linejoin: round; }
     .root circle.core { fill: #14224a; stroke: var(--brand); }
 
+    /* ---------- Hero: brand lockup ---------- */
+    .brand-eyebrow { display: inline-flex; align-items: center; gap: 12px; font-family: var(--font-mono); font-size: .8rem; letter-spacing: .22em; text-transform: uppercase; color: var(--muted-dim); margin-bottom: 20px; }
+    .brand-eyebrow b { color: var(--muted); font-weight: 500; }
+    .brand-eyebrow .mk { width: 28px; height: 28px; border-radius: 8px; background: var(--brand); display: grid; place-items: center; flex: 0 0 auto; box-shadow: 0 6px 16px -6px rgba(47,107,255,.85); }
+    .brand-eyebrow .mk svg { width: 17px; height: 17px; color: #fff; }
+    h1.wordmark { font-family: var(--font-display); font-weight: 900; font-size: clamp(3.6rem, 10vw, 6.4rem); line-height: .9; letter-spacing: -.045em; margin: 0; color: #fff; }
+    .lockup-sub { display: block; font-family: var(--font-display); font-weight: 700; font-size: clamp(1.15rem, 3vw, 1.9rem); letter-spacing: -.01em; margin-top: 8px; color: var(--muted-dim); }
+    .lockup-sub .hi { color: var(--text); }
+    .lockup-sub .er { color: var(--accent); }
+    .hero .tagline { color: var(--text); font-size: clamp(1.05rem, 2.2vw, 1.28rem); font-weight: 500; margin: 20px 0 0; max-width: 44ch; letter-spacing: -.01em; }
+    .hero .lead { color: var(--muted); font-size: 1.02rem; max-width: 52ch; margin: 14px 0 28px; }
+
+    /* ---------- Hero: animated radar → topology ---------- */
+    .radar { position: relative; aspect-ratio: 1 / 1; max-width: 520px; width: 100%; margin-inline: auto; }
+    .radar > svg { position: relative; z-index: 2; width: 100%; height: 100%; display: block; overflow: visible; }
+    .radar-sweep { position: absolute; inset: 6%; border-radius: 50%; z-index: 1; pointer-events: none;
+      background: conic-gradient(from 0deg, transparent 200deg, rgba(51,224,196,.14) 320deg, rgba(51,224,196,.5) 356deg, transparent 360deg);
+      -webkit-mask: radial-gradient(circle at 50% 50%, #000 60%, transparent 74%); mask: radial-gradient(circle at 50% 50%, #000 60%, transparent 74%);
+      animation: radarspin 5s linear infinite; will-change: transform; }
+    @keyframes radarspin { to { transform: rotate(360deg); } }
+    .radar .ring { fill: none; stroke: var(--border-bright); stroke-width: 1; opacity: .5; }
+    .radar .ring.pulse-ring { opacity: 0; animation: ringpulse 5s var(--ease) infinite; }
+    @keyframes ringpulse { 0% { opacity: .5; r: 40; } 70%, 100% { opacity: 0; r: 190; } }
+    .radar .axis { stroke: var(--border); stroke-width: 1; }
+    .radar .redge { stroke: url(#edgeGrad); stroke-width: 1.6; fill: none; opacity: .6; transition: stroke-dashoffset .6s var(--ease); }
+    .radar .hub rect { filter: drop-shadow(0 12px 26px rgba(0,0,0,.7)); }
+    .dev { opacity: 0; transform: scale(.55); transform-box: fill-box; transform-origin: center; transition: opacity .45s var(--ease), transform .5s var(--ease); }
+    .dev.on { opacity: 1; transform: scale(1); }
+    .dev .tile { fill: var(--surface-2); stroke: var(--border-bright); stroke-width: 1.2; }
+    .dev.on .tile { stroke: var(--brand); }
+    .dev .ic { stroke: var(--brand-bright); stroke-width: 1.7; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .dev .lbl { fill: var(--muted); font-family: var(--font-mono); font-size: 11px; text-anchor: middle; letter-spacing: .02em; }
+    .dev .dot { fill: var(--accent); }
+    .dev .dotring { fill: none; stroke: var(--accent); opacity: 0; }
+    .dev.ping .dotring { animation: devping 1.1s var(--ease); }
+    @keyframes devping { 0% { opacity: .7; r: 5; } 100% { opacity: 0; r: 15; } }
+    .radar .cap { position: absolute; left: 6px; bottom: 0; z-index: 3; font-family: var(--font-mono); font-size: .76rem; color: var(--muted-dim); }
+    .radar .cap b { color: var(--accent); font-weight: 500; }
+
     /* ---------- Sections ---------- */
     section { padding: clamp(56px, 8vw, 96px) 0; position: relative; }
     .section-head { max-width: 62ch; margin-bottom: 40px; }
@@ -394,7 +433,7 @@
     .hero-grid > *, .split > *, .panel > *, .mobile-teaser > * { min-width: 0; }
     @media (max-width: 900px) {
       .hero-grid { grid-template-columns: 1fr; }
-      .topo { order: -1; max-width: min(380px, 100%); }
+      .radar { order: -1; max-width: min(440px, 100%); }
       .split, .panel, .mobile-teaser { grid-template-columns: 1fr; }
       .panel .desc { order: 2; }
       .phone-cluster { flex-wrap: wrap; }
@@ -409,7 +448,7 @@
     }
     @media (max-width: 460px) {
       .wrap { padding: 0 18px; }
-      .hero h1 { font-size: clamp(2rem, 8.4vw, 2.4rem); }
+      h1.wordmark { font-size: clamp(3rem, 16vw, 4rem); }
       .hero .lead { font-size: 1rem; }
     }
 
@@ -417,6 +456,7 @@
       html { scroll-behavior: auto; }
       *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
       .topo .scanline, .badge .dot { display: none; }
+      .radar-sweep, .radar .pulse-ring { display: none; }
       .reveal { opacity: 1; transform: none; }
       .pulse { display: none; }
     }
@@ -434,8 +474,7 @@
       <nav aria-label="Primary">
         <a href="#features" data-i18n="nav.features">Features</a>
         <a href="#views" data-i18n="nav.views">Views</a>
-        <a href="#mobile" data-i18n="nav.mobile">Mobile</a>
-        <a href="mobile.html" data-i18n="nav.app">App</a>
+        <a href="mobile.html" data-i18n="nav.mobile">Mobile</a>
         <a href="https://docs.page/fxerkan/my_network_scanner" data-i18n="nav.docs">Docs</a>
         <a href="#quickstart" data-i18n="nav.quickstart">Quick start</a>
         <a class="gh" href="https://github.com/fxerkan/my_network_scanner">
@@ -458,10 +497,12 @@
       <div class="wrap">
         <div class="hero-grid">
           <div class="hero-copy">
-            <span class="badge"><span class="dot" aria-hidden="true"></span> <span data-i18n="hero.badge">Self-hosted · Open source · MIT</span></span>
-            <h1><span data-i18n="hero.title">See every device on your network.</span>
-              <span class="sub" data-i18n="hero.sub">My Network Scanner (MyNeS): your family's user-friendly network scanner.</span>
-            </h1>
+            <span class="brand-eyebrow">
+              <span class="mk" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="5" rx="1.3"/><rect x="3" y="16" width="6" height="5" rx="1.3"/><rect x="15" y="16" width="6" height="5" rx="1.3"/><path d="M12 8v3M6 16v-2h12v2M12 14v2"/></svg></span>
+              <span><b data-i18n="brand.scan">SCAN</b> · <b data-i18n="brand.identify">IDENTIFY</b> · <b data-i18n="brand.secure">SECURE</b></span>
+            </span>
+            <h1 class="wordmark">MyNeS<span class="lockup-sub" aria-label="My Network Scanner"><span class="hi">M</span>y <span class="hi">N</span>etwork <span class="hi">S</span>cann<span class="er">er</span></span></h1>
+            <p class="tagline" data-i18n="hero.tagline">See every device on your network — your family's user-friendly network scanner.</p>
             <p class="lead" data-i18n="hero.lead">
               A self-hosted, open-source application that scans every device on your local network —
               routers, laptops, phones, IP cameras, consoles, smart-home appliances — and lets you
@@ -485,13 +526,37 @@
             </div>
           </div>
 
-          <!-- Interactive topology -->
-          <div class="topo" role="img" aria-label="Animated diagram of a home network: a router discovering laptops, phones, cameras and smart-home devices across several subnets.">
-            <div class="scanline" aria-hidden="true"></div>
-            <svg viewBox="0 0 400 400" aria-hidden="true" id="topoSvg">
-              <g id="edges" stroke-linecap="round"></g>
-              <g id="pulses"></g>
-              <g id="nodes"></g>
+          <!-- Animated radar → topology -->
+          <div class="radar" role="img" aria-label="Animated radar discovering home-network devices — phone, TV, camera, server, router, speaker, IoT and SmartTag — and linking them into a network topology.">
+            <div class="radar-sweep" aria-hidden="true"></div>
+            <svg viewBox="0 0 460 460" id="radarSvg" aria-hidden="true">
+              <defs>
+                <linearGradient id="edgeGrad" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stop-color="var(--brand)"/>
+                  <stop offset="1" stop-color="var(--brand-bright)"/>
+                </linearGradient>
+              </defs>
+              <g class="rings">
+                <circle class="ring" cx="230" cy="230" r="75"/>
+                <circle class="ring" cx="230" cy="230" r="130"/>
+                <circle class="ring" cx="230" cy="230" r="185"/>
+                <circle class="ring pulse-ring" cx="230" cy="230" r="40"/>
+              </g>
+              <g class="axes">
+                <line class="axis" x1="230" y1="40" x2="230" y2="420"/>
+                <line class="axis" x1="40" y1="230" x2="420" y2="230"/>
+              </g>
+              <g id="radarEdges"></g>
+              <g id="radarDevices"></g>
+              <g class="hub">
+                <rect x="199" y="199" width="62" height="62" rx="16" fill="#fff"/>
+                <g transform="translate(230,230)" stroke="var(--brand)" stroke-width="2.1" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="-4" y="-12" width="8" height="7" rx="1.6"/>
+                  <rect x="-13" y="5" width="8" height="7" rx="1.6"/>
+                  <rect x="5" y="5" width="8" height="7" rx="1.6"/>
+                  <path d="M0 -5v3M-9 5V2h18v3M0 2v3"/>
+                </g>
+              </g>
             </svg>
             <div class="cap"><span data-i18n="hero.cap.pre">discovered</span> <b id="devCount">0</b> <span data-i18n="hero.cap.post">devices · scanning…</span></div>
           </div>
@@ -499,18 +564,8 @@
       </div>
     </section>
 
-    <!-- ============ FEATURE GRAPHIC SHOWCASE ============ -->
-    <section id="glance" style="padding-top:0;">
-      <div class="wrap">
-        <figure class="showcase reveal">
-          <img src="assets/feature-graphic.png" alt="MyNeS — My Network Scanner: Scan · Identify · Secure. A hub discovering phones, TVs, cameras, servers, routers, speakers, IoT and SmartTag devices." loading="lazy" width="1024" height="500">
-          <div class="glow" aria-hidden="true"></div>
-        </figure>
-      </div>
-    </section>
-
     <!-- ============ FEATURES ============ -->
-    <section id="features" style="padding-top:clamp(32px,5vw,56px);">
+    <section id="features" style="padding-top:clamp(48px,7vw,84px);">
       <div class="wrap">
         <div class="section-head reveal">
           <span class="k" data-i18n="feat.kicker">Capabilities</span>
@@ -717,10 +772,9 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2" stroke-linecap="round"/></svg>
                 <span data-i18n="mob.cta.explore">Explore the mobile app</span>
               </a>
-              <a class="btn ghost" href="https://github.com/fxerkan/mynes-mobile">
-                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.2.8-.5v-2c-3.2.7-3.9-1.4-3.9-1.4-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.8 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.3 1.2a11.4 11.4 0 0 1 6 0C17.3 4.7 18.3 5 18.3 5c.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.5-2.7 5.5-5.3 5.8.4.4.8 1.1.8 2.2v3.3c0 .3.2.6.8.5 4.6-1.5 7.9-5.8 7.9-10.9C23.5 5.7 18.3.5 12 .5z"/></svg>
-                mynes-mobile
-              </a>
+              <span class="btn ghost store" aria-disabled="true" title="App stores — coming soon">
+                <span data-i18n="mob.cta.soon">Android &amp; iOS · coming soon</span>
+              </span>
             </div>
           </div>
           <div class="phone-cluster" aria-hidden="false">
@@ -849,7 +903,7 @@ python scripts/run.py</code></pre>
     <div class="wrap">
       <div class="fnav">
         <a href="#features" data-i18n="nav.features">Features</a>
-        <a href="mobile.html" data-i18n="nav.app">App</a>
+        <a href="mobile.html" data-i18n="nav.mobile">Mobile</a>
         <a href="https://docs.page/fxerkan/my_network_scanner" data-i18n="nav.docs">Docs</a>
         <a href="https://github.com/fxerkan/my_network_scanner">GitHub</a>
         <a href="https://hub.docker.com/r/fxerkan/my_network_scanner">Docker Hub</a>
@@ -872,6 +926,8 @@ python scripts/run.py</code></pre>
         "nav.features": "Özellikler", "nav.views": "Görünümler", "nav.mobile": "Mobil",
         "nav.app": "Uygulama", "nav.docs": "Dokümanlar", "nav.quickstart": "Hızlı başlangıç",
         "hero.badge": "Kendin barındır · Açık kaynak · MIT",
+        "brand.scan": "TARA", "brand.identify": "TANIMLA", "brand.secure": "KORU",
+        "hero.tagline": "Ağınızdaki her cihazı görün — ailenizin kullanımı kolay ağ tarayıcısı.",
         "hero.title": "Ağınızdaki her cihazı görün.",
         "hero.sub": "My Network Scanner (MyNeS): ailenizin kullanımı kolay ağ tarayıcısı.",
         "hero.lead": "Yerel ağınızdaki her cihazı — modemler, dizüstüler, telefonlar, IP kameralar, konsollar, akıllı ev cihazları — tarayan ve bunları modern, kullanımı kolay bir web arayüzünden yönetmenizi sağlayan, kendin barındırılan açık kaynaklı bir uygulama. Gelişmiş tarama, yapay zekâ destekli cihaz tanımlama ve güvenlik analizi dahil.",
@@ -911,7 +967,7 @@ python scripts/run.py</code></pre>
         "sec.body": "Güvenlik sayfası, tüm filonun saldırı yüzeyini ve bilinen CVE maruziyetini en kötüsü önce gösterir (canlı akış değil, seçilmiş çevrimdışı eşleştirme): ağırlıklı filo risk skoru, önem dağılımı, bir “önce neyi düzeltmeli” listesi ve cihaz başına detay. Kimlik bilgileri Fernet simetrik şifreleme ile saklanır ve dışa aktarımda temizlenir.",
         "int.kicker": "Entegrasyonlar ve API", "int.title": "Zaten kullandığınız yığına takılır",
         "mob.badge": "Yerel · Android ve iOS", "mob.title": "Tüm tarayıcı, artık cebinizde",
-        "mob.cta.explore": "Mobil uygulamayı keşfet",
+        "mob.cta.explore": "Mobil uygulamayı keşfet", "mob.cta.soon": "Android ve iOS · yakında",
         "qs.kicker": "Hızlı başlangıç", "qs.title": "Tek komutla çalışır", "qs.tab.src": "kaynaktan", "qs.copy": "Kopyala",
         "cta.title": "LAN'ınızdaki belirsizliği ortadan kaldırın",
         "cta.body": "Ücretsiz, MIT lisanslı ve kendin barındırılan. Klonlayın ya da imajı çekin ve bir dakikadan kısa sürede taramaya başlayın.",
@@ -1034,84 +1090,87 @@ python scripts/run.py</code></pre>
       });
     });
 
-    /* ---- Hero topology graph ---- */
-    var edgesG = document.getElementById('edges');
-    var pulsesG = document.getElementById('pulses');
-    var nodesG = document.getElementById('nodes');
-    if (edgesG && nodesG) {
+    /* ---- Hero: animated radar → topology ---- */
+    var radarDevices = document.getElementById('radarDevices');
+    var radarEdges = document.getElementById('radarEdges');
+    if (radarDevices && radarEdges) {
       var NS = 'http://www.w3.org/2000/svg';
-      var root = { x: 200, y: 60, r: 15, root: true, label: 'router' };
-      var hubs = [ { x: 90, y: 190, r: 11 }, { x: 310, y: 190, r: 11 }, { x: 200, y: 230, r: 11 } ];
-      var leaves = [
-        { x: 40, y: 300, hub: 0, g: 'phone' }, { x: 110, y: 330, hub: 0, g: 'laptop' }, { x: 150, y: 275, hub: 0, g: 'cam' },
-        { x: 260, y: 285, hub: 1, g: 'tv' }, { x: 330, y: 320, hub: 1, g: 'cam' }, { x: 370, y: 265, hub: 1, g: 'nas' },
-        { x: 160, y: 350, hub: 2, g: 'bulb' }, { x: 240, y: 350, hub: 2, g: 'sensor' }
-      ];
-      var glyphs = {
-        phone: '<rect x="-4" y="-6" width="8" height="12" rx="1.5"/>',
-        laptop: '<rect x="-6" y="-4" width="12" height="8" rx="1"/><path d="M-8 5h16"/>',
-        cam: '<circle cx="0" cy="0" r="4.5"/><circle cx="0" cy="0" r="1.6"/>',
-        tv: '<rect x="-6" y="-4.5" width="12" height="9" rx="1"/>',
-        nas: '<rect x="-5" y="-6" width="10" height="12" rx="1"/><path d="M-2 -3h.01M-2 0h.01M-2 3h.01"/>',
-        bulb: '<circle cx="0" cy="-1" r="4"/><path d="M-2 5h4"/>',
-        sensor: '<path d="M-5 3a7 7 0 0 1 10 0M-2.5 0.5a3.5 3.5 0 0 1 5 0"/>'
-      };
+      var CX = 230, CY = 230, R = 168;
       function mk(tag, attrs) { var e = document.createElementNS(NS, tag); for (var k in attrs) e.setAttribute(k, attrs[k]); return e; }
-      function path(a, b) { var my = (a.y + b.y) / 2; return 'M' + a.x + ' ' + a.y + ' C ' + a.x + ' ' + my + ' ' + b.x + ' ' + my + ' ' + b.x + ' ' + b.y; }
-
-      var allNodes = [root].concat(hubs, leaves);
-      var edgeDefs = [];
-      hubs.forEach(function (h) { edgeDefs.push([root, h]); });
-      leaves.forEach(function (l) { edgeDefs.push([hubs[l.hub], l]); });
-      edgeDefs.forEach(function (pair) {
-        edgesG.appendChild(mk('path', { d: path(pair[0], pair[1]), class: 'edge' }));
-        if (!reduce) {
-          var p = mk('path', { d: path(pair[0], pair[1]), class: 'pulse' });
-          p.style.animationDelay = (Math.random() * -2.6) + 's';
-          pulsesG.appendChild(p);
-        }
+      var ICON = {
+        tv: '<rect x="4" y="4.5" width="16" height="11" rx="2"/><path d="M8.5 19.5h7M12 15.5v4"/>',
+        camera: '<path d="M4 8h3l1.4-2h7.2L17 8h3v10.5H4z"/><circle cx="12" cy="12.8" r="3"/>',
+        server: '<rect x="4" y="4" width="16" height="6" rx="1.6"/><rect x="4" y="14" width="16" height="6" rx="1.6"/><path d="M7.5 7h.01M7.5 17h.01"/>',
+        iot: '<path d="M9 18.5h6M10.2 21.5h3.6"/><path d="M12 2.5a6 6 0 0 0-3.8 10.6c.6.6.9 1.2.95 2.4h5.7c.05-1.2.35-1.8.95-2.4A6 6 0 0 0 12 2.5z"/>',
+        speaker: '<rect x="6" y="2.5" width="12" height="19" rx="2.5"/><circle cx="12" cy="14.5" r="3.2"/><path d="M12 6.5h.01"/>',
+        router: '<rect x="3" y="13" width="18" height="6.5" rx="2"/><path d="M7 16.2h.01M11 16.2h6"/><path d="M8.5 10l3.5-3.5L15.5 10M12 6.5v4"/>',
+        smarttag: '<path d="M8.5 7.5l7 9-3.5 2.7V4.8l3.5 2.7-7 9"/>',
+        phone: '<rect x="7" y="2.5" width="10" height="19" rx="2.6"/><path d="M10.5 18.5h3"/>'
+      };
+      var devs = [
+        { g: 'tv', l: 'TV', a: 0 }, { g: 'camera', l: 'Camera', a: 45 }, { g: 'server', l: 'Server', a: 90 },
+        { g: 'iot', l: 'IoT', a: 135 }, { g: 'speaker', l: 'Speaker', a: 180 }, { g: 'router', l: 'Router', a: 225 },
+        { g: 'smarttag', l: 'SmartTag', a: 270 }, { g: 'phone', l: 'Phone', a: 315 }
+      ];
+      var built = devs.map(function (d) {
+        var rad = (d.a - 90) * Math.PI / 180;              // 0deg points up, clockwise
+        var x = CX + R * Math.cos(rad), y = CY + R * Math.sin(rad);
+        var len = Math.hypot(x - CX, y - CY);
+        var edge = mk('line', { x1: CX, y1: CY, x2: x, y2: y, class: 'redge' });
+        edge.style.strokeDasharray = len; edge.style.strokeDashoffset = len;
+        radarEdges.appendChild(edge);
+        // outer group = position (SVG attribute), inner group = scale/opacity (CSS) so they don't collide
+        var outer = mk('g', { transform: 'translate(' + x + ',' + y + ')' });
+        var g = mk('g', { class: 'dev' });
+        g.appendChild(mk('rect', { class: 'tile', x: -23, y: -23, width: 46, height: 46, rx: 13 }));
+        var ic = mk('g', { class: 'ic', transform: 'translate(-12,-12)' });
+        ic.innerHTML = ICON[d.g] || '';
+        g.appendChild(ic);
+        var lbl = mk('text', { class: 'lbl', x: 0, y: 39 }); lbl.textContent = d.l; g.appendChild(lbl);
+        g.appendChild(mk('circle', { class: 'dotring', cx: 15, cy: -15, r: 5 }));
+        g.appendChild(mk('circle', { class: 'dot', cx: 15, cy: -15, r: 3.4 }));
+        outer.appendChild(g);
+        radarDevices.appendChild(outer);
+        return { g: g, edge: edge };
       });
-
-      var nodeEls = [];
-      allNodes.forEach(function (n, i) {
-        var g = mk('g', { class: 'node' + (n.root ? ' root' : ''), transform: 'translate(' + n.x + ',' + n.y + ')' });
-        if (!n.root && i > 3) { g.appendChild(mk('circle', { class: 'ring', r: 10 })); }
-        g.appendChild(mk('circle', { class: 'core', r: n.r || 9 }));
-        var gl = mk('g', { class: 'glyph' });
-        if (n.root) gl.innerHTML = '<path d="M-7 0h14M0 -7v14M-4 -4l8 8M4 -4l-8 8"/>';
-        else if (n.g) gl.innerHTML = glyphs[n.g] || '';
-        else gl.innerHTML = '<circle cx="0" cy="0" r="3"/>';
-        g.appendChild(gl);
-        nodesG.appendChild(g);
-        nodeEls.push(g);
-      });
-
       var counterEl = document.getElementById('devCount');
-      var total = leaves.length + hubs.length + 1;
+      function setCount(n) { if (counterEl) counterEl.textContent = String(n); }
+
       if (reduce) {
-        if (counterEl) counterEl.textContent = String(total);
-        nodeEls.forEach(function (g) { g.classList.add('on'); });
+        built.forEach(function (b) { b.g.classList.add('on'); b.edge.style.strokeDashoffset = '0'; });
+        setCount(built.length);
       } else {
-        var order = nodeEls.map(function (_, i) { return i; });
-        function light() {
-          var k = 0, found = 0;
+        var steadyIv;
+        function discover() {
+          if (steadyIv) clearInterval(steadyIv);
+          built.forEach(function (b) { b.g.classList.remove('on', 'ping'); b.edge.style.strokeDashoffset = b.edge.style.strokeDasharray; });
+          setCount(0);
+          var i = 0;
           var iv = setInterval(function () {
-            if (k >= order.length) {
-              clearInterval(iv);
-              setTimeout(function () {
-                nodeEls.forEach(function (g) { g.classList.remove('on'); });
-                if (counterEl) counterEl.textContent = '0';
-                light();
-              }, 2600);
-              return;
-            }
-            nodeEls[order[k]].classList.add('on'); found++; k++;
-            if (counterEl) counterEl.textContent = String(found);
-          }, 520);
+            if (i >= built.length) { clearInterval(iv); steady(); return; }
+            built[i].g.classList.add('on');
+            (function (b) { setTimeout(function () { b.edge.style.strokeDashoffset = '0'; }, 150); })(built[i]);
+            setCount(i + 1); i++;
+          }, 450);
         }
-        light();
+        function steady() {
+          var j = 0, cycles = 0;
+          steadyIv = setInterval(function () {
+            var b = built[j % built.length];
+            b.g.classList.add('ping');
+            (function (bb) { setTimeout(function () { bb.g.classList.remove('ping'); }, 1100); })(b);
+            j++;
+            if (j % built.length === 0) { cycles++; if (cycles >= 2) { clearInterval(steadyIv); setTimeout(discover, 1500); } }
+          }, 720);
+        }
+        discover();
       }
     }
+
+    /* ---- Staggered reveal for feature cards ---- */
+    document.querySelectorAll('.features .feat').forEach(function (el, i) {
+      el.style.transitionDelay = ((i % 3) * 70 + Math.floor(i / 3) * 40) + 'ms';
+    });
   })();
   </script>
 </body>

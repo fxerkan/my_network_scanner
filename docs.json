@@ -41,7 +41,8 @@
         "pages": [
           { "title": "Features", "href": "/features" },
           { "title": "Integrations & API", "href": "/integrations" },
-          { "title": "Mobile app", "href": "/mobile" }
+          { "title": "Mobile app", "href": "/mobile" },
+          { "title": "MyNeS vs. alternatives", "href": "/comparison" }
         ]
       },
       {
@@ -66,7 +67,8 @@
         "pages": [
           { "title": "Özellikler", "href": "/features" },
           { "title": "Entegrasyonlar ve API", "href": "/integrations" },
-          { "title": "Mobil uygulama", "href": "/mobile" }
+          { "title": "Mobil uygulama", "href": "/mobile" },
+          { "title": "MyNeS ve alternatifleri", "href": "/comparison" }
         ]
       },
       {

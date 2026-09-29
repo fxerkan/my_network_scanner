@@ -1,0 +1,74 @@
+---
+title: MyNeS ve alternatifleri
+description: MyNeS'in Fing, Advanced IP Scanner, Angry IP Scanner, Nmap ve NetAlertX ile karşılaştırması.
+---
+
+LAN'ınıza bakmanın birçok yolu var. Çoğu üç gruba girer: **bulut uygulamaları** (Fing),
+**masaüstü tarayıcılar** (Advanced IP Scanner, Angry IP Scanner), **komut satırı** (Nmap) ve
+**kendin barındırılan izleyiciler** (NetAlertX / Pi.Alert). MyNeS sonuncu gruptadır — ancak bu
+araçların atladığı şeyleri ekler: IP olmayan keşif, yapay zekâ ile tanımlama, güvenlik/CVE
+görünümü, birinci sınıf Home Assistant desteği ve yerel bir mobil istemci.
+
+## Bir bakışta
+
+| Yetenek | **MyNeS** | Fing | Advanced IP Scanner | Angry IP Scanner | Nmap | NetAlertX |
+| --- | :--: | :--: | :--: | :--: | :--: | :--: |
+| Kendin barındır, bulut hesabı yok | ✓ | — | ✓ | ✓ | ✓ | ✓ |
+| Açık kaynak (MIT) | ✓ | — | — | ✓ | ✓ | ✓ |
+| Ücretsiz | ✓ | ~ | ✓ | ✓ | ✓ | ✓ |
+| Modern web arayüzü | ✓ | ~ | — | — | — | ✓ |
+| ARP / IP taraması | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| mDNS / SSDP / UPnP keşfi | ✓ | ✓ | — | — | ~ | ~ |
+| Bluetooth LE keşfi | ✓ | ~ | — | — | — | — |
+| Zigbee / Z-Wave (MQTT ile) | ✓ | — | — | — | — | — |
+| Port ve servis taraması | ✓ | ✓ | ~ | ✓ | ✓ | ~ |
+| Üretici (OUI) + OS parmak izi | ✓ | ✓ | ~ | ~ | ✓ | ~ |
+| Yapay zekâ ile tanımlama | ✓ | — | — | — | — | — |
+| Güvenlik / CVE maruziyeti görünümü | ✓ | ~ | — | — | ~ | — |
+| Zamanlanmış izleme + uyarılar | ✓ | ✓ | — | — | — | ✓ |
+| Home Assistant entegrasyonu + eklenti | ✓ | — | — | — | — | ~ |
+| Prometheus / InfluxDB / Grafana | ✓ | — | — | — | — | — |
+| REST API + OpenAPI | ✓ | ~ | — | — | — | ~ |
+| Yerel mobil uygulama | ~ | ✓ | — | — | — | — |
+| Raspberry Pi'de çalışır (ARM) | ✓ | ~ | — | ✓ | ✓ | ✓ |
+| Türkçe + İngilizce arayüz | ✓ | ~ | ~ | — | — | — |
+
+<Info>
+  **Açıklama** — ✓ yerleşik · ~ kısmi, ücretli veya eklenti ile · — mevcut değil.
+  MyNeS mobil, Google Play ve App Store'da **yakında** çıkacak bağımsız yerel bir uygulamadır.
+</Info>
+
+## MyNeS'i farklı kılan nedir
+
+<Steps>
+  <Step title="Bir IP taramasının göremediği cihazları görür">
+    ARP ve ping yalnızca IP'si olanları bulur. MyNeS ayrıca mDNS/Bonjour, SSDP/UPnP,
+    **Bluetooth LE** (hiç IP'si olmayan) ve **MQTT üzerinden Zigbee/Z-Wave** dinler — böylece diğer
+    tarayıcıların kaçırdığı akıllı ev cihazları gerçekten görünür. Bkz.
+    [Özellikler → Keşif](/features#kesif).
+  </Step>
+  <Step title="Bulduğunu açıklar">
+    Üretici sorgusu, OS ve bağlantı ortamı tahmini, aktif parmak izi ve isteğe bağlı **yapay zekâ
+    ile tanımlama**, bir yığın IP'yi adlandırılmış, türlendirilmiş cihazlara dönüştürür.
+  </Step>
+  <Step title="İzler ve uyarır">
+    Zamanlanmış taramalar zaman içinde karşılaştırılır; yeni cihaz, MAC/IP değişikliği, yeni açılan
+    port ve sağlık sinyalleri hakkında Web Push, Home Assistant, ntfy, Telegram, Slack, Discord,
+    webhook ve e-posta ile uyarır. Ayrıca filo çapında **güvenlik ve CVE** görünümü.
+  </Step>
+  <Step title="Bir ev laboratuvarına uyar">
+    Çok mimarili Docker (Raspberry Pi'de çalışır), tek tıklık **Home Assistant eklentisi**,
+    Prometheus / InfluxDB / Grafana, tam bir REST API ve yerel bir **mobil** istemci — hepsi kendin
+    barındırılan, bulut yok, telemetri yok.
+  </Step>
+</Steps>
+
+## Başka bir aracın daha uygun olduğu durumlar
+
+Hileli bir tablodan dürüst yönlendirme iyidir:
+
+- **Terminalden tek seferlik derin port/OS taraması istiyorsanız** → Nmap altın standarttır (MyNeS onu arka planda kullanır).
+- **Windows'ta yalnızca hızlı bir cihaz listesi istiyorsanız** → Advanced IP Scanner hızlı ve kurulumsuzdur.
+- **Küçük, çok platformlu bir masaüstü tarayıcı istiyorsanız** → Angry IP Scanner hafif ve açık kaynaktır.
+- **Bulut hesaplı, cilalı bir telefon uygulaması istiyorsanız ve kapalı kaynak sizi rahatsız etmiyorsa** → Fing iyi yapılmıştır.
+- **Sürekli ev-ağı izleme, IP olmayan keşif, güvenlik içgörüsü ve Home Assistant istiyorsanız** → MyNeS tam da bunun içindir.

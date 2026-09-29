@@ -1,0 +1,74 @@
+---
+title: MyNeS vs. alternatives
+description: How MyNeS compares to Fing, Advanced IP Scanner, Angry IP Scanner, Nmap and NetAlertX.
+---
+
+There are plenty of ways to look at your LAN. Most fall into three camps: **cloud apps**
+(Fing), **desktop scanners** (Advanced IP Scanner, Angry IP Scanner), the **CLI** (Nmap), and
+**self-hosted monitors** (NetAlertX / Pi.Alert). MyNeS sits in the last camp — but adds the
+things those tools leave out: non-IP discovery, AI identification, a security/CVE view, first-class
+Home Assistant support, and a native mobile client.
+
+## At a glance
+
+| Capability | **MyNeS** | Fing | Advanced IP Scanner | Angry IP Scanner | Nmap | NetAlertX |
+| --- | :--: | :--: | :--: | :--: | :--: | :--: |
+| Self-hosted, no cloud account | ✓ | — | ✓ | ✓ | ✓ | ✓ |
+| Open source (MIT) | ✓ | — | — | ✓ | ✓ | ✓ |
+| Free | ✓ | ~ | ✓ | ✓ | ✓ | ✓ |
+| Modern web UI | ✓ | ~ | — | — | — | ✓ |
+| ARP / IP sweep | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| mDNS / SSDP / UPnP discovery | ✓ | ✓ | — | — | ~ | ~ |
+| Bluetooth LE discovery | ✓ | ~ | — | — | — | — |
+| Zigbee / Z-Wave (via MQTT) | ✓ | — | — | — | — | — |
+| Port & service scan | ✓ | ✓ | ~ | ✓ | ✓ | ~ |
+| Vendor (OUI) + OS fingerprint | ✓ | ✓ | ~ | ~ | ✓ | ~ |
+| AI-assisted identification | ✓ | — | — | — | — | — |
+| Security / CVE exposure view | ✓ | ~ | — | — | ~ | — |
+| Scheduled monitoring + alerts | ✓ | ✓ | — | — | — | ✓ |
+| Home Assistant integration + add-on | ✓ | — | — | — | — | ~ |
+| Prometheus / InfluxDB / Grafana | ✓ | — | — | — | — | — |
+| REST API + OpenAPI | ✓ | ~ | — | — | — | ~ |
+| Native mobile app | ~ | ✓ | — | — | — | — |
+| Runs on Raspberry Pi (ARM) | ✓ | ~ | — | ✓ | ✓ | ✓ |
+| Turkish + English UI | ✓ | ~ | ~ | — | — | — |
+
+<Info>
+  **Legend** — ✓ built-in · ~ partial, paid, or via add-on · — not available.
+  MyNeS mobile is a standalone native app, **coming soon** to Google Play and the App Store.
+</Info>
+
+## What makes MyNeS different
+
+<Steps>
+  <Step title="It sees the devices an IP scan can't">
+    ARP and ping only find things with an IP. MyNeS also listens to mDNS/Bonjour, SSDP/UPnP,
+    **Bluetooth LE** (no IP at all) and **Zigbee/Z-Wave over MQTT** — so smart-home gear that
+    other scanners miss actually shows up. See [Features → Discovery](/features#discovery).
+  </Step>
+  <Step title="It explains what it found">
+    Vendor lookup, OS and connection-medium guessing, active fingerprinting, and optional
+    **AI identification** turn a wall of IPs into named, typed devices. See
+    [Configuration → AI](/configuration#ai-assisted-identification-optional).
+  </Step>
+  <Step title="It watches and warns">
+    Scheduled scans diff over time and alert on new devices, MAC/IP changes, newly opened ports
+    and health signals — across Web Push, Home Assistant, ntfy, Telegram, Slack, Discord, webhook
+    and email. Plus a fleet **security & CVE** view. See [Features → Monitoring](/features#monitoring--alerts).
+  </Step>
+  <Step title="It fits a home lab">
+    Multi-arch Docker (runs on a Raspberry Pi), a one-click **Home Assistant add-on**, Prometheus
+    / InfluxDB / Grafana, a full REST API, and a native **mobile** client — all self-hosted, no
+    cloud, no telemetry.
+  </Step>
+</Steps>
+
+## When another tool is the better fit
+
+Honest guidance beats a rigged table:
+
+- **You want a one-off port/OS deep-scan from a terminal** → Nmap is the gold standard (MyNeS uses it under the hood).
+- **You just want a quick device list on Windows** → Advanced IP Scanner is fast and zero-setup.
+- **You want a tiny cross-platform desktop scanner** → Angry IP Scanner is lightweight and open source.
+- **You want a polished phone app with a cloud account and don't mind closed source** → Fing is well made.
+- **You want continuous home-network monitoring, non-IP discovery, security insight and Home Assistant** → that's exactly what MyNeS is for.

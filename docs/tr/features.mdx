@@ -17,6 +17,8 @@ IP'si olmayanlar bile görünür:
 Her protokol isteğe bağlı ve izoledir: ölü bir protokol hiçbir şey döndürmez ve loglar,
 taramayı asla bozmaz.
 
+![mDNS, SSDP, Bluetooth LE ve MQTT ile bulunan cihazları listeleyen çok protokollü keşif ekranı](https://mynes.fxerkan.com/assets/screenshots/discovery.png)
+
 ## Tanımlama
 
 - 1000+ port üzerinde **port ve servis taraması** (Nmap gerekir)
@@ -36,6 +38,10 @@ Aynı envanter, araç çubuğundan dört şekilde okunur:
 | **Topoloji** | Fiziksel yol: internet → modem → switch/AP → cihaz |
 | **Ev planı** | Her cihazı gerçekte bulunduğu odaya sürüklemek |
 
+![Etkileşimli grafik görünümü — merkez olarak alt ağ geçitleri, her cihaz kendi segmentinde](https://mynes.fxerkan.com/assets/screenshots/graph-view.png)
+
+![Ağ topolojisi görünümü — internetten modeme, switch'e ve cihaza](https://mynes.fxerkan.com/assets/screenshots/topology-view.png)
+
 ## Cihaz yönetimi
 
 Bir cihazın bilgisini düzenleyin, özel öznitelikler ve manuel portlar ekleyin. Düzenlemeleriniz
@@ -53,12 +59,16 @@ MyNeS zamanlanmış tarar, ardışık taramaları karşılaştırır ve yalnızc
 Teslimat kanalları: MyNeS'in kendi **Web Push**'u, bir **Home Assistant** bildirim servisi,
 **ntfy**, **Telegram**, **webhook**, **Slack**, **Discord** ve **e-posta**.
 
+![İzleme ve uyarılar ekranı — zamanlanmış taramalar ve değişiklik bildirimleri](https://mynes.fxerkan.com/assets/screenshots/monitoring-alerts.png)
+
 ## Güvenlik ve CVE analizi
 
 Güvenlik sayfası, tüm filonuzun saldırı yüzeyini ve bilinen CVE maruziyetini en kötüsü önce
 gösterir: ağırlıklı bir filo risk skoru, önem dağılımı, bir "önce neyi düzeltmeli" listesi ve
 cihaz başına detay. Bu, her cihazın parmak izine karşı seçilmiş bir **çevrimdışı** eşleştirmedir
 — bilerek canlı bir NVD akışı değildir. Kimlik bilgileri şifrelenir ve dışa aktarımda temizlenir.
+
+![Güvenlik sayfası — filo risk skoru, önem dağılımı ve cihaz başına CVE maruziyeti](https://mynes.fxerkan.com/assets/screenshots/secuirty.png)
 
 ## Entegrasyonlar ve API
 
