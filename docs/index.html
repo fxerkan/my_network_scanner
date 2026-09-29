@@ -351,8 +351,9 @@
     .tab:hover { color: var(--text); }
     .tab[aria-selected="true"] { background: var(--brand); color: #fff; box-shadow: 0 6px 16px -10px rgba(0,0,0,.85), inset 0 1px 0 rgba(255,255,255,.16); }
     .tab svg { width: 16px; height: 16px; }
-    .panel { display: grid; grid-template-columns: 1fr 1.55fr; gap: 30px; align-items: center; }
+    .panel { display: grid; grid-template-columns: .82fr 1.18fr; gap: clamp(24px, 3vw, 44px); align-items: start; }
     .panel[hidden] { display: none; }
+    .panel .desc { padding-top: 6px; }
     .panel .desc h3 { font-family: var(--font-display); font-weight: 600; font-size: 1.35rem; letter-spacing: -.02em; margin: 0 0 10px; }
     .panel .desc p { color: var(--muted); margin: 0; }
     .panel .desc .tag { font-family: var(--font-mono); color: var(--brand-bright); font-size: .8rem; letter-spacing: .1em; text-transform: uppercase; display: block; margin-bottom: 10px; }
@@ -407,6 +408,12 @@
     .note { color: var(--muted); font-size: .98rem; }
     .note code { font-family: var(--font-mono); background: var(--surface); border: 1px solid var(--border); padding: 2px 7px; border-radius: 6px; font-size: .86em; color: #cfe0f5; }
 
+    /* Numbered step list (quick start) */
+    .steplist { list-style: none; counter-reset: s; padding: 0; margin: 22px 0 0; display: grid; gap: 12px; max-width: 76ch; }
+    .steplist li { counter-increment: s; position: relative; padding: 3px 0 3px 46px; color: var(--muted); font-size: .98rem; line-height: 1.6; }
+    .steplist li::before { content: counter(s); position: absolute; left: 0; top: 1px; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 9px; background: var(--brand-soft); border: 1px solid rgba(47,107,255,.28); color: var(--brand-bright); font-family: var(--font-mono); font-weight: 500; font-size: .84rem; }
+    .steplist li strong { color: var(--text); font-weight: 600; }
+
     /* ---------- Links list ---------- */
     .linklist { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
     .linklist a { display: flex; align-items: center; gap: 10px; padding: 14px 16px; background: var(--surface);
@@ -434,7 +441,6 @@
       .hero-grid { grid-template-columns: 1fr; }
       .radar { order: -1; max-width: min(440px, 100%); }
       .split, .panel, .mobile-teaser { grid-template-columns: 1fr; }
-      .panel .desc { order: 2; }
       .phone-cluster { flex-wrap: wrap; }
     }
     @media (max-width: 720px) {
@@ -639,19 +645,19 @@
           </div>
 
           <div class="panel" role="tabpanel" id="view-0" aria-labelledby="tab-0">
-            <div class="desc"><span class="tag">Graph</span><h3 data-i18n="views.graph.t">The whole network at a glance</h3><p data-i18n="views.graph.d">Subnet gateways sit as hubs; every device hangs off the segment it lives on. A host's Docker networks nest under the host that runs them.</p></div>
-            <figure class="frame"><div class="dots" aria-hidden="true"><i></i><i></i><i></i></div><img class="shot" src="assets/screenshots/graph-view.png" alt="MyNeS interactive graph view: subnet gateways as hubs with every device on its segment, in high resolution" loading="lazy" width="2684" height="1482"></figure>
+            <div class="desc"><span class="tag" data-i18n="views.tab.graph">Graph</span><h3 data-i18n="views.graph.t">The whole network at a glance</h3><p data-i18n="views.graph.d">Subnet gateways sit as hubs; every device hangs off the segment it lives on. A host's Docker networks nest under the host that runs them.</p></div>
+            <figure class="frame"><div class="dots" aria-hidden="true"><i></i><i></i><i></i></div><img class="shot" src="assets/screenshots/graph-view.png" alt="MyNeS interactive graph view: subnet gateways as hubs with every device on its segment, in high resolution" loading="lazy" width="1760" height="1440"></figure>
           </div>
           <div class="panel" role="tabpanel" id="view-1" aria-labelledby="tab-1" hidden>
-            <div class="desc"><span class="tag">Cards / Table</span><h3 data-i18n="views.cards.t">Detail and bulk editing</h3><p data-i18n="views.cards.d">The dense view for reading device attributes and editing many at once.</p></div>
+            <div class="desc"><span class="tag" data-i18n="views.tab.cards">Cards / Table</span><h3 data-i18n="views.cards.t">Detail and bulk editing</h3><p data-i18n="views.cards.d">The dense view for reading device attributes and editing many at once.</p></div>
             <figure class="frame"><div class="dots" aria-hidden="true"><i></i><i></i><i></i></div><img class="shot" src="assets/mynes.png" alt="MyNeS web interface showing discovered network devices in a card and table layout" loading="lazy"></figure>
           </div>
           <div class="panel" role="tabpanel" id="view-2" aria-labelledby="tab-2" hidden>
-            <div class="desc"><span class="tag">Topology</span><h3 data-i18n="views.topo.t">What is plugged into what</h3><p data-i18n="views.topo.d">Internet → router → switch / AP → group → device, laid out as the physical path.</p></div>
+            <div class="desc"><span class="tag" data-i18n="views.tab.topo">Topology</span><h3 data-i18n="views.topo.t">What is plugged into what</h3><p data-i18n="views.topo.d">Internet → router → switch / AP → group → device, laid out as the physical path.</p></div>
             <figure class="frame"><div class="dots" aria-hidden="true"><i></i><i></i><i></i></div><img class="shot" src="assets/screenshots/topology-view.png" alt="MyNeS network topology diagram from internet to router to devices, in high resolution" loading="lazy" width="2456" height="1816"></figure>
           </div>
           <div class="panel" role="tabpanel" id="view-3" aria-labelledby="tab-3" hidden>
-            <div class="desc"><span class="tag">Home plan</span><h3 data-i18n="views.home.t">Drag devices onto a plan of your home</h3><p data-i18n="views.home.d">Place each device in the room where it actually lives.</p></div>
+            <div class="desc"><span class="tag" data-i18n="views.tab.home">Home plan</span><h3 data-i18n="views.home.t">Drag devices onto a plan of your home</h3><p data-i18n="views.home.d">Place each device in the room where it actually lives.</p></div>
             <figure class="frame"><div class="dots" aria-hidden="true"><i></i><i></i><i></i></div><img class="shot" src="assets/screenshots/home-view.png" alt="MyNeS home plan view with devices placed on a floor plan" loading="lazy"></figure>
           </div>
         </div>
@@ -844,23 +850,23 @@ python scripts/run.py</code></pre>
           </div>
         </div>
 
-        <p class="note lang-en" style="margin-top:18px;">
-          Then start it with <code class="inline-code">docker compose up -d</code> and open the web UI at
-          <code class="inline-code">http://&lt;your-server-ip&gt;:5883</code>. Host networking and NET_RAW /
-          NET_ADMIN are required because MyNeS sends raw ARP frames and listens for mDNS/SSDP
-          multicast. It does not run as root and is not privileged. From source requires Python 3.9+ and Nmap;
-          <code class="inline-code">scripts/run.py</code> creates the virtual environment, installs dependencies, checks for nmap and starts the app.
-          Full step-by-step setup, configuration and troubleshooting live in the <a href="https://docs.page/fxerkan/my_network_scanner">Docs</a>.
-          Only scan networks you own.
+        <ol class="steplist lang-en">
+          <li><strong>Start it.</strong> Run <code class="inline-code">docker compose up -d</code>.</li>
+          <li><strong>Open the web UI.</strong> Go to <code class="inline-code">http://&lt;your-server-ip&gt;:5883</code>.</li>
+          <li><strong>Why host mode?</strong> Host networking plus <code class="inline-code">NET_RAW</code> / <code class="inline-code">NET_ADMIN</code> let MyNeS send raw ARP frames and hear mDNS/SSDP multicast. It never runs as root or privileged.</li>
+          <li><strong>Prefer running from source?</strong> With Python&nbsp;3.9+ and Nmap, <code class="inline-code">python scripts/run.py</code> creates the virtual environment, installs dependencies, checks for nmap and starts the app.</li>
+        </ol>
+        <p class="note lang-en" style="margin-top:16px;">
+          Full step-by-step setup, configuration and troubleshooting live in the <a href="https://docs.page/fxerkan/my_network_scanner">Docs</a>. Only scan networks you own.
         </p>
-        <p class="note lang-tr" style="margin-top:18px;">
-          Ardından <code class="inline-code">docker compose up -d</code> ile başlatın ve web arayüzünü
-          <code class="inline-code">http://&lt;sunucu-ip&gt;:5883</code> adresinden açın. MyNeS ham ARP çerçeveleri gönderdiği ve
-          mDNS/SSDP çoklu-yayınını dinlediği için host ağı ve NET_RAW / NET_ADMIN gereklidir. Uygulama root olarak çalışmaz ve
-          ayrıcalıklı değildir. Kaynaktan kurulum Python 3.9+ ve Nmap ister;
-          <code class="inline-code">scripts/run.py</code> sanal ortamı oluşturur, bağımlılıkları kurar, nmap'i kontrol eder ve uygulamayı başlatır.
-          Adım adım kurulum, yapılandırma ve sorun giderme için <a href="https://docs.page/fxerkan/my_network_scanner">Dokümanlar</a>'a bakın.
-          Yalnızca sahibi olduğunuz ağları tarayın.
+        <ol class="steplist lang-tr">
+          <li><strong>Başlatın.</strong> <code class="inline-code">docker compose up -d</code> komutunu çalıştırın.</li>
+          <li><strong>Web arayüzünü açın.</strong> <code class="inline-code">http://&lt;sunucu-ip&gt;:5883</code> adresine gidin.</li>
+          <li><strong>Neden host modu?</strong> Host ağı ve <code class="inline-code">NET_RAW</code> / <code class="inline-code">NET_ADMIN</code>, MyNeS'in ham ARP çerçeveleri göndermesini ve mDNS/SSDP çoklu-yayınını duymasını sağlar. Uygulama asla root olarak veya ayrıcalıklı çalışmaz.</li>
+          <li><strong>Kaynaktan çalıştırmak mı istiyorsunuz?</strong> Python&nbsp;3.9+ ve Nmap varken <code class="inline-code">python scripts/run.py</code> sanal ortamı oluşturur, bağımlılıkları kurar, nmap'i kontrol eder ve uygulamayı başlatır.</li>
+        </ol>
+        <p class="note lang-tr" style="margin-top:16px;">
+          Adım adım kurulum, yapılandırma ve sorun giderme için <a href="https://docs.page/fxerkan/my_network_scanner">Dokümanlar</a>'a bakın. Yalnızca kendi ağlarınızı tarayın.
         </p>
       </div>
     </section>
@@ -950,22 +956,22 @@ python scripts/run.py</code></pre>
         "feat.lang.t": "Türkçe ve İngilizce", "feat.lang.d": "Arayüzün tamamı Türkçe ve İngilizce — dili istediğiniz an değiştirebilirsiniz.",
         "disc.kicker": "Keşif", "disc.title": "Sıradan bir IP taraması ev ağının yarısını kaçırır",
         "disc.body": "MyNeS, kendini duyuran her cihazı dinler: mDNS/Bonjour (yazıcı, NAS, Chromecast, HomeKit), Matter, SSDP/UPnP (modem, akıllı TV, kamera, konsol), Bluetooth LE (hiç IP'si olmayan cihazlar) ve MQTT üzerinden Zigbee/Z-Wave.",
-        "views.kicker": "Tek liste, dört farklı bakış", "views.title": "Ağınızı işinize en uygun şekilde okuyun",
+        "views.kicker": "Tek liste, dört farklı bakış", "views.title": "Ağınızı farklı görünümler ile kolayca analiz edin",
         "views.lead": "Cihaz listesini araç çubuğundan dört farklı şekilde görüntüleyebilirsiniz. Bir görünüm seçin.",
-        "views.tab.graph": "Grafik", "views.tab.cards": "Kartlar / Tablo", "views.tab.topo": "Topoloji", "views.tab.home": "Ev Planı",
+        "views.tab.graph": "Düğüm", "views.tab.cards": "Kartlar / Tablo", "views.tab.topo": "Topoloji", "views.tab.home": "Ev Planı",
         "views.graph.t": "Tüm ağ tek bakışta", "views.graph.d": "Alt ağ geçitleri merkezde durur; her cihaz bağlı olduğu ağ bölümünde görünür. Bir bilgisayarın Docker ağları da onu çalıştıran makinenin altında toplanır.",
         "views.cards.t": "Ayrıntı ve toplu düzenleme", "views.cards.d": "Cihaz bilgilerini okumak ve birçoğunu tek seferde düzenlemek için en yoğun görünüm.",
         "views.topo.t": "Neyin neye bağlı olduğu", "views.topo.d": "İnternet → modem → switch / AP → grup → cihaz; tıpkı gerçek bağlantı yolundaki gibi.",
         "views.home.t": "Cihazları evinizin planına yerleştirin", "views.home.d": "Her cihazı gerçekte bulunduğu odaya sürükleyip bırakın.",
-        "mon.kicker": "İzleme", "mon.title": "İzlemeyi o üstlenir, siz uğraşmazsınız",
+        "mon.kicker": "İzleme", "mon.title": "Ağınızdaki tüm değişiklikleri sizin yerinize anlık olarak izler ve bildirir",
         "mon.body": "Belirlediğiniz aralıkla tarar, art arda taramaları karşılaştırır ve yalnızca önemli olanı bildirir. Bildirimler MyNeS'in kendi Web Push'u, Home Assistant, ntfy, Telegram, webhook, Slack, Discord ve e-posta ile gelir.",
         "mon.a.new": "Yeni cihaz", "mon.a.off": "Cihaz çevrimdışı", "mon.a.ip": "IP değişti",
         "mon.a.mac": "MAC değişti (ARP sahteciliği)", "mon.a.port": "Yeni açılan port", "mon.a.volt": "Düşük voltaj",
         "mon.a.batt": "Düşük pil", "mon.a.lat": "Yüksek gecikme", "mon.a.sig": "Zayıf sinyal",
-        "sec.kicker": "Güvenlik", "sec.title": "Ağınızın açıkları, en riskliden başlayarak",
+        "sec.kicker": "Güvenlik", "sec.title": "Ağınızda açıkları risk derecesine göre değerlendirir",
         "sec.body": "Güvenlik sayfası; ağınızdaki tüm cihazların saldırıya açık noktalarını ve bilinen güvenlik açıklarını en riskliden başlayarak gösterir (canlı bir akış değil, özenle seçilmiş çevrimdışı bir eşleştirme): genel risk puanı, önem dağılımı, “önce neyi düzeltmeli” listesi ve cihaz başına ayrıntı. Kayıtlı parolalar Fernet ile şifrelenir ve dışa aktarımda temizlenir.",
         "int.kicker": "Entegrasyonlar ve API", "int.title": "Zaten kullandığınız araçlara bağlanır",
-        "mob.badge": "Mobil · Android ve iOS", "mob.title": "Tarayıcının tamamı, artık cebinizde",
+        "mob.badge": "Mobil · Android ve iOS", "mob.title": "Web/Desktop uygulamasının tüm özellikleri artık cebinizde",
         "mob.cta.explore": "Mobil uygulamayı keşfet", "mob.cta.soon": "Android ve iOS",
         "qs.kicker": "Hızlı Başlangıç", "qs.title": "Tek komutla çalışır", "qs.tab.src": "kaynaktan", "qs.copy": "Kopyala",
         "cta.title": "Ağınızdaki bilinmezliği ortadan kaldırın",
