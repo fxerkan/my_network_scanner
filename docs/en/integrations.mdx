@@ -1,0 +1,60 @@
+---
+title: Integrations & API
+description: Home Assistant, InfluxDB, Prometheus, Grafana and the REST API.
+---
+
+Everything here lives under **Settings → Integrations**.
+
+## Home Assistant
+
+Two directions, use either or both:
+
+- **Push** — MQTT Discovery publishes each device as an HA entity automatically
+- **Pull** — REST / WebSocket reads HA state to compare and enrich
+
+Set `HA_URL` and `HA_TOKEN` (a long-lived access token) in your [configuration](/configuration).
+
+### Home Assistant add-on
+
+For HA OS / Supervised, run MyNeS as a one-click Supervisor add-on instead of a separate
+container:
+
+<Steps>
+  <Step title="Add the repository">
+    In HA: **Settings → Add-ons → Add-on Store → ⋮ → Repositories**, add
+    `https://github.com/fxerkan/mynes-addon`.
+  </Step>
+  <Step title="Install & start">
+    Find **MyNeS** in the store, install it, start it. It appears in your sidebar.
+  </Step>
+</Steps>
+
+## Time-series & dashboards
+
+- **InfluxDB 2** — push metrics for Grafana
+- **Prometheus** — expose a scrape endpoint for Grafana
+- **Grafana** — build dashboards on either source
+
+## REST API
+
+The app's full REST API catalog is readable live in the UI and downloadable as **OpenAPI
+(`swagger.json`)**. Highlights:
+
+| Area | Endpoints |
+| --- | --- |
+| Discovery | `/api/discovery` |
+| Monitoring | `/api/monitoring`, `/api/alerts`, `/api/notifications` |
+| Topology | `/api/topology`, `/api/subnets` |
+| Diagnostics | `/api/diagnostics/<ip>/*` (ping, traceroute, port probe, DNS) |
+| Security | `/api/security/vulnerabilities[/<ip>]` |
+| Health & capabilities | `/api/health`, `/api/capabilities` |
+
+<Info>
+  `/api/capabilities` is the machine-readable version of the **Capabilities** page: which
+  optional features are active, and why any are not.
+</Info>
+
+## Mobile
+
+The [native mobile app](/mobile) scans entirely on-device and doesn't need the server or these
+integrations to work — it's a standalone client, not a companion app.

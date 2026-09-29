@@ -1,0 +1,40 @@
+---
+title: Mobil uygulama
+description: MyNeS Mobile — Android ve iOS için bağımsız yerel tarayıcı.
+---
+
+**MyNeS Mobile**, tüm tarama motorunu **cihaz üzerinde** çalıştıran bağımsız yerel bir
+uygulamadır (React Native + Expo). Çalıştırılacak sunucu yok, Docker yok, eşleştirme yok —
+taramayı telefon yapar. Web uygulamasıyla aynı işlevsellik, aynı görünüm ve his.
+
+👉 Ekran görüntüleriyle tam tanıtım: **[fxerkan.github.io/my_network_scanner/mobile.html](https://fxerkan.github.io/my_network_scanner/mobile.html)**
+· Kaynak: **[github.com/fxerkan/mynes-mobile](https://github.com/fxerkan/mynes-mobile)**
+
+## Cihaz üstü motor nasıl çalışır
+
+Bir ping / TCP-connect taraması çekirdek ARP önbelleğini hazırlar, ardından MyNeS birkaç
+ayrıcalıksız kaynağı tek bir cihaz kaydında birleştirir:
+
+- **MAC** — taramadan sonra yerleşik bir yerel modülle (Android + iOS) ARP/NDP önbelleğinden okunur, root gerekmez
+- **Üretici** — yerleşik IEEE OUI tablosundan çevrimdışı çözülür
+- **Ad** — ters-DNS, sonra mDNS/Bonjour, SSDP/UPnP ve NetBIOS; en son bir HTTP başlığı / banner tahmini
+- **Tür** — yalnızca açık portları yoklayan bir banner-grab geçişiyle iyileştirilen port tabanlı sınıflandırma
+- **OS** — telefonun kendi işletim sistemi kesindir; diğer ana makineler banner'lardan çıkarılır
+
+## Ekranlar
+
+Cihazlar, Keşif, Uyarılar, Güvenlik, Geçmiş ve Ayarlar — canlı bir ağ taranırken iPhone ve
+Pixel donanımında çekildi. [Tanıtım sayfasına](https://fxerkan.github.io/my_network_scanner/mobile.html) bakın.
+
+## Kurulum
+
+Mağaza listelemeleri yakında. Şimdilik kaynaktan derleyin veya bir derlemeyi
+[GitHub Releases](https://github.com/fxerkan/mynes-mobile/releases)'ten alın. Depo, paylaşılan
+tasarım token'ları ve yerelleştirme dosyaları senkronda kalsın diye web deposunu kardeş bir
+checkout olarak bekler.
+
+<Info>
+  Web mi mobil mi? Uyarılar ve entegrasyonlarla her zaman açık bir ev-sunucusu tarayıcısı için
+  **web uygulamasını** kullanın. Telefonunuzu açıp taramaya dokunmak ve bağlı olduğunuz Wi-Fi'de
+  ne olduğunu anında görmek istediğinizde **mobil uygulamayı** kullanın.
+</Info>

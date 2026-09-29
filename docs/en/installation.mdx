@@ -1,0 +1,93 @@
+---
+title: Installation
+description: Run MyNeS with Docker Compose, docker run, or from source — step by step.
+---
+
+MyNeS is published as a multi-arch Docker image (`linux/amd64` and `linux/arm64`), so it runs
+on a Raspberry Pi or Orange Pi exactly as it does on an x86 server. The default port is
+**5883**.
+
+<Warning>
+  MyNeS needs **host networking** and the **NET_RAW / NET_ADMIN** capabilities to actually see
+  the LAN — it sends raw ARP frames and listens for mDNS/SSDP multicast. It does **not** run as
+  root and is not privileged.
+</Warning>
+
+## Option 1 — Docker Compose (recommended)
+
+<Steps>
+  <Step title="Create docker-compose.yml">
+    ```yaml
+    services:
+      mynes:
+        image: fxerkan/my_network_scanner:latest
+        container_name: mynes
+        network_mode: host          # lets it actually see the LAN
+        cap_add:
+          - NET_ADMIN
+          - NET_RAW
+        volumes:
+          - ./data:/app/data
+          - ./config:/app/config
+        environment:
+          MYNES_PORT: 5883
+          MYNES_PASSWORD: ""
+        restart: unless-stopped
+    ```
+  </Step>
+  <Step title="Start it">
+    ```bash
+    docker compose up -d
+    ```
+  </Step>
+  <Step title="Open the web UI">
+    Browse to `http://<your-server-ip>:5883`.
+  </Step>
+</Steps>
+
+## Option 2 — docker run
+
+```bash
+docker run -d \
+  --name mynes \
+  --network host \
+  --cap-add=NET_ADMIN \
+  --cap-add=NET_RAW \
+  -v "$(pwd)/data:/app/data" \
+  -v "$(pwd)/config:/app/config" \
+  -e MYNES_PORT=5883 \
+  --restart unless-stopped \
+  fxerkan/my_network_scanner:latest
+```
+
+## Option 3 — From source
+
+Requires **Python 3.9+** and **Nmap**. The bundled runner creates the virtual environment,
+installs dependencies, checks for nmap and starts the app.
+
+```bash
+git clone https://github.com/fxerkan/my_network_scanner.git
+cd my_network_scanner
+python scripts/run.py
+```
+
+Prefer to manage the environment yourself:
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e ".[all]"
+python -m mynes        # or: mynes
+```
+
+## Option 4 — Home Assistant add-on
+
+If you run Home Assistant OS/Supervised, install MyNeS as a one-click add-on. Add the
+repository `https://github.com/fxerkan/mynes-addon`, install, and it appears in your sidebar.
+See [Integrations](/integrations#home-assistant).
+
+## Verifying the install
+
+Open the UI and run a scan. If it finds far fewer devices than you expect, that's almost
+always a **privileges** problem, not a bug — see [Troubleshooting](/troubleshooting). The
+**Settings → Capabilities** page tells you exactly which optional features are active and why
+any are missing.

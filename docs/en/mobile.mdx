@@ -1,0 +1,39 @@
+---
+title: Mobile app
+description: MyNeS Mobile — a standalone native scanner for Android and iOS.
+---
+
+**MyNeS Mobile** is a standalone native app (React Native + Expo) that runs the whole scanning
+engine **on-device**. There's no server to run, no Docker, no pairing — the phone does the
+scanning. Same functionality and the same look and feel as the web app.
+
+👉 Full showcase with screenshots: **[fxerkan.github.io/my_network_scanner/mobile.html](https://fxerkan.github.io/my_network_scanner/mobile.html)**
+· Source: **[github.com/fxerkan/mynes-mobile](https://github.com/fxerkan/mynes-mobile)**
+
+## How the on-device engine works
+
+A ping / TCP-connect sweep primes the kernel ARP cache, then MyNeS merges several unprivileged
+sources into one device record:
+
+- **MAC** — read from the ARP/NDP cache after the sweep via a bundled native module (Android + iOS), no root needed
+- **Vendor** — resolved offline from the bundled IEEE OUI table
+- **Name** — reverse-DNS, then mDNS/Bonjour, SSDP/UPnP and NetBIOS, falling back to an HTTP title / banner guess
+- **Type** — port-based classification refined by a banner-grab pass that only probes open ports
+- **OS** — the phone's own OS is authoritative; other hosts are inferred from banners
+
+## Screens
+
+Devices, Discovery, Alerts, Security, History and Settings — captured on iPhone and Pixel
+hardware scanning a live network. See the [showcase page](https://fxerkan.github.io/my_network_scanner/mobile.html).
+
+## Install
+
+Store listings are coming soon. For now, build from source or grab a build from
+[GitHub Releases](https://github.com/fxerkan/mynes-mobile/releases). The repo expects the web
+repo as a sibling checkout so shared design tokens and locale files stay in sync.
+
+<Info>
+  Web app or mobile app? Use the **web app** for an always-on home-server scanner with
+  monitoring and integrations. Use the **mobile app** when you want to open your phone, tap
+  scan, and instantly see what's on the Wi-Fi you're connected to.
+</Info>

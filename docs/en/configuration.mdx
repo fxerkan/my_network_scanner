@@ -1,0 +1,69 @@
+---
+title: Configuration
+description: Ports, environment variables, the .env file, credentials, and authentication.
+---
+
+## The `.env` file
+
+MyNeS loads a `.env` file from the repo root on every entry point — the web app,
+`python -m mynes`, the tray icon and standalone scripts all pick it up. **Real environment
+variables always win over the file.** `.env` is gitignored; never commit it.
+
+```bash
+# .env
+MYNES_PORT=5883
+HA_URL=http://homeassistant.local:8123
+HA_TOKEN=your-long-lived-token
+```
+
+## Core environment variables
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `MYNES_PORT` | `5883` | Web UI / API port |
+| `MYNES_HOME` | package dir | Override the base directory |
+| `MYNES_CONFIG_DIR` | `config/` | Override the config directory |
+| `MYNES_DATA_DIR` | `data/` | Override the data directory |
+| `MYNES_PASSWORD` | auto | Master password for credential encryption |
+| `MYNES_AUTH_ENABLED` | off | Turn the web login gate on/off |
+| `HA_URL` | — | Home Assistant base URL |
+| `HA_TOKEN` | — | Home Assistant long-lived access token |
+
+## Credentials & the master password
+
+Device credentials are encrypted with **Fernet + PBKDF2-HMAC-SHA256** (100k iterations). The
+master password comes from `MYNES_PASSWORD` or from `config/.master_password` (gitignored,
+mode 600), which is **auto-generated if absent**.
+
+<Warning>
+  `config/config.json` is tracked in git. **Secrets must never be written there.** Keep them in
+  `.env`, `MYNES_PASSWORD`, or the gitignored master-password file.
+</Warning>
+
+## Authentication
+
+The web login gate is controlled by `MYNES_AUTH_ENABLED`. When set to `true` / `1` / `on`,
+MyNeS requires a login; when unset or `false` / `0` / `off`, the UI is open (fine for a
+trusted LAN).
+
+<Info>
+  Running locally for testing and hitting a login wall? Clear the `MYNES_AUTH_*` variables (or
+  set `MYNES_AUTH_ENABLED=off`) to disable the gate.
+</Info>
+
+## Persistence & volumes
+
+Mount two directories so your data survives container restarts:
+
+- `./data:/app/data` — the device store, scan history, alerts, monitor state
+- `./config:/app/config` — `config.json` and the master-password file
+
+Your manual edits (renames, tags, custom attributes, manual ports) are the source of truth:
+they're stored separately and **re-applied after every scan**, so no rescan overwrites them.
+
+## AI-assisted identification (optional)
+
+"Identify with AI" is bring-your-own-key and entirely optional. Supply a key for **Anthropic**,
+**OpenAI** or **OpenRouter** in **Settings**, and MyNeS turns a device's raw fingerprint (MAC,
+open ports, banners, mDNS/SSDP records) into a confident name, type and OS guess. No key means
+the feature is simply hidden — everything else works.

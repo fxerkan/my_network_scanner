@@ -1,0 +1,70 @@
+---
+title: Yapılandırma
+description: Portlar, ortam değişkenleri, .env dosyası, kimlik bilgileri ve kimlik doğrulama.
+---
+
+## `.env` dosyası
+
+MyNeS her giriş noktasında depo kökünden bir `.env` dosyası yükler — web uygulaması,
+`python -m mynes`, tepsi simgesi ve bağımsız betiklerin hepsi bunu alır. **Gerçek ortam
+değişkenleri her zaman dosyayı geçersiz kılar.** `.env` gitignore'dadır; asla commit etmeyin.
+
+```bash
+# .env
+MYNES_PORT=5883
+HA_URL=http://homeassistant.local:8123
+HA_TOKEN=uzun-omurlu-token
+```
+
+## Temel ortam değişkenleri
+
+| Değişken | Varsayılan | Amaç |
+| --- | --- | --- |
+| `MYNES_PORT` | `5883` | Web arayüzü / API portu |
+| `MYNES_HOME` | paket dizini | Temel dizini geçersiz kıl |
+| `MYNES_CONFIG_DIR` | `config/` | Yapılandırma dizinini geçersiz kıl |
+| `MYNES_DATA_DIR` | `data/` | Veri dizinini geçersiz kıl |
+| `MYNES_PASSWORD` | otomatik | Kimlik bilgisi şifrelemesi için ana parola |
+| `MYNES_AUTH_ENABLED` | kapalı | Web oturum açma kapısını aç/kapat |
+| `HA_URL` | — | Home Assistant temel URL'si |
+| `HA_TOKEN` | — | Home Assistant uzun ömürlü erişim token'ı |
+
+## Kimlik bilgileri ve ana parola
+
+Cihaz kimlik bilgileri **Fernet + PBKDF2-HMAC-SHA256** (100k yineleme) ile şifrelenir. Ana
+parola `MYNES_PASSWORD`'dan veya `config/.master_password` dosyasından (gitignore'da, mod 600)
+gelir; bu dosya **yoksa otomatik oluşturulur**.
+
+<Warning>
+  `config/config.json` git'te izlenir. **Gizli bilgiler oraya asla yazılmamalıdır.** Bunları
+  `.env`, `MYNES_PASSWORD` veya gitignore'daki ana-parola dosyasında tutun.
+</Warning>
+
+## Kimlik doğrulama
+
+Web oturum açma kapısı `MYNES_AUTH_ENABLED` ile kontrol edilir. `true` / `1` / `on`
+ayarlandığında MyNeS oturum açma ister; ayarlanmadığında veya `false` / `0` / `off` olduğunda
+arayüz açıktır (güvenilir bir LAN için uygun).
+
+<Info>
+  Test için yerelde çalıştırıp bir oturum açma duvarına mı takıldınız? `MYNES_AUTH_*`
+  değişkenlerini temizleyin (veya `MYNES_AUTH_ENABLED=off` yapın) ve kapıyı devre dışı bırakın.
+</Info>
+
+## Kalıcılık ve volume'lar
+
+Verilerinizin konteyner yeniden başlatmalarında hayatta kalması için iki dizini bağlayın:
+
+- `./data:/app/data` — cihaz deposu, tarama geçmişi, uyarılar, izleyici durumu
+- `./config:/app/config` — `config.json` ve ana-parola dosyası
+
+Manuel düzenlemeleriniz (yeniden adlandırmalar, etiketler, özel öznitelikler, manuel portlar)
+gerçeğin kaynağıdır: ayrı olarak saklanır ve **her taramadan sonra yeniden uygulanır**; bu
+yüzden hiçbir yeniden tarama üzerine yazmaz.
+
+## Yapay zekâ ile tanımlama (isteğe bağlı)
+
+"Yapay Zekâ ile Tanımla" kendi anahtarınızı getirmeye dayalıdır ve tamamen isteğe bağlıdır.
+**Ayarlar**'da **Anthropic**, **OpenAI** veya **OpenRouter** için bir anahtar verin; MyNeS bir
+cihazın ham parmak izini (MAC, açık portlar, banner'lar, mDNS/SSDP kayıtları) güvenli bir ad,
+tür ve OS tahminine dönüştürür. Anahtar yoksa özellik yalnızca gizlenir — diğer her şey çalışır.

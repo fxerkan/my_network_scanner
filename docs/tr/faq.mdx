@@ -1,0 +1,56 @@
+---
+title: SSS
+description: MyNeS hakkında hızlı yanıtlar — gizlilik, gereksinimler, platformlar ve lisans.
+---
+
+## MyNeS buluta bir şey gönderir mi?
+
+Hayır. Tamamen LAN'ınızda, bulut bağımlılığı ve telemetri olmadan çalışır. Tek isteğe bağlı giden
+çağrılar, kendi etkinleştirdikleriniz: yapay zekâ tanımlama (kendi API anahtarınız) ve OUI
+çevrimiçi sorgu yedeği.
+
+## Root olarak çalıştırmam gerekiyor mu?
+
+Hayır. MyNeS ayrıcalıklı değildir ve bir web isteğinden asla yükseltmez. Ham ARP, bir kez
+verilen dar `NET_RAW` / `NET_ADMIN` yetkisini (veya OS'a özel yardımcıyı) ister. Bu olmadan bir
+ping taramasına geri döner. Bkz. [Sorun giderme](/troubleshooting).
+
+## Minimum gereksinimler nelerdir?
+
+Docker ya da kaynak kurulumu için Nmap'li Python 3.9+. Bir Raspberry Pi / Orange Pi üzerinde
+çalışacak şekilde tasarlandı — imaj `linux/amd64` ve `linux/arm64` için yayınlanır.
+
+## Yapay zekâ özelliği zorunlu mu?
+
+Hayır. İsteğe bağlı ve kendi anahtarınızı getirmeye dayalı (Anthropic, OpenAI veya OpenRouter).
+Anahtar olmadan özellik gizlenir ve diğer her şey çalışır.
+
+## Bir mobil uygulama var mı?
+
+Evet — Android ve iOS için tamamen cihaz üzerinde tarayan bağımsız yerel bir uygulama. Bkz.
+[Mobil](/mobile).
+
+## Arayüz hangi dilleri destekler?
+
+Uygulamanın her yerinden değiştirilebilen tam **Türkçe ve İngilizce**. Bu dokümantasyon da her
+ikisinde mevcuttur.
+
+## Ağımı zaman içinde izleyebilir mi?
+
+Evet. Zamanlanmış taramalar önceki çalıştırmayla karşılaştırılır ve yeni cihazlar, çevrimdışı
+cihazlar, IP/MAC değişiklikleri, yeni açılan portlar ve sağlık sinyalleri hakkında Web Push,
+Home Assistant, ntfy, Telegram, webhook, Slack, Discord veya e-posta ile uyarır.
+
+## Gerçekten ücretsiz mi?
+
+Evet — **MIT Lisansı** altında açık kaynak. Web uygulaması, Home Assistant eklentisi ve mobil
+uygulama; hepsi ücretsizdir.
+
+## Ağımı taramak yasal mı?
+
+Yalnızca **sahibi olduğunuz** ağları tarayın. Başkalarının ağlarını izinsiz taramak yasa
+dışıdır.
+
+## Hataları veya özellik isteklerini nereye bildiririm?
+
+[github.com/fxerkan/my_network_scanner/issues](https://github.com/fxerkan/my_network_scanner/issues).

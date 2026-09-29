@@ -1,0 +1,58 @@
+---
+title: Genel bakış
+description: MyNeS nedir, neleri keşfeder ve parçalar nasıl bir araya gelir.
+---
+
+**MyNeS (My Network Scanner)**; ev ağınızdaki her cihazı keşfeden, tanımlayan ve izleyen,
+kendin barındırılan açık kaynaklı bir uygulamadır — düz bir IP taramasının göremediği Bluetooth
+LE, Zigbee ve Z-Wave cihazları dahil. Bulut bağımlılığı olmadan bir LAN üzerinde çalışır ve Home
+Assistant ile entegre olur.
+
+Ev laboratuvarları için tasarlandı: Raspberry Pi / Orange Pi kümeleri, NAS kutuları, yapay zekâ
+istasyonları ve bir Home Assistant kurulumu. İsteğe bağlı bir bağımlılık veya yetki eksik
+olduğunda her şey zarifçe bozulur — eksik bir araç yalnızca bir özelliği devre dışı bırakır,
+taramanın tamamını asla.
+
+## Çalıştırmanın üç yolu
+
+<Info>
+  Üçü de aynı tarama motorunu ve cihaz modelini paylaşır. Tarayıcının nerede yaşamasını
+  istiyorsanız ona uygun olanı seçin.
+</Info>
+
+- **Web uygulaması (Docker veya kaynak)** — bir ev sunucusunda tam deneyim. [Kurulum →](/installation)
+- **Home Assistant eklentisi** — HA kenar çubuğunuzda görünen tek tıklık Supervisor eklentisi. [Entegrasyonlar →](/integrations)
+- **Mobil uygulama** — tamamen cihaz üzerinde tarayan bağımsız yerel Android/iOS uygulaması. [Mobil →](/mobile)
+
+## Neleri keşfeder
+
+MyNeS yalnızca ping'e yanıt vereni değil, kendini duyuran her şeyi dinler:
+
+| Protokol | Bulduğu |
+| --- | --- |
+| **ARP** | Yerel alt ağdaki erişilebilir her ana makine (hızlı, katman-2) |
+| **mDNS / Bonjour** | Yazıcılar, NAS, Chromecast, HomeKit, Matter cihazları |
+| **SSDP / UPnP** | Modemler, akıllı TV'ler, kameralar, oyun konsolları |
+| **Bluetooth LE** | Hiç IP adresi olmayan cihazlar |
+| **MQTT** | Zigbee2MQTT, Z-Wave JS veya HA discovery üzerinden Zigbee / Z-Wave / Tasmota |
+
+Keşfin üzerine port ve servis taraması, OUI/üretici sorgusu, yapay zekâ destekli tanımlama, bir
+güvenlik & CVE görünümü, uyarılı zamanlanmış izleme ve Home Assistant / Prometheus / InfluxDB
+entegrasyonları ekler.
+
+## Ağınızı dört şekilde okuyun
+
+Cihaz envanteri araç çubuğundan **Kartlar / Tablo**, etkileşimli bir **Grafik**, fiziksel bir
+**Topoloji** ağacı olarak görüntülenebilir ya da odalarınızın bir **Ev planı**na sürüklenebilir.
+Bkz. [Özellikler](/features).
+
+## Sonraki adımlar
+
+- [Kurulum](/installation) — Docker, `docker run` veya kaynaktan
+- [Yapılandırma](/configuration) — portlar, `.env`, kimlik bilgileri, kimlik doğrulama
+- [Özellikler](/features) — her yetenek, açıklamalı
+- [Sorun giderme](/troubleshooting) — "yalnızca iki cihaz buldu" ve diğer çözümler
+
+<Warning>
+  Yalnızca sahibi olduğunuz ağları tarayın. Başkalarının ağlarını izinsiz taramak yasa dışıdır.
+</Warning>

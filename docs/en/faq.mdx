@@ -1,0 +1,55 @@
+---
+title: FAQ
+description: Quick answers about MyNeS — privacy, requirements, platforms and licensing.
+---
+
+## Does MyNeS send anything to the cloud?
+
+No. It runs entirely on your LAN with no cloud dependency and no telemetry. The only optional
+outbound calls are ones you enable yourself: AI identification (your own API key) and the OUI
+online lookup fallback.
+
+## Do I have to run it as root?
+
+No. MyNeS is not privileged and never escalates from a web request. Raw ARP needs the narrow
+`NET_RAW` / `NET_ADMIN` capability (or the per-OS helper), granted once. Without it, it falls
+back to a ping sweep. See [Troubleshooting](/troubleshooting).
+
+## What are the minimum requirements?
+
+Docker, or Python 3.9+ with Nmap for a source install. It's built to run on a Raspberry Pi /
+Orange Pi — the image is published for `linux/amd64` and `linux/arm64`.
+
+## Is the AI feature required?
+
+No. It's optional and bring-your-own-key (Anthropic, OpenAI or OpenRouter). Without a key the
+feature is hidden and everything else works.
+
+## Is there a mobile app?
+
+Yes — a standalone native app for Android and iOS that scans entirely on-device. See
+[Mobile](/mobile).
+
+## What languages does the UI support?
+
+Full **Turkish and English**, switchable anywhere in the app. This documentation is available
+in both as well.
+
+## Can it monitor my network over time?
+
+Yes. Scheduled scans diff against the previous run and alert on new devices, offline devices,
+IP/MAC changes, newly opened ports and health signals, via Web Push, Home Assistant, ntfy,
+Telegram, webhook, Slack, Discord or email.
+
+## Is it really free?
+
+Yes — open source under the **MIT License**. The web app, the Home Assistant add-on and the
+mobile app are all free.
+
+## Is it legal to scan my network?
+
+Scan only networks **you own**. Scanning other people's networks without permission is illegal.
+
+## Where do I report bugs or request features?
+
+[github.com/fxerkan/my_network_scanner/issues](https://github.com/fxerkan/my_network_scanner/issues).

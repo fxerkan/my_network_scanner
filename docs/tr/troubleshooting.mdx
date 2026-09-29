@@ -1,0 +1,82 @@
+---
+title: Sorun giderme
+description: Yaygın sorunların çözümleri — az cihaz bulundu, eksik özellikler, yetkiler.
+---
+
+**Ayarlar → Yetenekler** ile başlayın. Her isteğe bağlı özelliği ve etkin olmayan her şey için
+tam nedeni listeler. Çoğu "sorun" bir hata değil, eksik bir araç ya da bir yetki boşluğudur.
+
+## Yalnızca birkaç cihaz buldu
+
+Neredeyse her zaman **yetkiler**. Ham ARP (`scapy.srp`) yükseltilmiş yetkiler ister. Bunlar
+olmadan MyNeS bir ping taraması artı OS ARP önbelleğine geri döner; bu çoğunu bulur ama hepsini
+değil.
+
+<Steps>
+  <Step title="Docker: host ağı + yetkileri ekleyin">
+    Çalıştırmanızın `network_mode: host` ve `cap_add: [NET_ADMIN, NET_RAW]` içerdiğinden emin
+    olun. Host ağı olmadan konteyner LAN'ı hiç göremez. Bkz. [Kurulum](/installation).
+  </Step>
+  <Step title="Kaynaktan: dar yetkiyi verin">
+    Her şeyi root olarak çalıştırmak yerine OS'a özel yardımcıyı kullanın — tam komutu yazdırır
+    ve yalnızca `--apply` ile uygular; böylece OS parola istemi kendi terminalinizde belirir
+    (Linux `setcap`, macOS ChmodBPF, Windows Npcap).
+  </Step>
+  <Step title="Yöntemi doğrulayın">
+    Arayüz hangi ARP yönteminin kullanıldığını ve geri döndüyse bir ipucu bildirir. Bir
+    ping-taraması sonucu yine de yararlıdır — yalnızca sessiz ana makineleri içermez.
+  </Step>
+</Steps>
+
+<Warning>
+  Ağ girdisini ayrıştıran bir web uygulaması root olarak çalışmamalıdır. MyNeS bir web
+  isteğinden asla yetki yükseltmez — dar, kalıcı yetki bir kez terminalinizden verilir.
+</Warning>
+
+## Port / servis tespiti boş
+
+**Nmap** isteğe bağlıdır ama port ve servis taraması için gereklidir. O olmadan keşif yine
+çalışır ama portlar atlanır. Nmap'i kurup yeniden tarayın (`apt install nmap`,
+`brew install nmap` veya Windows yükleyicisi).
+
+## Bluetooth / MQTT cihazları görünmüyor
+
+Bunlar isteğe bağlı arka uçlardır:
+
+- **Bluetooth LE**, `bleak` bağımlılığını ve kullanılabilir bir BT adaptörünü ister. Docker'da
+  BT geçişi her zaman mevcut değildir.
+- **MQTT**, kalıcı Zigbee2MQTT / Z-Wave JS / Tasmota / HA discovery topic'leri olan erişilebilir
+  bir broker ister. **Ayarlar → Entegrasyonlar**'da broker host, port ve kimlik bilgilerini
+  kontrol edin.
+
+Eksik bir isteğe bağlı arka uç yalnızca o kaynağı devre dışı bırakır — taramanın geri kalanı
+etkilenmez.
+
+## Test ederken bir oturum açma ekranında takıldım
+
+Kimlik doğrulama açık. `MYNES_AUTH_ENABLED=off` yapın (veya `MYNES_AUTH_*` değişkenlerini
+temizleyin) ve yeniden başlatın. Bkz. [Yapılandırma → Kimlik doğrulama](/configuration).
+
+## Taramadan sonra cihaz listem yanlış görünüyor
+
+Manuel düzenlemeleriniz ayrı saklanır ve her taramadan sonra yeniden uygulanır; bu yüzden
+yeniden adlandırmalar ve etiketler kalıcı olmalıdır. Depo bir gün silinmiş görünürse, bir
+`data/` yedeğinden geri yükleyin — MyNeS ayrıca kaydederken bir yedek tutar. Uygulama çalışırken
+canlı veri dosyalarını asla elle düzenlemeyin.
+
+## Servis başlıyor sonra hemen ölüyor
+
+Masaüstü/arka plan servisini kurduysanız ve her başlangıçta çıkıyorsa, bu genellikle
+yorumlayıcı yoludur — servis, `mynes`'in kurulu olduğu aynı Python'u başlatmalıdır, temel bir
+yorumlayıcıyı değil. Servisi çalışan ortamdan yeniden kurun.
+
+## Home Assistant varlıkları görünmüyor
+
+`HA_URL` ve `HA_TOKEN`'ın ayarlı olduğundan ve token'ın geçerli bir uzun ömürlü erişim token'ı
+olduğundan, ayrıca MQTT Discovery'nin her iki tarafta da etkin olduğundan emin olun.
+Bağlantıyı **Ayarlar → Entegrasyonlar**'dan test edin.
+
+## Hâlâ takıldınız mı?
+
+**Yetenekler** sayfanızın içeriği ve ilgili log satırlarıyla bir issue açın:
+[github.com/fxerkan/my_network_scanner/issues](https://github.com/fxerkan/my_network_scanner/issues).

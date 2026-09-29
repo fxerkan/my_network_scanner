@@ -1,0 +1,93 @@
+---
+title: Kurulum
+description: MyNeS'i Docker Compose, docker run veya kaynaktan çalıştırın — adım adım.
+---
+
+MyNeS, çok mimarili bir Docker imajı olarak yayınlanır (`linux/amd64` ve `linux/arm64`); bu
+yüzden bir Raspberry Pi veya Orange Pi üzerinde tıpkı x86 sunucudaki gibi çalışır. Varsayılan
+port **5883**'tür.
+
+<Warning>
+  MyNeS'in LAN'ı gerçekten görebilmesi için **host ağı** ve **NET_RAW / NET_ADMIN** yetkileri
+  gerekir — ham ARP çerçeveleri gönderir ve mDNS/SSDP çoklu-yayınını dinler. Root olarak
+  çalışmaz ve ayrıcalıklı değildir.
+</Warning>
+
+## Seçenek 1 — Docker Compose (önerilen)
+
+<Steps>
+  <Step title="docker-compose.yml oluşturun">
+    ```yaml
+    services:
+      mynes:
+        image: fxerkan/my_network_scanner:latest
+        container_name: mynes
+        network_mode: host          # LAN'ı gerçekten görmesini sağlar
+        cap_add:
+          - NET_ADMIN
+          - NET_RAW
+        volumes:
+          - ./data:/app/data
+          - ./config:/app/config
+        environment:
+          MYNES_PORT: 5883
+          MYNES_PASSWORD: ""
+        restart: unless-stopped
+    ```
+  </Step>
+  <Step title="Başlatın">
+    ```bash
+    docker compose up -d
+    ```
+  </Step>
+  <Step title="Web arayüzünü açın">
+    `http://<sunucu-ip>:5883` adresine gidin.
+  </Step>
+</Steps>
+
+## Seçenek 2 — docker run
+
+```bash
+docker run -d \
+  --name mynes \
+  --network host \
+  --cap-add=NET_ADMIN \
+  --cap-add=NET_RAW \
+  -v "$(pwd)/data:/app/data" \
+  -v "$(pwd)/config:/app/config" \
+  -e MYNES_PORT=5883 \
+  --restart unless-stopped \
+  fxerkan/my_network_scanner:latest
+```
+
+## Seçenek 3 — Kaynaktan
+
+**Python 3.9+** ve **Nmap** gerekir. Paket içindeki çalıştırıcı sanal ortamı oluşturur,
+bağımlılıkları kurar, nmap'i kontrol eder ve uygulamayı başlatır.
+
+```bash
+git clone https://github.com/fxerkan/my_network_scanner.git
+cd my_network_scanner
+python scripts/run.py
+```
+
+Ortamı kendiniz yönetmeyi tercih ederseniz:
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e ".[all]"
+python -m mynes        # veya: mynes
+```
+
+## Seçenek 4 — Home Assistant eklentisi
+
+Home Assistant OS/Supervised çalıştırıyorsanız MyNeS'i tek tıklık eklenti olarak kurun.
+`https://github.com/fxerkan/mynes-addon` deposunu ekleyin, kurun ve kenar çubuğunuzda belirir.
+Bkz. [Entegrasyonlar](/integrations#home-assistant).
+
+## Kurulumu doğrulama
+
+Arayüzü açın ve bir tarama çalıştırın. Beklediğinizden çok daha az cihaz bulursa, bu neredeyse
+her zaman bir **yetki** sorunudur, bir hata değil — bkz. [Sorun giderme](/troubleshooting).
+**Ayarlar → Yetenekler** sayfası, hangi isteğe bağlı özelliklerin etkin olduğunu ve eksik
+olanların nedenini tam olarak söyler.

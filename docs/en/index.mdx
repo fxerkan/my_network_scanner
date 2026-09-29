@@ -1,0 +1,55 @@
+---
+title: Overview
+description: What MyNeS is, what it discovers, and how the pieces fit together.
+---
+
+**MyNeS (My Network Scanner)** is a self-hosted, open-source application that discovers,
+identifies and monitors every device on your home network — including the ones a plain IP
+scan can't see, like Bluetooth LE, Zigbee and Z-Wave. It runs on a LAN with no cloud
+dependency and integrates with Home Assistant.
+
+It's built for home labs: Raspberry Pi / Orange Pi clusters, NAS boxes, AI workstations and
+a Home Assistant install. Everything degrades gracefully when an optional dependency or
+privilege is missing — a missing tool disables one feature, never the whole scan.
+
+## Three ways to run it
+
+<Info>
+  All three share the same scanning engine and device model. Pick whichever fits where you want the scanner to live.
+</Info>
+
+- **Web app (Docker or source)** — the full experience on a home server. [Install →](/installation)
+- **Home Assistant add-on** — one-click Supervisor add-on that shows up in your HA sidebar. [Integrations →](/integrations)
+- **Mobile app** — a standalone native Android/iOS app that scans entirely on-device. [Mobile →](/mobile)
+
+## What it discovers
+
+MyNeS listens to everything that announces itself, not just what answers a ping:
+
+| Protocol | Finds |
+| --- | --- |
+| **ARP** | Every reachable host on the local subnet (fast, layer-2) |
+| **mDNS / Bonjour** | Printers, NAS, Chromecast, HomeKit, Matter devices |
+| **SSDP / UPnP** | Routers, smart TVs, cameras, game consoles |
+| **Bluetooth LE** | Devices with no IP address at all |
+| **MQTT** | Zigbee / Z-Wave / Tasmota devices via Zigbee2MQTT, Z-Wave JS or HA discovery |
+
+On top of discovery it adds port and service scanning, OUI/vendor lookup, AI-assisted device
+identification, a security & CVE view, scheduled monitoring with alerts, and Home
+Assistant / Prometheus / InfluxDB integrations.
+
+## Read your network four ways
+
+The device inventory can be viewed as **Cards / Table**, an interactive **Graph**, a physical
+**Topology** tree, or dragged onto a **Home plan** of your rooms. See [Features](/features).
+
+## Next steps
+
+- [Installation](/installation) — Docker, `docker run`, or from source
+- [Configuration](/configuration) — ports, `.env`, credentials, authentication
+- [Features](/features) — every capability, explained
+- [Troubleshooting](/troubleshooting) — "it only found two devices" and other fixes
+
+<Warning>
+  Only scan networks you own. Scanning other people's networks without permission is illegal.
+</Warning>

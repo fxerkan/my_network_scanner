@@ -1,0 +1,61 @@
+---
+title: Entegrasyonlar ve API
+description: Home Assistant, InfluxDB, Prometheus, Grafana ve REST API.
+---
+
+Buradaki her şey **Ayarlar → Entegrasyonlar** altında yaşar.
+
+## Home Assistant
+
+İki yön, birini veya her ikisini kullanın:
+
+- **Push** — MQTT Discovery her cihazı otomatik olarak bir HA varlığı olarak yayınlar
+- **Pull** — REST / WebSocket, karşılaştırıp zenginleştirmek için HA durumunu okur
+
+[Yapılandırma](/configuration)'nızda `HA_URL` ve `HA_TOKEN` (uzun ömürlü bir erişim token'ı)
+ayarlayın.
+
+### Home Assistant eklentisi
+
+HA OS / Supervised için MyNeS'i ayrı bir konteyner yerine tek tıklık Supervisor eklentisi olarak
+çalıştırın:
+
+<Steps>
+  <Step title="Depoyu ekleyin">
+    HA'da: **Ayarlar → Eklentiler → Eklenti Mağazası → ⋮ → Depolar**,
+    `https://github.com/fxerkan/mynes-addon` ekleyin.
+  </Step>
+  <Step title="Kurun ve başlatın">
+    Mağazada **MyNeS**'i bulun, kurun, başlatın. Kenar çubuğunuzda belirir.
+  </Step>
+</Steps>
+
+## Zaman serileri ve panolar
+
+- **InfluxDB 2** — Grafana için metrik push'la
+- **Prometheus** — Grafana için bir scrape uç noktası sun
+- **Grafana** — her iki kaynak üzerine pano kur
+
+## REST API
+
+Uygulamanın tam REST API kataloğu arayüzde canlı okunabilir ve **OpenAPI (`swagger.json`)**
+olarak indirilebilir. Öne çıkanlar:
+
+| Alan | Uç noktalar |
+| --- | --- |
+| Keşif | `/api/discovery` |
+| İzleme | `/api/monitoring`, `/api/alerts`, `/api/notifications` |
+| Topoloji | `/api/topology`, `/api/subnets` |
+| Tanılama | `/api/diagnostics/<ip>/*` (ping, traceroute, port yoklama, DNS) |
+| Güvenlik | `/api/security/vulnerabilities[/<ip>]` |
+| Sağlık ve yetenekler | `/api/health`, `/api/capabilities` |
+
+<Info>
+  `/api/capabilities`, **Yetenekler** sayfasının makine-okunur sürümüdür: hangi isteğe bağlı
+  özelliklerin etkin olduğu ve olmayanların nedeni.
+</Info>
+
+## Mobil
+
+[Yerel mobil uygulama](/mobile) tamamen cihaz üzerinde tarar ve çalışmak için sunucuya veya bu
+entegrasyonlara ihtiyaç duymaz — bir eşlik uygulaması değil, bağımsız bir istemcidir.

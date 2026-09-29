@@ -1,0 +1,81 @@
+{
+  "$schema": "https://docs.page/schema.json",
+  "name": "MyNeS — My Network Scanner",
+  "description": "Documentation and help for MyNeS (My Network Scanner): install, configure, use every feature, and troubleshoot.",
+  "logo": {
+    "light": "https://fxerkan.github.io/my_network_scanner/assets/logo.svg",
+    "dark": "https://fxerkan.github.io/my_network_scanner/assets/logo.svg"
+  },
+  "favicon": "https://fxerkan.github.io/my_network_scanner/assets/icon.png",
+  "theme": {
+    "primary": "#2f6bff"
+  },
+  "social": {
+    "github": "fxerkan/my_network_scanner"
+  },
+  "content": {
+    "showPageTitle": true,
+    "showPageImage": true
+  },
+  "search": { "enabled": true },
+  "header": {
+    "showThemeToggle": true
+  },
+  "anchors": [
+    { "title": "Web app", "href": "https://fxerkan.github.io/my_network_scanner/", "icon": "globe" },
+    { "title": "Docker Hub", "href": "https://hub.docker.com/r/fxerkan/my_network_scanner", "icon": "docker" },
+    { "title": "Mobile app", "href": "https://fxerkan.github.io/my_network_scanner/mobile.html", "icon": "mobile" }
+  ],
+  "sidebar": {
+    "en": [
+      {
+        "group": "Getting started",
+        "pages": [
+          { "title": "Overview", "href": "/" },
+          { "title": "Installation", "href": "/installation" },
+          { "title": "Configuration", "href": "/configuration" }
+        ]
+      },
+      {
+        "group": "Using MyNeS",
+        "pages": [
+          { "title": "Features", "href": "/features" },
+          { "title": "Integrations & API", "href": "/integrations" },
+          { "title": "Mobile app", "href": "/mobile" }
+        ]
+      },
+      {
+        "group": "Help",
+        "pages": [
+          { "title": "Troubleshooting", "href": "/troubleshooting" },
+          { "title": "FAQ", "href": "/faq" }
+        ]
+      }
+    ],
+    "tr": [
+      {
+        "group": "Başlarken",
+        "pages": [
+          { "title": "Genel bakış", "href": "/" },
+          { "title": "Kurulum", "href": "/installation" },
+          { "title": "Yapılandırma", "href": "/configuration" }
+        ]
+      },
+      {
+        "group": "MyNeS Kullanımı",
+        "pages": [
+          { "title": "Özellikler", "href": "/features" },
+          { "title": "Entegrasyonlar ve API", "href": "/integrations" },
+          { "title": "Mobil uygulama", "href": "/mobile" }
+        ]
+      },
+      {
+        "group": "Yardım",
+        "pages": [
+          { "title": "Sorun giderme", "href": "/troubleshooting" },
+          { "title": "SSS", "href": "/faq" }
+        ]
+      }
+    ]
+  }
+}

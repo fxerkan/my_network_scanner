@@ -1,0 +1,78 @@
+---
+title: Özellikler
+description: MyNeS'in tüm yetenekleri — keşif, görünümler, izleme, güvenlik ve daha fazlası.
+---
+
+## Keşif
+
+Düz bir IP taraması, bir ev ağının yarısını kaçırır. MyNeS birkaç protokolü birleştirir; böylece
+IP'si olmayanlar bile görünür:
+
+- **ARP** — yerel alt ağın hızlı katman-2 taraması
+- **mDNS / Bonjour** — yazıcılar, NAS, Chromecast, HomeKit; **Matter** de buraya gelir
+- **SSDP / UPnP** — modemler, akıllı TV'ler, kameralar, konsollar
+- **Bluetooth LE** — BT adresiyle anahtarlanan, IP gerektirmeyen cihazlar
+- **MQTT** — Zigbee2MQTT, Z-Wave JS veya HA discovery üzerinden Zigbee / Z-Wave / Tasmota
+
+Her protokol isteğe bağlı ve izoledir: ölü bir protokol hiçbir şey döndürmez ve loglar,
+taramayı asla bozmaz.
+
+## Tanımlama
+
+- 1000+ port üzerinde **port ve servis taraması** (Nmap gerekir)
+- **Aktif parmak izi** — RTSP / HTTP / SSH / FTP banner'ları ve bir NBNS (SMB/NetBIOS) yoklaması
+- **OS ve bağlantı ortamı tahmini** — OS ailesi ve en iyi çabayla WiFi-mi-kablolu tahmini (puanlı bir tahmin, asla kesin gerçek olarak sunulmaz)
+- **OUI / üretici veritabanı** — çevrimiçi API yedeğiyle 37.000+ IEEE üretici kaydı
+- **Yapay zekâ ile tanımlama (isteğe bağlı)** — kendi Anthropic / OpenAI / OpenRouter anahtarınız
+
+## Dört görünüm
+
+Aynı envanter, araç çubuğundan dört şekilde okunur:
+
+| Görünüm | En uygun |
+| --- | --- |
+| **Kartlar / Tablo** | Öznitelikleri okumak ve birçok cihazı toplu düzenlemek |
+| **Grafik** | Tüm ağ bir bakışta — merkez olarak alt ağ geçitleri |
+| **Topoloji** | Fiziksel yol: internet → modem → switch/AP → cihaz |
+| **Ev planı** | Her cihazı gerçekte bulunduğu odaya sürüklemek |
+
+## Cihaz yönetimi
+
+Bir cihazın bilgisini düzenleyin, özel öznitelikler ve manuel portlar ekleyin. Düzenlemeleriniz
+ayrı olarak saklanır ve **her taramadan sonra yeniden uygulanır**; böylece yeniden tarama
+işinizi asla bozmaz. Bir tarama günlüğü neyin değiştiğini iz olarak bırakır.
+
+## İzleme ve uyarılar
+
+MyNeS zamanlanmış tarar, ardışık taramaları karşılaştırır ve yalnızca önemli olanı raporlar:
+
+- Yeni cihaz · cihaz çevrimdışı · IP değişikliği
+- MAC değişikliği (olası ARP spoofing) · yeni açılan port
+- Düşük voltaj · düşük pil · yüksek gecikme · zayıf sinyal
+
+Teslimat kanalları: MyNeS'in kendi **Web Push**'u, bir **Home Assistant** bildirim servisi,
+**ntfy**, **Telegram**, **webhook**, **Slack**, **Discord** ve **e-posta**.
+
+## Güvenlik ve CVE analizi
+
+Güvenlik sayfası, tüm filonuzun saldırı yüzeyini ve bilinen CVE maruziyetini en kötüsü önce
+gösterir: ağırlıklı bir filo risk skoru, önem dağılımı, bir "önce neyi düzeltmeli" listesi ve
+cihaz başına detay. Bu, her cihazın parmak izine karşı seçilmiş bir **çevrimdışı** eşleştirmedir
+— bilerek canlı bir NVD akışı değildir. Kimlik bilgileri şifrelenir ve dışa aktarımda temizlenir.
+
+## Entegrasyonlar ve API
+
+InfluxDB 2, Prometheus, Grafana, Home Assistant (MQTT Discovery + REST/WebSocket), OpenAPI
+olarak indirilebilen tam bir REST API ve özel bir HA eklentisi. Bkz. [Entegrasyonlar](/integrations).
+
+## Arayüz
+
+- Modern, duyarlı web arayüzü — kurulabilir **PWA**, 320px'lik bir telefondan TV'ye
+- OS tercihini izleyen açık ve koyu tema
+- Tam **Türkçe ve İngilizce** arayüz
+
+## Bir şeyin neden eksik olduğundan emin değil misiniz?
+
+**Ayarlar → Yetenekler**'i açın. Her isteğe bağlı özelliği ve etkin olmayan her şey için
+*nedenini* listeler — eksik bir araç, erişilemeyen bir broker veya bir yetki boşluğu. O sayfa
+"yalnızca iki cihaz buldu" bir hata değil, bir yetki sorunu olduğu için vardır.

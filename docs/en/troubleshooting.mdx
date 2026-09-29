@@ -1,0 +1,78 @@
+---
+title: Troubleshooting
+description: Fixes for the common problems — few devices found, missing features, privileges.
+---
+
+Start at **Settings → Capabilities**. It lists every optional feature and, for anything
+inactive, the exact reason. Most "problems" are a missing tool or a privilege gap, not a bug.
+
+## It only found a handful of devices
+
+Almost always **privileges**. Raw ARP (`scapy.srp`) needs elevated capabilities. Without them
+MyNeS falls back to a ping sweep plus the OS ARP cache, which finds most but not all devices.
+
+<Steps>
+  <Step title="Docker: add host networking + capabilities">
+    Ensure your run includes `network_mode: host` and `cap_add: [NET_ADMIN, NET_RAW]`. Without
+    host networking the container can't see the LAN at all. See [Installation](/installation).
+  </Step>
+  <Step title="From source: grant the narrow capability">
+    Use the per-OS helper instead of running everything as root — it prints the exact command
+    and only applies it with `--apply`, so the OS password prompt appears in your own terminal
+    (Linux `setcap`, macOS ChmodBPF, Windows Npcap).
+  </Step>
+  <Step title="Confirm the method">
+    The UI reports which ARP method was used and a hint if it fell back. A ping-sweep result is
+    still useful — it just won't include silent hosts.
+  </Step>
+</Steps>
+
+<Warning>
+  A web app parsing network input should not run as root. MyNeS never escalates privileges from
+  a web request — the narrow, permanent capability is granted once from your terminal.
+</Warning>
+
+## Port / service detection is empty
+
+**Nmap** is optional but required for port and service scanning. Without it, discovery still
+works but ports are skipped. Install nmap and rescan (`apt install nmap`, `brew install nmap`,
+or the Windows installer).
+
+## Bluetooth / MQTT devices don't appear
+
+These are optional backends:
+
+- **Bluetooth LE** needs the `bleak` dependency and a usable BT adapter. In Docker, BT
+  passthrough is not always available.
+- **MQTT** needs a reachable broker with retained Zigbee2MQTT / Z-Wave JS / Tasmota / HA
+  discovery topics. Check the broker host, port and credentials in **Settings → Integrations**.
+
+A missing optional backend disables only that one source — the rest of the scan is unaffected.
+
+## I'm stuck at a login screen while testing
+
+Authentication is on. Set `MYNES_AUTH_ENABLED=off` (or clear the `MYNES_AUTH_*` variables) and
+restart. See [Configuration → Authentication](/configuration#authentication).
+
+## My device list looks wrong after a scan
+
+Your manual edits are stored separately and re-applied after every scan, so renames and tags
+should persist. If the store ever looks wiped, restore from a `data/` backup — MyNeS also keeps
+a backup on save. Never edit the live data files by hand while the app is running.
+
+## The service starts then immediately dies
+
+If you installed the desktop/background service and it exits on every start, it's usually the
+interpreter path — the service must launch the same Python that has `mynes` installed, not a
+base interpreter. Reinstall the service from the running environment.
+
+## Home Assistant entities don't show up
+
+Confirm `HA_URL` and `HA_TOKEN` are set and the token is a valid long-lived access token, and
+that MQTT Discovery is enabled on both sides. Test connectivity from
+**Settings → Integrations**.
+
+## Still stuck?
+
+Open an issue with your **Capabilities** page contents and the relevant log lines:
+[github.com/fxerkan/my_network_scanner/issues](https://github.com/fxerkan/my_network_scanner/issues).
