@@ -13,6 +13,7 @@ import os
 from datetime import datetime
 import time
 import urllib3
+from mynes.paths import config_file
 
 # Disable SSL warnings for IEEE CSV downloads
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -399,10 +400,43 @@ class OUIManager:
         
         # Check local database
         if oui in self.oui_database:
-            return self.oui_database[oui]
-        
+            vendor = self.oui_database[oui]
+            # The IEEE sells some /24 blocks on in smaller MA-M (28-bit) and
+            # MA-S (36-bit) slices; the /24 owner is then the registry itself.
+            if re.search(r'ieee registration', str(vendor), re.I):
+                return self.lookup_sub_block(mac_address) or vendor
+            return vendor
+
         # Try API lookup (only when not found locally)
         return self.lookup_mac_api(mac_address)
+
+    _sub_blocks = None
+
+    @classmethod
+    def _load_sub_blocks(cls):
+        """{prefix-hex: org} from the IEEE MA-M (mam.csv, 7 hex) and MA-S
+        (oui36.csv, 9 hex) registries shipped in the config dir."""
+        if cls._sub_blocks is not None:
+            return cls._sub_blocks
+        import csv
+        table = {}
+        for name in ('mam.csv', 'oui36.csv'):
+            try:
+                with open(config_file(name), newline='', encoding='utf-8') as fh:
+                    for row in csv.DictReader(fh):
+                        prefix = (row.get('Assignment') or '').strip().upper()
+                        org = (row.get('Organization Name') or '').strip()
+                        if prefix and org:
+                            table[prefix] = org
+            except OSError:
+                continue
+        cls._sub_blocks = table
+        return table
+
+    def lookup_sub_block(self, mac_address):
+        hexmac = re.sub(r'[^0-9A-Fa-f]', '', mac_address or '').upper()
+        table = self._load_sub_blocks()
+        return table.get(hexmac[:9]) or table.get(hexmac[:7])
     
     def add_oui(self, oui, vendor):
         """Add new OUI entry"""

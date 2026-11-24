@@ -1193,6 +1193,13 @@ class LANScanner:
             'is_gateway': signals.get('is_gateway', False),
             'reasons': fingerprint.classify(signals).get('reasons', []),
         }
+        # Kept so identity.py can weigh this scan's verdict against stronger
+        # self-reported evidence (DHCP/mDNS names, vendor protocols).
+        _verdict = fingerprint.classify(signals)
+        device_info['fingerprint']['verdict'] = {
+            'device_type': _verdict.get('device_type'), 'confidence': _verdict.get('confidence', 0)}
+        if signals.get('onvif'):
+            device_info['fingerprint']['onvif'] = signals['onvif']
         if signals.get('rtsp'):
             device_info['stream_url'] = signals['rtsp']['url']
 
@@ -1579,6 +1586,13 @@ class LANScanner:
                 for field, value in um.items():
                     d[field] = value
 
+        # One identity pass over the fresh list: self-reported names (DHCP,
+        # mDNS, vendor protocols) and the strongest type ever seen win over
+        # this sweep's OUI guesses - see analysis/identity.py.
+        if progress_callback:
+            progress_callback("Identifying devices (names, types)...", stage="identify")
+        self.identify_devices(unique_devices)
+
         # Publish atomically: self.devices held the previous complete list for the
         # whole sweep (so edits kept working), now swap in the fresh one at once.
         removed = len(scanned) - len(unique_devices)
@@ -1647,6 +1661,82 @@ class LANScanner:
         
         return self.devices
     
+    def identify_devices(self, devices, run_probes=True, mdns_lookup=True):
+        """Collect evidence per device and apply analysis/identity.py.
+
+        Never raises: identification is an improvement, not a requirement.
+        Returns the number of devices whose name/type changed.
+        """
+        from mynes.analysis import identity, probes
+        from mynes.discovery import dhcp
+        try:
+            from mynes.core.diagnostics import mdns_reverse
+        except Exception:  # noqa: BLE001
+            mdns_reverse = None
+
+        def worth(d):
+            ip = str(d.get('ip') or '')
+            if not ip or d.get('virtual') or d.get('local_interface'):
+                return False
+            if d.get('device_type') in ('Docker Network', 'Docker Container'):
+                return False
+            return ip.count('.') == 3
+
+        def evidence_for(d):
+            ev = {'vendor': d.get('vendor'), 'open_ports': d.get('open_ports') or [],
+                  'hostname': d.get('hostname')}
+            lease = dhcp.lookup(d.get('mac'))
+            ev['dhcp_hostname'] = lease.get('hostname')
+            ev['dhcp_vendor_class'] = lease.get('vendor_class')
+            disc = d.get('discovery_evidence') or {}
+            ev['mdns_hostname'] = disc.get('mdns_hostname')
+            ev['mdns_name'] = disc.get('mdns_name')
+            ev['model'] = disc.get('model')
+            ev['ssdp_name'] = disc.get('ssdp_name')
+            ev['services'] = list(d.get('services') or []) + list(disc.get('services') or [])
+            fp = d.get('fingerprint') or {}
+            ev['fingerprint'] = fp.get('verdict') or {}
+            ev['onvif_name'] = (fp.get('onvif') or {}).get('name')
+            smb = fp.get('smb') or {}
+            ev['netbios_name'] = smb.get('netbios_name') if isinstance(smb, dict) else None
+            if mdns_reverse and mdns_lookup and not (ev['mdns_hostname'] or ev['dhcp_hostname']):
+                try:
+                    ev['mdns_hostname'] = mdns_reverse(d['ip'], timeout=0.8)
+                except Exception:  # noqa: BLE001
+                    pass
+            if run_probes:
+                try:
+                    ev['probes'] = probes.run_for(d['ip'], d.get('vendor'), d.get('open_ports'))
+                except Exception:  # noqa: BLE001
+                    ev['probes'] = {}
+            return ev
+
+        changed = 0
+        targets = [d for d in devices if worth(d)]
+        try:
+            from concurrent.futures import ThreadPoolExecutor
+            with ThreadPoolExecutor(max_workers=8) as pool:
+                evidences = list(pool.map(evidence_for, targets))
+        except Exception as e:  # noqa: BLE001
+            print(f"identity evidence error: {e}")
+            return 0
+        for d, ev in zip(targets, evidences):
+            try:
+                ident = identity.identify(d, ev)
+                diffs = identity.apply_identity(d, ident)
+                if ev.get('probes'):
+                    d.setdefault('discovery_evidence', {})['probes'] = ev['probes']
+                if ev.get('dhcp_hostname'):
+                    d.setdefault('discovery_evidence', {})['dhcp_hostname'] = ev['dhcp_hostname']
+                if ev.get('mdns_hostname'):
+                    d.setdefault('discovery_evidence', {})['mdns_hostname'] = ev['mdns_hostname']
+                if diffs:
+                    changed += 1
+                    print(f"🪪 Identity {d.get('ip')}: " + ", ".join(f"{f}: {o!r} -> {n!r}" for f, o, n in diffs))
+            except Exception as e:  # noqa: BLE001
+                print(f"identity error {d.get('ip')}: {e}")
+        return changed
+
     @staticmethod
     def _rekey_moved_devices(existing_devices, arp_devices):
         """Move an existing record whose MAC now answers on a different IP.

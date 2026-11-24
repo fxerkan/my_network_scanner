@@ -609,6 +609,36 @@ _GENERIC_ALIAS = re.compile(
     r"^(unknown|bilinmeyen|.*\b(iot device|smart home|device)\b.*|[0-9a-f:.-]+|.+ \d{1,3})$", re.I)
 
 
+# The HA integration that owns a device is strong evidence of what it is.
+HA_INTEGRATION_TYPES = {
+    "samsungtv": "Smart TV", "androidtv_remote": "Smart TV", "androidtv": "Smart TV", "webostv": "Smart TV",
+    "braviatv": "Smart TV", "philips_js": "Smart TV", "roku": "Streaming Device", "apple_tv": "Streaming Device",
+    "philips_airpurifier_coap": "Air Purifier", "dyson_local": "Air Purifier", "xiaomi_miio_airpurifier": "Air Purifier",
+    "fujitsu_airstage": "Air Conditioner", "daikin": "Air Conditioner", "mitsubishi": "Air Conditioner",
+    "roborock": "Vacuum Cleaner", "ecovacs": "Vacuum Cleaner", "dreame_vacuum": "Vacuum Cleaner",
+    "tplink_deco": "Access Point", "tapo_control": "IP Camera", "onvif": "IP Camera", "reolink": "IP Camera",
+    "anker_solix": "Power Station", "sonos": "Smart Speaker", "hue": "Smart Light", "yeelight": "Smart Light",
+    "wled": "Smart Light", "brother": "Printer", "ipp": "Printer", "synology_dsm": "NAS", "qnap": "NAS",
+}
+_HA_MODEL_TYPES = (
+    (re.compile(r"pura|litter|t[345]\b", re.I), "Pet Litter Box"),
+    (re.compile(r"feeder|fresh element|d[34]\b", re.I), "Pet Feeder"),
+    (re.compile(r"eversweet|fountain|ctw", re.I), "Pet Water Fountain"),
+    (re.compile(r"\bl5\d\d|bulb", re.I), "Smart Light"),
+)
+
+
+def ha_device_type(h: dict) -> str | None:
+    """Pure: the MyNeS type HA's registry implies for one device, if any."""
+    for _rx, dtype in _HA_MODEL_TYPES:
+        if _rx.search(h.get("model") or ""):
+            return dtype
+    for domain in h.get("integrations") or []:
+        if domain in HA_INTEGRATION_TYPES:
+            return HA_INTEGRATION_TYPES[domain]
+    return None
+
+
 def enrich_devices(mynes_devices: list, registry: list, *, fill_alias: bool = True,
                    fill_location: bool = True, fill_vendor: bool = True) -> list:
     """Pure: copy what Home Assistant knows onto the matching MyNeS devices.
@@ -652,12 +682,24 @@ def enrich_devices(mynes_devices: list, registry: list, *, fill_alias: bool = Tr
 
         if fill_alias and d.get("alias_source") != "user":
             cur = (d.get("alias") or "").strip()
-            if not cur or _GENERIC_ALIAS.match(cur):
+            from mynes.analysis.identity import is_placeholder_alias
+            if not cur or _GENERIC_ALIAS.match(cur) or is_placeholder_alias(cur, d.get("vendor")):
                 put("alias", h.get("name"))
         if fill_location and not d.get("location"):
             put("location", h.get("area"))
         if fill_vendor and (d.get("vendor") or "Unknown") in ("Unknown", "Bilinmeyen"):
             put("vendor", h.get("manufacturer"))
+        # The owning integration/model pins the type; identity.apply_identity
+        # keeps it sticky and still never overrides a user edit.
+        dtype = ha_device_type(h)
+        if dtype:
+            from mynes.analysis.identity import apply_identity
+            for field, old, new in apply_identity(d, {
+                    "device_type": dtype, "confidence": 0.94, "name": None, "vendor": None,
+                    "model": h.get("model"), "hostname": None,
+                    "reasons": [f"Home Assistant: {', '.join(h.get('integrations') or [])} {h.get('model') or ''}".strip()]}):
+                if field == "device_type":
+                    changes.append({"key": key, "field": field, "old": old, "new": new})
     return changes
 
 
@@ -726,8 +768,14 @@ def demo():
     assert mine[1]["location"] == "Kitchen"                           # empty field filled
     assert "home_assistant" not in mine[2]                            # disabled entry ignored
     assert {(c["key"], c["field"]) for c in ch} == {("192.168.1.109", "alias"), ("192.168.1.32", "location"),
-                                                    ("192.168.1.32", "vendor")}
+                                                    ("192.168.1.32", "vendor"), ("192.168.1.109", "device_type")}
     assert enrich_devices(mine, reg) == []                            # idempotent
+    assert ha_device_type({"integrations": ["samsungtv", "dlna_dmr"]}) == "Smart TV"
+    assert ha_device_type({"model": "Petkit Pura Max", "integrations": ["petkit"]}) == "Pet Litter Box"
+    tv = [{"ip": "192.168.1.155", "mac": "d8:e0:e1:aa:a4:9a", "alias": "Samsung Smartphone", "device_type": "Smartphone"}]
+    enrich_devices(tv, [{"id": "t", "name": "[TV]FxTV", "mac": "d8:e0:e1:aa:a4:9a", "model": "UE55MU7000",
+                         "integrations": ["samsungtv"]}])
+    assert tv[0]["device_type"] == "Smart TV" and tv[0]["alias"] == "[TV]FxTV", tv
     assert build_state({**dev, "status": "offline"})["state"] == "not_home"
 
     scanner = build_scanner_payloads([dev], [{"severity": "critical"}])

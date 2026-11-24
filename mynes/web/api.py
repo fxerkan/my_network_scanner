@@ -959,6 +959,17 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
                                    and last.get("ok") is not False),
                 "detail": detail, "last_export": last}
 
+    def _dhcp_capability():
+        """Passive DHCP listener: where device names like "Petkit_T4" come from."""
+        from mynes.discovery import dhcp as dhcp_mod
+        lst = dhcp_mod._listener
+        known = len((lst.table if lst else {}) or {})
+        if lst and lst.thread and lst.thread.is_alive():
+            return {"available": True, "known_devices": known,
+                    "detail": "listening; each device appears when it next renews its DHCP lease (within a day)"}
+        return {"available": False, "known_devices": known,
+                "detail": (lst.error if lst else None) or "listener not started (needs raw-socket privileges)"}
+
     @bp.get("/capabilities")
     def capabilities():
         """What this install can actually do - drives the UI's warnings.
@@ -1006,6 +1017,7 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
                     "traceroute": bool(shutil.which("traceroute") or shutil.which("tracert")),
                 },
                 "influxdb": _influx_capability(),
+                "dhcp_hostnames": _dhcp_capability(),
                 "vulnerability_scan": {
                     "available": True,
                     "detail": "curated CVE pattern table matched against known service "

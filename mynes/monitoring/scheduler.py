@@ -313,6 +313,26 @@ class MonitorScheduler:
             target.setdefault("attributes", {}).update(extra.get("attributes") or {})
             for field in ("vendor", "model", "device_type"):
                 target[field] = target.get(field) or extra.get(field)
+            # Remember what the device said about itself, for identity.py -
+            # persisted on the device so the evidence outlives this sweep.
+            ev = target.setdefault("discovery_evidence", {})
+            sources = set(extra.get("sources") or [])
+            if "mdns" in sources and extra.get("name"):
+                ev["mdns_hostname"] = extra["name"]
+            if "ssdp" in sources and extra.get("name"):
+                ev["ssdp_name"] = extra["name"]
+            if extra.get("model"):
+                ev["model"] = extra["model"]
+            ev["services"] = sorted(set(ev.get("services") or []) | set(extra.get("services") or []))
+
+        # Re-run identification with the discovery evidence folded in, then
+        # persist: this used to happen after the save, so mDNS/SSDP findings
+        # never reached disk.
+        try:
+            self.scanner.identify_devices(devices, run_probes=False, mdns_lookup=False)
+            self.scanner.save_to_json()
+        except Exception as e:  # noqa: BLE001
+            log.warning("post-discovery identify/save failed: %s", e)
         return devices
 
     def _publish(self, devices, alerts):

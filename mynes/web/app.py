@@ -2193,6 +2193,14 @@ def get_credential_stats():
 def main():
     """Start the web UI. Entry point for `mynes` / `python -m mynes` / `app.py`."""
     scanner.load_from_json()
+    # Passive DHCP listener for the app's lifetime: the only source of the
+    # hostname most IoT devices give themselves. Optional - needs raw sockets.
+    try:
+        from mynes.discovery.dhcp import start_listener
+        lst = start_listener()
+        log.info("DHCP hostname listener: %s", "running" if lst.thread else f"off ({lst.error})")
+    except Exception as e:  # noqa: BLE001
+        log.warning("DHCP listener not started: %s", e)
 
     host = os.environ.get('MYNES_HOST', '0.0.0.0')
     port = int(os.environ.get('MYNES_PORT') or os.environ.get('FLASK_PORT') or 5883)

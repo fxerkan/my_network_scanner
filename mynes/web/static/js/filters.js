@@ -146,8 +146,16 @@
         const r = btn.getBoundingClientRect();
         pop.style.position = 'fixed';
         pop.style.zIndex = '1200';
-        pop.style.left = r.left + 'px';
-        pop.style.minWidth = r.width + 'px';
+        // An explicit width: CSS `width: 100%` on a position:fixed element means
+        // 100% of the VIEWPORT, which stretched every list to the right edge of
+        // the screen. Match the button, never narrower than readable, and keep
+        // it inside the viewport.
+        const vw = document.documentElement.clientWidth;
+        const w = Math.min(Math.max(r.width, 220), 420, vw - 16);
+        pop.style.width = w + 'px';
+        pop.style.minWidth = '0';
+        pop.style.maxWidth = 'none';
+        pop.style.left = Math.max(8, Math.min(r.left, vw - w - 8)) + 'px';
         pop.style.top = (r.bottom + 4) + 'px';
         pop.style.bottom = 'auto';
         const h = pop.offsetHeight;                       // measured while visible
@@ -215,7 +223,7 @@
             search.value = '';
             paint('');
             placePop(btn, pop);
-            search.focus();
+            search.focus({ preventScroll: true });
         }
         function close() { pop.setAttribute('hidden', ''); btn.setAttribute('aria-expanded', 'false'); }
 
@@ -312,7 +320,7 @@
         function open() {
             document.querySelectorAll('.ds-multi__pop').forEach(p => { if (p !== pop) p.setAttribute('hidden', ''); });
             pop.removeAttribute('hidden'); btn.setAttribute('aria-expanded', 'true');
-            search.value = ''; paint(''); placePop(btn, pop); search.focus();
+            search.value = ''; paint(''); placePop(btn, pop); search.focus({ preventScroll: true });
         }
         function close() { pop.setAttribute('hidden', ''); btn.setAttribute('aria-expanded', 'false'); }
 
@@ -360,7 +368,24 @@
     });
     // A fixed-positioned popover doesn't move with the page, so its anchor would
     // drift on scroll/resize - close it instead of leaving it stranded.
-    window.addEventListener('scroll', closeAllPops, true);   // capture: catch scrolls in any container
+    // Scrolling INSIDE a popover (its option list) must not close it - that
+    // made every long list unusable: the first wheel tick slammed it shut.
+    // A page/container scroll re-anchors the open popover to its button; it
+    // only closes once the button itself has scrolled out of view.
+    window.addEventListener('scroll', e => {
+        const t = e.target;
+        if (t && t.nodeType === 1 && t.closest && t.closest('.ds-multi__pop')) return;
+        document.querySelectorAll('.ds-multi__pop:not([hidden])').forEach(pop => {
+            const btn = pop.parentElement && pop.parentElement.querySelector('.ds-multi__btn');
+            if (!btn) { pop.setAttribute('hidden', ''); return; }
+            const r = btn.getBoundingClientRect();
+            if (r.bottom < 0 || r.top > window.innerHeight) {
+                pop.setAttribute('hidden', ''); btn.setAttribute('aria-expanded', 'false');
+            } else {
+                placePop(btn, pop);
+            }
+        });
+    }, true);   // capture: catch scrolls in any container
     window.addEventListener('resize', closeAllPops);
 
     // Every <select> becomes the app's searchable dropdown - native browser

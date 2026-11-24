@@ -8,6 +8,48 @@ versioning follows [SemVer](https://semver.org/).
 
 ### Added
 
+- **Device identity engine** (`analysis/identity.py`). Every signal now feeds
+  one decision about a device's name and type. Self-reported evidence beats
+  inference, and the strongest identification sticks. Before this, a sleeping
+  Samsung TV went back to "Samsung Smartphone", a Tapo bulb was a "Router",
+  a Petkit litter box was an "Espressif IoT Device" and a MacBook was a "Media
+  Player". A user edit still always wins. New evidence sources:
+  - a **permanent passive DHCP listener** that records the hostname and
+    vendor class each device gives itself (`Petkit_T4`, `L510`,
+    `Ebru-Pixel-10`, `android-dhcp-14`). It persists to `data/dhcp_hosts.json`
+    and is reported under `/api/capabilities`.
+  - **vendor probes** (`analysis/probes.py`), each sent only where the OUI
+    points at that vendor:
+    - Philips air purifiers over CoAP: returns the name and model.
+    - Fujitsu AirStage: `/GetParam`.
+    - TP-Link/Tapo/Deco: UDP 20002 discovery, returns the device type and
+      model.
+    - TP-Link Easy Smart switches: their login page.
+  - an **mDNS reverse lookup** when no hostname is known, plus Apple model
+    identifiers (`MacBookPro18,3` is a laptop).
+  - the **Home Assistant integration and model** owning a device
+    (`samsungtv` is a TV, `Pura Max` is a litter box).
+  - **IEEE MA-M/MA-S sub-blocks**: a MAC registered to "IEEE Registration
+    Authority" now resolves to the real company.
+  - the quick port sweep includes the Tuya (6668), Samsung TV (8001/8002/9197)
+    and Cast (8009) ports.
+
+### Fixed
+
+- **Dropdowns stretched to the right edge of the screen**, closed as soon as
+  you scrolled their own option list, and some closed the moment they opened.
+  - A `position: fixed` popover with `width: 100%` was as wide as the
+    viewport; it now matches its button and stays on screen.
+  - Every scroll event, including the list's own, closed it. Now the list
+    scrolls, and a page scroll re-anchors the popover.
+  - Focusing the search box scrolled the page and triggered the close.
+  - Verified headlessly on 22 dropdowns across six pages: opened, scrolled,
+    picked.
+- **mDNS/SSDP discovery results were never saved** on a scheduled scan. They
+  were folded in after the save.
+
+### Added
+
 - **Home Assistant as an integration point** (Settings › Integrations). Enter
   the HA URL and a long-lived token in the UI; the token is kept in
   `data/home_assistant.json` (mode 600), never in `config.json`. After every scan
