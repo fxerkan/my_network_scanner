@@ -118,6 +118,8 @@ from mynes.web.api import create_api  # noqa: E402  (needs `scanner` above)
 
 api_v2, monitor = create_api(scanner, scanner.get_config_manager())
 app.register_blueprint(api_v2)
+from mynes.web.insights_api import create_insights_api  # noqa: E402
+app.register_blueprint(create_insights_api(scanner))
 
 # Optional login gate. Off unless config enables it AND credentials exist in the
 # environment, so an existing install can never lock itself out on upgrade.
@@ -403,6 +405,13 @@ def discovery_page():
 def alerts_page():
     """Scheduled monitoring, alert history and notification channels."""
     return render_template('alerts.html', active_page='alerts')
+
+
+@app.route('/insights')
+def insights_page():
+    """Network Insights: internet path, DNS, what each device broadcasts and
+    where it is expected to talk. Passive - see analysis/insights.py."""
+    return render_template('insights.html', active_page='insights')
 
 
 @app.route('/security')

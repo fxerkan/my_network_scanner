@@ -114,6 +114,10 @@
                     <span class="ds-nav__label">{{ _('alerts') if _('alerts') != 'alerts' else 'Alerts' }}</span>
                     <span class="ds-badge ds-badge--critical" id="alertBadge" hidden>0</span>
                 </a>
+                <a class="ds-nav__link" href="/insights" {% if active_page == 'insights' %}aria-current="page"{% endif %} id="navInsights">
+                    <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-globe"/></svg>
+                    <span class="ds-nav__label">{{ _('insights') if _('insights') != 'insights' else 'Insights' }}</span>
+                </a>
                 <a class="ds-nav__link" href="/security" {% if active_page == 'security' %}aria-current="page"{% endif %} id="navSecurity">
                     <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-shield"/></svg>
                     <span class="ds-nav__label">{{ _('security') if _('security') != 'security' else 'Security' }}</span>
