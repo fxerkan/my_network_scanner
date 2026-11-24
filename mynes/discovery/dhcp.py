@@ -123,11 +123,25 @@ class Chatter:
         self.table = table or {}
         self._lock = threading.Lock()
         self._dirty = False
+        # This host's own NICs: MyNeS's probes (SSDP, TP-Link, WS-Discovery)
+        # would otherwise make the scanner its own loudest "device".
+        self.own = set()
+        try:
+            import psutil
+            for addrs in psutil.net_if_addrs().values():
+                for a in addrs:
+                    if getattr(a, "family", None) == psutil.AF_LINK and a.address:
+                        self.own.add(a.address.lower())
+        except Exception:  # noqa: BLE001
+            pass
+        for mac in list(self.table):
+            if mac in self.own:
+                self.table.pop(mac, None)
 
     def note(self, mac: str, proto: str, payload: bytes) -> None:
         from datetime import datetime
         mac = (mac or "").lower()
-        if not mac or mac.startswith(("01:00:5e", "33:33", "ff:ff")):
+        if not mac or mac in self.own or mac.startswith(("01:00:5e", "33:33", "ff:ff")):
             return
         with self._lock:
             row = self.table.setdefault(mac, {})
