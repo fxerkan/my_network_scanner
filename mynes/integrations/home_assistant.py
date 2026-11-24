@@ -334,10 +334,19 @@ class HomeAssistantClient:
         Returns [] (not an error) when websocket-client is not installed, so the
         REST comparison still works.
         """
+        raw = self._registry_raw()
+        if raw is None:
+            return []
+        devices, entities, entries, areas = raw["devices"], raw["entities"], raw["entries"], raw["areas"]
+        return _registry_rows(devices, entities, entries, areas)
+
+    def _registry_raw(self) -> dict | None:
+        """The four WebSocket-only registries, unprocessed. None when the
+        websocket-client package is missing or auth fails."""
         try:
             import websocket
         except ImportError:
-            return []
+            return None
 
         ws_url = self.url.replace("https://", "wss://").replace("http://", "ws://") + "/api/websocket"
         ws = websocket.create_connection(ws_url, timeout=self.timeout)
@@ -345,7 +354,7 @@ class HomeAssistantClient:
             json.loads(ws.recv())  # auth_required
             ws.send(json.dumps({"type": "auth", "access_token": self.token}))
             if json.loads(ws.recv()).get("type") != "auth_ok":
-                return []
+                return None
 
             def request(msg_id, msg_type):
                 ws.send(json.dumps({"id": msg_id, "type": msg_type}))
@@ -363,41 +372,18 @@ class HomeAssistantClient:
             areas = request(4, "config/area_registry/list")
         finally:
             ws.close()
+        return {"devices": devices, "entities": entities, "entries": entries, "areas": areas}
 
-        # config_entry_id -> integration name ("zha", "matter", "zwave_js", ...)
-        integration = {e["entry_id"]: e.get("domain") for e in entries if isinstance(e, dict)}
-        area_name = {a.get("area_id"): a.get("name") for a in areas if isinstance(a, dict)}
-        entity_count: dict[str, int] = {}
-        for ent in entities:
-            if ent.get("device_id"):
-                entity_count[ent["device_id"]] = entity_count.get(ent["device_id"], 0) + 1
+    def inventory(self, mynes_devices: list[dict], inactive_days: int = 14) -> dict:
+        """Every HA registry device with status, addresses and its MyNeS match.
+        See build_inventory() for the classification rules."""
+        raw = self._registry_raw()
+        if raw is None:
+            raise RuntimeError("device registry unavailable (websocket-client missing or auth failed)")
+        states = self.states()
+        return build_inventory(raw["devices"], raw["entities"], raw["entries"], raw["areas"],
+                               states, mynes_devices, inactive_days=inactive_days)
 
-        out = []
-        for d in devices:
-            conns = {c[0]: c[1] for c in (d.get("connections") or []) if len(c) == 2}
-            domains = sorted({integration.get(cid) for cid in (d.get("config_entries") or [])} - {None})
-            name = d.get("name_by_user") or d.get("name")
-            # HA's `generic` integration names devices after their address
-            # ("192_168_1_79"), and adapters after their MAC ("hci0 (D8:3A:..)").
-            # Both are the only identifier those entries carry, so mine them.
-            embedded_ip, embedded_mac = _identifiers_in_name(name)
-            out.append(
-                {
-                    "id": d.get("id"),
-                    "name": name,
-                    "manufacturer": d.get("manufacturer"),
-                    "model": d.get("model"),
-                    "mac": conns.get("mac") or embedded_mac,
-                    "ip": embedded_ip,
-                    "integrations": domains,
-                    "protocol": _protocol_for(domains),
-                    "entity_count": entity_count.get(d.get("id"), 0),
-                    "via_device_id": d.get("via_device_id"),
-                    "disabled": bool(d.get("disabled_by")),
-                    "area": area_name.get(d.get("area_id")),
-                }
-            )
-        return out
 
     def compare(self, mynes_devices: list[dict]) -> dict:
         """Diff HA's view against MyNeS's view.
@@ -501,6 +487,45 @@ NON_DEVICE_INTEGRATIONS = {
     "google_translate", "tts", "stt", "wake_word", "assist_pipeline",
     "waze_travel_time", "moon", "season", "worldclock", "time_date",
 }
+
+
+
+def _registry_rows(devices, entities, entries, areas) -> list[dict]:
+    """Pure: raw registries -> the condensed rows device_registry() returns."""
+    # config_entry_id -> integration name ("zha", "matter", "zwave_js", ...)
+    integration = {e["entry_id"]: e.get("domain") for e in entries if isinstance(e, dict)}
+    area_name = {a.get("area_id"): a.get("name") for a in areas if isinstance(a, dict)}
+    entity_count: dict[str, int] = {}
+    for ent in entities:
+        if ent.get("device_id"):
+            entity_count[ent["device_id"]] = entity_count.get(ent["device_id"], 0) + 1
+
+    out = []
+    for d in devices:
+        conns = {c[0]: c[1] for c in (d.get("connections") or []) if len(c) == 2}
+        domains = sorted({integration.get(cid) for cid in (d.get("config_entries") or [])} - {None})
+        name = d.get("name_by_user") or d.get("name")
+        # HA's `generic` integration names devices after their address
+        # ("192_168_1_79"), and adapters after their MAC ("hci0 (D8:3A:..)").
+        # Both are the only identifier those entries carry, so mine them.
+        embedded_ip, embedded_mac = _identifiers_in_name(name)
+        out.append(
+            {
+                "id": d.get("id"),
+                "name": name,
+                "manufacturer": d.get("manufacturer"),
+                "model": d.get("model"),
+                "mac": conns.get("mac") or embedded_mac,
+                "ip": embedded_ip,
+                "integrations": domains,
+                "protocol": _protocol_for(domains),
+                "entity_count": entity_count.get(d.get("id"), 0),
+                "via_device_id": d.get("via_device_id"),
+                "disabled": bool(d.get("disabled_by")),
+                "area": area_name.get(d.get("area_id")),
+            }
+        )
+    return out
 
 
 def _protocol_for(domains: list[str]) -> str:
@@ -703,6 +728,218 @@ def enrich_devices(mynes_devices: list, registry: list, *, fill_alias: bool = Tr
     return changes
 
 
+
+# ---------------------------------------------------------------------------
+# Inventory (Compare) + selective import
+# ---------------------------------------------------------------------------
+
+# Registry entries that are not physical devices: HACS repositories and
+# frontend plugins, service/helper entries, cloud scenes ("Açıl Susam" is a
+# Tuya *scene*, not hardware), integration stubs.
+_NOT_DEVICE_MODEL = re.compile(r"\b(scene|integration|plugin|automation|script|group|helper|account)\b", re.I)
+DEAD_STATES = {"unavailable", "unknown", "", None}
+
+
+def _parse_ts(value):
+    from datetime import datetime
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+
+def build_inventory(devices, entities, entries, areas, states, mynes_devices,
+                    inactive_days: int = 14, now=None) -> dict:
+    """Pure: HA registries + states + MyNeS devices -> one row per HA device.
+
+    status is one of:
+      active        at least one enabled entity reports a real state that
+                    HA refreshed within ``inactive_days``
+      inactive      no entities, or every entity is unavailable/unknown, or
+                    nothing was reported for longer than ``inactive_days``
+                    (gone hardware: an old Xbox, a removed bulb)
+      disabled      the user disabled the device in HA (Jellyfin clients)
+      not_a_device  services, HACS repositories/plugins, helper entries and
+                    cloud scenes (a Tuya scene such as "Açıl Susam")
+    Each row also carries IP/MAC (from connections, device_tracker
+    attributes, any entity attribute, or an address embedded in the name),
+    integrations, protocol, area, model, the freshest state time and the
+    matching MyNeS device key (ip, or mac for radio devices), if any.
+    """
+    from datetime import datetime, timedelta, timezone
+    now = now or datetime.now(timezone.utc)
+    base = {r["id"]: r for r in _registry_rows(devices, entities, entries, areas)}
+    raw_by_id = {d.get("id"): d for d in devices}
+    state_of = {s.get("entity_id"): s for s in states or [] if isinstance(s, dict)}
+
+    ents_by_dev: dict = {}
+    for e in entities or []:
+        if e.get("device_id") and not e.get("disabled_by"):
+            ents_by_dev.setdefault(e["device_id"], []).append(e.get("entity_id"))
+
+    # Any entity attribute pairing a MAC with an IP (tplink_deco trackers,
+    # ping, mobile_app) is an address book for the whole LAN.
+    ip_by_mac = {}
+    for st in states or []:
+        attrs = st.get("attributes") or {}
+        mac = _norm_mac(attrs.get("mac") or attrs.get("mac_address"))
+        ip = attrs.get("ip") or attrs.get("ip_address")
+        if mac and ip:
+            ip_by_mac[mac] = ip
+
+    def norm(v):
+        return str(v).lower().replace("-", ":") if v else None
+
+    my_by_mac = {norm(d.get("mac")): d for d in mynes_devices if d.get("mac")}
+    my_by_ip = {d.get("ip"): d for d in mynes_devices if d.get("ip")}
+    my_by_ha = {(d.get("home_assistant") or {}).get("id"): d for d in mynes_devices
+                if (d.get("home_assistant") or {}).get("id")}
+
+    rows = []
+    cutoff = now - timedelta(days=inactive_days)
+    for dev_id, row in base.items():
+        raw = raw_by_id.get(dev_id) or {}
+        ent_ids = ents_by_dev.get(dev_id, [])
+        live = [state_of[e] for e in ent_ids if e in state_of]
+        alive = [s for s in live if s.get("state") not in DEAD_STATES]
+        fresh = None
+        for s in live:
+            ts = _parse_ts(s.get("last_reported")) or _parse_ts(s.get("last_updated")) or _parse_ts(s.get("last_changed"))
+            if ts and (fresh is None or ts > fresh):
+                fresh = ts
+        fresh_alive = None
+        for s in alive:
+            ts = _parse_ts(s.get("last_reported")) or _parse_ts(s.get("last_updated"))
+            if ts and (fresh_alive is None or ts > fresh_alive):
+                fresh_alive = ts
+
+        # Addresses: registry connections, a bare 12-hex MAC used as the name
+        # (fujitsu_airstage names devices "A841F4180165"), entity attributes,
+        # then the LAN map.
+        mac = _norm_mac(row.get("mac"))
+        bare = re.fullmatch(r"[0-9A-Fa-f]{12}", (row.get("name") or "").strip())
+        if not mac and bare:
+            mac = _norm_mac(":".join(bare.group(0)[i:i + 2] for i in range(0, 12, 2)))
+        ip = row.get("ip")
+        for s in live:
+            attrs = s.get("attributes") or {}
+            mac = mac or _norm_mac(attrs.get("mac") or attrs.get("mac_address"))
+            ip = ip or attrs.get("ip") or attrs.get("ip_address")
+        ip = ip or (ip_by_mac.get(mac) if mac else None)
+
+        if raw.get("entry_type") == "service" or row.get("protocol") == "Not a device" \
+                or _NOT_DEVICE_MODEL.search(row.get("model") or "") \
+                or (row.get("manufacturer") or "").lower() in ("hacs.xyz", "custom-cards"):
+            status, why = "not_a_device", "service / plugin / scene entry"
+        elif raw.get("disabled_by"):
+            status, why = "disabled", f"disabled by {raw.get('disabled_by')}"
+        elif not ent_ids:
+            status, why = "inactive", "no enabled entities"
+        elif not alive:
+            status, why = "inactive", "every entity is unavailable/unknown"
+        elif fresh_alive and fresh_alive < cutoff:
+            status, why = "inactive", f"no update for {(now - fresh_alive).days} days"
+        else:
+            status, why = "active", f"{len(alive)}/{len(live)} entities reporting"
+
+        match, method = my_by_ha.get(dev_id), "home_assistant"
+        if match is None and mac and my_by_mac.get(norm(mac)):
+            match, method = my_by_mac[norm(mac)], "mac"
+        if match is None and ip and my_by_ip.get(ip):
+            match, method = my_by_ip[ip], "ip"
+        if match is None and status in ("active", "inactive"):
+            # Cloud integrations (Dyson, Roborock, Anker) carry no MAC/IP.
+            # Fall back to the name: an exact squashed match, else a unique
+            # containment ("Q8 Max Pro+" in "Roborock Q8 Max Pro+") - without
+            # it the default selection would import duplicates.
+            keys = {k for k in _name_keys(row) if len(k) >= 6}
+            exact = [d for d in mynes_devices if keys & _name_keys(d)]
+            loose = [d for d in mynes_devices
+                     if any(k in mk for k in keys for mk in _name_keys(d))]
+            pick = exact if len(exact) == 1 else (loose if len(loose) == 1 else [])
+            if pick:
+                match, method = pick[0], "name"
+        if match is None:
+            method = None
+        rows.append({
+            **row, "mac": mac, "ip": ip, "status": status, "status_reason": why,
+            "entities": len(ent_ids), "entities_alive": len(alive),
+            "last_seen": fresh.isoformat() if fresh else None,
+            "entry_type": raw.get("entry_type"),
+            "mynes_key": (match.get("ip") or match.get("mac")) if match else None,
+            "mynes_name": (match.get("alias") or match.get("hostname")) if match else None,
+            "match_method": method,
+        })
+
+    order = {"active": 0, "inactive": 1, "disabled": 2, "not_a_device": 3}
+    rows.sort(key=lambda r: (order[r["status"]], r["mynes_key"] is not None, (r.get("name") or "").lower()))
+    counts = {k: sum(1 for r in rows if r["status"] == k) for k in order}
+    return {"devices": rows, "counts": counts,
+            "matched": sum(1 for r in rows if r["mynes_key"]),
+            "inactive_days": inactive_days}
+
+
+# Protocol -> type for HA devices MyNeS cannot see on the wire.
+_PROTOCOL_TYPES = {"Zigbee": "Smart Home", "Z-Wave": "Smart Home", "Matter": "Smart Home",
+                   "Thread": "Smart Home", "Bluetooth": "Bluetooth Device", "Cloud": "Smart Home",
+                   "Companion app": "Smartphone"}
+
+
+def import_devices(mynes_devices: list, rows: list) -> list:
+    """Import the chosen HA inventory rows into the MyNeS device list.
+
+    - A row that matches a MyNeS device is folded in with enrich_devices(),
+      the same non-destructive merge the automatic enrichment uses: it fills
+      empty or placeholder fields and never touches a user edit.
+    - A row with no match becomes a new MyNeS device. It has no IP on the
+      wire (Zigbee, BLE, cloud), so it is stored the way radio devices are:
+      ``ip`` empty and keyed by its MAC, or by ``ha:<device_id>`` when HA
+      knows no MAC. ``discovery_only`` keeps scans from marking it offline,
+      and offline preservation keeps any device with an alias, so scans never
+      drop it. ``source: home_assistant`` says where it came from. An HA
+      device with an IP but no MAC is created without the IP, so a later ARP
+      sweep that finds the real MAC cannot turn it into a duplicate.
+    Mutates ``mynes_devices``; returns [{id, name, action, key}] per row.
+    """
+    from datetime import datetime
+    now = datetime.now().isoformat()
+    out = []
+    by_key = {(d.get("ip") or d.get("mac")): d for d in mynes_devices}
+    for r in rows:
+        target = by_key.get(r.get("mynes_key")) if r.get("mynes_key") else None
+        if target is None:
+            target = next((d for d in mynes_devices
+                           if (d.get("home_assistant") or {}).get("id") == r.get("id")), None)
+        if target is not None:
+            changes = enrich_devices([target], [r])
+            out.append({"id": r.get("id"), "name": r.get("name"), "action": "updated",
+                        "key": target.get("ip") or target.get("mac"),
+                        "fields": sorted({c["field"] for c in changes})})
+            continue
+        mac = _norm_mac(r.get("mac"))
+        key = mac or f"ha:{r.get('id')}"
+        dtype = ha_device_type(r) or _PROTOCOL_TYPES.get(r.get("protocol") or "", "Smart Home")
+        dev = {
+            "ip": "", "mac": key, "alias": r.get("name") or key, "alias_source": "home_assistant",
+            "hostname": "", "vendor": r.get("manufacturer") or "Unknown", "device_type": dtype,
+            "device_type_source": "auto", "location": r.get("area") or "", "notes": "",
+            "status": "online" if r.get("status") == "active" else "offline",
+            "last_seen": r.get("last_seen") or now, "open_ports": [], "discovery_only": True,
+            "source": "home_assistant", "model": r.get("model"),
+            "home_assistant": {"id": r.get("id"), "name": r.get("name"), "area": r.get("area"),
+                               "manufacturer": r.get("manufacturer"), "model": r.get("model"),
+                               "integrations": r.get("integrations") or [], "protocol": r.get("protocol"),
+                               "ip": r.get("ip"), "status": r.get("status")},
+            "analysis_data": {}, "imported_at": now,
+        }
+        mynes_devices.append(dev)
+        by_key[key] = dev
+        out.append({"id": r.get("id"), "name": r.get("name"), "action": "created", "key": key})
+    return out
+
+
 LAST_ENRICH: dict = {}
 
 
@@ -776,6 +1013,72 @@ def demo():
     enrich_devices(tv, [{"id": "t", "name": "[TV]FxTV", "mac": "d8:e0:e1:aa:a4:9a", "model": "UE55MU7000",
                          "integrations": ["samsungtv"]}])
     assert tv[0]["device_type"] == "Smart TV" and tv[0]["alias"] == "[TV]FxTV", tv
+
+    # Inventory: status classification, addresses, MyNeS match.
+    from datetime import datetime, timezone
+    now = datetime(2026, 11, 24, 12, 0, tzinfo=timezone.utc)
+    reg_devices = [
+        {"id": "tv", "name": "[TV]FxTV", "model": "UE55MU7000", "config_entries": ["e_sam"],
+         "connections": [["mac", "d8:e0:e1:aa:a4:9a"]]},
+        {"id": "xbox", "name": "XBOXONEXFX", "model": "DLNA", "config_entries": ["e_jf"], "disabled_by": "user"},
+        {"id": "scene", "name": "Açıl Susam", "model": "Tuya Scene", "config_entries": ["e_tuya"]},
+        {"id": "hacs", "name": "button-card", "model": "plugin", "manufacturer": "custom-cards",
+         "config_entries": ["e_hacs"], "entry_type": "service"},
+        {"id": "old", "name": "Old Bulb", "config_entries": ["e_tp"], "connections": [["mac", "aa:bb:cc:00:00:09"]]},
+        {"id": "zb", "name": "Kapı Sensörü", "model": "SNZB-04", "manufacturer": "SONOFF",
+         "config_entries": ["e_zha"], "area_id": "hol"},
+        {"id": "deco_client", "name": "3C-64-CF-BC-64-03", "config_entries": ["e_deco"]},
+    ]
+    reg_entities = [
+        {"entity_id": "media_player.tv", "device_id": "tv"},
+        {"entity_id": "light.old", "device_id": "old"},
+        {"entity_id": "binary_sensor.door", "device_id": "zb"},
+        {"entity_id": "device_tracker.l510", "device_id": "deco_client"},
+    ]
+    reg_entries = [{"entry_id": "e_sam", "domain": "samsungtv"}, {"entry_id": "e_jf", "domain": "jellyfin"},
+                   {"entry_id": "e_tuya", "domain": "tuya"}, {"entry_id": "e_hacs", "domain": "hacs"},
+                   {"entry_id": "e_tp", "domain": "tplink"}, {"entry_id": "e_zha", "domain": "zha"},
+                   {"entry_id": "e_deco", "domain": "tplink_deco"}]
+    st = [
+        {"entity_id": "media_player.tv", "state": "off", "last_reported": "2026-11-24T11:00:00+00:00"},
+        {"entity_id": "light.old", "state": "unavailable", "last_changed": "2026-09-01T00:00:00+00:00"},
+        {"entity_id": "binary_sensor.door", "state": "off", "last_reported": "2026-11-24T10:00:00+00:00"},
+        {"entity_id": "device_tracker.l510", "state": "home", "last_reported": "2026-11-24T11:30:00+00:00",
+         "attributes": {"ip": "192.168.1.103", "mac": "3C-64-CF-BC-64-03"}},
+    ]
+    reg_devices.append({"id": "robo", "name": "Q8 Max Pro+", "manufacturer": "Roborock", "config_entries": ["e_rr"]})
+    reg_entities.append({"entity_id": "vacuum.q8", "device_id": "robo"})
+    reg_entries.append({"entry_id": "e_rr", "domain": "roborock"})
+    st.append({"entity_id": "vacuum.q8", "state": "docked", "last_reported": "2026-11-24T11:00:00+00:00"})
+    mine = [{"ip": "192.168.1.155", "mac": "d8:e0:e1:aa:a4:9a", "alias": "Samsung Smart TV"},
+            {"ip": "192.168.1.60", "mac": "24:9e:7d:24:11:15", "alias": "Roborock Q8 Max Pro+"}]
+    inv = build_inventory(reg_devices, reg_entities, reg_entries, [{"area_id": "hol", "name": "Hol"}],
+                          st, mine, now=now)
+    by = {r["id"]: r for r in inv["devices"]}
+    assert by["tv"]["status"] == "active" and by["tv"]["mynes_key"] == "192.168.1.155"
+    assert by["xbox"]["status"] == "disabled"
+    assert by["scene"]["status"] == "not_a_device" and by["hacs"]["status"] == "not_a_device"
+    assert by["old"]["status"] == "inactive"
+    assert by["zb"]["status"] == "active" and by["zb"]["area"] == "Hol" and by["zb"]["mynes_key"] is None
+    assert by["deco_client"]["ip"] == "192.168.1.103" and by["deco_client"]["mac"] == "3c:64:cf:bc:64:03"
+    assert inv["counts"] == {"active": 4, "inactive": 1, "disabled": 1, "not_a_device": 2}, inv["counts"]
+    assert by["robo"]["mynes_key"] == "192.168.1.60" and by["robo"]["match_method"] == "name"
+    inv2 = build_inventory([{"id": "ac", "name": "A841F4180165", "config_entries": ["e"]},
+                            {"id": "acct", "name": "Erkan (TR)", "model": "Account", "config_entries": ["e"]}],
+                           [{"entity_id": "climate.ac", "device_id": "ac"}], [{"entry_id": "e", "domain": "x"}], [],
+                           [{"entity_id": "climate.ac", "state": "cool", "last_reported": "2026-11-24T11:00:00+00:00"}],
+                           [{"ip": "192.168.1.84", "mac": "a8:41:f4:18:01:65"}], now=now)
+    b2 = {r["id"]: r for r in inv2["devices"]}
+    assert b2["ac"]["mac"] == "a8:41:f4:18:01:65" and b2["ac"]["mynes_key"] == "192.168.1.84"
+    assert b2["acct"]["status"] == "not_a_device"
+
+    # Import: the match is enriched, the radio device is created keyed ha:<id>.
+    res = import_devices(mine, [by["tv"], by["zb"]])
+    assert [r["action"] for r in res] == ["updated", "created"], res
+    zb = mine[-1]
+    assert zb["mac"] == "ha:zb" and zb["ip"] == "" and zb["discovery_only"] and zb["location"] == "Hol"
+    assert import_devices(mine, [by["zb"]])[0]["action"] == "updated"   # idempotent: found by HA id
+    assert len(mine) == 3
     assert build_state({**dev, "status": "offline"})["state"] == "not_home"
 
     scanner = build_scanner_payloads([dev], [{"severity": "critical"}])

@@ -1164,5 +1164,22 @@
   "insights_c_broadcasting": "Yayın yapan",
   "insights_none_heard": "henüz bir şey duyulmadı",
   "insights_no_known": "bilinen üretici uç noktası yok",
-  "hide": "Gizle"
+  "hide": "Gizle",
+  "ha_inventory_summary": "{total} Home Assistant cihazı · {active} aktif · {inactive} pasif · {disabled} devre dışı · {nodev} cihaz değil · {matched} zaten MyNeS'te",
+  "ha_status_active": "Aktif",
+  "ha_status_inactive": "Pasif",
+  "ha_status_disabled": "Devre dışı",
+  "ha_status_not_a_device": "Cihaz değil",
+  "ha_not_in_mynes": "MyNeS'te yok",
+  "ha_select_device": "Aktarım için seç",
+  "ha_filter_status": "Duruma göre filtrele",
+  "ha_select_visible": "Görünenleri seç",
+  "ha_clear_selection": "Seçimi temizle",
+  "ha_import_selected": "Seçilenleri aktar ({n})",
+  "ha_integration_col": "Entegrasyon",
+  "ha_in_mynes": "MyNeS'te",
+  "ha_import_done": "{created} eklendi, {updated} güncellendi",
+  "ha_action_created": "yeni cihaz olarak eklendi",
+  "ha_action_updated": "mevcut cihazla birleştirildi",
+  "ha_matched_by": "Eşleşme: {method}"
 }

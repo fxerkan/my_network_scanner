@@ -276,6 +276,46 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
         except Exception as e:  # noqa: BLE001
             return jsonify({"error": f"{type(e).__name__}: {e}"}), 502
 
+    @bp.get("/integrations/home-assistant/inventory")
+    def ha_inventory():
+        """Every HA device with status (active/inactive/disabled/not a device),
+        IP/MAC, integration, area, model and its MyNeS match - the Compare
+        table the user picks imports from."""
+        client = HomeAssistantClient()
+        if not client.configured():
+            return jsonify({"error": "Home Assistant is not configured (Settings > Integrations, or HA_URL / HA_TOKEN)"}), 400
+        try:
+            days = min(max(int(request.args.get("inactive_days", 14)), 1), 365)
+            return jsonify(client.inventory(_devices(), inactive_days=days))
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"error": f"{type(e).__name__}: {e}"}), 502
+
+    @bp.post("/integrations/home-assistant/import")
+    def ha_import():
+        """Import the HA devices the user selected: matched ones are enriched
+        (never over a user edit), unmatched ones are added as new devices.
+        The inventory is rebuilt server-side, so the client only sends ids."""
+        from mynes.integrations import home_assistant as ha_mod
+        body = request.get_json(silent=True) or {}
+        ids = [str(i) for i in (body.get("ids") or []) if i]
+        if not ids:
+            return jsonify({"error": "no devices selected"}), 400
+        client = HomeAssistantClient()
+        if not client.configured():
+            return jsonify({"error": "Home Assistant is not configured (Settings > Integrations, or HA_URL / HA_TOKEN)"}), 400
+        try:
+            inv = client.inventory(_devices())
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"error": f"{type(e).__name__}: {e}"}), 502
+        wanted = set(ids)
+        rows = [r for r in inv["devices"] if r["id"] in wanted]
+        results = ha_mod.import_devices(scanner.devices, rows)
+        scanner.save_to_json()
+        log.info("Home Assistant import: %d updated, %d created",
+                 sum(r["action"] == "updated" for r in results), sum(r["action"] == "created" for r in results))
+        return jsonify({"ok": True, "results": results,
+                        "missing": sorted(wanted - {r["id"] for r in rows})})
+
     @bp.post("/integrations/mqtt/publish")
     def mqtt_publish():
         """Push all devices to Home Assistant via MQTT discovery."""
