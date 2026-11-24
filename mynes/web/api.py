@@ -792,9 +792,15 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
         state = topology.load_state()
         devices = _devices()
         known = _known_subnets()
+        gateway = get_default_gateway()
+        try:
+            local_ips = [i["ip"] for i in scanner.get_local_machine_interfaces()]
+        except Exception:  # noqa: BLE001
+            local_ips = []
         tree = topology.build_tree(
-            devices, get_default_gateway(),
+            devices, gateway,
             uplinks=state["uplinks"], traced=state["traced"],
+            implied=topology.host_links(devices, local_ips, gateway),
         )
         for node in tree["nodes"]:
             # A virtual infra node (unmanaged switch) has no IP; it sits in the

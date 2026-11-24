@@ -120,8 +120,35 @@ def discover_uplinks(devices: list, workers: int = 8, timeout: float = 6.0) -> d
 
 # ------------------------------------------------------------------ tree build
 
+def host_links(devices: list, local_ips, gateway_ip: str | None) -> dict:
+    """Pure: implied parents for addresses that belong to the scanning host.
+
+    A Docker bridge gateway (172.x.0.1) or a Tailscale address is an
+    interface of the machine MyNeS runs on, not a separate box hanging off
+    the router; a container lives behind its bridge gateway. Returns
+    ``{ip: parent_ip}`` - used only where nothing better (manual,
+    traceroute) is known.
+    """
+    local_ips = {ip for ip in (local_ips or []) if ip}
+    lan_prefix = gateway_ip.rsplit(".", 1)[0] + "." if gateway_ip else None
+    host_lan = next((ip for ip in sorted(local_ips) if lan_prefix and ip.startswith(lan_prefix)), None)
+    if not host_lan:
+        return {}
+    present = {d.get("ip") for d in devices if d.get("ip")}
+    out = {ip: host_lan for ip in local_ips if ip != host_lan and ip in present}
+    gw_by_prefix = {ip.rsplit(".", 1)[0]: ip for ip in out if ip.endswith(".1")}
+    for ip in present:
+        if not ip or ip in local_ips or ip.count(".") != 3:
+            continue
+        gw = gw_by_prefix.get(ip.rsplit(".", 1)[0])
+        if gw:
+            out[ip] = gw          # a container -> its bridge's gateway interface
+    return out
+
+
 def build_tree(devices: list, gateway_ip: str | None = None,
-               uplinks: dict | None = None, traced: dict | None = None) -> dict:
+               uplinks: dict | None = None, traced: dict | None = None,
+               implied: dict | None = None) -> dict:
     """-> {"gateway": ip|None, "nodes": [{ip, parent, source, infra, ...}]}.
 
     source is one of: "gateway" (this IS the gateway), "manual", "traceroute",
@@ -152,6 +179,8 @@ def build_tree(devices: list, gateway_ip: str | None = None,
             parent, source = uplinks[ip], "manual"
         elif traced.get(ip) in by_ip and traced[ip] != ip:
             parent, source = traced[ip], "traceroute"
+        elif (implied or {}).get(ip) in by_ip and implied[ip] != ip:
+            parent, source = implied[ip], "host"
         elif host_ip in by_ip and host_ip != ip:
             # A container is not "assumed direct to the gateway": the Engine
             # told us exactly which machine it runs on.
@@ -180,6 +209,11 @@ def _break_cycles(nodes: list, gateway_ip: str | None) -> None:
 
 def demo():
     """Self-check of the pure half: no traceroute, no files, no network."""
+    hl = host_links(
+        [{"ip": "192.168.1.62"}, {"ip": "172.17.0.1"}, {"ip": "172.17.0.5"}, {"ip": "100.1.2.3"},
+         {"ip": "192.168.1.50"}],
+        ["192.168.1.62", "172.17.0.1", "100.1.2.3"], "192.168.1.1")
+    assert hl == {"172.17.0.1": "192.168.1.62", "100.1.2.3": "192.168.1.62", "172.17.0.5": "172.17.0.1"}, hl
     devices = [
         {"ip": "192.168.1.1", "device_type": "Router"},
         {"ip": "192.168.1.2", "device_type": "Switch"},
