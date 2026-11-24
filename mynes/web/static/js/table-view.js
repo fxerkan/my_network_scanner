@@ -422,7 +422,7 @@
     const targets = keys.map(k => devByKey(k)).filter(d => d && d.ip);
     const skipped = keys.length - targets.length;
     for (const d of targets) {
-      try { await fetch(`/delete_device/${encodeURIComponent(d.ip)}`, { method: 'DELETE' }); } catch (_) {}
+      try { await fetch(`/delete_device/${encodeURIComponent(d.ip)}?mac=${encodeURIComponent(d.mac || '')}`, { method: 'DELETE' }); } catch (_) {}
     }
     selected.clear();
     if (skipped) showToast(L('no_ip_skipped', skipped + ' device(s) without an IP were skipped', { count: skipped }), 'info');

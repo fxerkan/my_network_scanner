@@ -1986,7 +1986,13 @@ def delete_device(ip):
         # Cihazı bul ve sil. ``ip`` is really a device key: an IP, or - for a
         # radio-only device with no IP - its MAC (same convention as update).
         key = (ip or '').lower()
+        # Two records can share an IP (a container's old and new MAC, a stale
+        # copy left by a DHCP move). ?mac= pins the exact one; without it the
+        # first match goes, as before.
+        want_mac = (request.args.get('mac') or '').lower()
         for i, device in enumerate(devices):
+            if want_mac and (device.get('mac') or '').lower() != want_mac:
+                continue
             if device.get('ip') == ip or (
                     not device.get('ip') and (device.get('mac') or '').lower() == key):
                 device_name = device.get('alias') or device.get('hostname') or ip
