@@ -99,6 +99,11 @@ function setupIntegrationsTab() {
     if (_integrationsMounted) return;
     _integrationsMounted = true;
 
+    document.getElementById('haSaveBtn').addEventListener('click', saveHomeAssistant);
+    document.getElementById('haTestBtn').addEventListener('click', testHomeAssistant);
+    document.getElementById('haEnrichBtn').addEventListener('click', enrichFromHomeAssistant);
+    document.getElementById('haCompareBtn').addEventListener('click', compareWithHomeAssistant);
+    loadHomeAssistant();
     document.getElementById('influxSaveBtn').addEventListener('click', saveIntegrationsMetrics);
     document.getElementById('influxTestBtn').addEventListener('click', testIntegrationsMetrics);
     document.getElementById('influxExportBtn').addEventListener('click', exportIntegrationsMetricsNow);
@@ -2243,3 +2248,106 @@ document.addEventListener('DOMContentLoaded', function () {
     if (f) f.addEventListener('change', loadLogs);
     if (d) d.addEventListener('change', loadLogs);
 });
+
+
+/* Home Assistant integration card: connection settings (token stays server
+ * side; only "is one set" comes back), enrichment of MyNeS devices from HA's
+ * device registry, and the HA <-> MyNeS comparison. */
+function _haStatus(ok, text) {
+    const el = document.getElementById('haStatus');
+    el.textContent = (ok === null ? '' : ok ? '✓ ' : '✗ ') + text;
+    el.style.color = ok === false ? 'var(--severity-critical, var(--text-secondary))' : 'var(--text-secondary)';
+}
+
+function _haLastEnrich(le) {
+    if (!le || !le.at) return '';
+    const when = new Date(le.at).toLocaleString();
+    return le.ok ? t('ha_last_enrich', { when, matched: le.matched, changed: (le.changes || []).length })
+                 : `${t('ha_last_enrich_failed', { when })}: ${le.error || ''}`;
+}
+
+async function loadHomeAssistant() {
+    try {
+        const cfg = await (await fetch('/api/integrations/home-assistant/settings')).json();
+        document.getElementById('haUrl').value = cfg.url || '';
+        document.getElementById('haAutoEnrich').checked = cfg.auto_enrich !== false;
+        const tok = document.getElementById('haToken');
+        tok.placeholder = cfg.token_set
+            ? (cfg.token_source === 'env' ? t('ha_token_from_env') : t('metrics_token_saved'))
+            : t('ha_token_placeholder');
+        _haStatus(null, cfg.configured ? _haLastEnrich(cfg.last_enrich) || t('ha_configured') : t('ha_not_configured'));
+    } catch (e) {
+        _haStatus(false, e.message);
+    }
+}
+
+async function saveHomeAssistant() {
+    const body = {
+        url: document.getElementById('haUrl').value.trim(),
+        auto_enrich: document.getElementById('haAutoEnrich').checked,
+    };
+    const token = document.getElementById('haToken').value;
+    if (token) body.token = token;
+    try {
+        const res = await fetch('/api/integrations/home-assistant/settings', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+        });
+        const data = await res.json();
+        document.getElementById('haToken').value = '';
+        _haStatus(!!data.ok, data.ok ? `${t('saved')} · ${data.message || data.version || ''}` : (data.error || t('save_failed')));
+        loadHomeAssistant();
+    } catch (e) {
+        _haStatus(false, e.message);
+    }
+}
+
+async function testHomeAssistant() {
+    _haStatus(null, t('testing'));
+    try {
+        const data = await (await fetch('/api/integrations/home-assistant')).json();
+        _haStatus(!!data.ok, data.ok ? `${t('ha_connected')} ${data.version ? '· HA ' + data.version : ''}` : (data.error || t('ha_not_configured')));
+    } catch (e) {
+        _haStatus(false, e.message);
+    }
+}
+
+async function enrichFromHomeAssistant() {
+    _haStatus(null, t('tool_running'));
+    const box = document.getElementById('haResult');
+    box.innerHTML = '';
+    try {
+        const res = await fetch('/api/integrations/home-assistant/enrich', { method: 'POST' });
+        const data = await res.json();
+        _haStatus(!!data.ok, _haLastEnrich(data) || data.error || '');
+        const rows = (data.changes || []).map(c =>
+            `<tr><td>${_apiEsc(c.key)}</td><td>${_apiEsc(c.field)}</td><td class="ds-muted">${_apiEsc(c.old || '—')}</td><td>${_apiEsc(c.new)}</td></tr>`).join('');
+        if (rows) {
+            box.innerHTML = `<table class="ds-table"><thead><tr><th>${t('device')}</th><th>${t('ha_field')}</th><th>${t('ha_before')}</th><th>${t('ha_after')}</th></tr></thead><tbody>${rows}</tbody></table>`;
+        }
+    } catch (e) {
+        _haStatus(false, e.message);
+    }
+}
+
+async function compareWithHomeAssistant() {
+    _haStatus(null, t('tool_running'));
+    const box = document.getElementById('haResult');
+    box.innerHTML = '';
+    try {
+        const res = await fetch('/api/integrations/home-assistant/compare');
+        const data = await res.json();
+        if (!res.ok) { _haStatus(false, data.error || `HTTP ${res.status}`); return; }
+        _haStatus(true, t('ha_compare_summary', {
+            both: data.in_both, ha: (data.only_in_home_assistant || []).length,
+            mynes: (data.only_in_mynes || []).length,
+        }));
+        const onlyHa = (data.only_in_home_assistant || []).map(d =>
+            `<tr><td>${_apiEsc(d.name)}</td><td>${_apiEsc(d.manufacturer || '')} ${_apiEsc(d.model || '')}</td><td>${_apiEsc(d.protocol || '')}</td><td>${_apiEsc(d.area || '')}</td></tr>`).join('');
+        if (onlyHa) {
+            box.innerHTML = `<h4 class="card-subtitle">${t('ha_only_in_ha')}</h4>
+                <table class="ds-table"><thead><tr><th>${t('name')}</th><th>${t('model')}</th><th>${t('protocol')}</th><th>${t('location')}</th></tr></thead><tbody>${onlyHa}</tbody></table>`;
+        }
+    } catch (e) {
+        _haStatus(false, e.message);
+    }
+}

@@ -8,6 +8,21 @@ versioning follows [SemVer](https://semver.org/).
 
 ### Added
 
+- **Home Assistant as an integration point** (Settings › Integrations). Enter
+  the HA URL and a long-lived token in the UI; the token is kept in
+  `data/home_assistant.json` (mode 600), never in `config.json`. After every scan
+  MyNeS reads HA's device registry and, for each device matched by MAC, records
+  HA's name, area, manufacturer, model and integrations, and fills empty or
+  placeholder alias/location/vendor fields. A field you edited is never
+  touched. There are buttons for "Enrich now" and "Compare with HA".
+- **Virtual infrastructure nodes.** An unmanaged switch has no IP and no MAC on
+  the wire, yet devices plug into it. A device with `virtual: true` and a
+  `subnet_hint` can now be a "connected via" parent in the topology and graph.
+  It stays online across scans.
+- **Security page:** a device's name or IP opens its detail view.
+
+### Added
+
 - **InfluxDB 1.x export, plus a ready Grafana dashboard.** The metrics push only
   spoke InfluxDB 2 (token/org/bucket). It now also writes to 1.x (`/write?db=`).
   The database and a `mynes_<N>d` retention policy are created on the first
@@ -27,6 +42,13 @@ versioning follows [SemVer](https://semver.org/).
 
 ### Fixed
 
+- **The device list no longer goes blank after a detailed analysis.**
+  Analysis results put int (port) and str keys side by side in memory, and
+  Flask's sorted JSON then raised "'<' not supported between 'str' and 'int'"
+  on `/devices`, `/get_devices` and `/api/topology`. The home page showed 0
+  devices and the graph lost every uplink. Keys are now stringified when the
+  results are applied, and responses no longer sort keys. The page also keeps
+  the last good list and shows an error if a load fails.
 - **Scheduled scans are saved again.** The monitoring scheduler scanned but
   never wrote `lan_devices.json`, and the home page and `/save_device` reloaded
   that stale file over the fresh in-memory scan on every visit. On a live

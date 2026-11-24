@@ -243,8 +243,11 @@ class HomeAssistantClient:
     TOKEN_VARS = ("HA_TOKEN", "MYNES_HA_TOKEN")
 
     def __init__(self, url: str | None = None, token: str | None = None, timeout: int = 15):
-        self.url = (url or _first_env(self.URL_VARS) or "").rstrip("/")
-        self.token = token or _first_env(self.TOKEN_VARS)
+        # Explicit args > what was saved in Settings (data/home_assistant.json,
+        # never the tracked config.json) > environment.
+        saved = load_settings()
+        self.url = (url or saved.get("url") or _first_env(self.URL_VARS) or "").rstrip("/")
+        self.token = token or saved.get("token") or _first_env(self.TOKEN_VARS)
         self.timeout = timeout
 
     def configured(self) -> bool:
@@ -357,11 +360,13 @@ class HomeAssistantClient:
             # latter is an unknown_command and silently yields no integrations,
             # leaving every device's protocol as "unknown".
             entries = request(3, "config_entries/get")
+            areas = request(4, "config/area_registry/list")
         finally:
             ws.close()
 
         # config_entry_id -> integration name ("zha", "matter", "zwave_js", ...)
         integration = {e["entry_id"]: e.get("domain") for e in entries if isinstance(e, dict)}
+        area_name = {a.get("area_id"): a.get("name") for a in areas if isinstance(a, dict)}
         entity_count: dict[str, int] = {}
         for ent in entities:
             if ent.get("device_id"):
@@ -389,6 +394,7 @@ class HomeAssistantClient:
                     "entity_count": entity_count.get(d.get("id"), 0),
                     "via_device_id": d.get("via_device_id"),
                     "disabled": bool(d.get("disabled_by")),
+                    "area": area_name.get(d.get("area_id")),
                 }
             )
         return out
@@ -556,6 +562,139 @@ def _count(rows, key):
     return dict(sorted(out.items(), key=lambda kv: -kv[1]))
 
 
+
+# ---------------------------------------------------------------------------
+# Settings saved from the UI + enrichment of MyNeS devices from HA's registry
+# ---------------------------------------------------------------------------
+
+SETTINGS_FILE = "home_assistant.json"
+
+
+def load_settings() -> dict:
+    """UI-saved HA settings from data/ (gitignored, holds the token)."""
+    try:
+        from mynes.paths import load_local
+        return load_local(SETTINGS_FILE) or {}
+    except Exception:  # noqa: BLE001
+        return {}
+
+
+def save_settings(patch: dict) -> dict:
+    """Merge and persist. An empty token keeps the stored one, so re-saving the
+    form (whose token field always comes back blank) never wipes it."""
+    from mynes.paths import save_local
+    current = load_settings()
+    for key in ("url", "auto_enrich"):
+        if key in patch:
+            current[key] = patch[key]
+    if patch.get("token"):
+        current["token"] = patch["token"]
+    if patch.get("clear_token"):
+        current.pop("token", None)
+    if isinstance(current.get("url"), str):
+        current["url"] = current["url"].strip().rstrip("/")
+    return save_local(SETTINGS_FILE, current)
+
+
+def _norm_mac(value) -> str | None:
+    if not value:
+        return None
+    mac = str(value).lower().replace("-", ":")
+    return mac if re.fullmatch(r"(?:[0-9a-f]{2}:){5}[0-9a-f]{2}", mac) else None
+
+
+# Scanner placeholders an HA name may replace: "Espressif IoT Device",
+# "Unknown", a bare IP/MAC, "<Vendor> 112"-style vendor+octet names.
+_GENERIC_ALIAS = re.compile(
+    r"^(unknown|bilinmeyen|.*\b(iot device|smart home|device)\b.*|[0-9a-f:.-]+|.+ \d{1,3})$", re.I)
+
+
+def enrich_devices(mynes_devices: list, registry: list, *, fill_alias: bool = True,
+                   fill_location: bool = True, fill_vendor: bool = True) -> list:
+    """Pure: copy what Home Assistant knows onto the matching MyNeS devices.
+
+    Matches on MAC (the registry's ``connections``), then on an IP embedded
+    in a ``generic``-style device name. Always records ``home_assistant``
+    (name, area, manufacturer, model, integrations, protocol) on the device.
+    Fills alias / location / vendor ONLY where MyNeS has nothing better: a
+    field the user set (``user_modified``) is never touched, and an alias is
+    only replaced when it is a scanner placeholder. Mutates ``mynes_devices``
+    in place; returns ``[{key, field, old, new}]`` for the UI and the log.
+    """
+    by_mac, by_ip = {}, {}
+    for h in registry or []:
+        if h.get("disabled") or h.get("protocol") == "Not a device":
+            continue
+        mac = _norm_mac(h.get("mac"))
+        if mac and (mac not in by_mac or (h.get("model") and not by_mac[mac].get("model"))):
+            by_mac[mac] = h       # prefer the real device over a MAC-only stub
+        if h.get("ip"):
+            by_ip.setdefault(h["ip"], h)
+
+    changes = []
+    for d in mynes_devices:
+        h = by_mac.get(_norm_mac(d.get("mac")) or "") or by_ip.get(d.get("ip") or "")
+        if not h:
+            continue
+        key = d.get("ip") or d.get("mac")
+        d["home_assistant"] = {
+            "id": h.get("id"), "name": h.get("name"), "area": h.get("area"),
+            "manufacturer": h.get("manufacturer"), "model": h.get("model"),
+            "integrations": h.get("integrations") or [], "protocol": h.get("protocol"),
+        }
+        user = d.get("user_modified") or {}
+
+        def put(field, value):
+            if not value or field in user or d.get(field) == value:
+                return
+            changes.append({"key": key, "field": field, "old": d.get(field), "new": value})
+            d[field] = value
+
+        if fill_alias and d.get("alias_source") != "user":
+            cur = (d.get("alias") or "").strip()
+            if not cur or _GENERIC_ALIAS.match(cur):
+                put("alias", h.get("name"))
+        if fill_location and not d.get("location"):
+            put("location", h.get("area"))
+        if fill_vendor and (d.get("vendor") or "Unknown") in ("Unknown", "Bilinmeyen"):
+            put("vendor", h.get("manufacturer"))
+    return changes
+
+
+LAST_ENRICH: dict = {}
+
+
+def enrich_scanner(scanner, force: bool = False) -> dict:
+    """Pull HA's device registry and enrich the scanner's live device list.
+
+    Runs after every scan when HA is configured and ``auto_enrich`` is not
+    switched off; ``force`` runs it regardless (the "Enrich now" button).
+    Never raises - HA being down must not break a scan. Records the outcome
+    in LAST_ENRICH for the settings card.
+    """
+    from datetime import datetime, timezone
+    settings = load_settings()
+    client = HomeAssistantClient()
+    result = {"at": datetime.now(timezone.utc).isoformat(), "ok": False, "matched": 0, "changes": []}
+    if not client.configured():
+        result["error"] = "Home Assistant is not configured"
+    elif not force and settings.get("auto_enrich") is False:
+        result["error"] = "auto enrich is off"
+    else:
+        try:
+            registry = client.device_registry()
+            devices = scanner.devices
+            result["changes"] = enrich_devices(devices, registry)
+            result["matched"] = sum(1 for d in devices if d.get("home_assistant"))
+            result["registry_devices"] = len(registry)
+            result["ok"] = True
+        except Exception as e:  # noqa: BLE001
+            result["error"] = f"{type(e).__name__}: {e}"
+            log.warning("Home Assistant enrich failed: %s", e)
+    LAST_ENRICH.clear()
+    LAST_ENRICH.update(result)
+    return result
+
 def demo():
     """Self-check for payload construction - no broker, no HA needed."""
     dev = {"mac": "AA:BB:CC:11:22:33", "ip": "192.168.1.50", "alias": "Pi", "status": "online", "open_ports": [22, 80]}
@@ -567,6 +706,28 @@ def demo():
 
     state = build_state(dev)
     assert state["state"] == "home" and state["open_port_count"] == 2
+
+    # Enrichment: fills placeholders, never a user edit, records HA's view.
+    mine = [
+        {"ip": "192.168.1.109", "mac": "C0:5D:89:CB:6B:1C", "alias": "Espressif IoT Device", "vendor": "Espressif Inc."},
+        {"ip": "192.168.1.32", "mac": "68:79:c4:f9:2d:ed", "alias": "Mutfak Temizleyici", "location": "",
+         "user_modified": {"alias": "Mutfak Temizleyici"}},
+        {"ip": "192.168.1.200", "mac": "0e:52:43:3b:72:56", "alias": "192.168.1.200", "vendor": "Unknown"},
+    ]
+    reg = [
+        {"id": "a", "name": "Totolet", "mac": "c0:5d:89:cb:6b:1c", "model": "Petkit Pura Max", "manufacturer": "Petkit", "area": None},
+        {"id": "b", "name": "Mutfak", "mac": "68-79-C4-F9-2D-ED", "manufacturer": "Philips", "area": "Kitchen"},
+        {"id": "c", "name": "Ignored", "mac": "0e:52:43:3b:72:56", "disabled": True},
+    ]
+    ch = enrich_devices(mine, reg)
+    assert mine[0]["alias"] == "Totolet" and mine[0]["home_assistant"]["model"] == "Petkit Pura Max"
+    assert mine[0]["vendor"] == "Espressif Inc."                      # a real vendor is kept
+    assert mine[1]["alias"] == "Mutfak Temizleyici"                   # user edit wins
+    assert mine[1]["location"] == "Kitchen"                           # empty field filled
+    assert "home_assistant" not in mine[2]                            # disabled entry ignored
+    assert {(c["key"], c["field"]) for c in ch} == {("192.168.1.109", "alias"), ("192.168.1.32", "location"),
+                                                    ("192.168.1.32", "vendor")}
+    assert enrich_devices(mine, reg) == []                            # idempotent
     assert build_state({**dev, "status": "offline"})["state"] == "not_home"
 
     scanner = build_scanner_payloads([dev], [{"severity": "critical"}])

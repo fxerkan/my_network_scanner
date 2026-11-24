@@ -458,6 +458,31 @@
             </div>
 
             <div id="integrations" class="tab-content">
+                <div class="card" id="haCard">
+                    <h3 class="card-title"><svg class="ds-icon" aria-hidden="true"><use href="#i-home"/></svg>{{ _('ha_integration') }}</h3>
+                    <p style="margin-bottom: var(--space-4); color: var(--text-secondary);">{{ _('ha_integration_hint') }}</p>
+                    <div class="filter-grid">
+                        <div class="filter-group">
+                            <label class="filter-label" for="haUrl">{{ _('ha_url') }}</label>
+                            <input type="text" class="form-input" id="haUrl" placeholder="http://homeassistant.local:8123">
+                        </div>
+                        <div class="filter-group">
+                            <label class="filter-label" for="haToken">{{ _('ha_token') }}</label>
+                            <input type="password" class="form-input" id="haToken" autocomplete="off">
+                        </div>
+                    </div>
+                    <div class="filter-toggles" style="margin: var(--space-4) 0;">
+                        <label class="filter-toggle"><input type="checkbox" id="haAutoEnrich"> {{ _('ha_auto_enrich') }}</label>
+                    </div>
+                    <div style="display: flex; gap: var(--space-2); flex-wrap: wrap;">
+                        <button class="btn btn-small" id="haSaveBtn">{{ _('save') }}</button>
+                        <button class="btn btn-small btn-secondary" id="haTestBtn">{{ _('test') }}</button>
+                        <button class="btn btn-small btn-secondary" id="haEnrichBtn">{{ _('ha_enrich_now') }}</button>
+                        <button class="btn btn-small btn-secondary" id="haCompareBtn">{{ _('ha_compare') }}</button>
+                    </div>
+                    <div id="haStatus" style="margin-top: var(--space-3); color: var(--text-secondary);"></div>
+                    <div id="haResult" style="margin-top: var(--space-3);"></div>
+                </div>
                 <div class="card">
                     <h3 class="card-title"><svg class="ds-icon" aria-hidden="true"><use href="#i-plug"/></svg>{{ _('metrics_influxdb') }}</h3>
                     <p style="margin-bottom: var(--space-4); color: var(--text-secondary);">{{ _('metrics_influxdb_hint') }}</p>

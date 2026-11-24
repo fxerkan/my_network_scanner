@@ -208,11 +208,48 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
         client = HomeAssistantClient()
         return jsonify({"configured": client.configured(), "url": client.url or None, **client.ping()})
 
+    @bp.get("/integrations/home-assistant/settings")
+    def ha_settings_get():
+        """Non-secret HA settings: the token is never returned, only whether
+        one is stored (UI) or comes from the environment."""
+        from mynes.integrations import home_assistant as ha_mod
+        saved = ha_mod.load_settings()
+        client = HomeAssistantClient()
+        return jsonify({
+            "url": client.url or "",
+            "token_set": bool(client.token),
+            "token_source": "settings" if saved.get("token") else ("env" if client.token else None),
+            "auto_enrich": saved.get("auto_enrich") is not False,
+            "configured": client.configured(),
+            "last_enrich": dict(ha_mod.LAST_ENRICH),
+        })
+
+    @bp.post("/integrations/home-assistant/settings")
+    def ha_settings_set():
+        from mynes.integrations import home_assistant as ha_mod
+        body = request.get_json(silent=True) or {}
+        patch = {k: body[k] for k in ("url", "token", "clear_token") if k in body}
+        if "auto_enrich" in body:
+            patch["auto_enrich"] = bool(body["auto_enrich"])
+        ha_mod.save_settings(patch)
+        client = HomeAssistantClient()
+        return jsonify({"ok": True, "configured": client.configured(), **client.ping()})
+
+    @bp.post("/integrations/home-assistant/enrich")
+    def ha_enrich_now():
+        """Pull HA's device registry now and fold names/areas/models into the
+        device list (never over a user edit), then save."""
+        from mynes.integrations import home_assistant as ha_mod
+        result = ha_mod.enrich_scanner(scanner, force=True)
+        if result.get("ok"):
+            scanner.save_to_json()
+        return jsonify(result), (200 if result.get("ok") else 502)
+
     @bp.get("/integrations/home-assistant/devices")
     def ha_devices():
         client = HomeAssistantClient()
         if not client.configured():
-            return jsonify({"error": "set HA_URL and HA_TOKEN"}), 400
+            return jsonify({"error": "Home Assistant is not configured (Settings > Integrations, or HA_URL / HA_TOKEN)"}), 400
         try:
             return jsonify({"devices": client.devices()})
         except Exception as e:  # noqa: BLE001
@@ -223,7 +260,7 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
         """The notify.* services this HA install exposes, for the channel picker."""
         client = HomeAssistantClient()
         if not client.configured():
-            return jsonify({"error": "set HA_URL and HA_TOKEN"}), 400
+            return jsonify({"error": "Home Assistant is not configured (Settings > Integrations, or HA_URL / HA_TOKEN)"}), 400
         try:
             return jsonify({"services": client.notify_services()})
         except Exception as e:  # noqa: BLE001
@@ -233,7 +270,7 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
     def ha_compare():
         client = HomeAssistantClient()
         if not client.configured():
-            return jsonify({"error": "set HA_URL and HA_TOKEN"}), 400
+            return jsonify({"error": "Home Assistant is not configured (Settings > Integrations, or HA_URL / HA_TOKEN)"}), 400
         try:
             return jsonify(client.compare(_devices()))
         except Exception as e:  # noqa: BLE001

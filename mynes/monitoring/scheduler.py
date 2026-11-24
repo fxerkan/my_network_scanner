@@ -181,6 +181,13 @@ class MonitorScheduler:
 
         log.info("Monitoring scan started (include_offline=%s)", settings["include_offline"])
         self.scanner.scan_network(include_offline=settings["include_offline"])
+        # Fold in what Home Assistant knows (names, areas, models) before the
+        # save, so it lands on disk with the scan. Never raises.
+        try:
+            from mynes.integrations.home_assistant import enrich_scanner
+            enrich_scanner(self.scanner)
+        except Exception as e:  # noqa: BLE001
+            log.warning("Home Assistant enrich errored: %s", e)
         # Persist the sweep. Without this a scheduled scan only ever lived in
         # memory: the next page load / device save reloaded the stale file and
         # threw it away, so the inventory froze at the last *manual* scan and
