@@ -50,6 +50,11 @@ import json
 import os
 
 app = Flask(__name__)
+# Enhanced-analysis results carry dicts keyed by port number (int) next to
+# str keys; Flask's default sort_keys then raised "'<' not supported between
+# 'str' and 'int'" on /devices, and the device list rendered empty. Key order
+# carries no meaning in any response here.
+app.json.sort_keys = False
 # Use environment variable or generate a random secret key
 def _secret_key():
     """Stable across restarts, otherwise every restart signs everyone out.

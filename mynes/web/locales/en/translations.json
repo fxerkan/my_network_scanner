@@ -1052,5 +1052,6 @@
   "network_type": "Network Type",
   "random_mac": "Random MAC",
   "show_random_mac": "Random MAC",
-  "uptime_page_of": "Page {page} of {pages} · {total} devices"
+  "uptime_page_of": "Page {page} of {pages} · {total} devices",
+  "security_open_device": "Open device details"
 }

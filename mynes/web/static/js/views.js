@@ -157,6 +157,9 @@
 
     /** First three octets, or null for a device that has no IP (BLE, Zigbee). */
     function subnetOf(d) {
+        // Virtual infra (an unmanaged switch with no IP) lives in the subnet
+        // it was drawn into, not in the radio bucket.
+        if (d.virtual && d.subnet_hint) return d.subnet_hint;
         if (!d.ip || d.ip.split('.').length !== 4) return null;
         return d.ip.split('.').slice(0, 3).join('.');
     }

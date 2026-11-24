@@ -103,6 +103,8 @@ def group_devices_by_subnet(devices: list, known_subnets: list | None = None) ->
     groups: dict = {}
     for device in devices:
         ip = device.get("ip")
+        if device.get("virtual") and device.get("subnet_hint"):
+            ip = f"{device['subnet_hint']}.0"   # unmanaged switch: no IP of its own
         subnet = subnet_for_ip(ip, known_subnets)
         key = subnet["cidr"]
         if key not in groups:
@@ -114,7 +116,7 @@ def group_devices_by_subnet(devices: list, known_subnets: list | None = None) ->
             group["gateway_ip"] = None
             continue
         infra_ips = sorted(
-            d["ip"] for d in group["devices"] if d.get("ip") and is_infra(d)
+            d["ip"] for d in group["devices"] if d.get("ip") and is_infra(d) and not d.get("virtual")
         )
         if infra_ips:
             group["gateway_ip"] = infra_ips[0]

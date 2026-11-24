@@ -117,6 +117,16 @@ def match_vendor_pattern(rules, vendor_lower, hostname_lower):
     return None
 
 
+
+def _str_keys(obj):
+    """Recursively turn every dict key into a str - what json.dump would
+    produce - so in-memory device data matches what is loaded from disk."""
+    if isinstance(obj, dict):
+        return {str(k): _str_keys(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_str_keys(v) for v in obj]
+    return obj
+
 class LANScanner:
     def __init__(self):
         self.last_arp_method = None
@@ -1505,7 +1515,10 @@ class LANScanner:
                     # (BLE) cihazlar ağ taramasında hiç görünmez, bu yüzden
                     # onları offline'a çevirmek yanıltıcı olur - durumlarını
                     # son keşifteki haliyle koru.
-                    if not unified_device.get('discovery_only'):
+                    # A virtual infra node (an unmanaged switch: no IP, no
+                    # MAC on the wire) is never "seen" by a scan - it is a
+                    # hand-drawn topology node, not an offline device.
+                    if not unified_device.get('discovery_only') and not unified_device.get('virtual'):
                         unified_device['status'] = 'offline'
                     unified_device['last_seen'] = unified_device.get('last_seen', datetime.now().isoformat())
                     scanned.append(unified_device)
@@ -1715,6 +1728,9 @@ class LANScanner:
             # Shallow section-level merge: a fresh section overwrites the old one,
             # sections not re-scanned this run are kept.
             existing = target.get('enhanced_comprehensive_info') or {}
+            # Stringify keys now, as the JSON round trip would: port-keyed dicts
+            # (int) mixed with str keys broke every JSON response until restart.
+            enhanced_info = _str_keys(enhanced_info)
             merged = {**existing, **enhanced_info} if isinstance(existing, dict) else enhanced_info
 
             now = datetime.now().isoformat()

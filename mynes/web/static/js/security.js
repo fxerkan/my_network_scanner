@@ -359,8 +359,9 @@
             '<svg class="ds-icon ds-icon--sm sec-devcell__icon" aria-hidden="true"><use href="#' +
               deviceIconId(dev) + '"/></svg>' +
             '<div class="sec-devcell__text">' +
-              '<span class="sec-devcell__name">' + esc(deviceName(dev)) + '</span>' +
-              '<span class="sec-devcell__ip ds-muted">' + esc(dev.ip) + '</span>' +
+              '<a class="sec-devcell__name sec-devlink" href="/?device=' + encodeURIComponent(dev.ip) + '"' +
+                ' title="' + esc(tr('security_open_device', 'Open device details')) + '">' + esc(deviceName(dev)) + '</a>' +
+              '<a class="sec-devcell__ip sec-devlink ds-muted" href="/?device=' + encodeURIComponent(dev.ip) + '">' + esc(dev.ip) + '</a>' +
             '</div>' +
           '</div>' +
         '</td>' +
@@ -692,6 +693,9 @@
   // Clicks in the table: expand/collapse a device's detail row - via the
   // "Show details" button or by clicking the device name/IP cell itself.
   function onTableClick(e) {
+    // The device name/IP are links to the device's detail view - let the
+    // browser follow them instead of toggling the row.
+    if (e.target.closest && e.target.closest('a.sec-devlink')) return;
     var trg = e.target.closest ? e.target.closest('.sec-expand, .sec-devcell[data-ip]') : null;
     if (!trg) return;
     var ip = trg.dataset.ip;

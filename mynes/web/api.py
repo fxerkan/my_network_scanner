@@ -722,7 +722,12 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
             uplinks=state["uplinks"], traced=state["traced"],
         )
         for node in tree["nodes"]:
-            node["subnet"] = subnets_mod.subnet_for_ip(node.get("ip"), known)
+            # A virtual infra node (unmanaged switch) has no IP; it sits in the
+            # subnet it was drawn into (subnet_hint, e.g. "192.168.1").
+            ip = node.get("ip")
+            if node.get("virtual") and node.get("subnet_hint"):
+                ip = f"{node['subnet_hint']}.0"
+            node["subnet"] = subnets_mod.subnet_for_ip(ip, known)
         return jsonify(
             {
                 **tree,

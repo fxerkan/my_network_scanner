@@ -79,3 +79,22 @@ def test_int_ports_do_not_break_migration():
     d = UnifiedDeviceModel().migrate_legacy_data(
         {"ip": "172.18.0.2", "mac": "12:17:8b:35:b8:43", "open_ports": [8680, 8680, 80]})
     assert [p["port"] for p in d["open_ports"]][:1] == [8680]
+
+
+def test_virtual_switch_is_a_topology_parent():
+    from mynes.core import topology
+    from mynes.core.subnets import group_devices_by_subnet
+    devices = [
+        {"ip": "192.168.1.1", "mac": "aa:00:00:00:00:01", "device_type": "Router"},
+        {"ip": "virtual:switch-ofis", "mac": "virtual:switch-ofis", "device_type": "Switch",
+         "virtual": True, "subnet_hint": "192.168.1"},
+        {"ip": "192.168.1.62", "mac": "aa:00:00:00:00:62", "device_type": "Server"},
+    ]
+    tree = topology.build_tree(devices, "192.168.1.1",
+                               uplinks={"virtual:switch-ofis": "192.168.1.1",
+                                        "192.168.1.62": "virtual:switch-ofis"})
+    parent = {n["ip"]: n["parent"] for n in tree["nodes"]}
+    assert parent["192.168.1.62"] == "virtual:switch-ofis"
+    groups = group_devices_by_subnet(devices)
+    assert len(groups["192.168.1.0/24"]["devices"]) == 3
+    assert groups["192.168.1.0/24"]["gateway_ip"] == "192.168.1.1"

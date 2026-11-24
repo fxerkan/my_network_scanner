@@ -1052,5 +1052,6 @@
   "network_type": "Ağ Türü",
   "random_mac": "Rastgele MAC",
   "show_random_mac": "Rastgele MAC",
-  "uptime_page_of": "Sayfa {page} / {pages} · {total} cihaz"
+  "uptime_page_of": "Sayfa {page} / {pages} · {total} cihaz",
+  "security_open_device": "Cihaz detayını aç"
 }
