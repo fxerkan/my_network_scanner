@@ -549,8 +549,8 @@ function displayDevicesCard() {
             <div class="device-actions">
                 ${device.ip || device.mac ? `<button class="btn btn-primary btn-small" onclick="openEnhancedEditModal('${device.ip || device.mac}')"><svg class="ds-icon" aria-hidden="true"><use href="#i-wrench"/></svg> ${t('edit')}</button>` : ''}
                 ${device.ip ? `<button class="btn btn-warning btn-small" onclick="openSingleDeviceAnalysisPage('${device.ip}')" title="${t('detailed_analysis')}" aria-label="${t('detailed_analysis')}"><svg class="ds-icon" aria-hidden="true"><use href="#i-microscope"/></svg> ${t('detailed_analysis')}</button>` : ''}
-                ${hasEnhancedInfo(device) ?
-                    `<button class="btn btn-success btn-small" onclick="openEnhancedDetailsModal(${JSON.stringify(device).replace(/"/g, '&quot;')})" title="${t('details')}"><svg class="ds-icon" aria-hidden="true"><use href="#i-graph"/></svg> ${t('details')}</button>` : 
+                ${device.ip || device.mac ?
+                    `<button class="btn btn-success btn-small" onclick="openEnhancedDetailsModal(deviceByKey('${escHtml(device.ip || device.mac)}'))" title="${t('details')}"><svg class="ds-icon" aria-hidden="true"><use href="#i-graph"/></svg> ${t('details')}</button>` :
                     ''
                 }
             </div>

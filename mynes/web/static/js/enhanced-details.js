@@ -6,30 +6,25 @@ let currentTab = 'overview';
 
 // Enhanced Details Modal'ını açma fonksiyonu
 function openEnhancedDetailsModal(device) {
+    // Every device has details now - identity, names, connection, uptime and
+    // discovery data exist even before (or without) a deep analysis. Prefer
+    // the live record over the copy inlined into the card's onclick.
+    const key = device && (device.ip || device.mac);
+    const live = (typeof deviceByKey === 'function' && key) ? deviceByKey(key) : null;
+    device = live || device;
+    if (!device) return;
     currentDevice = device;
-    
-    // Enhanced info'ya sahip olup olmadığını kontrol et
-    // Keşif verisi de tek başına modalı açmaya yeter: gelişmiş analiz yapılmamış
-    // bir cihazın SSDP/mDNS bilgisi olabilir.
-    const hasEnhancedInfo = device.enhanced_comprehensive_info ||
-                           device.advanced_scan_summary ||
-                           device.enhanced_info ||
-                           (device.discovery && (device.discovery.sources || []).length);
-    
-    if (!hasEnhancedInfo) {
-        showToast(t('no_enhanced_info'), 'error');
-        return;
-    }
-    
-    // Modal title'ı güncelle
-    document.getElementById('detailsDeviceTitle').innerHTML =
-        `🔬 ${device.ip} - ${device.alias || device.hostname || t('det_unknown_device')}`;
-    
-    // Modal'ı göster
-    document.getElementById('enhancedDetailsModal').style.display = 'block';
 
-    // İlk tab'ı aktif et.
+    const name = device.alias || device.hostname || t('det_unknown_device');
+    const addr = device.ip && !String(device.ip).startsWith('virtual:') ? device.ip : (device.mac || '');
+    document.getElementById('detailsDeviceTitle').innerHTML =
+        `<svg class="ds-icon" aria-hidden="true"><use href="#i-microscope"/></svg> ` +
+        `${ddEsc(name)}${addr ? ` <span class="dd-title-addr">${ddEsc(addr)}</span>` : ''}`;
+
+    document.getElementById('enhancedDetailsModal').style.display = 'block';
+    if (typeof ddRenderActions === 'function') ddRenderActions(device);
     switchDetailsTab('overview');
+    if (typeof ddLoadContext === 'function') ddLoadContext(device);
 }
 
 // Enhanced Details Modal'ını kapatma fonksiyonu
@@ -48,9 +43,9 @@ function switchDetailsTab(tabName) {
         btn.classList.remove('active');
     });
     
-    // Aktif tab butonunu işaretle
-    event?.target?.classList.add('active') || 
-    document.querySelector(`[onclick="switchDetailsTab('${tabName}')"]`)?.classList.add('active');
+    // Mark the button for this tab (not event.target: the click may land on
+    // the icon inside the button, and programmatic calls have no event).
+    document.querySelector(`.details-tabs [onclick="switchDetailsTab('${tabName}')"]`)?.classList.add('active');
     
     // İçeriği yükle
     loadTabContent(tabName);
@@ -71,29 +66,31 @@ function loadTabContent(tabName) {
     let content = '';
     
     switch (tabName) {
+        // device-details.js renders from the whole device record (identity,
+        // discovery, HA, uptime, topology), not just the deep-analysis blob.
         case 'overview':
-            content = generateOverviewContent(enhancedInfo, currentDevice);
+            content = ddOverview(currentDevice);
             break;
         case 'ai':
             content = generateAIContent(currentDevice, enhancedInfo);
             break;
         case 'network':
-            content = generateNetworkContent(enhancedInfo);
+            content = ddNetwork(currentDevice);
             break;
         case 'ports':
-            content = generatePortsContent(enhancedInfo);
+            content = ddPortsTab(currentDevice);
             break;
         case 'system':
-            content = generateSystemContent(enhancedInfo);
+            content = ddSystem(currentDevice);
             break;
         case 'security':
-            content = generateSecurityContent(enhancedInfo);
+            content = ddSecurity(currentDevice);
             break;
         case 'hardware':
-            content = generateHardwareContent(enhancedInfo);
+            content = ddHardware(currentDevice);
             break;
         case 'discovery':
-            content = generateDiscoveryContent(currentDevice);
+            content = ddDiscovery(currentDevice);
             break;
         case 'raw':
             content = generateRawContent(enhancedInfo);
@@ -772,6 +769,9 @@ function generateDiscoveryContent(device) {
 }
 
 function generateRawContent(enhancedInfo) {
+    // The whole device record, not only the deep-analysis blob: identity,
+    // discovery evidence and HA info live outside enhanced_comprehensive_info.
+    enhancedInfo = currentDevice || enhancedInfo;
     const ip = (currentDevice && currentDevice.ip) || 'device';
     return `
         <div class="details-section">
@@ -807,8 +807,7 @@ function mynesHighlightJson(obj) {
 // Açık cihazın ham analiz JSON'unu indir (Raw Data sekmesindeki buton).
 function downloadEnhancedJson() {
     const d = currentDevice || {};
-    const raw = d.enhanced_comprehensive_info || d.advanced_scan_summary || d.enhanced_info || {};
-    mynesDownloadJson(raw, `mynes-${d.ip || 'device'}-analysis.json`);
+    mynesDownloadJson(d, `mynes-${d.ip || d.mac || 'device'}.json`);
 }
 
 // JSON'ı dosya olarak indir (Blob + geçici <a>). Kütüphane yok.
