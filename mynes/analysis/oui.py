@@ -342,6 +342,17 @@ class OUIManager:
         if oui in self.oui_database:
             return self.oui_database[oui]
         
+        # A locally administered address (second-lowest bit of the first octet
+        # set: Docker/VM MACs, phones' private Wi-Fi MACs, BLE random
+        # addresses) is not in any OUI registry. Asking the online APIs only
+        # leaked the MAC, cost ~7 s per device per scan and logged
+        # "Exceeded 30 redirects" every time.
+        try:
+            if int(oui[:2], 16) & 0x02:
+                return "Unknown"
+        except ValueError:
+            return "Unknown"
+
         # Try APIs
         mac_for_api = mac_address.replace('-', ':')  # APIs usually prefer : format
         
@@ -349,7 +360,7 @@ class OUIManager:
             try:
                 url = api['url'].format(mac=mac_for_api)
                 
-                response = requests.get(url, timeout=5)
+                response = requests.get(url, timeout=5, allow_redirects=False)
                 if response.status_code == 200:
                     data = response.json()
                     
