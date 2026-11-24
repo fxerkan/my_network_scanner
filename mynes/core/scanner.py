@@ -34,7 +34,7 @@ import os
 import shutil
 import glob
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 # Scapy import'unu sessizce yap
 import sys
 from io import StringIO
@@ -1517,6 +1517,16 @@ class LANScanner:
                     unified_device.get('advanced_scan_summary')
                 )
                 
+                # Phones and AirTags advertise BLE from a random address that
+                # rotates every ~15 min. An unnamed, unedited radio record not
+                # heard for a day is one of those - keeping it grew the store
+                # by dozens of ghosts a day.
+                if unified_device.get('discovery_only') and not unified_device.get('ip') \
+                        and not unified_device.get('user_modified') \
+                        and not (unified_device.get('alias') or '').strip() \
+                        and (unified_device.get('last_seen') or '') < (datetime.now() - timedelta(days=1)).isoformat():
+                    should_preserve = False
+
                 if should_preserve:
                     # Cihazı çevrimdışı olarak işaretle ve ekle. Radyo-only
                     # (BLE) cihazlar ağ taramasında hiç görünmez, bu yüzden
@@ -1678,7 +1688,10 @@ class LANScanner:
             ip = str(d.get('ip') or '')
             if not ip or d.get('virtual') or d.get('local_interface'):
                 return False
-            if d.get('device_type') in ('Docker Network', 'Docker Container'):
+            if d.get('device_type') in ('Docker Network', 'Docker Container') or \
+                    str(d.get('device_type') or '').startswith('Local Machine'):
+                return False
+            if re.match(r'^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.', ip):   # CGNAT / Tailscale: this host
                 return False
             return ip.count('.') == 3
 

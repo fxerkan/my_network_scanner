@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import logging
 import threading
+import re
 import time
 from datetime import datetime, timezone
 
@@ -284,14 +285,28 @@ class MonitorScheduler:
 
         found = discover_all(timeout=timeout).get("devices", [])
         by_ip = {d.get("ip"): d for d in devices if isinstance(d, dict) and d.get("ip")}
+        # Radio devices have no IP: match them on MAC (any case), or every
+        # sweep appended a second copy of the same BLE fountain.
+        by_mac = {(d.get("mac") or "").lower(): d for d in devices
+                  if isinstance(d, dict) and not d.get("ip") and d.get("mac")}
+        now = datetime.now().isoformat()
 
         for extra in found:
             target = by_ip.get(extra.get("ip"))
+            if target is None and not extra.get("ip") and extra.get("mac"):
+                target = by_mac.get(extra["mac"].lower())
+                if target is not None:
+                    target["status"] = "online"
+                    target["last_seen"] = now
+                    if extra.get("rssi") is not None:
+                        target["rssi"] = extra.get("rssi")
             if target is None:
                 # Radio-only device (BLE/Zigbee) - no IP, so it joins as its own entry.
                 devices.append(
                     {
-                        "ip": extra.get("ip"),
+                        "ip": extra.get("ip") or "",
+                        "last_seen": now,
+                        "discovery_only": True,
                         "mac": extra.get("mac"),
                         "hostname": extra.get("name"),
                         "alias": extra.get("name"),
@@ -321,8 +336,9 @@ class MonitorScheduler:
                 ev["mdns_hostname"] = extra["name"]
             if "ssdp" in sources and extra.get("name"):
                 ev["ssdp_name"] = extra["name"]
-            if extra.get("model"):
-                ev["model"] = extra["model"]
+            model = extra.get("model")
+            if model and re.search(r"[A-Za-z]{2}", str(model)):   # not a bare "0,1,2" TXT value
+                ev["model"] = model
             ev["services"] = sorted(set(ev.get("services") or []) | set(extra.get("services") or []))
 
         # Re-run identification with the discovery evidence folded in, then
