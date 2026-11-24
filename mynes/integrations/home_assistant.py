@@ -833,6 +833,11 @@ def build_inventory(devices, entities, entries, areas, states, mynes_devices,
                 or _NOT_DEVICE_MODEL.search(row.get("model") or "") \
                 or (row.get("manufacturer") or "").lower() in ("hacs.xyz", "custom-cards"):
             status, why = "not_a_device", "service / plugin / scene entry"
+        elif not mac and not ip and not (row.get("model") or "").strip() \
+                and (row.get("manufacturer") or "").lower() in ("petkit",):
+            # Petkit registers each pet ("Müezza") as a device: weight and
+            # visit sensors, no hardware behind it.
+            status, why = "not_a_device", "pet profile (no hardware)"
         elif raw.get("disabled_by"):
             status, why = "disabled", f"disabled by {raw.get('disabled_by')}"
         elif not ent_ids:
