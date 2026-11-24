@@ -279,6 +279,18 @@ class UnifiedDeviceModel:
         for field in ("discovery", "discovery_only"):
             if field in legacy_device:
                 unified_device[field] = legacy_device[field]
+
+        # Enrichment that is not a user edit but must outlive a rescan: HA
+        # import/enrichment, the sticky best identity verdict, collected
+        # discovery evidence, location/trust set by an import, and the
+        # provenance of HA-imported radio/cloud devices. Dropping these here
+        # meant every scan forgot them until the next enrichment pass.
+        for field in ("location", "trust_status", "home_assistant", "identity",
+                      "discovery_evidence", "model", "source", "imported_at",
+                      "virtual", "subnet_hint", "previous_ips", "services",
+                      "discovery_sources"):
+            if field in legacy_device and field not in unified_device:
+                unified_device[field] = legacy_device[field]
         
         # Port'ları dönüştür
         if "open_ports" in legacy_device:

@@ -8,6 +8,26 @@ versioning follows [SemVer](https://semver.org/).
 
 ### Added
 
+- **Home Assistant Compare shows the whole inventory, and you pick what to
+  import.** Every HA registry device is listed with:
+  - its status: *active*, *inactive* (no entities, every entity
+    unavailable/unknown, or no update in 14 days), *disabled* (the Jellyfin
+    clients, an old Xbox) or *not a device* (HACS plugins, services, accounts,
+    Tuya scenes such as "Açıl Susam");
+  - its IP and MAC, taken from registry connections, tracker attributes or a
+    MAC used as the device name;
+  - integration, area, model, and the MyNeS device it already matches
+    (by HA id, MAC, IP or a unique name).
+
+  You can filter the list by status and search it. Active devices not yet
+  in MyNeS are pre-selected. *Import selected*
+  (`POST /api/integrations/home-assistant/import`) works as follows:
+  - **Already in MyNeS:** the device is enriched without touching your edits.
+  - **Not in MyNeS:** a new device is added. Cloud, BLE and Zigbee devices
+    have no IP on the wire, so they are keyed by MAC, or by `ha:<device_id>`
+    when HA knows no MAC.
+  - **Kept across scans:** imported devices survive rescans.
+
 - **Device identity engine** (`analysis/identity.py`). Every signal now feeds
   one decision about a device's name and type. Self-reported evidence beats
   inference, and the strongest identification sticks. Before this, a sleeping
@@ -36,6 +56,11 @@ versioning follows [SemVer](https://semver.org/).
 
 ### Fixed
 
+- **Locations, trust levels, HA data and the identity verdict no longer
+  vanish on every scan.** `migrate_legacy_data`, which every scan runs over
+  the stored records, dropped every field it did not list explicitly unless it
+  was a user edit, including `location`, `trust_status`, `home_assistant`,
+  `identity` and `discovery_evidence`. Those fields are now carried over.
 - **Dropdowns stretched to the right edge of the screen**, closed as soon as
   you scrolled their own option list, and some closed the moment they opened.
   - A `position: fixed` popover with `width: 100%` was as wide as the

@@ -2329,25 +2329,137 @@ async function enrichFromHomeAssistant() {
     }
 }
 
+/* Compare = the full HA device inventory, each row with its status
+ * (active / inactive / disabled / not a device), addresses and MyNeS match.
+ * The user ticks what to import; active devices not yet in MyNeS are ticked
+ * by default, inactive ones and non-devices (scenes, plugins) never are. */
+const _haInv = { rows: [], status: 'all', q: '', selected: new Set() };
+const _HA_STATUS_BADGE = {
+    active: 'ds-badge--success', inactive: 'ds-badge--warning',
+    disabled: 'ds-badge--offline', not_a_device: 'ds-badge--info',
+};
+
 async function compareWithHomeAssistant() {
     _haStatus(null, t('tool_running'));
     const box = document.getElementById('haResult');
     box.innerHTML = '';
     try {
-        const res = await fetch('/api/integrations/home-assistant/compare');
+        const res = await fetch('/api/integrations/home-assistant/inventory');
         const data = await res.json();
         if (!res.ok) { _haStatus(false, data.error || `HTTP ${res.status}`); return; }
-        _haStatus(true, t('ha_compare_summary', {
-            both: data.in_both, ha: (data.only_in_home_assistant || []).length,
-            mynes: (data.only_in_mynes || []).length,
+        _haInv.rows = data.devices || [];
+        _haInv.selected = new Set(_haInv.rows
+            .filter(r => r.status === 'active' && !r.mynes_key).map(r => r.id));
+        _haInv.status = 'all'; _haInv.q = '';
+        const c = data.counts || {};
+        _haStatus(true, t('ha_inventory_summary', {
+            total: _haInv.rows.length, active: c.active || 0, inactive: c.inactive || 0,
+            disabled: c.disabled || 0, nodev: c.not_a_device || 0, matched: data.matched || 0,
         }));
-        const onlyHa = (data.only_in_home_assistant || []).map(d =>
-            `<tr><td>${_apiEsc(d.name)}</td><td>${_apiEsc(d.manufacturer || '')} ${_apiEsc(d.model || '')}</td><td>${_apiEsc(d.protocol || '')}</td><td>${_apiEsc(d.area || '')}</td></tr>`).join('');
-        if (onlyHa) {
-            box.innerHTML = `<h4 class="card-subtitle">${t('ha_only_in_ha')}</h4>
-                <table class="ds-table"><thead><tr><th>${t('name')}</th><th>${t('model')}</th><th>${t('protocol')}</th><th>${t('location')}</th></tr></thead><tbody>${onlyHa}</tbody></table>`;
-        }
+        _renderHaInventory();
     } catch (e) {
         _haStatus(false, e.message);
+    }
+}
+
+function _haVisibleRows() {
+    const q = _haInv.q.toLowerCase();
+    return _haInv.rows.filter(r => (_haInv.status === 'all' || r.status === _haInv.status) &&
+        (!q || [r.name, r.ip, r.mac, r.model, r.manufacturer, r.area, (r.integrations || []).join(' '), r.mynes_name]
+            .some(v => v && String(v).toLowerCase().includes(q))));
+}
+
+function _renderHaInventory() {
+    const box = document.getElementById('haResult');
+    const counts = { all: _haInv.rows.length };
+    _haInv.rows.forEach(r => { counts[r.status] = (counts[r.status] || 0) + 1; });
+    const chip = (key, label) => `<button type="button" class="ds-segmented__btn" data-ha-status="${key}"
+        aria-pressed="${_haInv.status === key}">${_apiEsc(label)} <span class="ds-muted">${counts[key] || 0}</span></button>`;
+    const rows = _haVisibleRows();
+    const body = rows.map(r => {
+        const link = r.mynes_key
+            ? `<a href="/?device=${encodeURIComponent(r.mynes_key)}" title="${_apiEsc(t('ha_matched_by', { method: r.match_method || '' }))}">${_apiEsc(r.mynes_name || r.mynes_key)}</a>`
+            : `<span class="ds-muted">${t('ha_not_in_mynes')}</span>`;
+        const seen = r.last_seen ? new Date(r.last_seen).toLocaleString() : '—';
+        return `<tr class="ha-inv__row ha-inv__row--${r.status}">
+            <td><input type="checkbox" class="ha-inv__pick" data-id="${_apiEsc(r.id)}" ${_haInv.selected.has(r.id) ? 'checked' : ''}
+                aria-label="${_apiEsc(t('ha_select_device'))}"></td>
+            <td><strong>${_apiEsc(r.name || '—')}</strong><div class="ds-muted ha-inv__sub">${_apiEsc([r.manufacturer, r.model].filter(Boolean).join(' · '))}</div></td>
+            <td><span class="ds-badge ${_HA_STATUS_BADGE[r.status] || 'ds-badge--info'}" title="${_apiEsc(r.status_reason || '')}">${_apiEsc(t('ha_status_' + r.status))}</span>
+                <div class="ds-muted ha-inv__sub" title="${_apiEsc(seen)}">${_apiEsc(r.status_reason || '')}</div></td>
+            <td class="ha-inv__mono">${_apiEsc(r.ip || '—')}</td>
+            <td class="ha-inv__mono">${_apiEsc(r.mac || '—')}</td>
+            <td>${_apiEsc((r.integrations || []).join(', ') || '—')}<div class="ds-muted ha-inv__sub">${_apiEsc(r.protocol || '')}</div></td>
+            <td>${_apiEsc(r.area || '—')}</td>
+            <td>${link}</td>
+        </tr>`;
+    }).join('');
+    const nSel = _haInv.selected.size;
+    box.innerHTML = `
+        <div class="ha-inv__toolbar">
+            <div class="ds-segmented" role="group" aria-label="${_apiEsc(t('ha_filter_status'))}">
+                ${chip('all', t('all'))}${chip('active', t('ha_status_active'))}${chip('inactive', t('ha_status_inactive'))}${chip('disabled', t('ha_status_disabled'))}${chip('not_a_device', t('ha_status_not_a_device'))}
+            </div>
+            <input type="search" class="form-input ha-inv__search" id="haInvSearch" value="${_apiEsc(_haInv.q)}"
+                placeholder="${_apiEsc(t('search'))}" aria-label="${_apiEsc(t('search'))}">
+            <button type="button" class="btn btn-small btn-secondary" id="haInvSelectVisible">${t('ha_select_visible')}</button>
+            <button type="button" class="btn btn-small btn-secondary" id="haInvClear">${t('ha_clear_selection')}</button>
+            <button type="button" class="btn btn-small" id="haInvImport" ${nSel ? '' : 'disabled'}>${t('ha_import_selected', { n: nSel })}</button>
+        </div>
+        <div class="ds-table-wrap ha-inv__wrap">
+            <table class="ds-table ha-inv">
+                <thead><tr><th></th><th>${t('name')}</th><th>${t('status')}</th><th>IP</th><th>MAC</th>
+                    <th>${t('ha_integration_col')}</th><th>${t('location')}</th><th>${t('ha_in_mynes')}</th></tr></thead>
+                <tbody>${body || `<tr><td colspan="8" class="ds-muted">${t('no_results')}</td></tr>`}</tbody>
+            </table>
+        </div>
+        <div id="haImportResult" class="ha-inv__result"></div>`;
+
+    box.querySelectorAll('[data-ha-status]').forEach(b => b.addEventListener('click', () => {
+        _haInv.status = b.dataset.haStatus; _renderHaInventory();
+    }));
+    const search = box.querySelector('#haInvSearch');
+    search.addEventListener('input', () => {
+        _haInv.q = search.value; const pos = search.selectionStart;
+        _renderHaInventory();
+        const s2 = document.getElementById('haInvSearch'); s2.focus(); s2.setSelectionRange(pos, pos);
+    });
+    box.querySelectorAll('.ha-inv__pick').forEach(cb => cb.addEventListener('change', () => {
+        if (cb.checked) _haInv.selected.add(cb.dataset.id); else _haInv.selected.delete(cb.dataset.id);
+        const btn = document.getElementById('haInvImport');
+        btn.textContent = t('ha_import_selected', { n: _haInv.selected.size });
+        btn.disabled = !_haInv.selected.size;
+    }));
+    box.querySelector('#haInvSelectVisible').addEventListener('click', () => {
+        _haVisibleRows().filter(r => r.status !== 'not_a_device').forEach(r => _haInv.selected.add(r.id));
+        _renderHaInventory();
+    });
+    box.querySelector('#haInvClear').addEventListener('click', () => { _haInv.selected.clear(); _renderHaInventory(); });
+    box.querySelector('#haInvImport').addEventListener('click', importSelectedFromHomeAssistant);
+}
+
+async function importSelectedFromHomeAssistant() {
+    const ids = [..._haInv.selected];
+    if (!ids.length) return;
+    const out = document.getElementById('haImportResult');
+    out.textContent = t('tool_running');
+    try {
+        const res = await fetch('/api/integrations/home-assistant/import', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids }),
+        });
+        const data = await res.json();
+        if (!res.ok) { out.textContent = '✗ ' + (data.error || `HTTP ${res.status}`); return; }
+        const results = data.results || [];
+        const created = results.filter(r => r.action === 'created').length;
+        const updated = results.filter(r => r.action === 'updated').length;
+        if (typeof showToast === 'function') showToast(t('ha_import_done', { created, updated }), 'success');
+        // Refresh the table so the new matches show in the "In MyNeS" column.
+        await compareWithHomeAssistant();
+        document.getElementById('haImportResult').innerHTML =
+            `<p>✓ ${_apiEsc(t('ha_import_done', { created, updated }))}</p><ul class="ha-inv__list">` +
+            results.map(r => `<li>${_apiEsc(r.name || r.id)} — ${_apiEsc(t('ha_action_' + r.action))}` +
+                (r.key ? ` · <a href="/?device=${encodeURIComponent(r.key)}">${_apiEsc(r.key)}</a>` : '') + `</li>`).join('') + '</ul>';
+    } catch (e) {
+        out.textContent = '✗ ' + e.message;
     }
 }

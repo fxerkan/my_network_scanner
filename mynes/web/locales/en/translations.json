@@ -1125,5 +1125,22 @@
   "ha_only_in_ha": "Only in Home Assistant",
   "protocol": "Protocol",
   "model": "Model",
-  "saved": "Saved"
+  "saved": "Saved",
+  "ha_inventory_summary": "{total} Home Assistant devices · {active} active · {inactive} inactive · {disabled} disabled · {nodev} not devices · {matched} already in MyNeS",
+  "ha_status_active": "Active",
+  "ha_status_inactive": "Inactive",
+  "ha_status_disabled": "Disabled",
+  "ha_status_not_a_device": "Not a device",
+  "ha_not_in_mynes": "Not in MyNeS",
+  "ha_select_device": "Select for import",
+  "ha_filter_status": "Filter by status",
+  "ha_select_visible": "Select visible",
+  "ha_clear_selection": "Clear selection",
+  "ha_import_selected": "Import selected ({n})",
+  "ha_integration_col": "Integration",
+  "ha_in_mynes": "In MyNeS",
+  "ha_import_done": "{created} added, {updated} updated",
+  "ha_action_created": "added as a new device",
+  "ha_action_updated": "merged into the existing device",
+  "ha_matched_by": "Matched by {method}"
 }

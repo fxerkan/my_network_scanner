@@ -836,3 +836,14 @@
     .log-line { flex-wrap: wrap; }
     .log-msg { flex: 1 1 100%; }
 }
+
+/* Home Assistant inventory (Settings > Integrations > Compare). */
+.ha-inv__toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin: var(--space-3) 0; }
+.ha-inv__search { flex: 1 1 200px; max-width: 320px; }
+.ha-inv__wrap { max-height: 520px; overflow-y: auto; border: 1px solid var(--border-subtle); }
+.ha-inv td { vertical-align: top; border-top: 1px solid var(--border-subtle); }
+.ha-inv__sub { font-size: var(--text-xs); margin-top: 2px; }
+.ha-inv__mono { font-family: var(--font-mono, ui-monospace, monospace); font-size: var(--text-xs); white-space: nowrap; }
+.ha-inv__row--inactive td, .ha-inv__row--disabled td, .ha-inv__row--not_a_device td { color: var(--text-secondary); }
+.ha-inv__result { margin-top: var(--space-3); }
+.ha-inv__list { margin: var(--space-2) 0 0; padding-left: var(--space-5); }
