@@ -569,16 +569,20 @@
             </div>
             <div class="modal-body enhanced-details-body">
                 <div class="details-tabs">
-                    <button class="tab-button active" onclick="switchDetailsTab('overview')">📊 {{ _('overview_tab') }}</button>
+                    <button class="tab-button active" onclick="switchDetailsTab('overview')"><svg class="ds-icon" aria-hidden="true"><use href="#i-info"/></svg> {{ _('overview_tab') }}</button>
                     <button class="tab-button tab-button-ai" onclick="switchDetailsTab('ai')"><svg class="ds-icon" aria-hidden="true"><use href="#i-sparkles"/></svg> {{ _('ai_identify_tab') if _('ai_identify_tab') != 'ai_identify_tab' else 'AI' }}</button>
-                    <button class="tab-button" onclick="switchDetailsTab('network')">🌐 {{ _('network_services_tab') }}</button>
-                    <button class="tab-button" onclick="switchDetailsTab('ports')">🔌 {{ _('port_analysis_tab') }}</button>
-                    <button class="tab-button" onclick="switchDetailsTab('system')">💻 {{ _('system_info_tab') }}</button>
-                    <button class="tab-button" onclick="switchDetailsTab('security')">🛡️ {{ _('security_tab') }}</button>
-                    <button class="tab-button" onclick="switchDetailsTab('hardware')">🔧 {{ _('hardware_tab') }}</button>
-                    <button class="tab-button" onclick="switchDetailsTab('discovery')">📡 {{ _('discovery_tab') if _('discovery_tab') != 'discovery_tab' else 'Discovery' }}</button>
-                    <button class="tab-button" onclick="switchDetailsTab('raw')">📄 {{ _('raw_data_tab') }}</button>
+                    <button class="tab-button" onclick="switchDetailsTab('network')"><svg class="ds-icon" aria-hidden="true"><use href="#i-globe"/></svg> {{ _('network_services_tab') }}</button>
+                    <button class="tab-button" onclick="switchDetailsTab('ports')"><svg class="ds-icon" aria-hidden="true"><use href="#i-plug"/></svg> {{ _('port_analysis_tab') }}</button>
+                    <button class="tab-button" onclick="switchDetailsTab('system')"><svg class="ds-icon" aria-hidden="true"><use href="#i-cpu"/></svg> {{ _('system_info_tab') }}</button>
+                    <button class="tab-button" onclick="switchDetailsTab('security')"><svg class="ds-icon" aria-hidden="true"><use href="#i-shield"/></svg> {{ _('security_tab') }}</button>
+                    <button class="tab-button" onclick="switchDetailsTab('hardware')"><svg class="ds-icon" aria-hidden="true"><use href="#i-wrench"/></svg> {{ _('hardware_tab') }}</button>
+                    <button class="tab-button" onclick="switchDetailsTab('discovery')"><svg class="ds-icon" aria-hidden="true"><use href="#i-radar"/></svg> {{ _('discovery_tab') if _('discovery_tab') != 'discovery_tab' else 'Discovery' }}</button>
+                    <button class="tab-button" onclick="switchDetailsTab('raw')"><svg class="ds-icon" aria-hidden="true"><use href="#i-download"/></svg> {{ _('raw_data_tab') }}</button>
                 </div>
+
+                <!-- Quick actions for this device (open web UI, ping, traceroute,
+                     port probe, deep analysis, WoL, Home Assistant) - device-details.js -->
+                <div id="detailsActions" class="details-actions"></div>
 
                 <!-- Tab Contents -->
                 <div id="detailsContent" class="details-content">
@@ -683,5 +687,6 @@
 <script src="/static/js/vis-network.min.js"></script>
 <script src="/static/js/views.js"></script>
 <script src="/static/js/device-access.js"></script>
+<script src="/static/js/device-details.js"></script>
 <script src="/static/js/enhanced-details.js"></script>
 {% endblock %}

@@ -9,6 +9,10 @@ import json
 from datetime import datetime
 from typing import Dict, List, Any, Optional
 
+# Fields a normal scan measures afresh each time (see scanner.scan_single_device).
+SCAN_FIELDS = ("fingerprint", "os_guess", "connection_medium", "stream_url")
+
+
 class UnifiedDeviceModel:
     """
     Unified Device Model - Tüm scan metodları için ortak veri modeli
@@ -113,6 +117,15 @@ class UnifiedDeviceModel:
         core_fields = ["hostname", "vendor", "status", "last_seen"]
         for field in core_fields:
             if field in new_device and new_device[field]:
+                merged[field] = new_device[field]
+
+        # What this scan measured about the device (service banners, OS and
+        # Wi-Fi/wired guesses, an RTSP URL). These used to be dropped here -
+        # merged started from the stored copy and only took the four core
+        # fields - so the details panel showed "No data" for everything the
+        # scan had just collected. A fresh measurement replaces the old one.
+        for field in SCAN_FIELDS:
+            if new_device.get(field):
                 merged[field] = new_device[field]
         
         # notes are only ever written by a human, so they are always kept.
@@ -335,6 +348,15 @@ class UnifiedDeviceModel:
         unified_device["advanced_scan_summary"] = legacy_device.get("advanced_scan_summary")
         unified_device["last_enhanced_analysis"] = legacy_device.get("last_enhanced_analysis")
         
+        # Everything else the record carries (identity verdict, discovery
+        # evidence, Home Assistant info, previous IPs, virtual-node flags,
+        # scan measurements ...) is kept as-is. Dropping unknown keys here made
+        # every scan start from a stripped record: the sticky identity, the HA
+        # match and all fingerprint data vanished on the next load.
+        for key, value in legacy_device.items():
+            if key not in unified_device:
+                unified_device[key] = value
+
         return unified_device
     
     def validate_device_schema(self, device: Dict[str, Any]) -> bool:
