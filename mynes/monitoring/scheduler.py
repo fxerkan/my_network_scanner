@@ -181,6 +181,11 @@ class MonitorScheduler:
 
         log.info("Monitoring scan started (include_offline=%s)", settings["include_offline"])
         self.scanner.scan_network(include_offline=settings["include_offline"])
+        # Persist the sweep. Without this a scheduled scan only ever lived in
+        # memory: the next page load / device save reloaded the stale file and
+        # threw it away, so the inventory froze at the last *manual* scan and
+        # every device found since (new, renamed, re-IP'd) silently vanished.
+        self.scanner.save_to_json()
         devices = self.scanner.get_devices()
 
         if settings["run_discovery"]:

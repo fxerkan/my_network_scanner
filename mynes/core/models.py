@@ -284,6 +284,13 @@ class UnifiedDeviceModel:
         if "open_ports" in legacy_device:
             unified_ports = []
             for port in legacy_device["open_ports"]:
+                # Docker-detected containers (and very old records) store bare
+                # ints. One of those used to raise here, and the caller's single
+                # try/except then dropped every device after it from the merge.
+                if isinstance(port, (int, str)) and str(port).isdigit():
+                    port = {"port": int(port)}
+                elif not isinstance(port, dict):
+                    continue
                 unified_port = self.create_unified_port(
                     port.get("port", 0),
                     service=port.get("service", port.get("description", "unknown")),

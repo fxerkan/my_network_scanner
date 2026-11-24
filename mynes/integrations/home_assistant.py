@@ -237,8 +237,10 @@ class HomeAssistantClient:
     """
 
     # Canonical names (a tuple is kept so a call site can still pass overrides).
-    URL_VARS = ("HA_URL",)
-    TOKEN_VARS = ("HA_TOKEN",)
+    # HA_URL/HA_TOKEN are canonical; MYNES_HA_* is what the CasaOS/Umbrel app
+    # manifests expose, and was silently ignored until it was read here too.
+    URL_VARS = ("HA_URL", "MYNES_HA_URL")
+    TOKEN_VARS = ("HA_TOKEN", "MYNES_HA_TOKEN")
 
     def __init__(self, url: str | None = None, token: str | None = None, timeout: int = 15):
         self.url = (url or _first_env(self.URL_VARS) or "").rstrip("/")

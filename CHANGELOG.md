@@ -6,6 +6,34 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Scheduled scans are saved again.** The monitoring scheduler scanned but
+  never wrote `lan_devices.json`, and the home page and `/save_device` reloaded
+  that stale file over the fresh in-memory scan on every visit. On a live
+  install the inventory froze for three months: new devices never appeared and
+  every scan result was thrown away. The scheduler now saves, and the in-memory
+  list is only reloaded from disk on a cold start.
+- **One malformed record no longer drops the rest of the inventory from a
+  scan.** Docker-detected containers store `open_ports` as bare ints; migrating
+  one raised, and the single try/except around the load loop skipped every
+  device after it - their aliases, types and locations were not merged and
+  offline ones were not preserved. Int ports are accepted and each record is
+  guarded on its own.
+- **A device that DHCP moved to a new IP keeps its details.** A MAC that answers
+  on exactly one new IP is re-keyed onto its stored record (with
+  `previous_ips`), instead of coming back as a blank new device while alias,
+  type, location and trust stayed on an orphaned offline copy.
+- **Network Tools: traceroute works in the Docker image.** The slim image has no
+  `traceroute` binary; it is now installed, and a raw-ICMP (scapy) fallback runs
+  wherever the binary is missing.
+- **Network Tools: DNS lookup finds LAN names.** Home routers rarely serve PTR
+  records, so the lookup failed for nearly every device. It now falls back to
+  an mDNS reverse query (`kafein-mbp.local`) and then NetBIOS.
+- **The CasaOS/Umbrel `MYNES_HA_URL` / `MYNES_HA_TOKEN` variables are read.**
+  Only `HA_URL` / `HA_TOKEN` were, so the Home Assistant settings exposed in the
+  app store did nothing.
+
 ## [1.8.2] — 2026-09-27
 
 Two shipped changes: the login gate can now be turned on straight from the

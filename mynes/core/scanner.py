@@ -1323,8 +1323,15 @@ class LANScanner:
                         if mac:
                             # MAC+IP kombinasyonu anahtarı
                             device_key = f"{mac}@{ip}"
-                            # Legacy format'tan unified format'a migrate et
-                            unified_device = unified_model.migrate_legacy_data(device)
+                            # Legacy format'tan unified format'a migrate et.
+                            # Per-record guard: one malformed record must not
+                            # abort the loop - everything after it would miss
+                            # the merge and lose its stored details.
+                            try:
+                                unified_device = unified_model.migrate_legacy_data(device)
+                            except Exception as e:  # noqa: BLE001
+                                print(f"⚠️ Could not migrate {ip} ({mac}): {e} - keeping it as stored")
+                                unified_device = dict(device)
                             existing_devices[device_key] = unified_device
                             print(f"📤 Legacy data migrated: {ip} (MAC: {mac}) - {unified_device.get('alias', 'N/A')}")
             except Exception as e:
@@ -1390,7 +1397,14 @@ class LANScanner:
                 print(f"🖥️ Local machine interface added: {interface['ip']} (MAC: {interface['mac']}, Interface: {interface['interface']})")
         
         total_devices = len(arp_devices)
-        
+
+        # DHCP moves a device to a new IP and the mac@ip key no longer matches,
+        # so the device came back as a brand-new "Unknown" record while every
+        # field the user set (alias, type, location, trust, notes) stayed on an
+        # orphaned offline copy at the old IP. Re-key such a record to its new
+        # IP before the sweep, so the normal mac@ip merge below carries it over.
+        self._rekey_moved_devices(existing_devices, arp_devices)
+
         if progress_callback:
             progress_callback(f"{total_devices} devices found (including local machine), starting detailed scan...",
                               stage="finding", total=total_devices)
@@ -1620,6 +1634,53 @@ class LANScanner:
         
         return self.devices
     
+    @staticmethod
+    def _rekey_moved_devices(existing_devices, arp_devices):
+        """Move an existing record whose MAC now answers on a different IP.
+
+        Only when it is unambiguous: one stored record for that MAC, the MAC
+        answers on exactly one IP this sweep, and that new IP has no record of
+        its own. Docker's 02:42:* MACs are reused across bridges and are never
+        moved; neither is a placeholder MAC. Mutates ``existing_devices``;
+        returns the list of (mac, old_ip, new_ip) moves, for logging and tests.
+        """
+        def usable(mac):
+            return mac and mac not in ('unknown', 'n/a', '00:00:00:00:00:00') \
+                and not mac.startswith('02:42:')
+
+        stored_by_mac = {}
+        for key, dev in existing_devices.items():
+            mac = (dev.get('mac') or '').lower()
+            if usable(mac) and dev.get('ip'):
+                stored_by_mac.setdefault(mac, []).append(key)
+
+        seen_ips_by_mac = {}
+        for d in arp_devices:
+            mac = (d.get('mac') or '').lower()
+            if usable(mac):
+                seen_ips_by_mac.setdefault(mac, set()).add(d['ip'])
+
+        moves = []
+        for mac, ips in seen_ips_by_mac.items():
+            keys = stored_by_mac.get(mac) or []
+            if len(ips) != 1 or len(keys) != 1:
+                continue
+            new_ip = next(iter(ips))
+            old_key = keys[0]
+            new_key = f"{mac}@{new_ip}"
+            if old_key == new_key or new_key in existing_devices:
+                continue
+            dev = existing_devices.pop(old_key)
+            old_ip = dev.get('ip')
+            dev = dict(dev)
+            dev['ip'] = new_ip
+            prev = [p for p in (dev.get('previous_ips') or []) if p != new_ip]
+            dev['previous_ips'] = (prev + [old_ip])[-10:]
+            existing_devices[new_key] = dev
+            moves.append((mac, old_ip, new_ip))
+            print(f"📦 Device moved: {mac} {old_ip} -> {new_ip} - keeping its stored details")
+        return moves
+
     def stop_scan(self):
         """Taramayı durdurur"""
         self.scanning = False

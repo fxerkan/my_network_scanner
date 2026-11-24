@@ -433,8 +433,12 @@ def security_rescan():
 @app.route('/')
 def index():
     """Home page"""
-    # Önceki tarama sonuçlarını yükle
-    scanner.load_from_json()
+    # Load from disk only on a cold start. The in-memory list is authoritative
+    # once populated (scans and edits both write through to disk); reloading
+    # here on every page view replaced a fresh scheduled scan with the stale
+    # file and discarded it.
+    if not scanner.devices:
+        scanner.load_from_json()
     devices = scanner.get_devices()
     
     # Config'den cihaz tiplerini al
@@ -966,6 +970,9 @@ def sanitize_device_data():
         import shutil
         import os
         
+        # Flush memory first so the sanitizer works on (and the reload returns)
+        # the current inventory, not whatever the last save happened to be.
+        scanner.save_to_json()
         if os.path.exists(devices_file):
             shutil.copy2(devices_file, backup_file)
             
@@ -1902,8 +1909,10 @@ def save_device():
         if not ip:
             return jsonify({"success": False, "message": "IP adresi gerekli"}), 400
         
-        # Önce en güncel verileri yükle (credential manager'dan gelen değişiklikler dahil)
-        scanner.load_from_json()
+        # The in-memory list is authoritative (see index()); only fall back to
+        # disk on a cold start so an unsaved scan is never thrown away.
+        if not scanner.devices:
+            scanner.load_from_json()
         devices = scanner.get_devices()
         
         # Mevcut cihazı bul

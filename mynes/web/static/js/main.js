@@ -2738,7 +2738,8 @@ function renderDiagnosticResult(tool, data) {
             return `<div class="net-tools__summary">${t('tool_dns_failed')}</div>`;
         }
         const aliases = (data.aliases || []).filter(a => a && a !== data.hostname);
-        return `<div class="net-tools__summary"><strong>${escHtml(data.hostname)}</strong>${aliases.length ? '<br>' + escHtml(aliases.join(', ')) : ''}</div>`;
+        const via = data.source ? ` <span class="ds-badge ds-badge--info">${escHtml(data.source.toUpperCase())}</span>` : '';
+        return `<div class="net-tools__summary"><strong>${escHtml(data.hostname)}</strong>${via}${aliases.length ? '<br>' + escHtml(aliases.join(', ')) : ''}</div>`;
     }
     if (tool === 'ports') {
         if (!data.checked || !data.checked.length) return `<p class="details-no-data">${t('tool_port_probe_ports')}</p>`;
