@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% macro t(key, fallback) -%}
+{{ _(key) if _(key) != key else fallback }}
+{%- endmacro %}
+{% block title %}{{ t('insights', 'Insights') }} · MyNeS{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="/static/css/insights.css">
+{% endblock %}
+
+{% block content %}
+<div class="ds-stack ins-page">
+  <div class="ds-row">
+    <div>
+      <h1 style="margin-bottom:var(--space-1)">{{ t('insights', 'Insights') }}</h1>
+      <p class="ds-muted" style="margin:0">{{ t('insights_sub', 'Internet path, DNS, what every device announces and where it is expected to talk.') }}</p>
+    </div>
+    <div class="ds-spacer"></div>
+    <button class="ds-btn" id="insRefresh">
+      <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-refresh"/></svg>
+      {{ t('insights_recheck', 'Re-check internet & DNS') }}
+    </button>
+  </div>
+
+  <div class="ds-grid ds-grid--stats" id="insStats" aria-live="polite"></div>
+
+  <div class="ins-note" id="insDnsNote" role="note">
+    <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-alert"/></svg>
+    <div>
+      <strong>{{ t('insights_dns_note_title', 'Per-device DNS is not visible yet') }}</strong>
+      <p>{{ t('insights_dns_note', 'On a switched LAN this host only sees broadcasts and its own traffic. Which domains each device resolves needs a DNS resolver that sees client IPs (AdGuard Home on this host, planned). Until then the endpoints below are the ones each vendor is known to use - labelled "expected", not "observed".') }}</p>
+    </div>
+  </div>
+
+  <div class="ds-grid ins-grid">
+    <section class="ds-card ins-card">
+      <h2 class="ins-card__title"><svg class="ds-icon" aria-hidden="true"><use href="#i-topology"/></svg>{{ t('insights_path', 'Path to the internet') }}</h2>
+      <div id="insPath" class="ins-body"><p class="ds-muted">{{ t('loading', 'Loading…') }}</p></div>
+    </section>
+    <section class="ds-card ins-card">
+      <h2 class="ins-card__title"><svg class="ds-icon" aria-hidden="true"><use href="#i-globe"/></svg>{{ t('insights_dns', 'DNS') }}</h2>
+      <div id="insDns" class="ins-body"><p class="ds-muted">{{ t('loading', 'Loading…') }}</p></div>
+    </section>
+  </div>
+
+  <section class="ds-card ins-card">
+    <div class="ds-row ins-card__head">
+      <h2 class="ins-card__title"><svg class="ds-icon" aria-hidden="true"><use href="#i-radar"/></svg>{{ t('insights_devices', 'Devices: broadcasts and expected endpoints') }}</h2>
+      <div class="ds-spacer"></div>
+      <input type="search" class="form-input ins-search" id="insSearch" placeholder="{{ t('search', 'Search…') }}" aria-label="{{ t('search', 'Search') }}">
+    </div>
+    <div class="ins-chips" id="insChips" role="group" aria-label="{{ t('filter', 'Filter') }}"></div>
+    <div class="ds-table-wrap"><table class="ds-table ins-table">
+      <thead><tr>
+        <th>{{ t('device', 'Device') }}</th>
+        <th>{{ t('insights_broadcasts', 'Announces (passive)') }}</th>
+        <th>{{ t('insights_expected', 'Expected endpoints') }}</th>
+        <th></th>
+      </tr></thead>
+      <tbody id="insRows"><tr><td colspan="4" class="ds-muted">{{ t('loading', 'Loading…') }}</td></tr></tbody>
+    </table></div>
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/insights.js"></script>
+{% endblock %}

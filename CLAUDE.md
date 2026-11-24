@@ -90,6 +90,9 @@ mynes/
 │   └── store.py          Capped JSON alert history + monitor state
 ├── integrations/
 │   ├── home_assistant.py MQTT Discovery push + REST pull/compare
+│   ├── metrics.py        Prometheus text (/api/metrics) + InfluxDB 1.x/2 push.
+│   │                     export_scan() runs after every scan; dashboard and
+│   │                     provisioning in deploy/grafana/
 │   └── docker.py         Container/network detection
 ├── platform/             Desktop OS integration. Nothing here runs a
 │   ├── privileges.py     privileged command without an explicit --apply.

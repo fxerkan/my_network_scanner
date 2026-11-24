@@ -34,7 +34,7 @@ import os
 import shutil
 import glob
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 # Scapy import'unu sessizce yap
 import sys
 from io import StringIO
@@ -116,6 +116,16 @@ def match_vendor_pattern(rules, vendor_lower, hostname_lower):
             return rule['type']
     return None
 
+
+
+def _str_keys(obj):
+    """Recursively turn every dict key into a str - what json.dump would
+    produce - so in-memory device data matches what is loaded from disk."""
+    if isinstance(obj, dict):
+        return {str(k): _str_keys(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_str_keys(v) for v in obj]
+    return obj
 
 class LANScanner:
     def __init__(self):
@@ -1183,6 +1193,13 @@ class LANScanner:
             'is_gateway': signals.get('is_gateway', False),
             'reasons': fingerprint.classify(signals).get('reasons', []),
         }
+        # Kept so identity.py can weigh this scan's verdict against stronger
+        # self-reported evidence (DHCP/mDNS names, vendor protocols).
+        _verdict = fingerprint.classify(signals)
+        device_info['fingerprint']['verdict'] = {
+            'device_type': _verdict.get('device_type'), 'confidence': _verdict.get('confidence', 0)}
+        if signals.get('onvif'):
+            device_info['fingerprint']['onvif'] = signals['onvif']
         if signals.get('rtsp'):
             device_info['stream_url'] = signals['rtsp']['url']
 
@@ -1323,8 +1340,27 @@ class LANScanner:
                         if mac:
                             # MAC+IP kombinasyonu anahtarı
                             device_key = f"{mac}@{ip}"
-                            # Legacy format'tan unified format'a migrate et
-                            unified_device = unified_model.migrate_legacy_data(device)
+                            # Legacy format'tan unified format'a migrate et.
+                            # Per-record guard: one malformed record must not
+                            # abort the loop - everything after it would miss
+                            # the merge and lose its stored details.
+                            try:
+                                unified_device = unified_model.migrate_legacy_data(device)
+                            except Exception as e:  # noqa: BLE001
+                                print(f"⚠️ Could not migrate {ip} ({mac}): {e} - keeping it as stored")
+                                unified_device = dict(device)
+                            prior = existing_devices.get(device_key)
+                            if prior is not None:
+                                # Two stored records for one device (e.g. a BLE
+                                # address saved in two cases). Keep the one a
+                                # human edited, backfill the rest - never let the
+                                # later copy silently replace the edited one.
+                                keep, other = (prior, unified_device) if prior.get('user_modified') \
+                                    else (unified_device, prior)
+                                for k, v in other.items():
+                                    if v not in (None, '', [], {}) and keep.get(k) in (None, '', [], {}):
+                                        keep[k] = v
+                                unified_device = keep
                             existing_devices[device_key] = unified_device
                             print(f"📤 Legacy data migrated: {ip} (MAC: {mac}) - {unified_device.get('alias', 'N/A')}")
             except Exception as e:
@@ -1390,7 +1426,14 @@ class LANScanner:
                 print(f"🖥️ Local machine interface added: {interface['ip']} (MAC: {interface['mac']}, Interface: {interface['interface']})")
         
         total_devices = len(arp_devices)
-        
+
+        # DHCP moves a device to a new IP and the mac@ip key no longer matches,
+        # so the device came back as a brand-new "Unknown" record while every
+        # field the user set (alias, type, location, trust, notes) stayed on an
+        # orphaned offline copy at the old IP. Re-key such a record to its new
+        # IP before the sweep, so the normal mac@ip merge below carries it over.
+        self._rekey_moved_devices(existing_devices, arp_devices)
+
         if progress_callback:
             progress_callback(f"{total_devices} devices found (including local machine), starting detailed scan...",
                               stage="finding", total=total_devices)
@@ -1486,12 +1529,25 @@ class LANScanner:
                     unified_device.get('advanced_scan_summary')
                 )
                 
+                # Phones and AirTags advertise BLE from a random address that
+                # rotates every ~15 min. An unnamed, unedited radio record not
+                # heard for a day is one of those - keeping it grew the store
+                # by dozens of ghosts a day.
+                if unified_device.get('discovery_only') and not unified_device.get('ip') \
+                        and not unified_device.get('user_modified') \
+                        and not (unified_device.get('alias') or '').strip() \
+                        and (unified_device.get('last_seen') or '') < (datetime.now() - timedelta(days=1)).isoformat():
+                    should_preserve = False
+
                 if should_preserve:
                     # Cihazı çevrimdışı olarak işaretle ve ekle. Radyo-only
                     # (BLE) cihazlar ağ taramasında hiç görünmez, bu yüzden
                     # onları offline'a çevirmek yanıltıcı olur - durumlarını
                     # son keşifteki haliyle koru.
-                    if not unified_device.get('discovery_only'):
+                    # A virtual infra node (an unmanaged switch: no IP, no
+                    # MAC on the wire) is never "seen" by a scan - it is a
+                    # hand-drawn topology node, not an offline device.
+                    if not unified_device.get('discovery_only') and not unified_device.get('virtual'):
                         unified_device['status'] = 'offline'
                     unified_device['last_seen'] = unified_device.get('last_seen', datetime.now().isoformat())
                     scanned.append(unified_device)
@@ -1551,6 +1607,13 @@ class LANScanner:
                 d['user_modified'] = {**(d.get('user_modified') or {}), **um}
                 for field, value in um.items():
                     d[field] = value
+
+        # One identity pass over the fresh list: self-reported names (DHCP,
+        # mDNS, vendor protocols) and the strongest type ever seen win over
+        # this sweep's OUI guesses - see analysis/identity.py.
+        if progress_callback:
+            progress_callback("Identifying devices (names, types)...", stage="identify")
+        self.identify_devices(unique_devices)
 
         # Publish atomically: self.devices held the previous complete list for the
         # whole sweep (so edits kept working), now swap in the fresh one at once.
@@ -1620,6 +1683,132 @@ class LANScanner:
         
         return self.devices
     
+    def identify_devices(self, devices, run_probes=True, mdns_lookup=True):
+        """Collect evidence per device and apply analysis/identity.py.
+
+        Never raises: identification is an improvement, not a requirement.
+        Returns the number of devices whose name/type changed.
+        """
+        from mynes.analysis import identity, probes
+        from mynes.discovery import dhcp
+        try:
+            from mynes.core.diagnostics import mdns_reverse
+        except Exception:  # noqa: BLE001
+            mdns_reverse = None
+
+        def worth(d):
+            ip = str(d.get('ip') or '')
+            if not ip or d.get('virtual') or d.get('local_interface'):
+                return False
+            if d.get('device_type') in ('Docker Network', 'Docker Container') or \
+                    str(d.get('device_type') or '').startswith('Local Machine'):
+                return False
+            if re.match(r'^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.', ip):   # CGNAT / Tailscale: this host
+                return False
+            return ip.count('.') == 3
+
+        def evidence_for(d):
+            ev = {'vendor': d.get('vendor'), 'open_ports': d.get('open_ports') or [],
+                  'hostname': d.get('hostname')}
+            lease = dhcp.lookup(d.get('mac'))
+            ev['dhcp_hostname'] = lease.get('hostname')
+            ev['dhcp_vendor_class'] = lease.get('vendor_class')
+            disc = d.get('discovery_evidence') or {}
+            ev['mdns_hostname'] = disc.get('mdns_hostname')
+            ev['mdns_name'] = disc.get('mdns_name')
+            ev['model'] = disc.get('model')
+            ev['ssdp_name'] = disc.get('ssdp_name')
+            ev['services'] = list(d.get('services') or []) + list(disc.get('services') or [])
+            fp = d.get('fingerprint') or {}
+            ev['fingerprint'] = fp.get('verdict') or {}
+            ev['onvif_name'] = (fp.get('onvif') or {}).get('name')
+            smb = fp.get('smb') or {}
+            ev['netbios_name'] = smb.get('netbios_name') if isinstance(smb, dict) else None
+            if mdns_reverse and mdns_lookup and not (ev['mdns_hostname'] or ev['dhcp_hostname']):
+                try:
+                    ev['mdns_hostname'] = mdns_reverse(d['ip'], timeout=0.8)
+                except Exception:  # noqa: BLE001
+                    pass
+            if run_probes:
+                try:
+                    ev['probes'] = probes.run_for(d['ip'], d.get('vendor'), d.get('open_ports'))
+                except Exception:  # noqa: BLE001
+                    ev['probes'] = {}
+            return ev
+
+        changed = 0
+        targets = [d for d in devices if worth(d)]
+        try:
+            from concurrent.futures import ThreadPoolExecutor
+            with ThreadPoolExecutor(max_workers=8) as pool:
+                evidences = list(pool.map(evidence_for, targets))
+        except Exception as e:  # noqa: BLE001
+            print(f"identity evidence error: {e}")
+            return 0
+        for d, ev in zip(targets, evidences):
+            try:
+                ident = identity.identify(d, ev)
+                diffs = identity.apply_identity(d, ident)
+                if ev.get('probes'):
+                    d.setdefault('discovery_evidence', {})['probes'] = ev['probes']
+                if ev.get('dhcp_hostname'):
+                    d.setdefault('discovery_evidence', {})['dhcp_hostname'] = ev['dhcp_hostname']
+                if ev.get('mdns_hostname'):
+                    d.setdefault('discovery_evidence', {})['mdns_hostname'] = ev['mdns_hostname']
+                if diffs:
+                    changed += 1
+                    print(f"🪪 Identity {d.get('ip')}: " + ", ".join(f"{f}: {o!r} -> {n!r}" for f, o, n in diffs))
+            except Exception as e:  # noqa: BLE001
+                print(f"identity error {d.get('ip')}: {e}")
+        return changed
+
+    @staticmethod
+    def _rekey_moved_devices(existing_devices, arp_devices):
+        """Move an existing record whose MAC now answers on a different IP.
+
+        Only when it is unambiguous: one stored record for that MAC, the MAC
+        answers on exactly one IP this sweep, and that new IP has no record of
+        its own. Docker's 02:42:* MACs are reused across bridges and are never
+        moved; neither is a placeholder MAC. Mutates ``existing_devices``;
+        returns the list of (mac, old_ip, new_ip) moves, for logging and tests.
+        """
+        def usable(mac):
+            return mac and mac not in ('unknown', 'n/a', '00:00:00:00:00:00') \
+                and not mac.startswith('02:42:')
+
+        stored_by_mac = {}
+        for key, dev in existing_devices.items():
+            mac = (dev.get('mac') or '').lower()
+            if usable(mac) and dev.get('ip'):
+                stored_by_mac.setdefault(mac, []).append(key)
+
+        seen_ips_by_mac = {}
+        for d in arp_devices:
+            mac = (d.get('mac') or '').lower()
+            if usable(mac):
+                seen_ips_by_mac.setdefault(mac, set()).add(d['ip'])
+
+        moves = []
+        for mac, ips in seen_ips_by_mac.items():
+            keys = stored_by_mac.get(mac) or []
+            if len(ips) != 1 or len(keys) != 1:
+                continue
+            new_ip = next(iter(ips))
+            old_key = keys[0]
+            new_key = f"{mac}@{new_ip}"
+            if old_key == new_key or new_key in existing_devices:
+                continue
+            dev = existing_devices.pop(old_key)
+            old_ip = dev.get('ip')
+            dev = dict(dev)
+            dev['ip'] = new_ip
+            prev = [p for p in (dev.get('previous_ips') or []) if p != new_ip]
+            dev['previous_ips'] = (prev + [old_ip])[-10:]
+            existing_devices[new_key] = dev
+            moves.append((mac, old_ip, new_ip))
+            print(f"📦 Device moved: {mac} {old_ip} -> {new_ip} - keeping its stored details")
+        return moves
+
     def stop_scan(self):
         """Taramayı durdurur"""
         self.scanning = False
@@ -1654,6 +1843,9 @@ class LANScanner:
             # Shallow section-level merge: a fresh section overwrites the old one,
             # sections not re-scanned this run are kept.
             existing = target.get('enhanced_comprehensive_info') or {}
+            # Stringify keys now, as the JSON round trip would: port-keyed dicts
+            # (int) mixed with str keys broke every JSON response until restart.
+            enhanced_info = _str_keys(enhanced_info)
             merged = {**existing, **enhanced_info} if isinstance(existing, dict) else enhanced_info
 
             now = datetime.now().isoformat()

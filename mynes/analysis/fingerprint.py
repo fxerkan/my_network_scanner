@@ -35,6 +35,8 @@ from concurrent.futures import ThreadPoolExecutor
 BASE_PORTS = (
     21, 22, 23, 25, 53, 80, 139, 443, 445, 515, 631,
     1883, 3389, 5000, 5001, 5900, 8000, 8008, 8080, 8443, 9100,
+    # Identity ports: Tuya local protocol, Samsung TV control/DLNA, Cast.
+    6668, 8001, 8002, 8009, 9197,
 )
 
 # Camera makers scatter RTSP and ONVIF across non-standard ports. Without

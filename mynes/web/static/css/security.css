@@ -349,3 +349,7 @@
 @media (prefers-reduced-motion: reduce) {
   .sec-scan__fill--busy { animation: none; width: 100%; opacity: 0.5; }
 }
+
+/* Device name/IP link to the device's detail view (/?device=<ip>). */
+.sec-devlink { color: inherit; text-decoration: none; }
+.sec-devlink:hover, .sec-devlink:focus-visible { color: var(--accent-text); text-decoration: underline; }

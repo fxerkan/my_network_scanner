@@ -197,7 +197,15 @@ function sortDevices(devicesArray) {
 async function loadDevices(updateFiltersFlag = false) {
     try {
         const response = await fetch('/devices');
+        // A failed request must not blank the page: keep the last good list
+        // and say what happened instead of rendering "0 devices".
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
         const newDevices = await response.json();
+        if (!Array.isArray(newDevices)) {
+            throw new Error((newDevices && newDevices.error) || 'unexpected response');
+        }
         
         // Sadece cihaz listesi değiştiyse veya açıkça istendiğinde filtreleri güncelle
         let shouldUpdateFilters = updateFiltersFlag;
@@ -210,7 +218,7 @@ async function loadDevices(updateFiltersFlag = false) {
                 vendor: d.vendor, 
                 alias: d.alias,
                 open_ports: d.open_ports
-            })).sort((a, b) => a.ip.localeCompare(b.ip)));
+            })).sort((a, b) => String(a.ip || a.mac || '').localeCompare(String(b.ip || b.mac || ''))));
             
             const newDevicesStr = JSON.stringify(newDevices.map(d => ({
                 ip: d.ip, 
@@ -218,7 +226,7 @@ async function loadDevices(updateFiltersFlag = false) {
                 vendor: d.vendor, 
                 alias: d.alias,
                 open_ports: d.open_ports
-            })).sort((a, b) => a.ip.localeCompare(b.ip)));
+            })).sort((a, b) => String(a.ip || a.mac || '').localeCompare(String(b.ip || b.mac || ''))));
             
             shouldUpdateFilters = oldDevicesStr !== newDevicesStr;
         }
@@ -234,6 +242,9 @@ async function loadDevices(updateFiltersFlag = false) {
         }
     } catch (error) {
         console.error(t('device_loading_error'), error);
+        if (typeof showToast === 'function') {
+            showToast(`${t('device_loading_error')}: ${error.message || error}`, 'error');
+        }
     }
 }
 
@@ -538,8 +549,8 @@ function displayDevicesCard() {
             <div class="device-actions">
                 ${device.ip || device.mac ? `<button class="btn btn-primary btn-small" onclick="openEnhancedEditModal('${device.ip || device.mac}')"><svg class="ds-icon" aria-hidden="true"><use href="#i-wrench"/></svg> ${t('edit')}</button>` : ''}
                 ${device.ip ? `<button class="btn btn-warning btn-small" onclick="openSingleDeviceAnalysisPage('${device.ip}')" title="${t('detailed_analysis')}" aria-label="${t('detailed_analysis')}"><svg class="ds-icon" aria-hidden="true"><use href="#i-microscope"/></svg> ${t('detailed_analysis')}</button>` : ''}
-                ${hasEnhancedInfo(device) ?
-                    `<button class="btn btn-success btn-small" onclick="openEnhancedDetailsModal(${JSON.stringify(device).replace(/"/g, '&quot;')})" title="${t('details')}"><svg class="ds-icon" aria-hidden="true"><use href="#i-graph"/></svg> ${t('details')}</button>` : 
+                ${device.ip || device.mac ?
+                    `<button class="btn btn-success btn-small" onclick="openEnhancedDetailsModal(deviceByKey('${escHtml(device.ip || device.mac)}'))" title="${t('details')}"><svg class="ds-icon" aria-hidden="true"><use href="#i-graph"/></svg> ${t('details')}</button>` :
                     ''
                 }
             </div>
@@ -2738,7 +2749,8 @@ function renderDiagnosticResult(tool, data) {
             return `<div class="net-tools__summary">${t('tool_dns_failed')}</div>`;
         }
         const aliases = (data.aliases || []).filter(a => a && a !== data.hostname);
-        return `<div class="net-tools__summary"><strong>${escHtml(data.hostname)}</strong>${aliases.length ? '<br>' + escHtml(aliases.join(', ')) : ''}</div>`;
+        const via = data.source ? ` <span class="ds-badge ds-badge--info">${escHtml(data.source.toUpperCase())}</span>` : '';
+        return `<div class="net-tools__summary"><strong>${escHtml(data.hostname)}</strong>${via}${aliases.length ? '<br>' + escHtml(aliases.join(', ')) : ''}</div>`;
     }
     if (tool === 'ports') {
         if (!data.checked || !data.checked.length) return `<p class="details-no-data">${t('tool_port_probe_ports')}</p>`;

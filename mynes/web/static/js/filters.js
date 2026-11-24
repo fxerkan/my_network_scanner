@@ -50,7 +50,15 @@
         if (/^02:42:/i.test(d.mac || '')) return true;
         return false;
     }
-    function isNoIp(d) { return !(d && d.ip); }
+    // "No IP" exists to hide anonymous radio noise (rotating BLE addresses).
+    // A device someone named, edited or imported on purpose (Home Assistant
+    // cloud/Zigbee devices have no IP either) is never noise.
+    function isNoIp(d) {
+        if (!d || d.ip) return false;
+        const meant = d.source === 'home_assistant' || d.home_assistant ||
+            (d.user_modified && Object.keys(d.user_modified).length) || (d.alias || '').trim();
+        return !meant;
+    }
     // A randomized/private MAC has the locally-administered bit (0x02) set in its
     // first octet - this is what phones/watches use for MAC rotation, so each
     // rotation looks like a brand-new one-hit-wonder device. Docker's 02:42 range
@@ -74,22 +82,36 @@
         return v.trim();
     }
 
+    // Case- and accent-insensitive, Turkish-aware: "kapi" finds "Kapı",
+    // "IP" finds "ip camera" (a plain tr-locale lowercase would turn it into "ıp").
+    function fold(v) {
+        return String(v || '').replace(/[İIı]/g, 'i').toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    }
+
     function match(d, s) {
         s = s || state;
-        if (!s.showContainers && isContainer(d)) return false;
-        if (!s.showNoIp && isNoIp(d)) return false;
-        if (!s.showBluetooth && isBluetooth(d)) return false;
-        // Docker MACs are locally-administered too, so only treat non-container
-        // random MACs as "random" here (containers have their own toggle).
-        if (!s.showRandomMac && isRandomMac(d) && !isContainer(d)) return false;
+        // An explicit search looks everywhere: the visibility toggles hide noise
+        // from the default view, they must not make a device unfindable.
+        if (!s.q) {
+            if (!s.showContainers && isContainer(d)) return false;
+            if (!s.showNoIp && isNoIp(d)) return false;
+            if (!s.showBluetooth && isBluetooth(d)) return false;
+            // Docker MACs are locally-administered too, so only treat non-container
+            // random MACs as "random" here (containers have their own toggle).
+            if (!s.showRandomMac && isRandomMac(d) && !isContainer(d)) return false;
+        }
         if (s.types.length && !s.types.includes(d.device_type)) return false;
         if (s.vendors.length && !s.vendors.includes(vendorOf(d))) return false;
         if (s.statuses.length && !s.statuses.includes(d.status)) return false;
         if (s.q) {
-            const q = s.q.toLowerCase();
-            const hay = [d.ip, d.mac, d.hostname, d.vendor, d.device_type, d.alias]
-                .filter(Boolean).join(' ').toLowerCase();
-            if (!hay.includes(q)) return false;
+            const q = fold(s.q);
+            const ha = d.home_assistant || {};
+            const id = d.identity || {};
+            const hay = [d.ip, d.mac, d.hostname, d.vendor, d.device_type, d.alias, d.location,
+                         d.notes, d.model, ha.name, ha.area, ha.model, id.name, id.model]
+                .filter(Boolean).join(' ');
+            if (!fold(hay).includes(q)) return false;
         }
         return true;
     }
@@ -146,8 +168,16 @@
         const r = btn.getBoundingClientRect();
         pop.style.position = 'fixed';
         pop.style.zIndex = '1200';
-        pop.style.left = r.left + 'px';
-        pop.style.minWidth = r.width + 'px';
+        // An explicit width: CSS `width: 100%` on a position:fixed element means
+        // 100% of the VIEWPORT, which stretched every list to the right edge of
+        // the screen. Match the button, never narrower than readable, and keep
+        // it inside the viewport.
+        const vw = document.documentElement.clientWidth;
+        const w = Math.min(Math.max(r.width, 220), 420, vw - 16);
+        pop.style.width = w + 'px';
+        pop.style.minWidth = '0';
+        pop.style.maxWidth = 'none';
+        pop.style.left = Math.max(8, Math.min(r.left, vw - w - 8)) + 'px';
         pop.style.top = (r.bottom + 4) + 'px';
         pop.style.bottom = 'auto';
         const h = pop.offsetHeight;                       // measured while visible
@@ -215,7 +245,7 @@
             search.value = '';
             paint('');
             placePop(btn, pop);
-            search.focus();
+            search.focus({ preventScroll: true });
         }
         function close() { pop.setAttribute('hidden', ''); btn.setAttribute('aria-expanded', 'false'); }
 
@@ -312,7 +342,7 @@
         function open() {
             document.querySelectorAll('.ds-multi__pop').forEach(p => { if (p !== pop) p.setAttribute('hidden', ''); });
             pop.removeAttribute('hidden'); btn.setAttribute('aria-expanded', 'true');
-            search.value = ''; paint(''); placePop(btn, pop); search.focus();
+            search.value = ''; paint(''); placePop(btn, pop); search.focus({ preventScroll: true });
         }
         function close() { pop.setAttribute('hidden', ''); btn.setAttribute('aria-expanded', 'false'); }
 
@@ -360,7 +390,24 @@
     });
     // A fixed-positioned popover doesn't move with the page, so its anchor would
     // drift on scroll/resize - close it instead of leaving it stranded.
-    window.addEventListener('scroll', closeAllPops, true);   // capture: catch scrolls in any container
+    // Scrolling INSIDE a popover (its option list) must not close it - that
+    // made every long list unusable: the first wheel tick slammed it shut.
+    // A page/container scroll re-anchors the open popover to its button; it
+    // only closes once the button itself has scrolled out of view.
+    window.addEventListener('scroll', e => {
+        const t = e.target;
+        if (t && t.nodeType === 1 && t.closest && t.closest('.ds-multi__pop')) return;
+        document.querySelectorAll('.ds-multi__pop:not([hidden])').forEach(pop => {
+            const btn = pop.parentElement && pop.parentElement.querySelector('.ds-multi__btn');
+            if (!btn) { pop.setAttribute('hidden', ''); return; }
+            const r = btn.getBoundingClientRect();
+            if (r.bottom < 0 || r.top > window.innerHeight) {
+                pop.setAttribute('hidden', ''); btn.setAttribute('aria-expanded', 'false');
+            } else {
+                placePop(btn, pop);
+            }
+        });
+    }, true);   // capture: catch scrolls in any container
     window.addEventListener('resize', closeAllPops);
 
     // Every <select> becomes the app's searchable dropdown - native browser
@@ -400,6 +447,13 @@
         console.assert(match(pc, { ...DEFAULTS, types: ['Laptop'] }) === true, 'type include');
         console.assert(match(pc, { ...DEFAULTS, types: ['Server'] }) === false, 'type exclude');
         console.assert(match(pc, { ...DEFAULTS, q: 'apple' }) === true, 'text match');
+        const imported = { device_type: 'IP Camera', ip: '', mac: 'ha:f105', alias: 'Kamera C200 - Sivas',
+                           source: 'home_assistant' };
+        console.assert(match(imported, { ...DEFAULTS, showNoIp: false }) === true, 'imported no-ip device shown');
+        console.assert(match(ble, { ...DEFAULTS, showNoIp: false, showBluetooth: false, q: 'bluetooth' }) === true,
+                       'a search finds hidden devices');
+        console.assert(match({ alias: 'Kapı Zili', ip: '1.2.3.4' }, { ...DEFAULTS, q: 'kapi' }) === true, 'tr fold');
+        console.assert(match({ device_type: 'IP Camera', ip: '1.2.3.4' }, { ...DEFAULTS, q: 'ip cam' }) === true, 'IP fold');
         console.log('MynesFilters._selftest: ok');
         return true;
     }

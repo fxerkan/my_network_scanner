@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import logging
 import threading
+import re
 import time
 from datetime import datetime, timezone
 
@@ -181,6 +182,18 @@ class MonitorScheduler:
 
         log.info("Monitoring scan started (include_offline=%s)", settings["include_offline"])
         self.scanner.scan_network(include_offline=settings["include_offline"])
+        # Fold in what Home Assistant knows (names, areas, models) before the
+        # save, so it lands on disk with the scan. Never raises.
+        try:
+            from mynes.integrations.home_assistant import enrich_scanner
+            enrich_scanner(self.scanner)
+        except Exception as e:  # noqa: BLE001
+            log.warning("Home Assistant enrich errored: %s", e)
+        # Persist the sweep. Without this a scheduled scan only ever lived in
+        # memory: the next page load / device save reloaded the stale file and
+        # threw it away, so the inventory froze at the last *manual* scan and
+        # every device found since (new, renamed, re-IP'd) silently vanished.
+        self.scanner.save_to_json()
         devices = self.scanner.get_devices()
 
         if settings["run_discovery"]:
@@ -236,7 +249,8 @@ class MonitorScheduler:
 
         # Optional InfluxDB push for Grafana. Guarded and degrading - a broken
         # or unreachable Influx endpoint must never fail a scan.
-        self._push_metrics(list(current.values()), alert_dicts)
+        self._push_metrics(list(current.values()), alert_dicts,
+                           duration_s=time.monotonic() - started)
 
         # Optional periodic CVE-pattern overlay refresh. Cheap, fully guarded:
         # only fires when enabled AND the overlay is older than the interval,
@@ -271,14 +285,28 @@ class MonitorScheduler:
 
         found = discover_all(timeout=timeout).get("devices", [])
         by_ip = {d.get("ip"): d for d in devices if isinstance(d, dict) and d.get("ip")}
+        # Radio devices have no IP: match them on MAC (any case), or every
+        # sweep appended a second copy of the same BLE fountain.
+        by_mac = {(d.get("mac") or "").lower(): d for d in devices
+                  if isinstance(d, dict) and not d.get("ip") and d.get("mac")}
+        now = datetime.now().isoformat()
 
         for extra in found:
             target = by_ip.get(extra.get("ip"))
+            if target is None and not extra.get("ip") and extra.get("mac"):
+                target = by_mac.get(extra["mac"].lower())
+                if target is not None:
+                    target["status"] = "online"
+                    target["last_seen"] = now
+                    if extra.get("rssi") is not None:
+                        target["rssi"] = extra.get("rssi")
             if target is None:
                 # Radio-only device (BLE/Zigbee) - no IP, so it joins as its own entry.
                 devices.append(
                     {
-                        "ip": extra.get("ip"),
+                        "ip": extra.get("ip") or "",
+                        "last_seen": now,
+                        "discovery_only": True,
                         "mac": extra.get("mac"),
                         "hostname": extra.get("name"),
                         "alias": extra.get("name"),
@@ -300,6 +328,27 @@ class MonitorScheduler:
             target.setdefault("attributes", {}).update(extra.get("attributes") or {})
             for field in ("vendor", "model", "device_type"):
                 target[field] = target.get(field) or extra.get(field)
+            # Remember what the device said about itself, for identity.py -
+            # persisted on the device so the evidence outlives this sweep.
+            ev = target.setdefault("discovery_evidence", {})
+            sources = set(extra.get("sources") or [])
+            if "mdns" in sources and extra.get("name"):
+                ev["mdns_hostname"] = extra["name"]
+            if "ssdp" in sources and extra.get("name"):
+                ev["ssdp_name"] = extra["name"]
+            model = extra.get("model")
+            if model and re.search(r"[A-Za-z]{2}", str(model)):   # not a bare "0,1,2" TXT value
+                ev["model"] = model
+            ev["services"] = sorted(set(ev.get("services") or []) | set(extra.get("services") or []))
+
+        # Re-run identification with the discovery evidence folded in, then
+        # persist: this used to happen after the save, so mDNS/SSDP findings
+        # never reached disk.
+        try:
+            self.scanner.identify_devices(devices, run_probes=False, mdns_lookup=False)
+            self.scanner.save_to_json()
+        except Exception as e:  # noqa: BLE001
+            log.warning("post-discovery identify/save failed: %s", e)
         return devices
 
     def _publish(self, devices, alerts):
@@ -310,18 +359,12 @@ class MonitorScheduler:
         except Exception as e:  # noqa: BLE001
             log.warning("MQTT publish failed: %s", e)
 
-    def _push_metrics(self, devices, alerts):
+    def _push_metrics(self, devices, alerts, duration_s=None):
         """Push this scan to InfluxDB when configured. Never raises."""
         try:
             from mynes.integrations import metrics
 
-            cfg = metrics.resolve_config()
-            if not (cfg["enabled"] and metrics.influx_configured(cfg)):
-                return
-            line = metrics.influx_line_protocol(devices, alerts, ts=int(time.time()))
-            ok, msg = metrics.push_influx(line, cfg)
-            if not ok:
-                log.warning("InfluxDB metrics push failed: %s", msg)
+            metrics.export_scan(devices, alerts, duration_s=duration_s)
         except Exception as e:  # noqa: BLE001 - a metrics push must not break a scan
             log.warning("InfluxDB metrics push errored: %s", e)
 

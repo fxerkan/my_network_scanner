@@ -6,6 +6,142 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **Home Assistant Compare shows the whole inventory, and you pick what to
+  import.** Every HA registry device is listed with:
+  - its status: *active*, *inactive* (no entities, every entity
+    unavailable/unknown, or no update in 14 days), *disabled* (the Jellyfin
+    clients, an old Xbox) or *not a device* (HACS plugins, services, accounts,
+    Tuya scenes such as "Açıl Susam");
+  - its IP and MAC, taken from registry connections, tracker attributes or a
+    MAC used as the device name;
+  - integration, area, model, and the MyNeS device it already matches
+    (by HA id, MAC, IP or a unique name).
+
+  You can filter the list by status and search it. Active devices not yet
+  in MyNeS are pre-selected. *Import selected*
+  (`POST /api/integrations/home-assistant/import`) works as follows:
+  - **Already in MyNeS:** the device is enriched without touching your edits.
+  - **Not in MyNeS:** a new device is added. Cloud, BLE and Zigbee devices
+    have no IP on the wire, so they are keyed by MAC, or by `ha:<device_id>`
+    when HA knows no MAC.
+  - **Kept across scans:** imported devices survive rescans.
+
+- **Device identity engine** (`analysis/identity.py`). Every signal now feeds
+  one decision about a device's name and type. Self-reported evidence beats
+  inference, and the strongest identification sticks. Before this, a sleeping
+  Samsung TV went back to "Samsung Smartphone", a Tapo bulb was a "Router",
+  a Petkit litter box was an "Espressif IoT Device" and a MacBook was a "Media
+  Player". A user edit still always wins. New evidence sources:
+  - a **permanent passive DHCP listener** that records the hostname and
+    vendor class each device gives itself (`Petkit_T4`, `L510`,
+    `Ebru-Pixel-10`, `android-dhcp-14`). It persists to `data/dhcp_hosts.json`
+    and is reported under `/api/capabilities`.
+  - **vendor probes** (`analysis/probes.py`), each sent only where the OUI
+    points at that vendor:
+    - Philips air purifiers over CoAP: returns the name and model.
+    - Fujitsu AirStage: `/GetParam`.
+    - TP-Link/Tapo/Deco: UDP 20002 discovery, returns the device type and
+      model.
+    - TP-Link Easy Smart switches: their login page.
+  - an **mDNS reverse lookup** when no hostname is known, plus Apple model
+    identifiers (`MacBookPro18,3` is a laptop).
+  - the **Home Assistant integration and model** owning a device
+    (`samsungtv` is a TV, `Pura Max` is a litter box).
+  - **IEEE MA-M/MA-S sub-blocks**: a MAC registered to "IEEE Registration
+    Authority" now resolves to the real company.
+  - the quick port sweep includes the Tuya (6668), Samsung TV (8001/8002/9197)
+    and Cast (8009) ports.
+
+### Fixed
+
+- **Locations, trust levels, HA data and the identity verdict no longer
+  vanish on every scan.** `migrate_legacy_data`, which every scan runs over
+  the stored records, dropped every field it did not list explicitly unless it
+  was a user edit, including `location`, `trust_status`, `home_assistant`,
+  `identity` and `discovery_evidence`. Those fields are now carried over.
+- **Dropdowns stretched to the right edge of the screen**, closed as soon as
+  you scrolled their own option list, and some closed the moment they opened.
+  - A `position: fixed` popover with `width: 100%` was as wide as the
+    viewport; it now matches its button and stays on screen.
+  - Every scroll event, including the list's own, closed it. Now the list
+    scrolls, and a page scroll re-anchors the popover.
+  - Focusing the search box scrolled the page and triggered the close.
+  - Verified headlessly on 22 dropdowns across six pages: opened, scrolled,
+    picked.
+- **mDNS/SSDP discovery results were never saved** on a scheduled scan. They
+  were folded in after the save.
+
+### Added
+
+- **Home Assistant as an integration point** (Settings › Integrations). Enter
+  the HA URL and a long-lived token in the UI; the token is kept in
+  `data/home_assistant.json` (mode 600), never in `config.json`. After every scan
+  MyNeS reads HA's device registry and, for each device matched by MAC, records
+  HA's name, area, manufacturer, model and integrations, and fills empty or
+  placeholder alias/location/vendor fields. A field you edited is never
+  touched. There are buttons for "Enrich now" and "Compare with HA".
+- **Virtual infrastructure nodes.** An unmanaged switch has no IP and no MAC on
+  the wire, yet devices plug into it. A device with `virtual: true` and a
+  `subnet_hint` can now be a "connected via" parent in the topology and graph.
+  It stays online across scans.
+- **Security page:** a device's name or IP opens its detail view.
+
+### Added
+
+- **InfluxDB 1.x export, plus a ready Grafana dashboard.** The metrics push only
+  spoke InfluxDB 2 (token/org/bucket). It now also writes to 1.x (`/write?db=`).
+  The database and a `mynes_<N>d` retention policy are created on the first
+  write. Every scan, manual or scheduled, writes these measurements:
+  `mynes_scan`, `mynes_inventory` (counts by type/vendor/location),
+  `mynes_device` (tagged with mac, location, trust, medium, uplink, with
+  `status` as a field so a flapping device stays one series), `mynes_security`
+  (risk score and finding counts from the last analysis) and `mynes_alert`.
+  Configure it under Settings > Integrations, or with
+  `MYNES_INFLUX_URL` / `MYNES_INFLUX_DB` (and the optional
+  `MYNES_INFLUX_USER` / `MYNES_INFLUX_PASSWORD` / `MYNES_INFLUX_RETENTION_DAYS`).
+  The page now has **Export now** and shows the last export result, which is
+  also reported in `/api/capabilities`. `deploy/grafana/provision.py` installs
+  the datasource and the "MyNeS - Home Network" dashboard: availability
+  timeline, inventory, alerts by severity and rule, risk per device, new
+  devices.
+
+### Fixed
+
+- **The device list no longer goes blank after a detailed analysis.**
+  Analysis results put int (port) and str keys side by side in memory, and
+  Flask's sorted JSON then raised "'<' not supported between 'str' and 'int'"
+  on `/devices`, `/get_devices` and `/api/topology`. The home page showed 0
+  devices and the graph lost every uplink. Keys are now stringified when the
+  results are applied, and responses no longer sort keys. The page also keeps
+  the last good list and shows an error if a load fails.
+- **Scheduled scans are saved again.** The monitoring scheduler scanned but
+  never wrote `lan_devices.json`, and the home page and `/save_device` reloaded
+  that stale file over the fresh in-memory scan on every visit. On a live
+  install the inventory froze for three months: new devices never appeared and
+  every scan result was thrown away. The scheduler now saves, and the in-memory
+  list is only reloaded from disk on a cold start.
+- **One malformed record no longer drops the rest of the inventory from a
+  scan.** Docker-detected containers store `open_ports` as bare ints; migrating
+  one raised, and the single try/except around the load loop skipped every
+  device after it - their aliases, types and locations were not merged and
+  offline ones were not preserved. Int ports are accepted and each record is
+  guarded on its own.
+- **A device that DHCP moved to a new IP keeps its details.** A MAC that answers
+  on exactly one new IP is re-keyed onto its stored record (with
+  `previous_ips`), instead of coming back as a blank new device while alias,
+  type, location and trust stayed on an orphaned offline copy.
+- **Network Tools: traceroute works in the Docker image.** The slim image has no
+  `traceroute` binary; it is now installed, and a raw-ICMP (scapy) fallback runs
+  wherever the binary is missing.
+- **Network Tools: DNS lookup finds LAN names.** Home routers rarely serve PTR
+  records, so the lookup failed for nearly every device. It now falls back to
+  an mDNS reverse query (`kafein-mbp.local`) and then NetBIOS.
+- **The CasaOS/Umbrel `MYNES_HA_URL` / `MYNES_HA_TOKEN` variables are read.**
+  Only `HA_URL` / `HA_TOKEN` were, so the Home Assistant settings exposed in the
+  app store did nothing.
+
 ## [1.8.2] — 2026-09-27
 
 Two shipped changes: the login gate can now be turned on straight from the

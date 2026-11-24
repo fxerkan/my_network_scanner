@@ -1,0 +1,200 @@
+{
+  "uid": "mynes-network",
+  "title": "MyNeS - Home Network",
+  "tags": ["mynes", "network", "influxdb"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "5m",
+  "time": {"from": "now-7d", "to": "now"},
+  "graphTooltip": 1,
+  "templating": {
+    "list": [
+      {
+        "name": "type", "label": "Device type", "type": "query",
+        "datasource": {"type": "influxdb", "uid": "mynes-influx"},
+        "query": "SHOW TAG VALUES FROM \"mynes_device\" WITH KEY = \"type\"",
+        "refresh": 2, "multi": true, "includeAll": true,
+        "current": {"text": "All", "value": "$__all"}, "sort": 1
+      },
+      {
+        "name": "location", "label": "Location", "type": "query",
+        "datasource": {"type": "influxdb", "uid": "mynes-influx"},
+        "query": "SHOW TAG VALUES FROM \"mynes_device\" WITH KEY = \"location\"",
+        "refresh": 2, "multi": true, "includeAll": true,
+        "current": {"text": "All", "value": "$__all"}, "sort": 1
+      },
+      {
+        "name": "trust", "label": "Trust", "type": "query",
+        "datasource": {"type": "influxdb", "uid": "mynes-influx"},
+        "query": "SHOW TAG VALUES FROM \"mynes_device\" WITH KEY = \"trust\"",
+        "refresh": 2, "multi": true, "includeAll": true,
+        "current": {"text": "All", "value": "$__all"}, "sort": 1
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1, "type": "stat", "title": "Devices",
+      "gridPos": {"x": 0, "y": 0, "w": 4, "h": 4},
+      "datasource": {"type": "influxdb", "uid": "mynes-influx"},
+      "targets": [{"refId": "A", "rawQuery": true, "resultFormat": "time_series",
+        "query": "SELECT last(\"devices_total\") FROM \"mynes_scan\" WHERE $timeFilter"}],
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "colorMode": "value", "graphMode": "none"},
+      "fieldConfig": {"defaults": {"color": {"mode": "fixed", "fixedColor": "blue"}}, "overrides": []}
+    },
+    {
+      "id": 2, "type": "stat", "title": "Online",
+      "gridPos": {"x": 4, "y": 0, "w": 4, "h": 4},
+      "datasource": {"type": "influxdb", "uid": "mynes-influx"},
+      "targets": [{"refId": "A", "rawQuery": true, "resultFormat": "time_series",
+        "query": "SELECT last(\"devices_online\") FROM \"mynes_scan\" WHERE $timeFilter"}],
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "colorMode": "value", "graphMode": "area"},
+      "fieldConfig": {"defaults": {"color": {"mode": "fixed", "fixedColor": "green"}}, "overrides": []}
+    },
+    {
+      "id": 3, "type": "stat", "title": "Offline",
+      "gridPos": {"x": 8, "y": 0, "w": 4, "h": 4},
+      "datasource": {"type": "influxdb", "uid": "mynes-influx"},
+      "targets": [{"refId": "A", "rawQuery": true, "resultFormat": "time_series",
+        "query": "SELECT last(\"devices_offline\") FROM \"mynes_scan\" WHERE $timeFilter"}],
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "colorMode": "value", "graphMode": "none"},
+      "fieldConfig": {"defaults": {"color": {"mode": "fixed", "fixedColor": "orange"}}, "overrides": []}
+    },
+    {
+      "id": 4, "type": "stat", "title": "Alerts (time range)",
+      "gridPos": {"x": 12, "y": 0, "w": 4, "h": 4},
+      "datasource": {"type": "influxdb", "uid": "mynes-influx"},
+      "targets": [{"refId": "A", "rawQuery": true, "resultFormat": "time_series",
+        "query": "SELECT sum(\"count\") FROM \"mynes_alert\" WHERE $timeFilter"}],
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "colorMode": "value", "graphMode": "none"},
+      "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "noValue": "0",
+        "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "orange", "value": 1}, {"color": "red", "value": 20}]}}, "overrides": []}
+    },
+    {
+      "id": 5, "type": "stat", "title": "Highest risk score",
+      "gridPos": {"x": 16, "y": 0, "w": 4, "h": 4},
+      "datasource": {"type": "influxdb", "uid": "mynes-influx"},
+      "targets": [{"refId": "A", "rawQuery": true, "resultFormat": "time_series",
+        "query": "SELECT max(\"risk_score\") FROM \"mynes_security\" WHERE $timeFilter"}],
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "colorMode": "background", "graphMode": "none"},
+      "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "noValue": "-",
+        "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 5}, {"color": "orange", "value": 10}, {"color": "red", "value": 30}]}}, "overrides": []}
+    },
+    {
+      "id": 6, "type": "stat", "title": "Last scan duration",
+      "gridPos": {"x": 20, "y": 0, "w": 4, "h": 4},
+      "datasource": {"type": "influxdb", "uid": "mynes-influx"},
+      "targets": [{"refId": "A", "rawQuery": true, "resultFormat": "time_series",
+        "query": "SELECT last(\"duration_s\") FROM \"mynes_scan\" WHERE $timeFilter"}],
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "colorMode": "none", "graphMode": "area"},
+      "fieldConfig": {"defaults": {"unit": "s", "decimals": 0}, "overrides": []}
+    },
+    {
+      "id": 7, "type": "timeseries", "title": "Online devices over time",
+      "gridPos": {"x": 0, "y": 4, "w": 16, "h": 8},
+      "datasource": {"type": "influxdb", "uid": "mynes-influx"},
+      "targets": [
+        {"refId": "A", "rawQuery": true, "resultFormat": "time_series", "alias": "online",
+          "query": "SELECT last(\"devices_online\") FROM \"mynes_scan\" WHERE $timeFilter GROUP BY time($__interval) fill(none)"},
+        {"refId": "B", "rawQuery": true, "resultFormat": "time_series", "alias": "total",
+          "query": "SELECT last(\"devices_total\") FROM \"mynes_scan\" WHERE $timeFilter GROUP BY time($__interval) fill(none)"}
+      ],
+      "fieldConfig": {"defaults": {"custom": {"lineWidth": 2, "fillOpacity": 12, "spanNulls": true, "lineInterpolation": "stepAfter"}, "decimals": 0},
+        "overrides": [{"matcher": {"id": "byName", "options": "total"}, "properties": [{"id": "custom.fillOpacity", "value": 0}, {"id": "custom.lineStyle", "value": {"fill": "dash", "dash": [6, 4]}}]}]}
+    },
+    {
+      "id": 8, "type": "piechart", "title": "Devices by location",
+      "gridPos": {"x": 16, "y": 4, "w": 8, "h": 8},
+      "datasource": {"type": "influxdb", "uid": "mynes-influx"},
+      "targets": [{"refId": "A", "rawQuery": true, "resultFormat": "time_series", "alias": "$tag_value",
+        "query": "SELECT last(\"count\") FROM \"mynes_inventory\" WHERE \"kind\" = 'location' AND $timeFilter GROUP BY \"value\""}],
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "pieType": "donut", "legend": {"displayMode": "table", "placement": "right", "values": ["value"]}}
+    },
+    {
+      "id": 9, "type": "state-timeline", "title": "Device availability",
+      "description": "One row per device, green = online. Filter with the type / location / trust variables.",
+      "gridPos": {"x": 0, "y": 12, "w": 24, "h": 14},
+      "datasource": {"type": "influxdb", "uid": "mynes-influx"},
+      "targets": [{"refId": "A", "rawQuery": true, "resultFormat": "time_series", "alias": "$tag_name",
+        "query": "SELECT last(\"up\") FROM \"mynes_device\" WHERE \"ip\" =~ /^192\\.168\\./ AND \"type\" =~ /^$type$/ AND \"location\" =~ /^$location$/ AND \"trust\" =~ /^$trust$/ AND $timeFilter GROUP BY time($__interval), \"name\" fill(previous)"}],
+      "options": {"showValue": "never", "mergeValues": true, "rowHeight": 0.8, "legend": {"showLegend": false}},
+      "fieldConfig": {"defaults": {"color": {"mode": "thresholds"},
+        "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]},
+        "mappings": [{"type": "value", "options": {"0": {"text": "offline", "color": "red"}, "1": {"text": "online", "color": "green"}}}]}, "overrides": []}
+    },
+    {
+      "id": 10, "type": "bargauge", "title": "Devices by type",
+      "gridPos": {"x": 0, "y": 26, "w": 8, "h": 10},
+      "datasource": {"type": "influxdb", "uid": "mynes-influx"},
+      "targets": [{"refId": "A", "rawQuery": true, "resultFormat": "time_series", "alias": "$tag_value",
+        "query": "SELECT last(\"count\") FROM \"mynes_inventory\" WHERE \"kind\" = 'type' AND $timeFilter GROUP BY \"value\""}],
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "orientation": "horizontal", "displayMode": "gradient", "showUnfilled": true},
+      "fieldConfig": {"defaults": {"decimals": 0, "min": 0, "color": {"mode": "continuous-BlPu"}}, "overrides": []},
+      "transformations": [{"id": "sortBy", "options": {"sort": [{"field": "Value", "desc": true}]}}]
+    },
+    {
+      "id": 11, "type": "bargauge", "title": "Devices by vendor",
+      "gridPos": {"x": 8, "y": 26, "w": 8, "h": 10},
+      "datasource": {"type": "influxdb", "uid": "mynes-influx"},
+      "targets": [{"refId": "A", "rawQuery": true, "resultFormat": "time_series", "alias": "$tag_value",
+        "query": "SELECT last(\"count\") FROM \"mynes_inventory\" WHERE \"kind\" = 'vendor' AND $timeFilter GROUP BY \"value\""}],
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "orientation": "horizontal", "displayMode": "gradient", "showUnfilled": true},
+      "fieldConfig": {"defaults": {"decimals": 0, "min": 0, "color": {"mode": "continuous-GrYlRd"}}, "overrides": []}
+    },
+    {
+      "id": 12, "type": "bargauge", "title": "Security risk score per device",
+      "description": "From the last detailed analysis of each device (curated CVE patterns + exposed services such as Telnet).",
+      "gridPos": {"x": 16, "y": 26, "w": 8, "h": 10},
+      "datasource": {"type": "influxdb", "uid": "mynes-influx"},
+      "targets": [{"refId": "A", "rawQuery": true, "resultFormat": "time_series", "alias": "$tag_name",
+        "query": "SELECT last(\"risk_score\") FROM \"mynes_security\" WHERE $timeFilter GROUP BY \"name\""}],
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "orientation": "horizontal", "displayMode": "lcd", "showUnfilled": true},
+      "fieldConfig": {"defaults": {"min": 0, "max": 100, "color": {"mode": "thresholds"},
+        "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 5}, {"color": "orange", "value": 10}, {"color": "red", "value": 30}]}}, "overrides": []}
+    },
+    {
+      "id": 13, "type": "timeseries", "title": "Alerts over time by severity",
+      "gridPos": {"x": 0, "y": 36, "w": 12, "h": 8},
+      "datasource": {"type": "influxdb", "uid": "mynes-influx"},
+      "targets": [{"refId": "A", "rawQuery": true, "resultFormat": "time_series", "alias": "$tag_severity",
+        "query": "SELECT sum(\"count\") FROM \"mynes_alert\" WHERE $timeFilter GROUP BY time($__interval), \"severity\" fill(0)"}],
+      "fieldConfig": {"defaults": {"custom": {"drawStyle": "bars", "fillOpacity": 70, "stacking": {"mode": "normal"}}, "decimals": 0},
+        "overrides": [
+          {"matcher": {"id": "byName", "options": "critical"}, "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "red"}}]},
+          {"matcher": {"id": "byName", "options": "high"}, "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "orange"}}]},
+          {"matcher": {"id": "byName", "options": "medium"}, "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "yellow"}}]},
+          {"matcher": {"id": "byName", "options": "info"}, "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "blue"}}]}
+        ]}
+    },
+    {
+      "id": 14, "type": "timeseries", "title": "Alerts over time by rule",
+      "gridPos": {"x": 12, "y": 36, "w": 12, "h": 8},
+      "datasource": {"type": "influxdb", "uid": "mynes-influx"},
+      "targets": [{"refId": "A", "rawQuery": true, "resultFormat": "time_series", "alias": "$tag_rule",
+        "query": "SELECT sum(\"count\") FROM \"mynes_alert\" WHERE $timeFilter GROUP BY time($__interval), \"rule\" fill(0)"}],
+      "fieldConfig": {"defaults": {"custom": {"drawStyle": "bars", "fillOpacity": 70, "stacking": {"mode": "normal"}}, "decimals": 0}, "overrides": []}
+    },
+    {
+      "id": 15, "type": "table", "title": "New devices",
+      "gridPos": {"x": 0, "y": 44, "w": 12, "h": 9},
+      "datasource": {"type": "influxdb", "uid": "mynes-influx"},
+      "targets": [{"refId": "A", "rawQuery": true, "resultFormat": "table",
+        "query": "SELECT \"title\", \"device\", \"severity\" FROM \"mynes_alert\" WHERE \"rule\" = 'new_device' AND $timeFilter ORDER BY time DESC LIMIT 200"}],
+      "options": {"showHeader": true, "sortBy": [{"displayName": "Time", "desc": true}]}
+    },
+    {
+      "id": 16, "type": "table", "title": "Device inventory (latest)",
+      "gridPos": {"x": 12, "y": 44, "w": 12, "h": 9},
+      "datasource": {"type": "influxdb", "uid": "mynes-influx"},
+      "targets": [{"refId": "A", "rawQuery": true, "resultFormat": "table",
+        "query": "SELECT last(\"up\") AS \"online\", last(\"open_port_count\") AS \"ports\", last(\"risk_score\") AS \"risk\" FROM \"mynes_device\" WHERE \"ip\" =~ /^192\\.168\\./ AND \"type\" =~ /^$type$/ AND \"location\" =~ /^$location$/ AND \"trust\" =~ /^$trust$/ AND $timeFilter GROUP BY \"name\", \"ip\", \"type\", \"location\", \"trust\", \"uplink\""}],
+      "transformations": [{"id": "merge", "options": {}}, {"id": "organize", "options": {"excludeByName": {"Time": true}}}],
+      "fieldConfig": {"defaults": {}, "overrides": [
+        {"matcher": {"id": "byName", "options": "online"}, "properties": [
+          {"id": "mappings", "value": [{"type": "value", "options": {"0": {"text": "offline", "color": "red"}, "1": {"text": "online", "color": "green"}}}]},
+          {"id": "custom.cellOptions", "value": {"type": "color-text"}}]}
+      ]}
+    }
+  ]
+}

@@ -50,6 +50,11 @@ import json
 import os
 
 app = Flask(__name__)
+# Enhanced-analysis results carry dicts keyed by port number (int) next to
+# str keys; Flask's default sort_keys then raised "'<' not supported between
+# 'str' and 'int'" on /devices, and the device list rendered empty. Key order
+# carries no meaning in any response here.
+app.json.sort_keys = False
 # Use environment variable or generate a random secret key
 def _secret_key():
     """Stable across restarts, otherwise every restart signs everyone out.
@@ -113,6 +118,8 @@ from mynes.web.api import create_api  # noqa: E402  (needs `scanner` above)
 
 api_v2, monitor = create_api(scanner, scanner.get_config_manager())
 app.register_blueprint(api_v2)
+from mynes.web.insights_api import create_insights_api  # noqa: E402
+app.register_blueprint(create_insights_api(scanner))
 
 # Optional login gate. Off unless config enables it AND credentials exist in the
 # environment, so an existing install can never lock itself out on upgrade.
@@ -252,7 +259,8 @@ def scan_network_thread():
             "vendors": vendors
         }
         config_manager.save_scan_result(scan_result)
-        
+        _export_metrics(devices, scan_duration)
+
         scan_progress["status"] = "completed"
         scan_progress["stage"] = "completed"
         scan_progress["devices_found"] = len(devices)
@@ -261,6 +269,15 @@ def scan_network_thread():
         scan_progress["status"] = "error"
         scan_progress["stage"] = "error"
         scan_progress["message"] = f"Tarama hatası: {str(e)}"
+
+def _export_metrics(devices, duration_s):
+    """Manual scans feed InfluxDB too, not only the scheduler. Never raises:
+    metrics.export_scan degrades to (False, reason) on any failure."""
+    try:
+        from mynes.integrations import metrics as _metrics
+        _metrics.export_scan(devices, [], duration_s=duration_s)
+    except Exception as e:  # noqa: BLE001
+        log.warning("InfluxDB export after manual scan failed: %s", e)
 
 def scan_network_custom_thread(ip_range=None, include_offline=False):
     """Run the network scan with custom settings in a separate thread"""
@@ -301,6 +318,7 @@ def scan_network_custom_thread(ip_range=None, include_offline=False):
             "include_offline": include_offline
         }
         config_manager.save_scan_result(scan_result)
+        _export_metrics(devices, scan_duration)
 
         scan_progress["status"] = "completed"
         scan_progress["stage"] = "completed"
@@ -389,6 +407,13 @@ def alerts_page():
     return render_template('alerts.html', active_page='alerts')
 
 
+@app.route('/insights')
+def insights_page():
+    """Network Insights: internet path, DNS, what each device broadcasts and
+    where it is expected to talk. Passive - see analysis/insights.py."""
+    return render_template('insights.html', active_page='insights')
+
+
 @app.route('/security')
 def security_page():
     """Fleet-wide CVE/attack-surface overview with bulk acknowledge/watch/
@@ -433,8 +458,12 @@ def security_rescan():
 @app.route('/')
 def index():
     """Home page"""
-    # Önceki tarama sonuçlarını yükle
-    scanner.load_from_json()
+    # Load from disk only on a cold start. The in-memory list is authoritative
+    # once populated (scans and edits both write through to disk); reloading
+    # here on every page view replaced a fresh scheduled scan with the stale
+    # file and discarded it.
+    if not scanner.devices:
+        scanner.load_from_json()
     devices = scanner.get_devices()
     
     # Config'den cihaz tiplerini al
@@ -966,6 +995,9 @@ def sanitize_device_data():
         import shutil
         import os
         
+        # Flush memory first so the sanitizer works on (and the reload returns)
+        # the current inventory, not whatever the last save happened to be.
+        scanner.save_to_json()
         if os.path.exists(devices_file):
             shutil.copy2(devices_file, backup_file)
             
@@ -1902,8 +1934,10 @@ def save_device():
         if not ip:
             return jsonify({"success": False, "message": "IP adresi gerekli"}), 400
         
-        # Önce en güncel verileri yükle (credential manager'dan gelen değişiklikler dahil)
-        scanner.load_from_json()
+        # The in-memory list is authoritative (see index()); only fall back to
+        # disk on a cold start so an unsaved scan is never thrown away.
+        if not scanner.devices:
+            scanner.load_from_json()
         devices = scanner.get_devices()
         
         # Mevcut cihazı bul
@@ -1977,7 +2011,13 @@ def delete_device(ip):
         # Cihazı bul ve sil. ``ip`` is really a device key: an IP, or - for a
         # radio-only device with no IP - its MAC (same convention as update).
         key = (ip or '').lower()
+        # Two records can share an IP (a container's old and new MAC, a stale
+        # copy left by a DHCP move). ?mac= pins the exact one; without it the
+        # first match goes, as before.
+        want_mac = (request.args.get('mac') or '').lower()
         for i, device in enumerate(devices):
+            if want_mac and (device.get('mac') or '').lower() != want_mac:
+                continue
             if device.get('ip') == ip or (
                     not device.get('ip') and (device.get('mac') or '').lower() == key):
                 device_name = device.get('alias') or device.get('hostname') or ip
@@ -2162,6 +2202,14 @@ def get_credential_stats():
 def main():
     """Start the web UI. Entry point for `mynes` / `python -m mynes` / `app.py`."""
     scanner.load_from_json()
+    # Passive DHCP listener for the app's lifetime: the only source of the
+    # hostname most IoT devices give themselves. Optional - needs raw sockets.
+    try:
+        from mynes.discovery.dhcp import start_listener
+        lst = start_listener()
+        log.info("DHCP hostname listener: %s", "running" if lst.thread else f"off ({lst.error})")
+    except Exception as e:  # noqa: BLE001
+        log.warning("DHCP listener not started: %s", e)
 
     host = os.environ.get('MYNES_HOST', '0.0.0.0')
     port = int(os.environ.get('MYNES_PORT') or os.environ.get('FLASK_PORT') or 5883)

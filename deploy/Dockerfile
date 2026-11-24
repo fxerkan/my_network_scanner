@@ -24,7 +24,7 @@ LABEL org.opencontainers.image.version="${VERSION}"
 # gosu is gone too: its Go stdlib carried 39 CVEs and setpriv (util-linux, part
 # of the base image) does the same drop-to-user job. See entrypoint.sh.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    nmap iputils-ping net-tools iproute2 avahi-utils \
+    nmap iputils-ping traceroute net-tools iproute2 avahi-utils \
     libcap2-bin \
     && rm -rf /var/lib/apt/lists/* \
     && dpkg --force-remove-essential --force-depends --purge perl-base \

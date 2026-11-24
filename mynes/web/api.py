@@ -34,6 +34,34 @@ from mynes.security import cve as cve_mod
 log = logging.getLogger(__name__)
 
 
+def history_rows(devices: list) -> list[dict]:
+    """Pure: device records -> the few fields the History cross-filter uses.
+
+    Every value is coerced to a plain string so a stray non-str (an int vendor,
+    a None type) can never break JSON key sorting or the client's grouping.
+    """
+    def s(v, default=""):
+        return str(v).strip() if v not in (None, "") else default
+
+    rows = []
+    for d in devices or []:
+        if not isinstance(d, dict):
+            continue
+        ip, mac = s(d.get("ip")), s(d.get("mac")).lower()
+        rows.append({
+            "key": ip or mac,
+            "ip": ip,
+            "mac": mac,
+            "name": s(d.get("alias")) or s(d.get("hostname")) or ip or mac,
+            "device_type": s(d.get("device_type"), "Unknown"),
+            "vendor": s(d.get("vendor"), "Unknown"),
+            "status": "online" if d.get("status") == "online" else "offline",
+            "location": s(d.get("location")),
+            "last_seen": s(d.get("last_seen")),
+        })
+    return rows
+
+
 def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
     bp = Blueprint("api_v2", __name__, url_prefix="/api")
     monitor = MonitorScheduler(scanner, config_manager)
@@ -119,6 +147,16 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
         limit = max(1, min(int(request.args.get("limit", 48)), uptime.CAP))
         return jsonify({**uptime.series(limit), "enabled": monitor.settings()["enabled"]})
 
+    @bp.get("/history/inventory")
+    def history_inventory():
+        """Slim device rows for the History page's cross-filter.
+
+        The charts need type x vendor x status jointly, which the per-scan
+        history (separate type and vendor tallies) cannot give. /get_devices
+        would, but it ships every analysis blob - megabytes for a few fields.
+        """
+        return jsonify(history_rows(_devices()))
+
     # -- alerts -----------------------------------------------------------
     @bp.get("/alerts")
     def list_alerts():
@@ -170,11 +208,48 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
         client = HomeAssistantClient()
         return jsonify({"configured": client.configured(), "url": client.url or None, **client.ping()})
 
+    @bp.get("/integrations/home-assistant/settings")
+    def ha_settings_get():
+        """Non-secret HA settings: the token is never returned, only whether
+        one is stored (UI) or comes from the environment."""
+        from mynes.integrations import home_assistant as ha_mod
+        saved = ha_mod.load_settings()
+        client = HomeAssistantClient()
+        return jsonify({
+            "url": client.url or "",
+            "token_set": bool(client.token),
+            "token_source": "settings" if saved.get("token") else ("env" if client.token else None),
+            "auto_enrich": saved.get("auto_enrich") is not False,
+            "configured": client.configured(),
+            "last_enrich": dict(ha_mod.LAST_ENRICH),
+        })
+
+    @bp.post("/integrations/home-assistant/settings")
+    def ha_settings_set():
+        from mynes.integrations import home_assistant as ha_mod
+        body = request.get_json(silent=True) or {}
+        patch = {k: body[k] for k in ("url", "token", "clear_token") if k in body}
+        if "auto_enrich" in body:
+            patch["auto_enrich"] = bool(body["auto_enrich"])
+        ha_mod.save_settings(patch)
+        client = HomeAssistantClient()
+        return jsonify({"ok": True, "configured": client.configured(), **client.ping()})
+
+    @bp.post("/integrations/home-assistant/enrich")
+    def ha_enrich_now():
+        """Pull HA's device registry now and fold names/areas/models into the
+        device list (never over a user edit), then save."""
+        from mynes.integrations import home_assistant as ha_mod
+        result = ha_mod.enrich_scanner(scanner, force=True)
+        if result.get("ok"):
+            scanner.save_to_json()
+        return jsonify(result), (200 if result.get("ok") else 502)
+
     @bp.get("/integrations/home-assistant/devices")
     def ha_devices():
         client = HomeAssistantClient()
         if not client.configured():
-            return jsonify({"error": "set HA_URL and HA_TOKEN"}), 400
+            return jsonify({"error": "Home Assistant is not configured (Settings > Integrations, or HA_URL / HA_TOKEN)"}), 400
         try:
             return jsonify({"devices": client.devices()})
         except Exception as e:  # noqa: BLE001
@@ -185,7 +260,7 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
         """The notify.* services this HA install exposes, for the channel picker."""
         client = HomeAssistantClient()
         if not client.configured():
-            return jsonify({"error": "set HA_URL and HA_TOKEN"}), 400
+            return jsonify({"error": "Home Assistant is not configured (Settings > Integrations, or HA_URL / HA_TOKEN)"}), 400
         try:
             return jsonify({"services": client.notify_services()})
         except Exception as e:  # noqa: BLE001
@@ -195,11 +270,51 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
     def ha_compare():
         client = HomeAssistantClient()
         if not client.configured():
-            return jsonify({"error": "set HA_URL and HA_TOKEN"}), 400
+            return jsonify({"error": "Home Assistant is not configured (Settings > Integrations, or HA_URL / HA_TOKEN)"}), 400
         try:
             return jsonify(client.compare(_devices()))
         except Exception as e:  # noqa: BLE001
             return jsonify({"error": f"{type(e).__name__}: {e}"}), 502
+
+    @bp.get("/integrations/home-assistant/inventory")
+    def ha_inventory():
+        """Every HA device with status (active/inactive/disabled/not a device),
+        IP/MAC, integration, area, model and its MyNeS match - the Compare
+        table the user picks imports from."""
+        client = HomeAssistantClient()
+        if not client.configured():
+            return jsonify({"error": "Home Assistant is not configured (Settings > Integrations, or HA_URL / HA_TOKEN)"}), 400
+        try:
+            days = min(max(int(request.args.get("inactive_days", 14)), 1), 365)
+            return jsonify(client.inventory(_devices(), inactive_days=days))
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"error": f"{type(e).__name__}: {e}"}), 502
+
+    @bp.post("/integrations/home-assistant/import")
+    def ha_import():
+        """Import the HA devices the user selected: matched ones are enriched
+        (never over a user edit), unmatched ones are added as new devices.
+        The inventory is rebuilt server-side, so the client only sends ids."""
+        from mynes.integrations import home_assistant as ha_mod
+        body = request.get_json(silent=True) or {}
+        ids = [str(i) for i in (body.get("ids") or []) if i]
+        if not ids:
+            return jsonify({"error": "no devices selected"}), 400
+        client = HomeAssistantClient()
+        if not client.configured():
+            return jsonify({"error": "Home Assistant is not configured (Settings > Integrations, or HA_URL / HA_TOKEN)"}), 400
+        try:
+            inv = client.inventory(_devices())
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"error": f"{type(e).__name__}: {e}"}), 502
+        wanted = set(ids)
+        rows = [r for r in inv["devices"] if r["id"] in wanted]
+        results = ha_mod.import_devices(scanner.devices, rows)
+        scanner.save_to_json()
+        log.info("Home Assistant import: %d updated, %d created",
+                 sum(r["action"] == "updated" for r in results), sum(r["action"] == "created" for r in results))
+        return jsonify({"ok": True, "results": results,
+                        "missing": sorted(wanted - {r["id"] for r in rows})})
 
     @bp.post("/integrations/mqtt/publish")
     def mqtt_publish():
@@ -717,12 +832,23 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
         state = topology.load_state()
         devices = _devices()
         known = _known_subnets()
+        gateway = get_default_gateway()
+        try:
+            local_ips = [i["ip"] for i in scanner.get_local_machine_interfaces()]
+        except Exception:  # noqa: BLE001
+            local_ips = []
         tree = topology.build_tree(
-            devices, get_default_gateway(),
+            devices, gateway,
             uplinks=state["uplinks"], traced=state["traced"],
+            implied=topology.host_links(devices, local_ips, gateway),
         )
         for node in tree["nodes"]:
-            node["subnet"] = subnets_mod.subnet_for_ip(node.get("ip"), known)
+            # A virtual infra node (unmanaged switch) has no IP; it sits in the
+            # subnet it was drawn into (subnet_hint, e.g. "192.168.1").
+            ip = node.get("ip")
+            if node.get("virtual") and node.get("subnet_hint"):
+                ip = f"{node['subnet_hint']}.0"
+            node["subnet"] = subnets_mod.subnet_for_ip(ip, known)
         return jsonify(
             {
                 **tree,
@@ -860,6 +986,30 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
             }
         )
 
+    def _influx_capability():
+        cfg = metrics_mod.resolve_config()
+        last = dict(metrics_mod.LAST_EXPORT)
+        if not metrics_mod.influx_configured(cfg):
+            detail = "not configured - Settings > Integrations, or MYNES_INFLUX_URL"
+        elif not cfg["enabled"]:
+            detail = "configured but disabled"
+        else:
+            detail = f"InfluxDB {cfg['version']}.x at {cfg['url']} - last export: {last.get('msg')}"
+        return {"available": bool(cfg["enabled"] and metrics_mod.influx_configured(cfg)
+                                   and last.get("ok") is not False),
+                "detail": detail, "last_export": last}
+
+    def _dhcp_capability():
+        """Passive DHCP listener: where device names like "Petkit_T4" come from."""
+        from mynes.discovery import dhcp as dhcp_mod
+        lst = dhcp_mod._listener
+        known = len((lst.table if lst else {}) or {})
+        if lst and lst.thread and lst.thread.is_alive():
+            return {"available": True, "known_devices": known,
+                    "detail": "listening; each device appears when it next renews its DHCP lease (within a day)"}
+        return {"available": False, "known_devices": known,
+                "detail": (lst.error if lst else None) or "listener not started (needs raw-socket privileges)"}
+
     @bp.get("/capabilities")
     def capabilities():
         """What this install can actually do - drives the UI's warnings.
@@ -906,6 +1056,8 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
                     "ping": bool(shutil.which("ping")),
                     "traceroute": bool(shutil.which("traceroute") or shutil.which("tracert")),
                 },
+                "influxdb": _influx_capability(),
+                "dhcp_hostnames": _dhcp_capability(),
                 "vulnerability_scan": {
                     "available": True,
                     "detail": "curated CVE pattern table matched against known service "
@@ -932,13 +1084,19 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
         return jsonify(
             {
                 "enabled": cfg["enabled"],
+                "version": cfg["version"],
                 "url": cfg["url"],
                 "org": cfg["org"],
                 "bucket": cfg["bucket"],
                 "token_set": bool(cfg["token"]),
+                "database": cfg["database"],
+                "username": cfg["username"],
+                "password_set": bool(cfg["password"]),
+                "retention_days": cfg["retention_days"],
                 "prometheus_enabled": cfg["prometheus_enabled"],
                 "prometheus_scrape_path": "/api/metrics",
                 "configured": metrics_mod.influx_configured(cfg),
+                "last_export": dict(metrics_mod.LAST_EXPORT),
             }
         )
 
@@ -954,31 +1112,58 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
         settings = monitor.settings()
         existing = settings.get("metrics") if isinstance(settings.get("metrics"), dict) else {}
 
+        version = str(body.get("version", existing.get("version", "")) or "")
+        try:
+            retention = max(1, int(body.get("retention_days", existing.get("retention_days", 400)) or 400))
+        except (TypeError, ValueError):
+            retention = 400
         metrics = {
             "enabled": bool(body.get("enabled", existing.get("enabled", False))),
+            "version": version if version in ("1", "2") else "",
             "url": (body.get("url") or existing.get("url") or "").rstrip("/"),
             "org": body.get("org", existing.get("org", "")) or "",
             "bucket": body.get("bucket", existing.get("bucket", "")) or "",
+            "database": (body.get("database") or existing.get("database") or "mynes").strip(),
+            "username": body.get("username", existing.get("username", "")) or "",
+            "retention_days": retention,
             "prometheus_enabled": bool(
                 body.get("prometheus_enabled", existing.get("prometheus_enabled", True))
             ),
-            # Keep the old token unless a new non-empty one was supplied.
+            # Keep the stored secrets unless a new non-empty one was supplied.
             "token": (body.get("token") or "").strip() or existing.get("token", ""),
+            "password": (body.get("password") or "") or existing.get("password", ""),
         }
         monitor.update_settings({"metrics": metrics})
-        return jsonify({"ok": True, "token_set": bool(metrics["token"])})
+        return jsonify({"ok": True, "token_set": bool(metrics["token"]),
+                        "password_set": bool(metrics["password"])})
 
     @bp.post("/integrations/metrics/test")
     def metrics_test():
-        """Push a tiny sample line to InfluxDB and report the result."""
+        """Check the InfluxDB connection with a one-point write to mynes_test.
+
+        On 1.x the database and retention policy are created first, so a fresh
+        install can press Test once and be ready. A dedicated measurement keeps
+        the probe out of the real mynes_* series."""
         cfg = metrics_mod.resolve_config()
         if not metrics_mod.influx_configured(cfg):
-            return jsonify({"ok": False, "msg": "InfluxDB not configured (need url, token, org, bucket)"}), 400
+            return jsonify({"ok": False, "msg": "InfluxDB not configured (1.x: url + database; 2.x: url, token, org, bucket)"}), 400
         import time as _t
 
-        sample = metrics_mod.influx_line_protocol(_devices()[:1], [], ts=int(_t.time()))
-        ok, msg = metrics_mod.push_influx(sample, cfg)
+        if cfg["version"] != "2":
+            ok, msg = metrics_mod.ensure_database(cfg)
+            if not ok:
+                return jsonify({"ok": False, "msg": msg})
+        ok, msg = metrics_mod.push_influx(f"mynes_test ok=1i {int(_t.time())}\n", cfg)
         return jsonify({"ok": ok, "msg": msg})
+
+    @bp.post("/integrations/metrics/export")
+    def metrics_export_now():
+        """Export the current inventory to InfluxDB now, without waiting for a scan."""
+        cfg = metrics_mod.resolve_config()
+        if not metrics_mod.influx_configured(cfg):
+            return jsonify({"ok": False, "msg": "InfluxDB not configured"}), 400
+        ok, msg = metrics_mod.export_scan(_devices(), [], config={**cfg, "enabled": True})
+        return jsonify({"ok": ok, "msg": msg, "last_export": dict(metrics_mod.LAST_EXPORT)})
 
     # -- API catalog ------------------------------------------------------
     def _api_routes():
