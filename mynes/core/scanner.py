@@ -1349,6 +1349,18 @@ class LANScanner:
                             except Exception as e:  # noqa: BLE001
                                 print(f"⚠️ Could not migrate {ip} ({mac}): {e} - keeping it as stored")
                                 unified_device = dict(device)
+                            prior = existing_devices.get(device_key)
+                            if prior is not None:
+                                # Two stored records for one device (e.g. a BLE
+                                # address saved in two cases). Keep the one a
+                                # human edited, backfill the rest - never let the
+                                # later copy silently replace the edited one.
+                                keep, other = (prior, unified_device) if prior.get('user_modified') \
+                                    else (unified_device, prior)
+                                for k, v in other.items():
+                                    if v not in (None, '', [], {}) and keep.get(k) in (None, '', [], {}):
+                                        keep[k] = v
+                                unified_device = keep
                             existing_devices[device_key] = unified_device
                             print(f"📤 Legacy data migrated: {ip} (MAC: {mac}) - {unified_device.get('alias', 'N/A')}")
             except Exception as e:
