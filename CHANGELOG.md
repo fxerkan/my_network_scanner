@@ -6,6 +6,25 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **InfluxDB 1.x export, plus a ready Grafana dashboard.** The metrics push only
+  spoke InfluxDB 2 (token/org/bucket). It now also writes to 1.x (`/write?db=`).
+  The database and a `mynes_<N>d` retention policy are created on the first
+  write. Every scan, manual or scheduled, writes these measurements:
+  `mynes_scan`, `mynes_inventory` (counts by type/vendor/location),
+  `mynes_device` (tagged with mac, location, trust, medium, uplink, with
+  `status` as a field so a flapping device stays one series), `mynes_security`
+  (risk score and finding counts from the last analysis) and `mynes_alert`.
+  Configure it under Settings > Integrations, or with
+  `MYNES_INFLUX_URL` / `MYNES_INFLUX_DB` (and the optional
+  `MYNES_INFLUX_USER` / `MYNES_INFLUX_PASSWORD` / `MYNES_INFLUX_RETENTION_DAYS`).
+  The page now has **Export now** and shows the last export result, which is
+  also reported in `/api/capabilities`. `deploy/grafana/provision.py` installs
+  the datasource and the "MyNeS - Home Network" dashboard: availability
+  timeline, inventory, alerts by severity and rule, risk per device, new
+  devices.
+
 ### Fixed
 
 - **Scheduled scans are saved again.** The monitoring scheduler scanned but

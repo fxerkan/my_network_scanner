@@ -87,7 +87,7 @@ function switchDbTab(name) {
     }
 }
 
-/* Integrations tab: InfluxDB2 push settings (secret token stays server-side),
+/* Integrations tab: InfluxDB 1.x/2.x push settings (secrets stay server-side),
  * the Prometheus scrape URL, and a live REST API catalog. */
 let _integrationsMounted = false;
 function setupIntegrationsTab() {
@@ -101,6 +101,8 @@ function setupIntegrationsTab() {
 
     document.getElementById('influxSaveBtn').addEventListener('click', saveIntegrationsMetrics);
     document.getElementById('influxTestBtn').addEventListener('click', testIntegrationsMetrics);
+    document.getElementById('influxExportBtn').addEventListener('click', exportIntegrationsMetricsNow);
+    document.getElementById('influxVersion').addEventListener('change', syncInfluxVersionFields);
     document.getElementById('catalogLoadBtn').addEventListener('click', loadApiCatalog);
     document.getElementById('openapiDownloadBtn').addEventListener('click', downloadOpenApi);
     loadIntegrationsMetrics();
@@ -339,22 +341,61 @@ async function downloadOpenApi() {
     }
 }
 
+function syncInfluxVersionFields() {
+    const v = document.getElementById('influxVersion').value;
+    document.querySelectorAll('[data-influx-v]').forEach(el => {
+        el.style.display = el.dataset.influxV === v ? '' : 'none';
+    });
+}
+
+function renderInfluxLastExport(last) {
+    const box = document.getElementById('influxLastExport');
+    if (!box) return;
+    if (!last || !last.at) { box.textContent = t('metrics_last_export_none'); return; }
+    box.textContent = `${t('metrics_last_export')}: ${last.at} — ${last.ok ? '✓' : '✗'} ${last.msg || ''}`;
+}
+
 async function loadIntegrationsMetrics() {
     try {
         const cfg = await (await fetch('/api/integrations/metrics')).json();
+        document.getElementById('influxVersion').value = cfg.version || '1';
         document.getElementById('influxUrl').value = cfg.url || '';
+        document.getElementById('influxDatabase').value = cfg.database || 'mynes';
+        document.getElementById('influxRetention').value = cfg.retention_days || 400;
+        document.getElementById('influxUsername').value = cfg.username || '';
         document.getElementById('influxOrg').value = cfg.org || '';
         document.getElementById('influxBucket').value = cfg.bucket || '';
         document.getElementById('influxEnabled').checked = !!cfg.enabled;
-        // The token is never returned; show a hint when one is already stored.
+        // Secrets are never returned; show a hint when one is already stored.
         const tok = document.getElementById('influxToken');
         tok.placeholder = cfg.token_set ? t('metrics_token_saved') : t('metrics_influx_token_placeholder');
+        document.getElementById('influxPassword').placeholder = cfg.password_set ? t('metrics_token_saved') : '';
+        syncInfluxVersionFields();
+        renderInfluxLastExport(cfg.last_export);
     } catch (_) { /* leave the form blank */ }
+}
+
+async function exportIntegrationsMetricsNow() {
+    const status = document.getElementById('influxStatus');
+    status.textContent = t('testing');
+    try {
+        const res = await fetch('/api/integrations/metrics/export', { method: 'POST' });
+        const data = await res.json();
+        status.textContent = (data.ok ? '✓ ' : '✗ ') + (data.msg || '');
+        renderInfluxLastExport(data.last_export);
+    } catch (e) {
+        status.textContent = '✗ ' + e.message;
+    }
 }
 
 async function saveIntegrationsMetrics() {
     const payload = {
+        version: document.getElementById('influxVersion').value,
         url: document.getElementById('influxUrl').value.trim(),
+        database: document.getElementById('influxDatabase').value.trim(),
+        retention_days: parseInt(document.getElementById('influxRetention').value, 10) || 400,
+        username: document.getElementById('influxUsername').value.trim(),
+        password: document.getElementById('influxPassword').value,
         org: document.getElementById('influxOrg').value.trim(),
         bucket: document.getElementById('influxBucket').value.trim(),
         token: document.getElementById('influxToken').value,
@@ -370,6 +411,7 @@ async function saveIntegrationsMetrics() {
         if (data.ok) {
             showAlert(t('metrics_saved'));
             document.getElementById('influxToken').value = '';
+            document.getElementById('influxPassword').value = '';
             loadIntegrationsMetrics();
         } else {
             showAlert(data.error || t('settings_save_error'), 'error');

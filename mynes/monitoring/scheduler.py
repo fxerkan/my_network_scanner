@@ -241,7 +241,8 @@ class MonitorScheduler:
 
         # Optional InfluxDB push for Grafana. Guarded and degrading - a broken
         # or unreachable Influx endpoint must never fail a scan.
-        self._push_metrics(list(current.values()), alert_dicts)
+        self._push_metrics(list(current.values()), alert_dicts,
+                           duration_s=time.monotonic() - started)
 
         # Optional periodic CVE-pattern overlay refresh. Cheap, fully guarded:
         # only fires when enabled AND the overlay is older than the interval,
@@ -315,18 +316,12 @@ class MonitorScheduler:
         except Exception as e:  # noqa: BLE001
             log.warning("MQTT publish failed: %s", e)
 
-    def _push_metrics(self, devices, alerts):
+    def _push_metrics(self, devices, alerts, duration_s=None):
         """Push this scan to InfluxDB when configured. Never raises."""
         try:
             from mynes.integrations import metrics
 
-            cfg = metrics.resolve_config()
-            if not (cfg["enabled"] and metrics.influx_configured(cfg)):
-                return
-            line = metrics.influx_line_protocol(devices, alerts, ts=int(time.time()))
-            ok, msg = metrics.push_influx(line, cfg)
-            if not ok:
-                log.warning("InfluxDB metrics push failed: %s", msg)
+            metrics.export_scan(devices, alerts, duration_s=duration_s)
         except Exception as e:  # noqa: BLE001 - a metrics push must not break a scan
             log.warning("InfluxDB metrics push errored: %s", e)
 

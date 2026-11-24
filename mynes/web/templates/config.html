@@ -463,18 +463,41 @@
                     <p style="margin-bottom: var(--space-4); color: var(--text-secondary);">{{ _('metrics_influxdb_hint') }}</p>
                     <div class="filter-grid">
                         <div class="filter-group">
+                            <label class="filter-label" for="influxVersion">{{ _('metrics_influx_version') }}</label>
+                            <select class="form-input" id="influxVersion">
+                                <option value="1">InfluxDB 1.x</option>
+                                <option value="2">InfluxDB 2.x</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
                             <label class="filter-label" for="influxUrl">{{ _('metrics_influx_url') }}</label>
                             <input type="text" class="form-input" id="influxUrl" placeholder="http://localhost:8086">
                         </div>
-                        <div class="filter-group">
+                        <div class="filter-group" data-influx-v="1">
+                            <label class="filter-label" for="influxDatabase">{{ _('metrics_influx_database') }}</label>
+                            <input type="text" class="form-input" id="influxDatabase" placeholder="mynes">
+                        </div>
+                        <div class="filter-group" data-influx-v="1">
+                            <label class="filter-label" for="influxRetention">{{ _('metrics_influx_retention') }}</label>
+                            <input type="number" min="1" class="form-input" id="influxRetention" placeholder="400">
+                        </div>
+                        <div class="filter-group" data-influx-v="1">
+                            <label class="filter-label" for="influxUsername">{{ _('metrics_influx_username') }}</label>
+                            <input type="text" class="form-input" id="influxUsername" autocomplete="off">
+                        </div>
+                        <div class="filter-group" data-influx-v="1">
+                            <label class="filter-label" for="influxPassword">{{ _('metrics_influx_password') }}</label>
+                            <input type="password" class="form-input" id="influxPassword" autocomplete="new-password">
+                        </div>
+                        <div class="filter-group" data-influx-v="2">
                             <label class="filter-label" for="influxOrg">{{ _('metrics_influx_org') }}</label>
                             <input type="text" class="form-input" id="influxOrg">
                         </div>
-                        <div class="filter-group">
+                        <div class="filter-group" data-influx-v="2">
                             <label class="filter-label" for="influxBucket">{{ _('metrics_influx_bucket') }}</label>
                             <input type="text" class="form-input" id="influxBucket">
                         </div>
-                        <div class="filter-group">
+                        <div class="filter-group" data-influx-v="2">
                             <label class="filter-label" for="influxToken">{{ _('metrics_influx_token') }}</label>
                             <input type="password" class="form-input" id="influxToken" autocomplete="off" placeholder="{{ _('metrics_influx_token_placeholder') }}">
                         </div>
@@ -482,11 +505,13 @@
                     <div class="filter-toggles" style="margin: var(--space-4) 0;">
                         <label class="filter-toggle"><input type="checkbox" id="influxEnabled"> {{ _('enabled') }}</label>
                     </div>
-                    <div style="display: flex; gap: var(--space-2);">
+                    <div style="display: flex; gap: var(--space-2); flex-wrap: wrap;">
                         <button class="btn btn-small" id="influxSaveBtn">{{ _('save') }}</button>
                         <button class="btn btn-small btn-secondary" id="influxTestBtn">{{ _('test') }}</button>
+                        <button class="btn btn-small btn-secondary" id="influxExportBtn">{{ _('metrics_export_now') }}</button>
                     </div>
                     <div id="influxStatus" style="margin-top: var(--space-3); color: var(--text-secondary);"></div>
+                    <div id="influxLastExport" class="form-hint" style="margin-top: var(--space-2);"></div>
                 </div>
 
                 <div class="card">

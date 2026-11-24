@@ -860,6 +860,19 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
             }
         )
 
+    def _influx_capability():
+        cfg = metrics_mod.resolve_config()
+        last = dict(metrics_mod.LAST_EXPORT)
+        if not metrics_mod.influx_configured(cfg):
+            detail = "not configured - Settings > Integrations, or MYNES_INFLUX_URL"
+        elif not cfg["enabled"]:
+            detail = "configured but disabled"
+        else:
+            detail = f"InfluxDB {cfg['version']}.x at {cfg['url']} - last export: {last.get('msg')}"
+        return {"available": bool(cfg["enabled"] and metrics_mod.influx_configured(cfg)
+                                   and last.get("ok") is not False),
+                "detail": detail, "last_export": last}
+
     @bp.get("/capabilities")
     def capabilities():
         """What this install can actually do - drives the UI's warnings.
@@ -906,6 +919,7 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
                     "ping": bool(shutil.which("ping")),
                     "traceroute": bool(shutil.which("traceroute") or shutil.which("tracert")),
                 },
+                "influxdb": _influx_capability(),
                 "vulnerability_scan": {
                     "available": True,
                     "detail": "curated CVE pattern table matched against known service "
@@ -932,13 +946,19 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
         return jsonify(
             {
                 "enabled": cfg["enabled"],
+                "version": cfg["version"],
                 "url": cfg["url"],
                 "org": cfg["org"],
                 "bucket": cfg["bucket"],
                 "token_set": bool(cfg["token"]),
+                "database": cfg["database"],
+                "username": cfg["username"],
+                "password_set": bool(cfg["password"]),
+                "retention_days": cfg["retention_days"],
                 "prometheus_enabled": cfg["prometheus_enabled"],
                 "prometheus_scrape_path": "/api/metrics",
                 "configured": metrics_mod.influx_configured(cfg),
+                "last_export": dict(metrics_mod.LAST_EXPORT),
             }
         )
 
@@ -954,31 +974,58 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
         settings = monitor.settings()
         existing = settings.get("metrics") if isinstance(settings.get("metrics"), dict) else {}
 
+        version = str(body.get("version", existing.get("version", "")) or "")
+        try:
+            retention = max(1, int(body.get("retention_days", existing.get("retention_days", 400)) or 400))
+        except (TypeError, ValueError):
+            retention = 400
         metrics = {
             "enabled": bool(body.get("enabled", existing.get("enabled", False))),
+            "version": version if version in ("1", "2") else "",
             "url": (body.get("url") or existing.get("url") or "").rstrip("/"),
             "org": body.get("org", existing.get("org", "")) or "",
             "bucket": body.get("bucket", existing.get("bucket", "")) or "",
+            "database": (body.get("database") or existing.get("database") or "mynes").strip(),
+            "username": body.get("username", existing.get("username", "")) or "",
+            "retention_days": retention,
             "prometheus_enabled": bool(
                 body.get("prometheus_enabled", existing.get("prometheus_enabled", True))
             ),
-            # Keep the old token unless a new non-empty one was supplied.
+            # Keep the stored secrets unless a new non-empty one was supplied.
             "token": (body.get("token") or "").strip() or existing.get("token", ""),
+            "password": (body.get("password") or "") or existing.get("password", ""),
         }
         monitor.update_settings({"metrics": metrics})
-        return jsonify({"ok": True, "token_set": bool(metrics["token"])})
+        return jsonify({"ok": True, "token_set": bool(metrics["token"]),
+                        "password_set": bool(metrics["password"])})
 
     @bp.post("/integrations/metrics/test")
     def metrics_test():
-        """Push a tiny sample line to InfluxDB and report the result."""
+        """Check the InfluxDB connection with a one-point write to mynes_test.
+
+        On 1.x the database and retention policy are created first, so a fresh
+        install can press Test once and be ready. A dedicated measurement keeps
+        the probe out of the real mynes_* series."""
         cfg = metrics_mod.resolve_config()
         if not metrics_mod.influx_configured(cfg):
-            return jsonify({"ok": False, "msg": "InfluxDB not configured (need url, token, org, bucket)"}), 400
+            return jsonify({"ok": False, "msg": "InfluxDB not configured (1.x: url + database; 2.x: url, token, org, bucket)"}), 400
         import time as _t
 
-        sample = metrics_mod.influx_line_protocol(_devices()[:1], [], ts=int(_t.time()))
-        ok, msg = metrics_mod.push_influx(sample, cfg)
+        if cfg["version"] != "2":
+            ok, msg = metrics_mod.ensure_database(cfg)
+            if not ok:
+                return jsonify({"ok": False, "msg": msg})
+        ok, msg = metrics_mod.push_influx(f"mynes_test ok=1i {int(_t.time())}\n", cfg)
         return jsonify({"ok": ok, "msg": msg})
+
+    @bp.post("/integrations/metrics/export")
+    def metrics_export_now():
+        """Export the current inventory to InfluxDB now, without waiting for a scan."""
+        cfg = metrics_mod.resolve_config()
+        if not metrics_mod.influx_configured(cfg):
+            return jsonify({"ok": False, "msg": "InfluxDB not configured"}), 400
+        ok, msg = metrics_mod.export_scan(_devices(), [], config={**cfg, "enabled": True})
+        return jsonify({"ok": ok, "msg": msg, "last_export": dict(metrics_mod.LAST_EXPORT)})
 
     # -- API catalog ------------------------------------------------------
     def _api_routes():

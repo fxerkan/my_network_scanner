@@ -252,7 +252,8 @@ def scan_network_thread():
             "vendors": vendors
         }
         config_manager.save_scan_result(scan_result)
-        
+        _export_metrics(devices, scan_duration)
+
         scan_progress["status"] = "completed"
         scan_progress["stage"] = "completed"
         scan_progress["devices_found"] = len(devices)
@@ -261,6 +262,15 @@ def scan_network_thread():
         scan_progress["status"] = "error"
         scan_progress["stage"] = "error"
         scan_progress["message"] = f"Tarama hatası: {str(e)}"
+
+def _export_metrics(devices, duration_s):
+    """Manual scans feed InfluxDB too, not only the scheduler. Never raises:
+    metrics.export_scan degrades to (False, reason) on any failure."""
+    try:
+        from mynes.integrations import metrics as _metrics
+        _metrics.export_scan(devices, [], duration_s=duration_s)
+    except Exception as e:  # noqa: BLE001
+        log.warning("InfluxDB export after manual scan failed: %s", e)
 
 def scan_network_custom_thread(ip_range=None, include_offline=False):
     """Run the network scan with custom settings in a separate thread"""
@@ -301,6 +311,7 @@ def scan_network_custom_thread(ip_range=None, include_offline=False):
             "include_offline": include_offline
         }
         config_manager.save_scan_result(scan_result)
+        _export_metrics(devices, scan_duration)
 
         scan_progress["status"] = "completed"
         scan_progress["stage"] = "completed"
