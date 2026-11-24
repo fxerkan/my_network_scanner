@@ -666,6 +666,20 @@
     color: var(--text-tertiary);
     text-transform: uppercase;
 }
+/* Add-pattern row: the pattern gets the room. As a flex row the searchable
+   type dropdown (a width:100% block) swallowed it down to a few pixels. */
+.pattern-add {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(140px, 200px) auto;
+    gap: 10px;
+    margin-bottom: 10px;
+    align-items: center;
+}
+.pattern-add .form-input { min-width: 0; width: 100%; font-family: var(--font-mono); }
+@media (max-width: 700px) {
+    .pattern-add { grid-template-columns: minmax(0, 1fr) auto; }
+    .pattern-add .form-input { grid-column: 1 / -1; }
+}
 .combined-rule-add {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(140px, 190px) auto;

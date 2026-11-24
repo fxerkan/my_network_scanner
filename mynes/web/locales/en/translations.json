@@ -1299,5 +1299,9 @@
   "dd_dhcp_vclass": "DHCP vendor class",
   "dd_vendor_probes": "Vendor protocol answers",
   "dd_raw_attrs": "Raw discovery attributes",
-  "dd_disc_none": "Nothing announced yet over DHCP, mDNS, SSDP, ONVIF or Bluetooth. DHCP names appear when the device next renews its lease (usually within a day)."
+  "dd_disc_none": "Nothing announced yet over DHCP, mDNS, SSDP, ONVIF or Bluetooth. DHCP names appear when the device next renews its lease (usually within a day).",
+  "kpi_total_hint": "Show all devices (clear status/type/vendor filters)",
+  "kpi_online_hint": "Show only online devices",
+  "kpi_types_hint": "Pick a device type to filter by",
+  "kpi_vendors_hint": "Pick a vendor to filter by"
 }

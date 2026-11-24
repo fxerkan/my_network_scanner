@@ -344,9 +344,9 @@
                         
                         <div class="form-group">
                             <label class="form-label">{{ _('add_new_pattern') }} <span class="regex-help" tabindex="0" title="{{ _('regex_help_tooltip') }}" aria-label="{{ _('regex_help_tooltip') }}"><svg class="ds-icon" aria-hidden="true"><use href="#i-info"/></svg></span></label>
-                            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-                                <input type="text" class="form-input" id="newHostnamePattern" placeholder="android|samsung" style="flex: 1;">
-                                <select class="form-select" id="newHostnameDeviceType" style="width: 150px;">
+                            <div class="pattern-add">
+                                <input type="text" class="form-input" id="newHostnamePattern" placeholder="android|samsung" aria-label="RegEx">
+                                <select class="form-select" id="newHostnameDeviceType">
                                     <option value="">{{ _('select_device_type') }}</option>
                                 </select>
                                 <button type="button" class="btn btn-small" onclick="addHostnamePattern()"><svg class="ds-icon" aria-hidden="true"><use href="#i-plus"/></svg>{{ _('add') }}</button>
@@ -364,9 +364,9 @@
                         
                         <div class="form-group">
                             <label class="form-label">{{ _('add_new_pattern') }} <span class="regex-help" tabindex="0" title="{{ _('regex_help_tooltip') }}" aria-label="{{ _('regex_help_tooltip') }}"><svg class="ds-icon" aria-hidden="true"><use href="#i-info"/></svg></span></label>
-                            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-                                <input type="text" class="form-input" id="newVendorPattern" placeholder="Apple|Samsung|Google" style="flex: 1;">
-                                <select class="form-select" id="newVendorDeviceType" style="width: 150px;">
+                            <div class="pattern-add">
+                                <input type="text" class="form-input" id="newVendorPattern" placeholder="Apple|Samsung|Google" aria-label="RegEx">
+                                <select class="form-select" id="newVendorDeviceType">
                                     <option value="">{{ _('select_device_type') }}</option>
                                 </select>
                                 <button type="button" class="btn btn-small" onclick="addVendorPattern()"><svg class="ds-icon" aria-hidden="true"><use href="#i-plus"/></svg>{{ _('add') }}</button>

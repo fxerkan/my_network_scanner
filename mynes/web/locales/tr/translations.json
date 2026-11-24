@@ -1299,5 +1299,9 @@
   "dd_dhcp_vclass": "DHCP vendor class",
   "dd_vendor_probes": "Üretici protokolü cevapları",
   "dd_raw_attrs": "Ham keşif öznitelikleri",
-  "dd_disc_none": "DHCP, mDNS, SSDP, ONVIF veya Bluetooth üzerinden henüz bir duyuru yok. DHCP adları cihaz kirasını yenilediğinde (genelde bir gün içinde) görünür."
+  "dd_disc_none": "DHCP, mDNS, SSDP, ONVIF veya Bluetooth üzerinden henüz bir duyuru yok. DHCP adları cihaz kirasını yenilediğinde (genelde bir gün içinde) görünür.",
+  "kpi_total_hint": "Tüm cihazları göster (durum/tip/üretici filtrelerini temizle)",
+  "kpi_online_hint": "Yalnız çevrimiçi cihazları göster",
+  "kpi_types_hint": "Filtrelemek için bir cihaz tipi seç",
+  "kpi_vendors_hint": "Filtrelemek için bir üretici seç"
 }
