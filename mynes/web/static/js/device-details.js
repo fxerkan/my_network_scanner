@@ -22,6 +22,22 @@
 
 const DD = { ctx: {}, seq: 0 };
 
+/* The HA URL MyNeS uses is server-side (often http://127.0.0.1:8123 when both
+ * run on one host); a link for the browser must point at the host the browser
+ * reached MyNeS on instead. */
+function browserHaUrl(url) {
+    if (!url) return '';
+    try {
+        const u = new URL(url);
+        if (['127.0.0.1', 'localhost', '::1', '[::1]'].includes(u.hostname)) {
+            u.hostname = window.location.hostname;
+        }
+        return u.toString().replace(/\/$/, '');
+    } catch (_) {
+        return url;
+    }
+}
+
 function ddEsc(v) {
     return String(v == null ? '' : v).replace(/[&<>"']/g, c =>
         ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -261,7 +277,7 @@ async function ddLoadContext(device) {
     const urow = ((uptime && uptime.devices) || []).find(u =>
         (u.ip && u.ip === device.ip) || (u.mac && device.mac && u.mac.toLowerCase() === device.mac.toLowerCase()) ||
         u.id === key) || null;
-    DD.ctx = { topo: node, gateway: topo && topo.gateway, haUrl: (ha && ha.url) || '', uptime: urow, security: sec };
+    DD.ctx = { topo: node, gateway: topo && topo.gateway, haUrl: browserHaUrl((ha && ha.url) || ''), uptime: urow, security: sec };
     if (typeof currentDevice !== 'undefined' && currentDevice && (currentDevice.ip || currentDevice.mac) === key) {
         ddRenderActions(currentDevice);
         if (typeof loadTabContent === 'function') loadTabContent(currentTab);
