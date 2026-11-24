@@ -8,7 +8,44 @@
 {% block content %}
 
         <div class="content">
-            <!-- İstatistik Kartları -->
+            <!-- Filter bar: one row above every chart. Every chart reads the
+                 same cross-filter state (history.js `XF`), so a click in one
+                 chart narrows all the others. -->
+            <section class="hx-filters" aria-label="{{ _('hx_filters') }}">
+                <div class="hx-range" role="radiogroup" aria-label="{{ _('hx_time_range') }}">
+                    <button type="button" class="hx-range__btn" data-range="24h" role="radio">{{ _('hx_range_24h') }}</button>
+                    <button type="button" class="hx-range__btn" data-range="7d" role="radio">{{ _('hx_range_7d') }}</button>
+                    <button type="button" class="hx-range__btn" data-range="30d" role="radio">{{ _('hx_range_30d') }}</button>
+                    <button type="button" class="hx-range__btn" data-range="all" role="radio">{{ _('hx_range_all') }}</button>
+                </div>
+                <label class="hx-select">
+                    <span>{{ _('device_type') }}</span>
+                    <select id="hxType"><option value="">{{ _('all') }}</option></select>
+                </label>
+                <label class="hx-select">
+                    <span>{{ _('vendor') }}</span>
+                    <select id="hxVendor"><option value="">{{ _('all') }}</option></select>
+                </label>
+                <label class="hx-select">
+                    <span>{{ _('hx_severity') }}</span>
+                    <select id="hxSeverity"><option value="">{{ _('all') }}</option></select>
+                </label>
+                <label class="hx-select">
+                    <span>{{ _('status') }}</span>
+                    <select id="hxStatus">
+                        <option value="">{{ _('all') }}</option>
+                        <option value="online">{{ _('online') }}</option>
+                        <option value="offline">{{ _('offline') }}</option>
+                    </select>
+                </label>
+                <button type="button" class="ds-btn ds-btn--ghost ds-btn--sm hx-reset" id="hxReset" hidden>
+                    <svg class="ds-icon ds-icon--sm" aria-hidden="true"><use href="#i-x"/></svg>
+                    <span>{{ _('hx_reset_filters') }}</span>
+                </button>
+            </section>
+            <div class="hx-chips" id="hxChips" aria-live="polite"></div>
+
+            <!-- KPI tiles, recomputed for the active filter -->
             <div class="stats-grid">
                 <div class="stat-card stat-total">
                     <div class="stat-number" id="totalScans">0</div>
@@ -16,11 +53,15 @@
                 </div>
                 <div class="stat-card stat-devices">
                     <div class="stat-number" id="totalDevices">0</div>
-                    <div class="stat-label">{{ _('detected_unique_devices') }}</div>
+                    <div class="stat-label" id="totalDevicesLabel">{{ _('detected_unique_devices') }}</div>
                 </div>
                 <div class="stat-card stat-avg">
                     <div class="stat-number" id="avgDevices">0</div>
-                    <div class="stat-label">{{ _('average_devices_scan') }}</div>
+                    <div class="stat-label" id="avgDevicesLabel">{{ _('hx_avg_online') }}</div>
+                </div>
+                <div class="stat-card stat-alerts">
+                    <div class="stat-number" id="alertCount">0</div>
+                    <div class="stat-label">{{ _('hx_alerts_in_range') }}</div>
                 </div>
                 <div class="stat-card stat-duration">
                     <div class="stat-number" id="lastScanDuration">0s</div>
@@ -28,36 +69,51 @@
                 </div>
             </div>
 
-            <!-- Cihaz Tipleri ve Üretici Dağılımı (Yan Yana) -->
+            <!-- Devices over time. Drag across the plot to zoom every chart to
+                 that window; click a point to pin that scan. -->
+            <div class="chart-container hx-card">
+                <div class="hx-card__head">
+                    <h3 class="chart-title"><svg class="ds-icon" aria-hidden="true"><use href="#i-graph"/></svg><span id="trendTitle">{{ _('hx_devices_over_time') }}</span></h3>
+                    <div class="hx-legend" id="trendLegend"></div>
+                </div>
+                <p class="card-hint">{{ _('hx_trend_hint') }}</p>
+                <div class="hx-plot" id="trendChart"></div>
+            </div>
+
             <div class="charts-row">
-                <div class="chart-container">
-                    <h3 class="chart-title"><svg class="ds-icon" aria-hidden="true"><use href="#i-cpu"/></svg>{{ _('device_types_distribution') }}</h3>
-                    <div class="device-type-chart" id="deviceTypeChart">
-                        <!-- JavaScript ile doldurulacak -->
+                <div class="chart-container hx-card">
+                    <div class="hx-card__head">
+                        <h3 class="chart-title"><svg class="ds-icon" aria-hidden="true"><use href="#i-cpu"/></svg>{{ _('hx_device_types') }}</h3>
                     </div>
+                    <p class="card-hint" id="typeHint"></p>
+                    <div class="hx-bars" id="deviceTypeChart"></div>
                 </div>
-
-                <div class="chart-container">
-                    <h3 class="chart-title"><svg class="ds-icon" aria-hidden="true"><use href="#i-router"/></svg>{{ _('vendor_distribution') }}</h3>
-                    <div class="vendor-chart" id="vendorChart">
-                        <!-- JavaScript ile doldurulacak -->
+                <div class="chart-container hx-card">
+                    <div class="hx-card__head">
+                        <h3 class="chart-title"><svg class="ds-icon" aria-hidden="true"><use href="#i-router"/></svg>{{ _('hx_vendors') }}</h3>
                     </div>
+                    <p class="card-hint" id="vendorHint"></p>
+                    <div class="hx-bars" id="vendorChart"></div>
+                </div>
+            </div>
+
+            <div class="charts-row">
+                <div class="chart-container hx-card">
+                    <div class="hx-card__head">
+                        <h3 class="chart-title"><svg class="ds-icon" aria-hidden="true"><use href="#i-bell"/></svg>{{ _('hx_alerts_over_time') }}</h3>
+                        <div class="hx-legend" id="alertLegend"></div>
+                    </div>
+                    <div class="hx-plot hx-plot--short" id="alertChart"></div>
+                </div>
+                <div class="chart-container hx-card">
+                    <div class="hx-card__head">
+                        <h3 class="chart-title"><svg class="ds-icon" aria-hidden="true"><use href="#i-alert"/></svg>{{ _('hx_alerts_by_rule') }}</h3>
+                    </div>
+                    <div class="hx-bars" id="ruleChart"></div>
                 </div>
             </div>
 
-            <!-- Tarama Trend Grafiği -->
-            <div class="chart-container">
-                <h3 class="chart-title"><svg class="ds-icon" aria-hidden="true"><use href="#i-graph"/></svg>{{ _('scan_trend_chart') }}</h3>
-                <div class="trend-chart-container">
-                    <div class="trend-chart-controls" id="trendChartControls">
-                        <!-- JavaScript ile doldurulacak -->
-                    </div>
-                    <div id="trendChart" class="trend-chart">
-                        <!-- JavaScript ile doldurulacak -->
-                    </div>
-                    <div id="chartTooltip" class="chart-tooltip"></div>
-                </div>
-            </div>
+            <div class="hx-tooltip" id="hxTooltip" role="tooltip" hidden></div>
 
             <!-- Cihaz Erişilebilirlik Şeridi (yalnızca zamanlanmış tarama açıkken) -->
             <div class="chart-container" id="uptimeCard" hidden>

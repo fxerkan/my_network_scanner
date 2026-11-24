@@ -34,6 +34,34 @@ from mynes.security import cve as cve_mod
 log = logging.getLogger(__name__)
 
 
+def history_rows(devices: list) -> list[dict]:
+    """Pure: device records -> the few fields the History cross-filter uses.
+
+    Every value is coerced to a plain string so a stray non-str (an int vendor,
+    a None type) can never break JSON key sorting or the client's grouping.
+    """
+    def s(v, default=""):
+        return str(v).strip() if v not in (None, "") else default
+
+    rows = []
+    for d in devices or []:
+        if not isinstance(d, dict):
+            continue
+        ip, mac = s(d.get("ip")), s(d.get("mac")).lower()
+        rows.append({
+            "key": ip or mac,
+            "ip": ip,
+            "mac": mac,
+            "name": s(d.get("alias")) or s(d.get("hostname")) or ip or mac,
+            "device_type": s(d.get("device_type"), "Unknown"),
+            "vendor": s(d.get("vendor"), "Unknown"),
+            "status": "online" if d.get("status") == "online" else "offline",
+            "location": s(d.get("location")),
+            "last_seen": s(d.get("last_seen")),
+        })
+    return rows
+
+
 def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
     bp = Blueprint("api_v2", __name__, url_prefix="/api")
     monitor = MonitorScheduler(scanner, config_manager)
@@ -118,6 +146,16 @@ def create_api(scanner, config_manager) -> tuple[Blueprint, MonitorScheduler]:
         """Per-device up/warn/down history, one cell per scheduled scan."""
         limit = max(1, min(int(request.args.get("limit", 48)), uptime.CAP))
         return jsonify({**uptime.series(limit), "enabled": monitor.settings()["enabled"]})
+
+    @bp.get("/history/inventory")
+    def history_inventory():
+        """Slim device rows for the History page's cross-filter.
+
+        The charts need type x vendor x status jointly, which the per-scan
+        history (separate type and vendor tallies) cannot give. /get_devices
+        would, but it ships every analysis blob - megabytes for a few fields.
+        """
+        return jsonify(history_rows(_devices()))
 
     # -- alerts -----------------------------------------------------------
     @bp.get("/alerts")
